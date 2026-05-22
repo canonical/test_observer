@@ -15,51 +15,109 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:testcase_dashboard/frontend_config.dart';
+import 'package:testcase_dashboard/models/family_name.dart';
 
 void main() {
   group('parseFrontendConfig', () {
+    final allTabs =
+        FamilyName.values.map((family) => '${family.name}s').toList();
+
+    test('defaults for empty config', () {
+      final config = parseFrontendConfig('');
+
+      expect(config.requireAuthentication, isFalse);
+      expect(config.tabs, allTabs);
+    });
+
+    test('parses complete config', () {
+      final config = parseFrontendConfig(
+        'require_authentication: true\ntabs:\n  - snaps\n  - debs',
+      );
+
+      expect(config.requireAuthentication, isTrue);
+      expect(config.tabs, ['snaps', 'debs']);
+    });
+
+    test('parses only require_authentication', () {
+      final config = parseFrontendConfig('require_authentication: true');
+
+      expect(config.requireAuthentication, isTrue);
+      expect(config.tabs, allTabs);
+    });
+
     test('parses valid single tab', () {
-      expect(parseFrontendConfig('tabs:\n  - images'), ['/images']);
+      final config = parseFrontendConfig('tabs:\n  - images');
+
+      expect(config.requireAuthentication, isFalse);
+      expect(config.tabs, ['images']);
     });
 
     test('parses valid multiple tabs', () {
-      expect(
-        parseFrontendConfig(
-          'tabs:\n  - snaps\n  - debs\n  - charms\n  - images',
-        ),
-        ['/snaps', '/debs', '/charms', '/images'],
+      final config = parseFrontendConfig(
+        'tabs:\n  - snaps\n  - debs\n  - charms\n  - images',
       );
+
+      expect(config.requireAuthentication, isFalse);
+      expect(config.tabs, ['snaps', 'debs', 'charms', 'images']);
     });
 
-    test('returns null for malformed YAML', () {
-      expect(parseFrontendConfig(': [invalid'), isNull);
+    test('defaults for malformed YAML', () {
+      final config = parseFrontendConfig(': [invalid');
+
+      expect(config.requireAuthentication, isFalse);
+      expect(config.tabs, allTabs);
     });
 
-    test('returns null for invalid family name', () {
-      expect(parseFrontendConfig('tabs:\n  - foo'), isNull);
+    test('defaults for invalid family name', () {
+      final config = parseFrontendConfig('tabs:\n  - foo');
+
+      expect(config.requireAuthentication, isFalse);
+      expect(config.tabs, allTabs);
     });
 
-    test('returns null for empty tabs array', () {
-      expect(parseFrontendConfig('tabs: []'), isNull);
+    test('accepts empty tabs array', () {
+      final config = parseFrontendConfig('tabs: []');
+
+      expect(config.requireAuthentication, isFalse);
+      expect(config.tabs, <String>[]);
     });
 
-    test('returns null for plain list YAML', () {
-      expect(parseFrontendConfig('- images'), isNull);
+    test('defaults for plain list YAML', () {
+      final config = parseFrontendConfig('- images');
+
+      expect(config.requireAuthentication, isFalse);
+      expect(config.tabs, allTabs);
     });
 
-    test('returns null for missing tabs key', () {
-      expect(parseFrontendConfig('other:\n  - images'), isNull);
+    test('defaults tabs for missing tabs key', () {
+      final config = parseFrontendConfig('other:\n  - images');
+
+      expect(config.requireAuthentication, isFalse);
+      expect(config.tabs, allTabs);
     });
 
-    test('returns null when any entry is invalid', () {
-      expect(parseFrontendConfig('tabs:\n  - images\n  - invalid'), isNull);
+    test('defaults tabs when any entry is invalid', () {
+      final config = parseFrontendConfig('tabs:\n  - images\n  - invalid');
+
+      expect(config.requireAuthentication, isFalse);
+      expect(config.tabs, allTabs);
     });
 
-    test('parses subset of tabs', () {
-      expect(
-        parseFrontendConfig('tabs:\n  - snaps\n  - images'),
-        ['/snaps', '/images'],
+    test('parses require_authentication', () {
+      final config = parseFrontendConfig(
+        'require_authentication: true\ntabs:\n  - images',
       );
+
+      expect(config.requireAuthentication, isTrue);
+      expect(config.tabs, ['images']);
+    });
+
+    test('preserves require_authentication when tabs has an invalid type', () {
+      final config = parseFrontendConfig(
+        'require_authentication: true\ntabs: snaps',
+      );
+      expect(config.requireAuthentication, isTrue);
+      expect(config.tabs, allTabs);
     });
   });
 }

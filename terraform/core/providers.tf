@@ -1,4 +1,4 @@
-# Copyright 2025 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,23 +15,11 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-# This workflow checks if the contributor has signed the Canonical Contributor Licence Agreement (CLA)
-name: Canonical Contributor Licence Agreement check
-
-on:
-  pull_request:
-    branches: [main]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions: {}
-
-jobs:
-  cla-check:
-    name: Check Canonical Contributor Licence Agreement
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check if CLA signed
-        uses: canonical/has-signed-canonical-cla@1c20438ad54b4d37105e777000545881d2293ba4 # 2.2.0
+terraform {
+  required_providers {
+    juju = {
+      version = ">=1.0.0, <2.0.0"
+      source  = "juju/juju"
+    }
+  }
+}

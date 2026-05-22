@@ -14,22 +14,61 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:dartx/dartx.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'helpers.dart';
 import 'models/family_name.dart';
 import 'frontend_config.dart';
 import 'ui/artefact_page/artefact_page.dart';
 import 'ui/dashboard/dashboard.dart';
 import 'ui/issue_page/issue_page.dart';
 import 'ui/issues_page/issues_page.dart';
+import 'ui/login.dart';
 import 'ui/notifications_page/notifications_page.dart';
 import 'ui/skeleton.dart';
 import 'ui/test_results_page/test_results_page.dart';
+import 'utils/dio.dart';
+
+// We create a separate Dio instance for auth checks
+// because routing runs outside a Riverpod provider context,
+// unlike the general API provider
+final _authCheckDio = createConfiguredDio();
 
 final appRouter = GoRouter(
+  redirect: (context, state) async {
+    if (!frontendConfig.requireAuthentication) {
+      return null;
+    }
+
+    // This will make a network request to the backend API every time
+    // a redirect is evaluated. If this becomes an issue, we can consider caching the auth status
+    final isAuthenticated = await _isUserAuthenticated();
+
+    return getAuthenticationRedirect(
+      requireAuthentication: frontendConfig.requireAuthentication,
+      isAuthenticated: isAuthenticated,
+      destinationUri: state.uri,
+    );
+  },
   routes: [
-    GoRoute(path: '/', redirect: (context, state) => configuredTabs.first),
+    GoRoute(
+      path: AppRoutes.login,
+      pageBuilder: (_, state) => NoTransitionPage(
+        child: LoginPromptPage(
+          returnTo: sanitizeReturnPath(
+            state.uri.queryParameters[AppRoutes.returnToQueryParameter],
+          ),
+        ),
+      ),
+    ),
+    GoRoute(
+      path: '/',
+      redirect: (context, state) => frontendConfig.tabs.isNotEmpty
+          ? '/${frontendConfig.tabs.first}'
+          : AppRoutes.testResults,
+    ),
     ShellRoute(
       builder: (_, __, dashboard) => Skeleton(
         body: dashboard,
@@ -122,6 +161,44 @@ final appRouter = GoRouter(
   ],
 );
 
+Future<bool> _isUserAuthenticated() async {
+  try {
+    final response = await _authCheckDio.get('/v1/users/me');
+    return response.data != null;
+  } on DioException catch (_) {
+    // Fail closed: if auth status cannot be determined, treat as unauthenticated.
+    return false;
+  }
+}
+
+String? getAuthenticationRedirect({
+  required bool requireAuthentication,
+  required bool isAuthenticated,
+  required Uri destinationUri,
+}) {
+  if (!requireAuthentication) {
+    return null;
+  }
+
+  if (!isAuthenticated && destinationUri.path != AppRoutes.login) {
+    final localReturnTo = destinationUri.toString();
+    return Uri(
+      path: AppRoutes.login,
+      queryParameters: {
+        AppRoutes.returnToQueryParameter: localReturnTo,
+      },
+    ).toString();
+  }
+
+  if (isAuthenticated && destinationUri.path == AppRoutes.login) {
+    return sanitizeReturnPath(
+      destinationUri.queryParameters[AppRoutes.returnToQueryParameter],
+    );
+  }
+
+  return null;
+}
+
 enum SortDirection {
   asc,
   desc,
@@ -134,7 +211,10 @@ class CommonQueryParameters {
   static const attachmentRule = 'attachmentRule';
 }
 
+// TODO: Remove family-specific routes
 class AppRoutes {
+  static const login = '/login';
+  static const returnToQueryParameter = 'returnTo';
   static const snaps = '/snaps';
   static const debs = '/debs';
   static const charms = '/charms';

@@ -20,6 +20,9 @@ name: Check for removed URLs
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/check-removed-urls.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

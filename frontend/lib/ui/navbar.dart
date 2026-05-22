@@ -19,18 +19,28 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:yaru/yaru.dart';
 
-import '../providers/api.dart';
 import '../providers/current_user.dart';
 import '../providers/notifications.dart';
 import '../routing.dart';
 import '../frontend_config.dart';
 import 'spacing.dart';
+import '../utils/dio.dart';
 
 const _navbarHeight = 57.0;
 final _navbarSelectedColor = YaruColors.titleBarDark.scale(lightness: 0.07);
 
 TextStyle? _navbarTextStyle(BuildContext context) {
   return Theme.of(context).textTheme.titleMedium?.apply(color: Colors.white);
+}
+
+String _tabDisplayName(String tab) {
+  return switch (tab) {
+    'snaps' => 'Snap Testing',
+    'debs' => 'Deb Testing',
+    'charms' => 'Charm Testing',
+    'images' => 'Image Testing',
+    _ => tab,
+  };
 }
 
 class Navbar extends ConsumerWidget {
@@ -74,10 +84,10 @@ class Navbar extends ConsumerWidget {
             Expanded(
               child: Row(
                 children: [
-                  ...configuredTabs.map(
-                    (route) => _NavbarEntry(
-                      title: familyDisplayName(route),
-                      route: route,
+                  ...frontendConfig.tabs.map(
+                    (tab) => _NavbarEntry(
+                      title: _tabDisplayName(tab),
+                      route: '/$tab',
                     ),
                   ),
                   const Spacer(),
