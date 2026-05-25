@@ -36,6 +36,7 @@ from test_observer.data_access.models_enums import (
     ImageStage,
     NotificationType,
     SnapStage,
+    SolutionStage,
     StageName,
     TestExecutionStatus,
 )
@@ -113,10 +114,24 @@ image_test_request = {
     "ci_link": "http://localhost",
 }
 
+solution_test_request = {
+    "family": "solution",
+    "name": "ubuntu-pro-fips",
+    "version": "1.2.3",
+    "track": "22.04",
+    "source": "ppa:ubuntu-pro/fips",
+    "risk": "stable",
+    "arch": "amd64",
+    "execution_stage": SolutionStage.stable,
+    "environment": "test-lab",
+    "ci_link": "http://localhost",
+    "test_plan": "fips test plan",
+}
+
 
 @pytest.mark.parametrize(
     "start_request",
-    [snap_test_request, deb_test_request, charm_test_request, image_test_request],
+    [snap_test_request, deb_test_request, charm_test_request, image_test_request, solution_test_request],
 )
 class TestFamilyIndependentTests:
     def test_starts_a_test(self, execute: Execute, start_request: dict[str, Any]):
@@ -172,10 +187,11 @@ class TestFamilyIndependentTests:
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
         charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
         image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
 
         team = generator.gen_team(
             name="reviewers",
-            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
         )
         # User is member of this team
         user = generator.gen_user(teams=[team])
@@ -221,9 +237,10 @@ class TestFamilyIndependentTests:
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
         charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
         image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
         team = generator.gen_team(
             name="reviewers",
-            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
         )
         # Create multiple users who can review
         generator.gen_user(email="user1@example.com", teams=[team])
@@ -250,9 +267,10 @@ class TestFamilyIndependentTests:
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
         charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
         image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
         team = generator.gen_team(
             name="reviewers",
-            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
         )
         # Create multiple users who can review
         generator.gen_user(email="user1@example.com", teams=[team])
@@ -303,9 +321,10 @@ class TestFamilyIndependentTests:
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
         charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
         image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
         team = generator.gen_team(
             name="reviewers",
-            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
         )
         # Create 3 users who can review
         generator.gen_user(email="user1@example.com", teams=[team])
@@ -364,9 +383,10 @@ class TestFamilyIndependentTests:
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
         charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
         image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
         team = generator.gen_team(
             name="reviewers",
-            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
         )
         generator.gen_user(email="user1@example.com", teams=[team])
         generator.gen_user(email="user2@example.com", teams=[team])
@@ -435,9 +455,10 @@ class TestFamilyIndependentTests:
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
         charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
         image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
         team = generator.gen_team(
             name="reviewers",
-            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
         )
         # Create 3 users who can review
         _ = generator.gen_user(email="user1@example.com", teams=[team])
@@ -550,10 +571,11 @@ class TestFamilyIndependentTests:
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
         charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
         image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
 
         team = generator.gen_team(
             name="reviewers",
-            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule],
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
         )
         # Create users on the team
         generator.gen_user(email="reviewer1@example.com", teams=[team])
@@ -641,6 +663,8 @@ class TestFamilyIndependentTests:
         assert artefact.track == request.get("track", "")
         assert artefact.series == request.get("series", "")
         assert artefact.repo == request.get("repo", "")
+        assert artefact.source == request.get("source", "")
+        assert artefact.risk == request.get("risk", "")
 
 
 @pytest.mark.parametrize(
@@ -723,6 +747,28 @@ def test_charm_required_fields(execute: Execute, field: str):
 )
 def test_image_required_fields(execute: Execute, field: str):
     request = image_test_request.copy()
+    request.pop(field)
+    response = execute(request)
+
+    assert_fails_validation(response, field, "missing")
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "name",
+        "version",
+        "track",
+        "source",
+        "risk",
+        "arch",
+        "execution_stage",
+        "environment",
+        "test_plan",
+    ],
+)
+def test_solution_required_fields(execute: Execute, field: str):
+    request = solution_test_request.copy()
     request.pop(field)
     response = execute(request)
 
@@ -812,6 +858,16 @@ def test_validates_stage_for_charms(execute: Execute, invalid_stage: StageName):
     assert response.status_code == 422
 
 
+@pytest.mark.parametrize(
+    "invalid_stage",
+    set(StageName) - set(SolutionStage),
+)
+def test_validates_stage_for_solutions(execute: Execute, invalid_stage: StageName):
+    response = execute({**solution_test_request, "execution_stage": invalid_stage})
+
+    assert response.status_code == 422
+
+
 def test_snap_branch_is_part_of_uniqueness(execute: Execute, db_session: Session):
     response = execute(snap_test_request)
     te1 = db_session.get(TestExecution, response.json()["id"])
@@ -866,6 +922,66 @@ def test_deb_with_source_and_stage_fails(execute: Execute):
     response = execute(request)
 
     assert response.status_code == 422
+
+
+def test_solution_includes_track_source_risk_and_stage(execute: Execute, db_session: Session):
+    """Verify that a solution test execution creates an artefact with track, source, risk, and stage."""
+    response = execute(solution_test_request)
+    assert response.status_code == 200
+
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution
+
+    artefact = test_execution.artefact_build.artefact
+    assert artefact.name == solution_test_request["name"]
+    assert artefact.version == solution_test_request["version"]
+    assert artefact.track == solution_test_request["track"]
+    assert artefact.source == solution_test_request["source"]
+    assert artefact.risk == solution_test_request["risk"]
+    assert artefact.stage == solution_test_request["execution_stage"]
+    assert artefact.family == FamilyName.solution
+
+
+def test_solution_track_source_risk_are_part_of_uniqueness(execute: Execute, db_session: Session):
+    """Verify that changing track, source, or risk creates a different artefact."""
+    response = execute(solution_test_request)
+    te1 = db_session.get(TestExecution, response.json()["id"])
+
+    # Different track should create a new artefact
+    request_different_track = {
+        **solution_test_request,
+        "track": "24.04",
+        "ci_link": "http://localhost/1",
+    }
+    response = execute(request_different_track)
+    te2 = db_session.get(TestExecution, response.json()["id"])
+
+    assert te1 and te2
+    assert te1.artefact_build.artefact_id != te2.artefact_build.artefact_id
+
+    # Different source should create a new artefact
+    request_different_source = {
+        **solution_test_request,
+        "source": "ppa:ubuntu-pro/other",
+        "ci_link": "http://localhost/2",
+    }
+    response = execute(request_different_source)
+    te3 = db_session.get(TestExecution, response.json()["id"])
+
+    assert te1 and te3
+    assert te1.artefact_build.artefact_id != te3.artefact_build.artefact_id
+
+    # Different risk should create a new artefact
+    request_different_risk = {
+        **solution_test_request,
+        "risk": "beta",
+        "ci_link": "http://localhost/3",
+    }
+    response = execute(request_different_risk)
+    te4 = db_session.get(TestExecution, response.json()["id"])
+
+    assert te1 and te4
+    assert te1.artefact_build.artefact_id != te4.artefact_build.artefact_id
 
 
 def test_charm_assigned_to_charm_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):

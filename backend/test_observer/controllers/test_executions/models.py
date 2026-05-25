@@ -252,10 +252,11 @@ class StartSolutionTestExecutionRequest(_StartTestExecutionRequest):
         "Examples: 'ppa:team/ppa-name', 'custom-repo', 'internal-source'.",
     )
     risk: str = Field(
+        max_length=200,
         description="Risk level or channel of the solution being tested. "
         "This represents the stability/maturity level of the solution release. "
         "Examples: 'stable', 'candidate', 'beta', 'edge', 'experimental'. "
-        "Use 'stable' for production-ready releases."
+        "Use 'stable' for production-ready releases.",
     )
     execution_stage: SolutionStage = Field(
         description="Distribution channel/risk level of the solution being tested. "
