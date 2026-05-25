@@ -8093,6 +8093,7 @@
           },
           "risk": {
             "type": "string",
+            "maxLength": 200,
             "title": "Risk",
             "description": "Risk level or channel of the solution being tested. This represents the stability/maturity level of the solution release. Examples: 'stable', 'candidate', 'beta', 'edge', 'experimental'. Use 'stable' for production-ready releases."
           },
