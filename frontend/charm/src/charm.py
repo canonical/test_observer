@@ -118,6 +118,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
     def _on_ingress_revoked(self, _: IngressPerAppRevokedEvent) -> None:
         logger.info("Ingress revoked")
+        self._update_backend_relation_data()
 
     def _setup_nginx(self):
         require_nginx_route(
@@ -134,6 +135,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
             self.unit.status = BlockedStatus(reason)
             return
 
+        self.ingress.provide_ingress_requirements(port=int(self.config["port"]))
         self._update_layer_and_restart()
 
     def _config_is_valid(self, config) -> Tuple[bool, Optional[str]]:
@@ -316,10 +318,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         return url
 
     def _update_backend_relation_data(self) -> None:
-        """Update the relation data for the backend relation with the current hostname and port.
-
-        This provides the API/backend data so it's available to the frontend.
-        """
+        """Update the relation data for the backend relation with the URL of the frontend."""
         if not self.unit.is_leader():
             return
 
