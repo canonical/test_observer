@@ -989,6 +989,9 @@
                   },
                   {
                     "$ref": "#/components/schemas/StartImageTestExecutionRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StartSolutionTestExecutionRequest"
                   }
                 ],
                 "title": "Request",
@@ -998,7 +1001,8 @@
                     "snap": "#/components/schemas/StartSnapTestExecutionRequest",
                     "deb": "#/components/schemas/StartDebTestExecutionRequest",
                     "charm": "#/components/schemas/StartCharmTestExecutionRequest",
-                    "image": "#/components/schemas/StartImageTestExecutionRequest"
+                    "image": "#/components/schemas/StartImageTestExecutionRequest",
+                    "solution": "#/components/schemas/StartSolutionTestExecutionRequest"
                   }
                 }
               }
@@ -7528,6 +7532,16 @@
         ],
         "title": "SnapStage"
       },
+      "SolutionStage": {
+        "type": "string",
+        "enum": [
+          "edge",
+          "beta",
+          "candidate",
+          "stable"
+        ],
+        "title": "SolutionStage"
+      },
       "StageName": {
         "type": "string",
         "enum": [
@@ -7982,6 +7996,103 @@
           "execution_stage"
         ],
         "title": "StartSnapTestExecutionRequest"
+      },
+      "StartSolutionTestExecutionRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "User-defined name identifying the artefact under test. Not unique - multiple versions/stages of the same artefact share this name. Examples: 'core22', 'ubuntu-desktop', 'snapd'"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Version identifier of the artefact being tested. Format depends on artefact family - e.g., revisions for charms/snaps, version numbers for debs."
+          },
+          "arch": {
+            "type": "string",
+            "title": "Arch",
+            "description": "CPU architecture where tests will execute. Common values: 'amd64', 'arm64', 'armhf', 's390x', 'ppc64el'"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment",
+            "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
+          },
+          "ci_link": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci Link",
+            "description": "Optional URL linking to the CI job executing these tests. Useful for tracking test runs back to their automation source. Can be omitted."
+          },
+          "test_plan": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Test Plan",
+            "description": "Identifier for the test suite or plan executed. Groups related test results together - e.g., 'certification-24.04', 'smoke-tests', 'full-regression'. The test plan will be auto-created if it doesn't exist."
+          },
+          "initial_status": {
+            "$ref": "#/components/schemas/TestExecutionStatus",
+            "description": "Initial status of the test execution. Default 'IN_PROGRESS' is appropriate for ongoing tests. Use 'COMPLETED' if test results will be uploaded separately.",
+            "default": "IN_PROGRESS"
+          },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links",
+            "description": "Optional list of additional URLs related to this test execution (e.g., bug reports, documentation, related PRs). Can be omitted or left empty."
+          },
+          "needs_assignment": {
+            "type": "boolean",
+            "title": "Needs Assignment",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer. Set to true if test results need human review before the artefact can be promoted. Default false means no review assignment needed.",
+            "default": false
+          },
+          "family": {
+            "type": "string",
+            "const": "solution",
+            "title": "Family"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track",
+            "description": "Solution release track being tested. Tracks represent different versions or streams of the solution. Examples: 'latest' (default), version-based tracks like '1.0', '2.0'. Use 'latest' if unsure."
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Source",
+            "description": "Source identifier for the solution. This identifies the packaging source or origin of the solution. Examples: 'ppa:team/ppa-name', 'custom-repo', 'internal-source'."
+          },
+          "execution_stage": {
+            "$ref": "#/components/schemas/SolutionStage",
+            "description": "Distribution channel/risk level of the solution being tested. Options: 'edge' (cutting-edge updates), 'beta' (pre-release), 'candidate' (release candidate), 'stable' (production). Choose based on where the solution currently resides in the release pipeline."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "arch",
+          "environment",
+          "test_plan",
+          "family",
+          "track",
+          "source",
+          "execution_stage"
+        ],
+        "title": "StartSolutionTestExecutionRequest"
       },
       "StatusUpdateRequest": {
         "properties": {
