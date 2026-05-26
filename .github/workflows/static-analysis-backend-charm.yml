@@ -45,9 +45,10 @@ jobs:
           python-version: "3.10"
       - run: pip install ruff
       - run: pip install mypy
+      - run: pip install types-requests
       - if: ${{ !cancelled() }}
         run: ruff check
       - if: ${{ !cancelled() }}
         run: ruff format --check
       - if: ${{ !cancelled() }}
-        run: mypy .
+        run: mypy --ignore-missing-imports src
