@@ -1141,7 +1141,6 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
         "bug_link": artefact.bug_link,
         "jira_issue": artefact.jira_issue,
-        "risk": artefact.risk,
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
         "created_at": artefact.created_at.isoformat(),
@@ -1444,7 +1443,6 @@ def test_solution_artefacts_with_same_builds_in_different_order_cannot_be_create
         version="1.0",
         track="latest",
         source="my-source",
-        risk="stable",
         bundled_builds=[build2, build1],
     )
 
@@ -1458,7 +1456,6 @@ def test_solution_artefacts_with_same_builds_in_different_order_cannot_be_create
             version="1.0",
             track="latest",
             source="my-source",
-            risk="stable",
             bundled_builds=[build1, build2],
         )
 
@@ -1477,7 +1474,6 @@ def test_solution_artefacts_with_different_builds_are_created(generator: DataGen
         version="1.0",
         track="latest",
         source="my-source",
-        risk="stable",
         bundled_builds=[build1],
     )
 
@@ -1490,7 +1486,6 @@ def test_solution_artefacts_with_different_builds_are_created(generator: DataGen
         version="1.0",
         track="latest",
         source="my-source",
-        risk="stable",
         bundled_builds=[build2],
     )
 
@@ -1512,7 +1507,6 @@ def test_updating_solution_to_have_same_bundled_builds_as_another_is_blocked_by_
         version="1.0",
         track="latest",
         source="my-source",
-        risk="stable",
         bundled_builds=[build1],
     )
 
@@ -1523,7 +1517,6 @@ def test_updating_solution_to_have_same_bundled_builds_as_another_is_blocked_by_
         version="1.0",
         track="latest",
         source="my-source",
-        risk="stable",
         bundled_builds=[build2],
     )
 
@@ -1532,81 +1525,6 @@ def test_updating_solution_to_have_same_bundled_builds_as_another_is_blocked_by_
     with pytest.raises(IntegrityError):
         solution2.bundled_builds = [build1]
         generator._add_object(solution2)
-
-
-def test_artefact_response_includes_risk_field(generator: DataGenerator, test_client: TestClient):
-    """Test that the risk field is included in ArtefactResponse."""
-    # GIVEN a solution artefact with a risk field set
-    artefact = generator.gen_artefact(
-        family=FamilyName.solution,
-        name="test-solution",
-        version="1.0",
-        track="latest",
-        source="test-source",
-        risk="candidate",
-    )
-
-    # WHEN getting the artefact
-    response = make_authenticated_request(
-        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
-        Permission.view_artefact,
-    )
-
-    # THEN the risk field is included in the response
-    assert response.status_code == 200
-    data = response.json()
-    assert "risk" in data
-    assert data["risk"] == "candidate"
-
-
-def test_artefact_patch_updates_risk_field(generator: DataGenerator, test_client: TestClient):
-    """Test that the risk field can be updated via PATCH."""
-    # GIVEN a solution artefact with a risk field
-    artefact = generator.gen_artefact(
-        family=FamilyName.solution,
-        name="test-solution",
-        version="1.0",
-        track="latest",
-        source="test-source",
-        risk="stable",
-    )
-
-    # WHEN patching the artefact with a new risk value
-    response = make_authenticated_request(
-        lambda: test_client.patch(
-            f"/v1/artefacts/{artefact.id}",
-            json={"risk": "candidate"},
-        ),
-        Permission.change_artefact,
-    )
-
-    # THEN the risk field is updated
-    assert response.status_code == 200
-    data = response.json()
-    assert data["risk"] == "candidate"
-
-
-def test_artefact_risk_field_defaults_to_empty_string(generator: DataGenerator, test_client: TestClient):
-    """Test that the risk field defaults to an empty string for non-solution artefacts."""
-    # GIVEN a non-solution artefact
-    artefact = generator.gen_artefact(
-        family=FamilyName.deb,
-        name="test-deb",
-        version="1.0",
-        series="noble",
-    )
-
-    # WHEN getting the artefact
-    response = make_authenticated_request(
-        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
-        Permission.view_artefact,
-    )
-
-    # THEN the risk field defaults to an empty string
-    assert response.status_code == 200
-    data = response.json()
-    assert "risk" in data
-    assert data["risk"] == ""
 
 
 def test_patch_artefact_bundled_builds_set_valid_builds(generator: DataGenerator, test_client: TestClient):
