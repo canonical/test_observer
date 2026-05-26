@@ -251,13 +251,6 @@ class StartSolutionTestExecutionRequest(_StartTestExecutionRequest):
         "This identifies the packaging source or origin of the solution. "
         "Examples: 'ppa:team/ppa-name', 'custom-repo', 'internal-source'.",
     )
-    risk: str = Field(
-        max_length=200,
-        description="Risk level or channel of the solution being tested. "
-        "This represents the stability/maturity level of the solution release. "
-        "Examples: 'stable', 'candidate', 'beta', 'edge', 'experimental'. "
-        "Use 'stable' for production-ready releases.",
-    )
     execution_stage: SolutionStage = Field(
         description="Distribution channel/risk level of the solution being tested. "
         "Options: 'edge' (cutting-edge updates), 'beta' (pre-release), "

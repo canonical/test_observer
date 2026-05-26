@@ -325,7 +325,6 @@ class StartTestExecutionController:
             case StartSolutionTestExecutionRequest():
                 filter_kwargs["track"] = self.request.track
                 filter_kwargs["source"] = self.request.source
-                filter_kwargs["risk"] = self.request.risk
                 filter_kwargs["bundled_builds_hash"] = calculate_bundled_builds_hash([])
 
         self.artefact = get_or_create(

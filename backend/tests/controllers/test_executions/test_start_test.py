@@ -120,7 +120,6 @@ solution_test_request = {
     "version": "1.2.3",
     "track": "22.04",
     "source": "ppa:ubuntu-pro/fips",
-    "risk": "stable",
     "arch": "amd64",
     "execution_stage": SolutionStage.stable,
     "environment": "test-lab",
@@ -664,7 +663,6 @@ class TestFamilyIndependentTests:
         assert artefact.series == request.get("series", "")
         assert artefact.repo == request.get("repo", "")
         assert artefact.source == request.get("source", "")
-        assert artefact.risk == request.get("risk", "")
 
 
 @pytest.mark.parametrize(
@@ -760,7 +758,6 @@ def test_image_required_fields(execute: Execute, field: str):
         "version",
         "track",
         "source",
-        "risk",
         "arch",
         "execution_stage",
         "environment",
@@ -924,8 +921,8 @@ def test_deb_with_source_and_stage_fails(execute: Execute):
     assert response.status_code == 422
 
 
-def test_solution_includes_track_source_risk_and_stage(execute: Execute, db_session: Session):
-    """Verify that a solution test execution creates an artefact with track, source, risk, and stage."""
+def test_solution_includes_track_source_and_stage(execute: Execute, db_session: Session):
+    """Verify that a solution test execution creates an artefact with track, source, and stage."""
     response = execute(solution_test_request)
     assert response.status_code == 200
 
@@ -937,13 +934,12 @@ def test_solution_includes_track_source_risk_and_stage(execute: Execute, db_sess
     assert artefact.version == solution_test_request["version"]
     assert artefact.track == solution_test_request["track"]
     assert artefact.source == solution_test_request["source"]
-    assert artefact.risk == solution_test_request["risk"]
     assert artefact.stage == solution_test_request["execution_stage"]
     assert artefact.family == FamilyName.solution
 
 
-def test_solution_track_source_risk_are_part_of_uniqueness(execute: Execute, db_session: Session):
-    """Verify that changing track, source, or risk creates a different artefact."""
+def test_solution_track_source_stage_are_part_of_uniqueness(execute: Execute, db_session: Session):
+    """Verify that changing track, source, or stage creates a different artefact."""
     response = execute(solution_test_request)
     te1 = db_session.get(TestExecution, response.json()["id"])
 
@@ -971,13 +967,13 @@ def test_solution_track_source_risk_are_part_of_uniqueness(execute: Execute, db_
     assert te1 and te3
     assert te1.artefact_build.artefact_id != te3.artefact_build.artefact_id
 
-    # Different risk should create a new artefact
-    request_different_risk = {
+    # Different stage should create a new artefact
+    request_different_stage = {
         **solution_test_request,
-        "risk": "beta",
+        "execution_stage": "beta",
         "ci_link": "http://localhost/3",
     }
-    response = execute(request_different_risk)
+    response = execute(request_different_stage)
     te4 = db_session.get(TestExecution, response.json()["id"])
 
     assert te1 and te4
