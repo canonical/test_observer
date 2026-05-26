@@ -140,9 +140,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -153,10 +151,6 @@
       "pluginVersion": "12.0.2",
       "targets": [
         {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-PROD-SQA-COS-DEFAULT_0EFEFEB1-E7B2-4DAD-8ED2-96CAF74556E7_MIMIR_0}"
-          },
           "expr": "100 * sum(test_observer_test_results_metadata{family=\"charm\", status=\"PASSED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}) / clamp_min(sum(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}), 1)",
           "instant": true,
           "refId": "A"
@@ -209,9 +203,7 @@
         "orientation": "auto",
         "percentChangeColorMode": "standard",
         "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
+          "calcs": ["lastNotNull"],
           "fields": "",
           "values": false
         },
@@ -224,7 +216,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-PROD-SQA-COS-DEFAULT_0EFEFEB1-E7B2-4DAD-8ED2-96CAF74556E7_MIMIR_0}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "count((100 * sum(test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}) / clamp_min(sum(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}), 1)) > 0)",
           "instant": true,
@@ -303,9 +295,7 @@
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": [
-            "sum"
-          ],
+          "reducer": ["sum"],
           "show": false
         },
         "showHeader": true
@@ -315,7 +305,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-PROD-SQA-COS-DEFAULT_0EFEFEB1-E7B2-4DAD-8ED2-96CAF74556E7_MIMIR_0}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "editorMode": "code",
           "expr": "topk(15, 100 * sum by (artefact_name, neighbor_charm) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")) / clamp_min(sum by (artefact_name, neighbor_charm) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")), 1))",
@@ -425,7 +415,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-PROD-SQA-COS-DEFAULT_0EFEFEB1-E7B2-4DAD-8ED2-96CAF74556E7_MIMIR_0}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "topk(10, sum by (test_name) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")))",
           "format": "table",
@@ -517,7 +507,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-PROD-SQA-COS-DEFAULT_0EFEFEB1-E7B2-4DAD-8ED2-96CAF74556E7_MIMIR_0}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "topk(5, 100 * sum by (artefact_name) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")) / clamp_min(sum by (artefact_name) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")), 1))",
           "format": "table",
@@ -599,9 +589,7 @@
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": [
-            "sum"
-          ],
+          "reducer": ["sum"],
           "show": false
         },
         "showHeader": true,
@@ -612,7 +600,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-PROD-SQA-COS-DEFAULT_0EFEFEB1-E7B2-4DAD-8ED2-96CAF74556E7_MIMIR_0}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "100 * (sum by (artefact_name, neighbor_charm) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=\"PASSED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")) and on (artefact_name, neighbor_charm) (sum by (artefact_name, neighbor_charm) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")) >= 5)) / clamp_min((sum by (artefact_name, neighbor_charm) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")) and on (artefact_name, neighbor_charm) (sum by (artefact_name, neighbor_charm) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")) >= 5)), 1)",
           "format": "table",
@@ -720,9 +708,7 @@
         "footer": {
           "countRows": false,
           "fields": "",
-          "reducer": [
-            "sum"
-          ],
+          "reducer": ["sum"],
           "show": false
         },
         "showHeader": true,
@@ -733,7 +719,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-PROD-SQA-COS-DEFAULT_0EFEFEB1-E7B2-4DAD-8ED2-96CAF74556E7_MIMIR_0}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "topk(20, sum by (test_name, environment_name, test_plan) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")))",
           "format": "table",
@@ -874,7 +860,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "${DS_JUJU_K8S-PROD-SQA-COS-DEFAULT_0EFEFEB1-E7B2-4DAD-8ED2-96CAF74556E7_MIMIR_0}"
+            "uid": "${DS_PROMETHEUS}"
           },
           "expr": "sum by (status) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\"))",
           "legendFormat": "{{status}}",
@@ -886,12 +872,7 @@
     }
   ],
   "schemaVersion": 41,
-  "tags": [
-    "product",
-    "charm",
-    "matrix",
-    "pm"
-  ],
+  "tags": ["product", "charm", "matrix", "pm"],
   "templating": {
     "list": [
       {
@@ -916,7 +897,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_JUJU_K8S-PROD-SQA-COS-DEFAULT_0EFEFEB1-E7B2-4DAD-8ED2-96CAF74556E7_MIMIR_0}"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "label_values(test_observer_test_results_metadata{family=\"charm\"}, track)",
         "includeAll": true,
@@ -950,7 +931,7 @@
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "${DS_JUJU_K8S-PROD-SQA-COS-DEFAULT_0EFEFEB1-E7B2-4DAD-8ED2-96CAF74556E7_MIMIR_0}"
+          "uid": "${DS_PROMETHEUS}"
         },
         "definition": "label_values(test_observer_test_results_metadata{family=\"charm\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\"}, test_plan)",
         "includeAll": true,

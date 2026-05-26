@@ -37,7 +37,10 @@ SPDX-FileCopyrightText = "2024 Canonical Ltd."
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
-path = "backend/charm/src/grafana_dashboards/product_artifact_deepdive.json"
+path = [
+    "backend/charm/src/grafana_dashboards/product_artifact_deepdive.json",
+    "backend/charm/src/grafana_dashboards/charm_compatibility_matrix.json",
+]
 SPDX-FileCopyrightText = "2026 Canonical Ltd."
 SPDX-License-Identifier = "Apache-2.0"
 
