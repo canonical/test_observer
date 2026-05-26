@@ -21,6 +21,7 @@ on:
   pull_request:
     paths:
       - 'backend/**'
+      - '!backend/charm/**'
       - '.github/workflows/static-analysis-backend.yml'
 
 concurrency:
