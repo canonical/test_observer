@@ -15,14 +15,13 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-name: Static Analysis - Frontend
+name: Static Analysis - Frontend Charm
 
 on:
   pull_request:
     paths:
-      - 'frontend/**'
-      - '!frontend/charm/**'
-      - '.github/workflows/static-analysis-frontend.yml'
+      - 'frontend/charm/**'
+      - '.github/workflows/static-analysis-frontend-charm.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,23 +30,24 @@ concurrency:
 permissions: {}
 
 jobs:
-  analyze-frontend:
-    name: Analyze Frontend
-    runs-on: ubuntu-24.04
+  analyze-frontend-charm:
+    name: Analyze Frontend Charm
+    runs-on: ubuntu-22.04
     defaults:
       run:
-        working-directory: frontend
+        working-directory: frontend/charm
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
-      - uses: subosito/flutter-action@fd55f4c5af5b953cc57a2be44cb082c8f6635e8e # v2.21.0
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
-          flutter-version: '3.29.3'
-          channel: 'stable'
-      - run: flutter pub get
-      - run: flutter pub run build_runner build
+          python-version: "3.10"
+      - run: pip install ruff
+      - run: pip install mypy
       - if: ${{ !cancelled() }}
-        run: flutter analyze
+        run: ruff check src
       - if: ${{ !cancelled() }}
-        run: dart format --set-exit-if-changed lib
+        run: ruff format --check src
+      - if: ${{ !cancelled() }}
+        run: mypy --ignore-missing-imports src

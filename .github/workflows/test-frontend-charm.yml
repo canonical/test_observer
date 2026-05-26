@@ -19,15 +19,17 @@ name: Run charm tests
 
 on:
   pull_request:
-    branches:
-      - main
-    paths:
-        - 'frontend/charm/**'
-  push:
-    branches: ["main"]
-    tags: ["v*.*.*"]
     paths:
       - 'frontend/charm/**'
+      - '.github/workflows/test-frontend-charm.yml'
+  push:
+    branches:
+      - main
+    tags: 
+      - 'v*.*.*'
+    paths:
+      - 'frontend/charm/**'
+      - '.github/workflows/test-frontend-charm.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -36,36 +38,6 @@ concurrency:
 permissions: {}
 
 jobs:
-  lint-report:
-    name: Lint and format report
-    runs-on: [self-hosted, linux, large, jammy, x64]
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          persist-credentials: false
-      - name: Install tox
-        run: pip install tox
-      - name: Run tests using tox
-        run: tox -e lint
-    defaults:
-      run:
-        working-directory: ./frontend/charm
-
-  static-analysis:
-    name: Static analysis
-    runs-on: [self-hosted, linux, jammy, x64]
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          persist-credentials: false
-      - name: Install tox
-        run: pip install tox
-      - name: Run tests using tox
-        run: tox -e static
-    defaults:
-      run:
-        working-directory: ./frontend/charm
-
   unit-tests-with-coverage:
     name: Unit tests
     runs-on: [self-hosted, linux, jammy, x64]
