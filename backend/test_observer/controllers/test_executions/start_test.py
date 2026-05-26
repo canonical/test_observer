@@ -38,6 +38,7 @@ from test_observer.data_access.models import (
     TestExecution,
     TestPlan,
     User,
+    calculate_bundled_builds_hash,
 )
 from test_observer.data_access.models_enums import NotificationType
 from test_observer.data_access.queries import match_artefact_considering_specificity
@@ -325,6 +326,7 @@ class StartTestExecutionController:
                 filter_kwargs["track"] = self.request.track
                 filter_kwargs["source"] = self.request.source
                 filter_kwargs["risk"] = self.request.risk
+                filter_kwargs["bundled_builds_hash"] = calculate_bundled_builds_hash([])
 
         self.artefact = get_or_create(
             self.db,
