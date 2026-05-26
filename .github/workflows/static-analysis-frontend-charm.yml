@@ -46,8 +46,8 @@ jobs:
       - run: pip install ruff
       - run: pip install mypy
       - if: ${{ !cancelled() }}
-        run: ruff check
+        run: ruff check src
       - if: ${{ !cancelled() }}
-        run: ruff format --check
+        run: ruff format --check src
       - if: ${{ !cancelled() }}
         run: mypy --ignore-missing-imports src
