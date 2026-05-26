@@ -21,7 +21,7 @@ def upgrade() -> None:
     op.create_index(
         "unique_solution",
         "artefact",
-        ["name", "source", "version", "track", "bundled_builds_hash"],
+        ["name", "source", "version", "track", "stage", "bundled_builds_hash"],
         unique=True,
         postgresql_where=sa.text("family = 'solution'"),
     )

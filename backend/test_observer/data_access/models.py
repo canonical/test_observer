@@ -400,6 +400,7 @@ class Artefact(Base):
             "source",
             "version",
             "track",
+            "stage",
             "bundled_builds_hash",
             postgresql_where=column("family") == FamilyName.solution.name,
             unique=True,
