@@ -325,13 +325,16 @@ class StartTestExecutionController:
             case StartSolutionTestExecutionRequest():
                 filter_kwargs["track"] = self.request.track
                 filter_kwargs["source"] = self.request.source
+                filter_kwargs["stage"] = self.request.execution_stage
                 filter_kwargs["bundled_builds_hash"] = calculate_bundled_builds_hash([])
 
         self.artefact = get_or_create(
             self.db,
             Artefact,
             filter_kwargs=filter_kwargs,
-            creation_kwargs={"stage": self.request.execution_stage},
+            creation_kwargs={"stage": self.request.execution_stage}
+            if not isinstance(self.request, StartSolutionTestExecutionRequest)
+            else {},
         )
 
     def delete_rerun_request(self):
