@@ -6076,17 +6076,6 @@
             ],
             "title": "Jira Issue"
           },
-          "risk": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Risk"
-          },
           "bundled_builds": {
             "anyOf": [
               {
@@ -6278,10 +6267,6 @@
             ],
             "title": "Jira Issue"
           },
-          "risk": {
-            "type": "string",
-            "title": "Risk"
-          },
           "all_environment_reviews_count": {
             "type": "integer",
             "title": "All Environment Reviews Count"
@@ -6336,7 +6321,6 @@
           "created_at",
           "bug_link",
           "jira_issue",
-          "risk",
           "all_environment_reviews_count",
           "completed_environment_reviews_count",
           "assignee"
