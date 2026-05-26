@@ -417,7 +417,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "topk(10, sum by (test_name) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")))",
+          "expr": "topk(10, sum by (test_name) (test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}))",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -509,7 +509,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "topk(5, 100 * sum by (artefact_name) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")) / clamp_min(sum by (artefact_name) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")), 1))",
+          "expr": "topk(5, 100 * sum by (artefact_name) (test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}) / clamp_min(sum by (artefact_name) (test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}), 1))",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -721,7 +721,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "topk(20, sum by (test_name, environment_name, test_plan) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")))",
+          "expr": "topk(20, sum by (test_name, environment_name, test_plan) (test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}))",
           "format": "table",
           "instant": true,
           "refId": "A"
@@ -862,7 +862,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum by (status) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\"))",
+          "expr": "sum by (status) (test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"})",
           "legendFormat": "{{status}}",
           "refId": "A"
         }
