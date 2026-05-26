@@ -322,6 +322,10 @@ class StartTestExecutionController:
                 filter_kwargs["sha256"] = self.request.sha256
                 filter_kwargs["owner"] = self.request.owner
                 filter_kwargs["image_url"] = str(self.request.image_url)
+
+            # In other families, a single artefact will progress through stages,
+            # i.e. move from edge to stable. Solutions are different. Different stages are treated
+            # as different artefacts for solutions.
             case StartSolutionTestExecutionRequest():
                 filter_kwargs["track"] = self.request.track
                 filter_kwargs["source"] = self.request.source
