@@ -509,6 +509,7 @@ class TestObserverBackendCharm(CharmBase):
         if int(self.config["port"]) not in (80, 443):
             url = f"{url}:{self.config['port']}"
         if relation := self.model.get_relation(INGRESS_RELATION_NAME):
+            # TODO: Look into whether this can be replaced with self.ingress.url
             # This should be a JSON string containing a "url" key and value
             ingress_data = relation.data[relation.app].get(INGRESS_RELATION_NAME)
             if ingress_data:

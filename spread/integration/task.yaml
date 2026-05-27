@@ -44,14 +44,16 @@ execute: |
     --config test-observer-api-scheme='http://' \
     --resource frontend-image="${frontend_oci_image}"
 
-  juju wait-for application db --timeout=5m
-
   juju relate backend db
   juju relate backend redis
   juju relate backend frontend
 
   juju wait-for application backend --timeout=5m
   juju wait-for application frontend --timeout=5m
+
+  # Things are weird with the database relation in this test, and the database and/or table schema may not exist
+  # Try sleeping to see if that helps
+  sleep 60
 
   juju run backend/leader add-user launchpad-email=solutions-qa@lists.canonical.com
 
