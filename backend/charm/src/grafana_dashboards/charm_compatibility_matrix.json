@@ -1,8 +1,8 @@
 {
   "__inputs": [
     {
-      "name": "DS_JUJU_K8S-PROD-SQA-COS-DEFAULT_0EFEFEB1-E7B2-4DAD-8ED2-96CAF74556E7_MIMIR_0",
-      "label": "juju_k8s-prod-sqa-cos-default_0efefeb1-e7b2-4dad-8ed2-96caf74556e7_mimir_0",
+      "name": "DS_PROMETHEUS",
+      "label": "Prometheus Datasource",
       "description": "",
       "type": "datasource",
       "pluginId": "prometheus",
@@ -151,6 +151,10 @@
       "pluginVersion": "12.0.2",
       "targets": [
         {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "expr": "100 * sum(test_observer_test_results_metadata{family=\"charm\", status=\"PASSED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}) / clamp_min(sum(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}), 1)",
           "instant": true,
           "refId": "A"
@@ -855,7 +859,6 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "12.0.2",
       "targets": [
         {
           "datasource": {
@@ -943,18 +946,6 @@
         "refresh": 1,
         "regex": ".*/([^/:]+):[^/]+$",
         "type": "query"
-      },
-      {
-        "current": {},
-        "hide": 2,
-        "includeAll": false,
-        "label": "Prometheus Datasource",
-        "name": "DS_PROMETHEUS",
-        "options": [],
-        "query": "prometheus",
-        "refresh": 1,
-        "regex": "",
-        "type": "datasource"
       }
     ]
   },
@@ -965,7 +956,6 @@
   "timepicker": {},
   "timezone": "",
   "title": "Charm Compatibility Matrix",
-  "uid": "b0f21d93-fd27-4a8e-94b0-f7930a940d33",
   "version": 6,
   "weekStart": ""
 }
