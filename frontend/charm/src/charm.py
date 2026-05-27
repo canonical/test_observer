@@ -202,7 +202,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
     def _on_rest_api_relation_broken(self, event):
         logger.debug("REST API relation broken")
-        self._handle_no_api_relation()
+        self._handle_no_api_url()
 
     def _update_layer_and_restart(self, _=None):
         self.unit.status = MaintenanceStatus(f"Updating {self.pebble_service_name} layer")
@@ -210,7 +210,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         if self.container.can_connect():
             self._update_frontend_config()
             self._update_header_image()
-            api_url = self._api_url
+            api_url = self._get_backend_url()
             if api_url:
                 self.container.push(
                     "/etc/nginx/sites-available/test-observer-frontend",
@@ -226,30 +226,11 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 self.container.restart(self.pebble_service_name)
                 self.unit.status = ActiveStatus()
             else:
-                self._handle_no_api_relation()
+                self._handle_no_api_url()
         else:
             self.unit.status = WaitingStatus("Waiting for Pebble for API to set available state")
 
-    @property
-    def _api_url(self) -> str | None:
-        api_relation = self.model.get_relation("test-observer-rest-api")
-
-        if api_relation is None:
-            self._handle_no_api_relation()
-            return None
-
-        relation_data = api_relation.data[api_relation.app]
-        if not relation_data:
-            self.unit.status = WaitingStatus("Waiting for test observer api relation data")
-            return None
-
-        url = relation_data.get("url")
-        if not url:
-            self.unit.status = WaitingStatus("Waiting for test observer api relation url")
-            return None
-        return url
-
-    def _handle_no_api_relation(self):
+    def _handle_no_api_url(self):
         if self.container.can_connect():
             self.container.push(
                 "/etc/nginx/sites-available/test-observer-frontend",
@@ -263,9 +244,8 @@ class TestObserverFrontendCharm(ops.CharmBase):
             )
             self.container.add_layer(self.pebble_service_name, self._pebble_layer, combine=True)
             self.container.restart(self.pebble_service_name)
-            self.unit.status = MaintenanceStatus("test-observer-rest-api relation not connected.")
-        else:
-            self.unit.status = WaitingStatus("Waiting for Pebble for API to set maintenance state")
+
+        self.unit.status = BlockedStatus("No backend URL available")
 
     @property
     def _pebble_layer(self):
