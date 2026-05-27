@@ -87,7 +87,6 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self.framework.observe(self.ingress.on.ready, self._on_ingress_ready)
         self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
 
-
     # TODO: This really needs to handle all possible states
     # and should act as a state-reconciliation function.
     # Presently, it can overwrite statuses set by other handlers.
@@ -106,7 +105,11 @@ class TestObserverFrontendCharm(ops.CharmBase):
             return
 
         if self.model.get_relation("ingress") and self.model.get_relation("nginx-route"):
-            event.add_status(BlockedStatus("Cannot have both ingress and nginx-route relations at the same time"))
+            event.add_status(
+                BlockedStatus(
+                    "Cannot have both ingress and nginx-route relations at the same time"
+                )
+            )
             return
 
         event.add_status(ActiveStatus())
@@ -201,7 +204,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         logger.debug("REST API relation broken")
         self._handle_no_api_relation()
 
-    def _update_layer_and_restart(self, _ = None):
+    def _update_layer_and_restart(self, _=None):
         self.unit.status = MaintenanceStatus(f"Updating {self.pebble_service_name} layer")
 
         if self.container.can_connect():
@@ -304,7 +307,9 @@ class TestObserverFrontendCharm(ops.CharmBase):
                     json_ = json.loads(ingress_data)
                     url = json_.get("url", url)
                 except json.JSONDecodeError:
-                    logger.error("Failed to decode ingress relation data as JSON: %s", ingress_data)
+                    logger.error(
+                        "Failed to decode ingress relation data as JSON: %s", ingress_data
+                    )
                 except Exception as e:
                     logger.error("Unexpected error while parsing ingress relation data: %s", e)
         return url
@@ -327,6 +332,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
         for relation in self.model.relations["test-observer-rest-api"]:
             relation.data[self.app].update(data)
+
 
 if __name__ == "__main__":  # pragma: nocover
     ops.main(TestObserverFrontendCharm)
