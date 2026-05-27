@@ -343,9 +343,6 @@ class Artefact(Base):
     owner: Mapped[str] = mapped_column(String(200), default="")
     image_url: Mapped[str] = mapped_column(String(200), default="")
 
-    # Solution specific field
-    risk: Mapped[str] = mapped_column(String(200), default="")
-
     # Relationships
     builds: Mapped[list["ArtefactBuild"]] = relationship(back_populates="artefact", cascade="all, delete")
     bundled_builds: Mapped[list["ArtefactBuild"]] = relationship(
@@ -403,7 +400,7 @@ class Artefact(Base):
             "source",
             "version",
             "track",
-            "risk",
+            "stage",
             "bundled_builds_hash",
             postgresql_where=column("family") == FamilyName.solution.name,
             unique=True,

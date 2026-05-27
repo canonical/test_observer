@@ -38,6 +38,7 @@ from test_observer.data_access.models import (
     TestExecution,
     TestPlan,
     User,
+    calculate_bundled_builds_hash,
 )
 from test_observer.data_access.models_enums import NotificationType
 from test_observer.data_access.queries import match_artefact_considering_specificity
@@ -54,6 +55,7 @@ from .models import (
     StartDebTestExecutionRequest,
     StartImageTestExecutionRequest,
     StartSnapTestExecutionRequest,
+    StartSolutionTestExecutionRequest,
 )
 from .router import router
 
@@ -86,6 +88,7 @@ class StartTestExecutionController:
             | StartDebTestExecutionRequest
             | StartCharmTestExecutionRequest
             | StartImageTestExecutionRequest
+            | StartSolutionTestExecutionRequest
         ) = Body(discriminator="family"),
         db: Session = Depends(get_db),
     ):
@@ -320,11 +323,22 @@ class StartTestExecutionController:
                 filter_kwargs["owner"] = self.request.owner
                 filter_kwargs["image_url"] = str(self.request.image_url)
 
+            # In other families, a single artefact will progress through stages,
+            # i.e. move from edge to stable. Solutions are different. Different stages are treated
+            # as different artefacts for solutions.
+            case StartSolutionTestExecutionRequest():
+                filter_kwargs["track"] = self.request.track
+                filter_kwargs["source"] = self.request.source
+                filter_kwargs["stage"] = self.request.execution_stage
+                filter_kwargs["bundled_builds_hash"] = calculate_bundled_builds_hash([])
+
         self.artefact = get_or_create(
             self.db,
             Artefact,
             filter_kwargs=filter_kwargs,
-            creation_kwargs={"stage": self.request.execution_stage},
+            creation_kwargs={"stage": self.request.execution_stage}
+            if not isinstance(self.request, StartSolutionTestExecutionRequest)
+            else {},
         )
 
     def delete_rerun_request(self):
