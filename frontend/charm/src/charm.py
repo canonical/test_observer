@@ -315,14 +315,6 @@ class TestObserverFrontendCharm(ops.CharmBase):
                     logger.error("Unexpected error while parsing ingress relation data: %s", e)
         return url
 
-    def _get_backend_url(self) -> str:
-        """Get the backend URL from the relation data."""
-        url = ""
-        if relation := self.model.get_relation("test-observer-rest-api"):
-            url = relation.data[relation.app].get("url", url)
-        logger.debug("%s found the backend URL %s", self.app.name, url)
-        return url
-
     def _update_backend_relation_data(self) -> None:
         """Update the relation data for the backend relation with the URL of the frontend."""
         if not self.unit.is_leader():
