@@ -44,6 +44,8 @@ execute: |
     --config test-observer-api-scheme='http://' \
     --resource frontend-image="${frontend_oci_image}"
 
+  juju wait-for application db --timeout=5m
+
   juju relate backend db
   juju relate backend redis
   juju relate backend frontend
