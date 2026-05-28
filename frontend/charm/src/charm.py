@@ -87,9 +87,6 @@ class TestObserverFrontendCharm(ops.CharmBase):
         if not isinstance(config["port"], int):
             return False, "port must be an integer"
 
-        if not isinstance(config["require-authentication"], bool):
-            return False, "require-authentication must be a boolean"
-
         if int(config["port"]) < 1 or int(config["port"]) > 65535:
             return False, "port must be between 1 and 65535"
 
@@ -102,9 +99,8 @@ class TestObserverFrontendCharm(ops.CharmBase):
         if config["hostname"] == "":
             return False, "hostname must be set"
 
-        for tab in str(config["tabs"]).split(","):
-            if tab.strip() not in ["snaps", "debs", "charms", "images"]:
-                return False, f"invalid tab '{tab.strip()}' in tabs config"
+        if not self._validate_frontend_config(str(config["frontend-config"])):
+            return False, "frontend-config must be valid YAML with the correct structure"
 
         return True, None
 
@@ -115,26 +111,46 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self._update_layer_and_restart(event)
 
     def _update_frontend_config(self):
-        is_valid, _ = self._config_is_valid(self.config)
-        if not is_valid:
-            logger.warning(
-                "Skipping frontend config update due to invalid charm config.\n"
-                "Config:\n%s", self.config,
-            )
+        """
+        Update the frontend configuration file from the charm config's frontend-config option.
+
+        :param validate:
+            Whether to validate the config before updating.
+            Defaults to True, but False can be used if validation has already been done elsewhere.
+        """
+
+        frontend_config = str(self.config.get("frontend-config", ""))
+        if not self._validate_frontend_config(frontend_config):
+            logger.warning("frontend-config YAML is invalid. Skipping update.")
             return
 
-        config: dict[str, bool | list[str]] = {
-            # TODO: Standardize config keys to use dashes instead of underscores
-            "require_authentication": bool(self.config["require-authentication"]),
-            "tabs": [tab.strip() for tab in str(self.config["tabs"]).split(",") if tab.strip()],
-        }
+        frontend_config = yaml.safe_load(frontend_config)
         self.container.push(
             "/usr/share/nginx/html/assets/assets/config.yaml",
-            yaml.dump(config),
+            yaml.dump(frontend_config),
             make_dirs=True,
         )
-
         logger.info("Updated frontend config from charm config")
+
+    def _validate_frontend_config(self, frontend_config: str) -> bool:        
+        # An empty string is considered valid, as it means the frontend will use the default configuration
+        # from the frontend code itself (in the image, not the charm)
+        if not frontend_config:
+            return True
+
+        try:
+            config = yaml.safe_load(frontend_config)
+        except yaml.YAMLError:
+            return False
+
+        if not isinstance(config, dict):
+            return False
+        if "require_authentication" in config and not isinstance(config["require_authentication"], bool):
+            return False        
+        if "tabs" in config and not isinstance(config["tabs"], list):
+            return False
+
+        return True
 
     def _update_header_image(self):
         try:

@@ -68,14 +68,9 @@ config:
       default: "https://"
       type: string
 
-    require-authentication:
-      description: "Whether to require users to log in to access the frontend."
-      default: false
-      type: boolean
-
-    tabs:
-      description: "Comma-separated list of tabs to show in the frontend UI. Valid tabs are 'snaps', 'debs', 'charms' and 'images'."
-      default: "snaps,debs,charms,images"
+    frontend-config:
+      description: "YAML string for frontend configuration. If empty, defaults are used."
+      default: ""
       type: string
 
 resources:
