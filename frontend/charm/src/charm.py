@@ -111,14 +111,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         self._update_layer_and_restart(event)
 
     def _update_frontend_config(self):
-        """
-        Update the frontend configuration file from the charm config's frontend-config option.
-
-        :param validate:
-            Whether to validate the config before updating.
-            Defaults to True, but False can be used if validation has already been done elsewhere.
-        """
-
+        """Update the frontend configuration file from the charm config's frontend-config option."""
         frontend_config = str(self.config.get("frontend-config", ""))
         if not self._validate_frontend_config(frontend_config):
             logger.warning("frontend-config YAML is invalid. Skipping update.")
@@ -132,7 +125,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
         )
         logger.info("Updated frontend config from charm config")
 
-    def _validate_frontend_config(self, frontend_config: str) -> bool:        
+    def _validate_frontend_config(self, frontend_config: str) -> bool:
         # An empty string is considered valid, as it means the frontend will use the default configuration
         # from the frontend code itself (in the image, not the charm)
         if not frontend_config:
@@ -145,8 +138,10 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
         if not isinstance(config, dict):
             return False
-        if "require_authentication" in config and not isinstance(config["require_authentication"], bool):
-            return False        
+        if "require_authentication" in config and not isinstance(
+            config["require_authentication"], bool
+        ):
+            return False
         if "tabs" in config and not isinstance(config["tabs"], list):
             return False
 
