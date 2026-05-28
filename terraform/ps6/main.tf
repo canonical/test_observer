@@ -163,8 +163,7 @@ resource "juju_application" "test-observer-frontend" {
 
   config = {
     hostname                 = var.frontend_hostname
-    require-authentication   = var.frontend_require_authentication
-    tabs                     = var.frontend_tabs
+    frontend-config          = var.frontend_config
     test-observer-api-scheme = var.api_scheme
   }
 
