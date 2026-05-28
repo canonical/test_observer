@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import logging
+import os
 import sys
 from collections import ChainMap
 
@@ -238,7 +239,7 @@ class TestObserverBackendCharm(CharmBase):
         else:
             self.unit.status = WaitingStatus("Waiting for Pebble for Celery")
 
-    def _postgres_relation_data(self) -> dict:
+    def _postgres_relation_data(self) -> dict[str, str]:
         data = self.database.fetch_relation_data()
         logger.debug("Got following database relation data: %s", data)
         for key, val in data.items():
@@ -258,14 +259,15 @@ class TestObserverBackendCharm(CharmBase):
         # All environment variables must be strings, since they are passed to Pebble,
         # and the Pebble environment struct requires strings.
         # Otherwise, we will trigger an ops.pebble.APIError
-        env = {
-            "SENTRY_DSN": self.config["sentry_dsn"],
-            "CELERY_BROKER_URL": self._celery_broker_url,
+        # The explicit str() casts make type checkers happy
+        env: dict[str, str] = {
+            "SENTRY_DSN": str(self.config["sentry_dsn"]),
+            "CELERY_BROKER_URL": str(self._celery_broker_url),
             "SAML_SP_BASE_URL": f"https://{self.config['hostname']}",
-            "ADDITIONAL_CORS_ORIGINS": self.config["additional_cors_origins"],
+            "ADDITIONAL_CORS_ORIGINS": str(self.config["additional_cors_origins"]),
             "FRONTEND_URL": f"https://{self.config['frontend_hostname']}",
-            "SESSIONS_SECRET": self.config["sessions_secret"],
-            "IGNORE_PERMISSIONS": self.config.get("ignore_permissions", ""),
+            "SESSIONS_SECRET": str(self.config["sessions_secret"]),
+            "IGNORE_PERMISSIONS": str(self.config.get("ignore_permissions", "")),
             "ENABLE_ISSUE_SYNC": str(self.config.get("enable_issue_sync", "false")),
             "METRICS_INIT_DAYS": str(self.config.get("metrics_init_days", 30)),
             "METRICS_INIT_ENABLED": str(self.config.get("metrics_init_enabled", True)).lower(),
@@ -275,10 +277,20 @@ class TestObserverBackendCharm(CharmBase):
         }
         # Only set SAML environment variables if IDP metadata URL is provided
         if self.config.get("saml_idp_metadata_url"):
-            env["SAML_IDP_METADATA_URL"] = self.config["saml_idp_metadata_url"]
-            env["SAML_SP_X509_CERT"] = self.config.get("saml_sp_cert", "")
-            env["SAML_SP_KEY"] = self.config.get("saml_sp_key", "")
+            env["SAML_IDP_METADATA_URL"] = str(self.config["saml_idp_metadata_url"])
+            env["SAML_SP_X509_CERT"] = str(self.config.get("saml_sp_cert", ""))
+            env["SAML_SP_KEY"] = str(self.config.get("saml_sp_key", ""))
         env.update(self._postgres_relation_data())
+
+        # The os.environ variables correspond to the values in the Juju model-config,
+        # but they need to be explicitly set in the workload environment for the workload to make use of them.
+        if os.environ.get("JUJU_CHARM_HTTP_PROXY"):
+            env["HTTP_PROXY"] = os.environ["JUJU_CHARM_HTTP_PROXY"]
+        if os.environ.get("JUJU_CHARM_HTTPS_PROXY"):
+            env["HTTPS_PROXY"] = os.environ["JUJU_CHARM_HTTPS_PROXY"]
+        if os.environ.get("JUJU_CHARM_NO_PROXY"):
+            env["NO_PROXY"] = os.environ["JUJU_CHARM_NO_PROXY"]
+
         return env
 
     def _test_observer_rest_api_client_joined(self, event: RelationCreatedEvent) -> None:
