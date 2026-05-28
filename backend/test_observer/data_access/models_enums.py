@@ -21,6 +21,7 @@ class FamilyName(StrEnum):
     deb = "deb"
     charm = "charm"
     image = "image"
+    solution = "solution"
 
 
 class StageName(StrEnum):
@@ -72,6 +73,13 @@ class CharmStage(StrEnum):
 class ImageStage(StrEnum):
     pending = StageName.pending
     current = StageName.current
+
+
+class SolutionStage(StrEnum):
+    edge = StageName.edge
+    beta = StageName.beta
+    candidate = StageName.candidate
+    stable = StageName.stable
 
 
 class TestExecutionStatus(StrEnum):

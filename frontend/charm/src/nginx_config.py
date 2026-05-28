@@ -17,6 +17,7 @@
 
 """Module for generating a NGINX configuration allows for the frontend application to connect to the backend."""
 
+
 def nginx_config(base_uri: str) -> str:
     """Generate nginx configuration for the frontend."""
     return f"""

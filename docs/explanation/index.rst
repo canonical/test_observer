@@ -13,6 +13,18 @@ Test Observer uses specific terminology to describe the different components of 
 
     glossary
 
+
+System workflows
+----------------
+
+Understanding how tests and artefacts flow through Test Observer is key to integrating with the system and interpreting results. This guide explains the complete lifecycle from test submission to artefact approval.
+
+.. toctree::
+    :maxdepth: 1
+
+    test-execution-lifecycle
+
+
 Authentication and authorization
 ---------------------------------
 

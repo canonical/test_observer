@@ -1,0 +1,929 @@
+{
+  "__inputs": [
+    {
+      "name": "prometheusds",
+      "label": "Prometheus Datasource",
+      "description": "",
+      "type": "datasource",
+      "pluginId": "prometheus",
+      "pluginName": "Prometheus"
+    }
+  ],
+  "__elements": {},
+  "__requires": [
+    {
+      "type": "panel",
+      "id": "barchart",
+      "name": "Bar chart",
+      "version": ""
+    },
+    {
+      "type": "grafana",
+      "id": "grafana",
+      "name": "Grafana",
+      "version": "12.0.2"
+    },
+    {
+      "type": "datasource",
+      "id": "prometheus",
+      "name": "Prometheus",
+      "version": "1.0.0"
+    },
+    {
+      "type": "panel",
+      "id": "stat",
+      "name": "Stat",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "table",
+      "name": "Table",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "text",
+      "name": "Text",
+      "version": ""
+    },
+    {
+      "type": "panel",
+      "id": "timeseries",
+      "name": "Time series",
+      "version": ""
+    }
+  ],
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Green means healthy, amber means watch, and red means risk. Use the target, neighbor, stage, and track filters to focus on one charm combination.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "gridPos": {
+        "h": 10,
+        "w": 7,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "**Legend**\n\n- Green = healthy\n- Amber = mixed results\n- Red = risky\n\nSelect a target charm and a neighbor charm to drill into one pair.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "12.0.2",
+      "title": "Legend",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red"
+              },
+              {
+                "color": "orange",
+                "value": 50
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 7,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "expr": "100 * sum(test_observer_test_results{family=\"charm\", status=\"PASSED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}) / clamp_min(sum(test_observer_test_results{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}), 1)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Overall Pass Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "expr": "count((100 * sum(test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}) / clamp_min(sum(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}), 1)) > 0)",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Failing Pairs",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "artefact_name"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Focus this pair",
+                    "url": "?var-target=${__data.fields.artefact_name}&var-neighbor=${__data.fields.neighbor_charm}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 18,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 7,
+      "options": {
+        "cellHeight": "sm",
+        "enablePagination": true,
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "editorMode": "code",
+          "expr": "topk(15, 100 * sum by (artefact_name, neighbor_charm) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")) / clamp_min(sum by (artefact_name, neighbor_charm) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")), 1))",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Worst Pairs",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 9,
+        "x": 7,
+        "y": 4
+      },
+      "id": 5,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "expr": "topk(10, sum by (test_name) (test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}))",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Top Failing Tests",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 10
+      },
+      "id": 4,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.97,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "horizontal",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "expr": "topk(5, 100 * sum by (artefact_name) (test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}) / clamp_min(sum by (artefact_name) (test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}), 1))",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Worst Target Charms",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "description": "Rows are target charms; columns are neighbor charms extracted from test_plan.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "color-background"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red"
+              },
+              {
+                "color": "orange",
+                "value": 75
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "artefact_name\\neighbor_charm"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 249
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 13,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "enablePagination": true,
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "expr": "100 * (sum by (artefact_name, neighbor_charm) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=\"PASSED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")) and on (artefact_name, neighbor_charm) (sum by (artefact_name, neighbor_charm) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")) >= 5)) / clamp_min((sum by (artefact_name, neighbor_charm) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")) and on (artefact_name, neighbor_charm) (sum by (artefact_name, neighbor_charm) (label_replace(test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}, \"neighbor_charm\", \"$1\", \"test_plan\", \".*/([^/:]+):[^/]+$\")) >= 5)), 1)",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Pass Rate Matrix",
+      "transformations": [
+        {
+          "id": "groupingToMatrix",
+          "options": {
+            "columnField": "neighbor_charm",
+            "rowField": "artefact_name",
+            "valueField": "Value"
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "test_plan"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 664
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "environment_name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 276
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "test_name"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 225
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "id": 9,
+      "options": {
+        "cellHeight": "sm",
+        "enablePagination": true,
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "expr": "topk(20, sum by (test_name, environment_name, test_plan) (test_observer_test_results_metadata{family=\"charm\", status=\"FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"}))",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Failing Runs And Test Names",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "includeByName": {},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${prometheusds}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "FAILED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PASSED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "id": 8,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "showPoints": "never",
+        "spanNulls": false,
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (status) (test_observer_test_results_metadata{family=\"charm\", status=~\"PASSED|FAILED\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\", test_plan=~\".*/(${neighbor:regex}):[^/]+$\"})",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Pair Trend Over Time",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 41,
+  "tags": ["product", "charm", "matrix", "pm"],
+  "templating": {
+    "list": [
+      {
+        "allValue": ".*",
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${prometheusds}"
+        },
+        "definition": "label_values(test_observer_test_results_metadata{family=\"charm\"}, artefact_stage)",
+        "includeAll": true,
+        "label": "Stage",
+        "multi": true,
+        "name": "stage",
+        "options": [],
+        "query": "label_values(test_observer_test_results_metadata{family=\"charm\"}, artefact_stage)",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${prometheusds}"
+        },
+        "definition": "label_values(test_observer_test_results_metadata{family=\"charm\"}, track)",
+        "includeAll": true,
+        "label": "Release Track",
+        "multi": true,
+        "name": "track",
+        "options": [],
+        "query": "label_values(test_observer_test_results_metadata{family=\"charm\"}, track)",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${prometheusds}"
+        },
+        "definition": "label_values(test_observer_test_results_metadata{family=\"charm\", artefact_stage=~\"$stage\", track=~\"$track\"}, artefact_name)",
+        "includeAll": true,
+        "label": "Target Charm",
+        "multi": true,
+        "name": "target",
+        "options": [],
+        "query": "label_values(test_observer_test_results_metadata{family=\"charm\", artefact_stage=~\"$stage\", track=~\"$track\"}, artefact_name)",
+        "refresh": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${prometheusds}"
+        },
+        "definition": "label_values(test_observer_test_results_metadata{family=\"charm\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\"}, test_plan)",
+        "includeAll": true,
+        "label": "Neighbor Charm",
+        "multi": true,
+        "name": "neighbor",
+        "options": [],
+        "query": "label_values(test_observer_test_results_metadata{family=\"charm\", artefact_name=~\"$target\", artefact_stage=~\"$stage\", track=~\"$track\"}, test_plan)",
+        "refresh": 1,
+        "regex": ".*/([^/:]+):[^/]+$",
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Charm Compatibility Matrix",
+  "version": 6,
+  "weekStart": ""
+}

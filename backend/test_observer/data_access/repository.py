@@ -32,10 +32,11 @@ def get_artefacts_by_family(
     family: FamilyName,
     load_environment_reviews: bool = False,
     load_builds: bool = False,
+    load_bundled_builds: bool = False,
     order_by_columns: Iterable[Any] | None = None,
 ) -> list[Artefact]:
     """
-    Get all the artefacts
+    Get the most recent instance of every artefact belonging to a given family
 
     :session: DB session
     :family: name of the family
@@ -112,10 +113,31 @@ def get_artefacts_by_family(
                     ),
                 )
 
+            case FamilyName.solution:
+                subquery = (
+                    base_query.add_columns(Artefact.source, Artefact.track)
+                    .group_by(Artefact.source, Artefact.track)
+                    .subquery()
+                )
+
+                query = session.query(Artefact).join(
+                    subquery,
+                    and_(
+                        Artefact.stage == subquery.c.stage,
+                        Artefact.name == subquery.c.name,
+                        Artefact.created_at == subquery.c.max_created,
+                        Artefact.source == subquery.c.source,
+                        Artefact.track == subquery.c.track,
+                    ),
+                )
+
     if load_environment_reviews:
         query = query.options(joinedload(Artefact.builds).joinedload(ArtefactBuild.environment_reviews))
     elif load_builds:
         query = query.options(joinedload(Artefact.builds))
+
+    if load_bundled_builds:
+        query = query.options(joinedload(Artefact.bundled_builds))
 
     if order_by_columns:
         query = query.order_by(*order_by_columns)

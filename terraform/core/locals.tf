@@ -1,4 +1,4 @@
-# Copyright 2025 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,23 +15,23 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-# This workflow checks if the contributor has signed the Canonical Contributor Licence Agreement (CLA)
-name: Canonical Contributor Licence Agreement check
+locals {
+  cos_endpoint_map = {
+    grafana = "grafana-dashboards-provider"
+    mimir   = "send-remote-write"
+    loki    = "send-loki-logs"
+    tempo   = "send-traces"
+  }
 
-on:
-  pull_request:
-    branches: [main]
+  otelcol_relations = {
+    grafana_dashboard = {
+      app_endpoint     = "grafana-dashboard"
+      otelcol_endpoint = "grafana-dashboards-consumer"
+    }
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-permissions: {}
-
-jobs:
-  cla-check:
-    name: Check Canonical Contributor Licence Agreement
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check if CLA signed
-        uses: canonical/has-signed-canonical-cla@1c20438ad54b4d37105e777000545881d2293ba4 # 2.2.0
+    metrics = {
+      app_endpoint     = "metrics-endpoint"
+      otelcol_endpoint = "metrics-endpoint"
+    }
+  }
+}

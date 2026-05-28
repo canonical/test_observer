@@ -56,6 +56,9 @@ When reviewing PRs, **flag any new artefact-specific logic as a blocking issue**
   - Pydantic models for request/response validation
   - Proper HTTP status codes (200, 201, 400, 404, etc.)
   - Authorization checks via dependency injection
+  - Prefer extending existing query parameters over adding new ones when they serve the same purpose. For example, making a search parameter use substring matching rather than introducing a separate `*_contains` parameter.
+  - Question whether a new filter parameter is strictly necessary. Could the caller achieve the same result by using an existing endpoint (e.g., `GET /environments`) and filtering client-side, or by using existing query parameters?
+  - Be sceptical of new filter parameters on already-complex or high-traffic endpoints. The cost in API surface area and query complexity must be justified.
 - **Testing**:
   - New endpoints must have test coverage
   - Use existing test data generators in `tests/data_generator.py`
@@ -100,6 +103,7 @@ When reviewing PRs, **flag any new artefact-specific logic as a blocking issue**
    - Inefficient database queries (N+1, missing indexes)
    - Excessive API calls or missing caching
    - Heavy operations in UI build methods
+   - New query filters on high-traffic or already-heavy endpoints: ask whether the performance impact has been measured and is acceptable
 
 4. **Breaking changes**:
    - API contract changes without versioning
@@ -138,6 +142,7 @@ When reviewing PRs, **flag any new artefact-specific logic as a blocking issue**
 - [ ] Linting passes (backend: ruff, frontend: flutter analyze)
 - [ ] Database migrations are included if schema changed
 - [ ] API changes are properly versioned
+- [ ] New query parameters are necessary and cannot be served by extending existing ones
 - [ ] Documentation is updated if needed
 - [ ] No security vulnerabilities introduced
 - [ ] Error handling is comprehensive

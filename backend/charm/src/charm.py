@@ -289,7 +289,7 @@ class TestObserverBackendCharm(CharmBase):
             logger.debug(f"Setting hostname in data bag for {self.app}: {self.config['hostname']}")
             event.relation.data[self.app].update(
                 {
-                    "hostname": self.config["hostname"],
+                    "hostname": str(self.config["hostname"]),
                     "port": str(self.config["port"]),
                 }
             )
