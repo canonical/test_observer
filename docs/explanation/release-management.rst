@@ -12,8 +12,8 @@ For managing releases in Test Observer, two permanent branches exist: ``stable``
        candidate_commit("candidate") --> another_commit
        candidate_commit --> stable
        stable("stable") --> stable_hotfix
-       another_commit("another commit") --> edge
-       edge("edge")
+       another_commit("another commit") --> main
+       main("edge (main)")
        stable_hotfix(stable-hotfix)
 
 Versioning
