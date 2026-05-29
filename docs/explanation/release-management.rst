@@ -7,14 +7,14 @@ For managing releases in Test Observer, two permanent branches exist: ``stable``
 
 .. mermaid::
 
-  flowchart TD
-       previous_commit("a commit") --> candidate_commit
-       candidate_commit("candidate") --> another_commit
-       candidate_commit --> stable
-       stable("stable") --> stable_hotfix
-       another_commit("another commit") --> main
-       main("edge (main)")
-       stable_hotfix(stable-hotfix)
+   flowchart TD
+      previous_commit("a commit") --> candidate_commit
+      candidate_commit("candidate") --> another_commit
+      candidate_commit --> stable
+      stable("stable") --> stable_hotfix
+      another_commit("another commit") --> main
+      main("edge (main)")
+      stable_hotfix(stable-hotfix)
 
 Versioning
 ----------
