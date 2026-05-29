@@ -1,7 +1,7 @@
 Release management
 ==================
 
-For managing releases in Test Observer, the goal is to have a simple approach that can adapt to the volatile needs of the platform. We have two branches that never go away: ``stable`` and ``main``. Other branches that are used are ``candidate`` and ``stable-hotfix``.
+For managing releases in Test Observer, the goal is to have a simple approach that can adapt to the volatile needs of the platform. We have two branches that never go away: ``stable`` and ``main``. Another branch that will be part of this explanation is ``stable-hotfix``.
 
 ``stable`` is where the latest stable release code is. ``main`` is where the edge code is.
 
@@ -9,25 +9,25 @@ Anyone with control over the ``test_observer`` repository has the authority to c
 
 .. mermaid::
 
-   flowchart TD
-       A( ) --> B
-       B(candidate) --> C
-       B --> F(stable)
-       F --> E
-       C( ) --> D
-       D(edge)
-       E(stable-hotfix)
+  flowchart TD
+       previous_commit("a commit") --> candidate_commit
+       candidate_commit("candidate") --> another_commit
+       candidate_commit --> stable
+       stable("stable") --> stable_hotfix
+       another_commit("another commit") --> edge
+       edge("edge")
+       stable_hotfix(stable-hotfix)
 
 Versioning
 ----------
 
 Versions consist of three values (major, minor, patch) and are created based on the following rules:
 
-- Major (X.y.z): updated when there are breaking changes
-- Minor (x.Y.z): updated when there is new functionality in a backward-compatible manner
-- Patch (x.y.Z): updated when there are backward-compatible bug fixes
+- Major (A.b.c): updated when there are breaking changes
+- Minor (a.B.c): updated when there is new functionality in a backward-compatible manner
+- Patch (a.b.C): updated when there are backward-compatible bug fixes
 
-``stable`` has a version in the format ``stable/x.y.z``. Candidates have the format ``candidate/A.B.C-rcD``, following the stable reference's version. Hotfixes are versioned in the format ``stable-hotfix/a.b.c-d``, following the stable reference's version. The ``-rcD`` and ``-d`` suffixes are used to differentiate candidates and hotfixes from stable releases while still versioning them (e.g., applying two hotfixes to the same stable release).
+``stable`` has a version in the format ``stable/a.b.c``. Candidates have the format ``candidate/A.B.C-rcD``, following the stable reference's version. Hotfixes are versioned in the format ``stable-hotfix/a.b.c-d``, following the stable reference's version. The ``-rcD`` and ``-d`` suffixes are used to differentiate candidates and hotfixes from stable releases while still versioning them (e.g., applying two hotfixes to the same stable release).
 
 Candidates
 ----------
