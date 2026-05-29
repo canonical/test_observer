@@ -25,7 +25,7 @@ Versions consist of three values (major, minor, patch) and are created based on 
 - Minor (a.B.c): updated when there is new functionality in a backward-compatible manner
 - Patch (a.b.C): updated when there are backward-compatible bug fixes
 
-``stable`` has a version in the format ``stable/a.b.c``. Candidates have the format ``candidate/A.B.C-rcD``, following the stable reference's version. Hotfixes are versioned in the format ``stable-hotfix/a.b.c-d``, following the stable reference's version. The ``-rcD`` and ``-d`` suffixes are used to differentiate candidates and hotfixes from stable releases while still versioning them (e.g., applying two hotfixes to the same stable release).
+Stable releases are tagged as ``stable/a.b.c``. Candidates are tagged as ``candidate/a.b.c.-rcD``, using the stable release version as the base. Hotfixes are tagged as ``stable-hotfix/a.b.c-d``, also using the stable release version as the base. The ``-rcD`` and ``-d`` suffixes differentiate candidates and hotfixes from stable releases while still versioning them (for example, applying two hotfixes to the same stable release).
 
 Candidates
 ----------
