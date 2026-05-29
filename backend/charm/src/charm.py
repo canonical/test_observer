@@ -284,12 +284,17 @@ class TestObserverBackendCharm(CharmBase):
 
         # The os.environ variables correspond to the values in the Juju model-config,
         # but they need to be explicitly set in the workload environment for the workload to make use of them.
+        # There also doesn't seem to be a standard for whether these variables should be upper- or lowercase,
+        # so we set both
         if os.environ.get("JUJU_CHARM_HTTP_PROXY"):
             env["HTTP_PROXY"] = os.environ["JUJU_CHARM_HTTP_PROXY"]
+            env["http_proxy"] = os.environ["JUJU_CHARM_HTTP_PROXY"]
         if os.environ.get("JUJU_CHARM_HTTPS_PROXY"):
             env["HTTPS_PROXY"] = os.environ["JUJU_CHARM_HTTPS_PROXY"]
+            env["https_proxy"] = os.environ["JUJU_CHARM_HTTPS_PROXY"]
         if os.environ.get("JUJU_CHARM_NO_PROXY"):
             env["NO_PROXY"] = os.environ["JUJU_CHARM_NO_PROXY"]
+            env["no_proxy"] = os.environ["JUJU_CHARM_NO_PROXY"]
 
         return env
 
