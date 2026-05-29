@@ -1,11 +1,9 @@
 Release management
 ==================
 
-For managing releases in Test Observer, the goal is to have a simple approach that can adapt to the volatile needs of the platform. We have two branches that never go away: ``stable`` and ``main``. Another branch that will be part of this explanation is ``stable-hotfix``.
+For managing releases in Test Observer, two permanent branches exist: ``stable`` and ``main``. Another branch that will be part of this explanation is ``stable-hotfix``.
 
 ``stable`` is where the latest stable release code is. ``main`` is where the edge code is.
-
-Anyone with control over the ``test_observer`` repository has the authority to create and promote stable, candidates or hotfix releases.
 
 .. mermaid::
 
