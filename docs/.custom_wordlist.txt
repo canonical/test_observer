@@ -1,8 +1,4 @@
 # Leave a blank line at the end of this file to support concatenation
-Hotfix
-Hotfixes
-hotfix
-hotfixes
 backend
 Backend
 backend's
@@ -20,6 +16,10 @@ github
 GPG
 GPLv
 gyre
+hotfix
+hotfixes
+Hotfix
+Hotfixes
 https
 hw
 jira
