@@ -20,6 +20,7 @@
 import logging
 import os
 import sys
+import urllib.parse
 from collections import ChainMap
 
 from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
@@ -27,7 +28,12 @@ from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.redis_k8s.v0.redis import RedisRelationCharmEvents, RedisRequires
-from ops import StoredState
+from charms.traefik_k8s.v2.ingress import (
+    IngressPerAppReadyEvent,
+    IngressPerAppRequirer,
+    IngressPerAppRevokedEvent,
+)
+from ops import CollectStatusEvent, StoredState
 from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
@@ -36,6 +42,9 @@ from requests import get
 
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
+
+INGRESS_RELATION_NAME = "ingress"
+INGRESS_CONFLICT_MESSAGE = "Cannot have both ingress and nginx-route relations at the same time"
 
 
 class TestObserverBackendCharm(CharmBase):
@@ -71,6 +80,17 @@ class TestObserverBackendCharm(CharmBase):
             self._on_database_relation_broken,
         )
 
+        # Traefik will default to prefixing routes with <model-name>-<app-name>,
+        # so we need to use strip_prefix=True to remove that and keep the API working with expected routes
+        self.ingress = IngressPerAppRequirer(
+            charm=self,
+            relation_name=INGRESS_RELATION_NAME,
+            port=int(self.config["port"]),
+            strip_prefix=True,
+        )
+        self.framework.observe(self.ingress.on.ready, self._on_ingress_ready)
+        self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
+
         self.framework.observe(
             self.on.test_observer_rest_api_relation_joined,
             self._test_observer_rest_api_client_joined,
@@ -92,6 +112,22 @@ class TestObserverBackendCharm(CharmBase):
         self.framework.observe(
             self.on.promote_user_to_admin_action, self._on_promote_user_to_admin_action
         )
+
+        # The ops framework triggers a CollectStatusEvent at the end of each hook
+        self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
+
+    def _on_ingress_ready(self, event: IngressPerAppReadyEvent) -> None:
+        """Process the ingress URL and provide the hostname where needed."""
+        logger.info("Ingress is ready with url %s", event.url)
+        self._update_api_layer()
+        self._update_celery_layer()
+        self._update_frontend_relation_data()
+
+    def _on_ingress_revoked(self, event: IngressPerAppRevokedEvent) -> None:
+        logger.info("Ingress revoked")
+        self._update_api_layer()
+        self._update_celery_layer()
+        self._update_frontend_relation_data()
 
     def _setup_nginx(self):
         require_nginx_route(
@@ -189,16 +225,12 @@ class TestObserverBackendCharm(CharmBase):
             )
             return
 
-        if self.unit.is_leader():
-            for relation in self.model.relations["test-observer-rest-api"]:
-                host = self.config["hostname"]
-                port = str(self.config["port"])
-                relation.data[self.app].update({"hostname": host, "port": port})
-
+        self.ingress.provide_ingress_requirements(port=int(self.config["port"]))
+        self._update_frontend_relation_data()
         self._update_api_layer(event)
         self._update_celery_layer(event)
 
-    def _update_api_layer(self, event):
+    def _update_api_layer(self, _=None):
         if not self._validate_saml_config():
             self.unit.status = BlockedStatus(
                 "SAML config incomplete: if any SAML setting is provided, "
@@ -220,7 +252,7 @@ class TestObserverBackendCharm(CharmBase):
         else:
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
 
-    def _update_celery_layer(self, _):
+    def _update_celery_layer(self, _=None):
         if not self._validate_saml_config():
             self.unit.status = BlockedStatus(
                 "SAML config incomplete: if any SAML setting is provided, "
@@ -254,7 +286,7 @@ class TestObserverBackendCharm(CharmBase):
         raise SystemExit(0)
 
     @property
-    def _app_environment(self):
+    def _app_environment(self) -> dict[str, str]:
         """This creates a dictionary of environment variables needed by the application."""
         # All environment variables must be strings, since they are passed to Pebble,
         # and the Pebble environment struct requires strings.
@@ -263,9 +295,9 @@ class TestObserverBackendCharm(CharmBase):
         env: dict[str, str] = {
             "SENTRY_DSN": str(self.config["sentry_dsn"]),
             "CELERY_BROKER_URL": str(self._celery_broker_url),
-            "SAML_SP_BASE_URL": f"https://{self.config['hostname']}",
+            "SAML_SP_BASE_URL": self._get_url(),
             "ADDITIONAL_CORS_ORIGINS": str(self.config["additional_cors_origins"]),
-            "FRONTEND_URL": f"https://{self.config['frontend_hostname']}",
+            "FRONTEND_URL": self._get_frontend_url(),
             "SESSIONS_SECRET": str(self.config["sessions_secret"]),
             "IGNORE_PERMISSIONS": str(self.config.get("ignore_permissions", "")),
             "ENABLE_ISSUE_SYNC": str(self.config.get("enable_issue_sync", "false")),
@@ -302,14 +334,9 @@ class TestObserverBackendCharm(CharmBase):
         logger.info(f"Test Observer REST API client joined {event}")
 
     def _test_observer_rest_api_client_changed(self, event: RelationChangedEvent) -> None:
-        if self.unit.is_leader():
-            logger.debug(f"Setting hostname in data bag for {self.app}: {self.config['hostname']}")
-            event.relation.data[self.app].update(
-                {
-                    "hostname": str(self.config["hostname"]),
-                    "port": str(self.config["port"]),
-                }
-            )
+        self._update_frontend_relation_data()
+        self._update_api_layer()
+        self._update_celery_layer()
 
     @property
     def version(self) -> str | None:
@@ -445,6 +472,109 @@ class TestObserverBackendCharm(CharmBase):
             event.set_results({"result": "Promoted successfuly"})
         except ExecError as e:
             event.fail(e.stderr)
+
+    # TODO: This really needs to handle all possible states
+    # and should act as a state-reconciliation function.
+    # For now though, we only use it to handle ingress-related conflicts
+    def _on_collect_unit_status(self, event: CollectStatusEvent) -> None:
+        """Set the unit status based on the current state.
+
+        For example, this can be used to block the charm if config values are missing or invalid,
+        or if there are conflicting relations.
+        The ops framework triggers a CollectStatusEvent at the end of each hook.
+        """
+        has_ingress_conflict = self.model.get_relation("ingress") and self.model.get_relation(
+            "nginx-route"
+        )
+        if has_ingress_conflict:
+            event.add_status(BlockedStatus(INGRESS_CONFLICT_MESSAGE))
+            return
+
+        # For now, we don't want this function to overwrite any status other than BlockedStatus related to ingress conflicts
+        if self.unit.status == BlockedStatus(INGRESS_CONFLICT_MESSAGE):
+            # If the conflict is resolved, we can set the status to active again
+            if not has_ingress_conflict:
+                event.add_status(ActiveStatus())
+            return
+
+    def _get_url(self) -> str:
+        """Get the URL to use for this charm's service."""
+        # By default, we use the hostname and port from the config values,
+        # which is needed for the `nginx-route` relation.
+        port = int(self.config["port"])
+        if port == 443:
+            scheme = "https"
+        else:
+            scheme = "http"
+        url = f"{scheme}://{self.config['hostname']}"
+        if port not in (80, 443):
+            url = f"{url}:{port}"
+
+        # If the ingress relation is present and provides a URL,
+        # that is the authoritative URL, so we use that instead
+        if self.model.get_relation(INGRESS_RELATION_NAME) and self.ingress.url is not None:
+            url = self.ingress.url
+        return url.rstrip("/")
+
+    def _get_frontend_url(self) -> str:
+        """Get the URL of the connected frontend, if any. The frontend URL is needed for CORS checks."""
+        # Default to the config value for backwards compatibility with older charm version
+        # Hardcoding the scheme to https is not ideal, but it is consistent with previous handling
+        url = f"https://{self.config['frontend_hostname']}"
+        if relation := self.model.get_relation("test-observer-rest-api"):
+            url = relation.data[relation.app].get("url", url)
+
+        logger.info("Frontend URL: %s", url)
+        return url.rstrip("/")
+
+    def _update_frontend_relation_data(self):
+        if not self.unit.is_leader():
+            return
+
+        url = self._get_url()
+        hostname, port = self._parse_url_host_and_port(url)
+        if hostname is None or port is None:
+            logger.warning(
+                "Could not parse hostname and port from URL. Skipping relation data update."
+            )
+            return
+
+        # We use hostname and port for backwards compatibility
+        # with frontend charm revisions <= 242, but url is used in newer revisions
+        data = {"hostname": hostname, "port": str(port), "url": url}
+        logger.debug("Updating data bag for %s with\n: %s", self.app, data)
+        for relation in self.model.relations["test-observer-rest-api"]:
+            bag = relation.data[self.app]
+            if any(bag.get(k) != v for k, v in data.items()):
+                bag.update(data)
+
+    def _parse_url_host_and_port(self, url: str) -> tuple[str | None, int | None]:
+        """Parse the hostname and port from a URL."""
+        result = urllib.parse.urlsplit(url)
+        # If hostname is None, the likely candidate is that the scheme is missing,
+        # causing urlsplit to interpret the hostname as a path.
+        hostname = result.hostname
+        if hostname is None:
+            logger.info("No hostname found in URL: %s", url)
+            return (None, None)
+
+        # If port is invalid, e.g. 99999, accessing the .port attribute will raise a ValueError.
+        try:
+            port = result.port
+        except ValueError:
+            logger.info("Invalid port in URL: %s", url)
+            return (hostname, None)
+
+        if port is None:
+            if result.scheme == "http":
+                port = 80
+            elif result.scheme == "https":
+                port = 443
+            else:
+                logger.info("Could not determine port from URL scheme in URL: %s", url)
+                return (hostname, None)
+
+        return (hostname, port)
 
 
 if __name__ == "__main__":  # pragma: nocover
