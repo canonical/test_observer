@@ -544,7 +544,9 @@ class TestObserverBackendCharm(CharmBase):
         data = {"hostname": hostname, "port": str(port), "url": url}
         logger.debug("Updating data bag for %s with\n: %s", self.app, data)
         for relation in self.model.relations["test-observer-rest-api"]:
-            relation.data[self.app].update(data)
+            bag = relation.data[self.app]
+            if any(bag.get(k) != v for k, v in data.items()):
+                bag.update(data)
 
     def _parse_url_host_and_port(self, url: str) -> tuple[str | None, int | None]:
         """Parse the hostname and port from a URL."""

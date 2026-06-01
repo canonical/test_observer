@@ -343,7 +343,9 @@ class TestObserverFrontendCharm(ops.CharmBase):
         data = {"url": url}
         logger.debug("Updating data bag for %s with\n: %s", self.app, data)
         for relation in self.model.relations["test-observer-rest-api"]:
-            relation.data[self.app].update(data)
+            bag = relation.data[self.app]
+            if any(bag.get(k) != v for k, v in data.items()):
+                bag.update(data)
 
 
 if __name__ == "__main__":  # pragma: nocover
