@@ -301,8 +301,9 @@ class TestObserverFrontendCharm(ops.CharmBase):
         or if there are conflicting relations.
         The ops framework triggers a CollectStatusEvent at the end of each hook.
         """
-
-        has_ingress_conflict = self.model.get_relation("ingress") and self.model.get_relation("nginx-route")
+        has_ingress_conflict = self.model.get_relation("ingress") and self.model.get_relation(
+            "nginx-route"
+        )
         if has_ingress_conflict:
             event.add_status(BlockedStatus(INGRESS_CONFLICT_MESSAGE))
             return
@@ -315,7 +316,7 @@ class TestObserverFrontendCharm(ops.CharmBase):
             return
 
     def _get_url(self) -> str:
-        """Get the URL to use for this charm's service"""
+        """Get the URL to use for this charm's service."""
         # By default, we use the hostname and port from the config values,
         # which is needed for the `nginx-route` relation.
         port = int(self.config["port"])

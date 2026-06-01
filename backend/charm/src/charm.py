@@ -33,7 +33,6 @@ from charms.traefik_k8s.v2.ingress import (
     IngressPerAppRequirer,
     IngressPerAppRevokedEvent,
 )
-
 from ops import CollectStatusEvent, StoredState
 from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
 from ops.main import main
@@ -287,7 +286,7 @@ class TestObserverBackendCharm(CharmBase):
         raise SystemExit(0)
 
     @property
-    def _app_environment(self):
+    def _app_environment(self) -> dict[str, str]:
         """This creates a dictionary of environment variables needed by the application."""
         # All environment variables must be strings, since they are passed to Pebble,
         # and the Pebble environment struct requires strings.
@@ -484,8 +483,9 @@ class TestObserverBackendCharm(CharmBase):
         or if there are conflicting relations.
         The ops framework triggers a CollectStatusEvent at the end of each hook.
         """
-
-        has_ingress_conflict = self.model.get_relation("ingress") and self.model.get_relation("nginx-route")
+        has_ingress_conflict = self.model.get_relation("ingress") and self.model.get_relation(
+            "nginx-route"
+        )
         if has_ingress_conflict:
             event.add_status(BlockedStatus(INGRESS_CONFLICT_MESSAGE))
             return
@@ -498,7 +498,7 @@ class TestObserverBackendCharm(CharmBase):
             return
 
     def _get_url(self) -> str:
-        """Get the URL to use for this charm's service"""
+        """Get the URL to use for this charm's service."""
         # By default, we use the hostname and port from the config values,
         # which is needed for the `nginx-route` relation.
         port = int(self.config["port"])
@@ -515,7 +515,7 @@ class TestObserverBackendCharm(CharmBase):
         if self.model.get_relation(INGRESS_RELATION_NAME) and self.ingress.url is not None:
             url = self.ingress.url
         return url.rstrip("/")
-    
+
     def _get_frontend_url(self) -> str:
         """Get the URL of the connected frontend, if any. The frontend URL is needed for CORS checks."""
         # Default to the config value for backwards compatibility with older charm version
@@ -523,10 +523,10 @@ class TestObserverBackendCharm(CharmBase):
         url = f"https://{self.config['frontend_hostname']}"
         if relation := self.model.get_relation("test-observer-rest-api"):
             url = relation.data[relation.app].get("url", url)
-        
+
         logger.info("Frontend URL: %s", url)
         return url.rstrip("/")
-    
+
     def _update_frontend_relation_data(self):
         if not self.unit.is_leader():
             return
@@ -534,7 +534,9 @@ class TestObserverBackendCharm(CharmBase):
         url = self._get_url()
         hostname, port = self._parse_url_host_and_port(url)
         if hostname is None or port is None:
-            logger.warning("Could not parse hostname and port from URL. Skipping relation data update.")
+            logger.warning(
+                "Could not parse hostname and port from URL. Skipping relation data update."
+            )
             return
 
         # We use hostname and port for backwards compatibility
@@ -569,8 +571,9 @@ class TestObserverBackendCharm(CharmBase):
             else:
                 logger.info("Could not determine port from URL scheme in URL: %s", url)
                 return (hostname, None)
-            
+
         return (hostname, port)
+
 
 if __name__ == "__main__":  # pragma: nocover
     main(TestObserverBackendCharm)
