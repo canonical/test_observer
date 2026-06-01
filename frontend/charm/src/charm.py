@@ -25,6 +25,11 @@ from typing import Optional, Tuple
 import ops
 import yaml
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
+from charms.traefik_k8s.v2.ingress import (
+    IngressPerAppReadyEvent,
+    IngressPerAppRequirer,
+    IngressPerAppRevokedEvent,
+)
 from ops.model import (
     ActiveStatus,
     BlockedStatus,
@@ -38,6 +43,9 @@ from ops.pebble import Layer
 from nginx_config import html_503, nginx_503_config, nginx_config
 
 logger = logging.getLogger(__name__)
+
+INGRESS_RELATION_NAME = "ingress"
+INGRESS_CONFLICT_MESSAGE = "Cannot have both ingress and nginx-route relations at the same time"
 
 
 class TestObserverFrontendCharm(ops.CharmBase):
@@ -63,9 +71,32 @@ class TestObserverFrontendCharm(ops.CharmBase):
             self._on_rest_api_relation_broken,
         )
 
-        self._setup_ingress()
+        # Traefik will default to prefixing routes with <model-name>-<app-name>,
+        # so we need to use strip_prefix=True to remove that and keep the API working with expected routes
+        self.ingress = IngressPerAppRequirer(
+            charm=self,
+            relation_name=INGRESS_RELATION_NAME,
+            port=int(self.config["port"]),
+            strip_prefix=True,
+        )
+        self.framework.observe(self.ingress.on.ready, self._on_ingress_ready)
+        self.framework.observe(self.ingress.on.revoked, self._on_ingress_revoked)
 
-    def _setup_ingress(self):
+        self._setup_nginx()
+
+        # The ops framework triggers a CollectStatusEvent at the end of each hook
+        self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
+
+    def _on_ingress_ready(self, event: IngressPerAppReadyEvent) -> None:
+        """Process the ingress URL and provide the hostname where needed."""
+        logger.info("Ingress is ready with url %s", event.url)
+        self._update_backend_relation_data()
+
+    def _on_ingress_revoked(self, event: IngressPerAppRevokedEvent) -> None:
+        logger.info("Ingress revoked")
+        self._update_backend_relation_data()
+
+    def _setup_nginx(self):
         require_nginx_route(
             charm=self,
             service_hostname=self.config["hostname"],
@@ -73,14 +104,16 @@ class TestObserverFrontendCharm(ops.CharmBase):
             service_port=int(self.config["port"]),
         )
 
-    def _on_config_changed(self, event):
+    def _on_config_changed(self, _):
         is_valid, reason = self._config_is_valid(self.config)
 
         if not is_valid:
             self.unit.status = BlockedStatus(reason)
             return
 
-        self._update_layer_and_restart(event)
+        self.ingress.provide_ingress_requirements(port=int(self.config["port"]))
+        self._update_backend_relation_data()
+        self._update_layer_and_restart()
 
     def _config_is_valid(self, config: ConfigData) -> Tuple[bool, Optional[str]]:
         """Validate the provided config."""
@@ -105,10 +138,8 @@ class TestObserverFrontendCharm(ops.CharmBase):
         return True, None
 
     def _on_rest_api_relation_update(self, event):
-        api_hostname = event.relation.data[event.app].get("hostname")
-        api_port = event.relation.data[event.app].get("port")
-        logger.debug(f"API hostname: {api_hostname}, port: {api_port} (app: {event.app})")
-        self._update_layer_and_restart(event)
+        self._update_backend_relation_data()
+        self._update_layer_and_restart()
 
     def _update_frontend_config(self):
         """Update the frontend configuration file from the charm config's frontend-config option."""
@@ -182,7 +213,10 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 self.container.add_layer(
                     self.pebble_service_name, self._pebble_layer, combine=True
                 )
-                self.container.replan()
+                # If only a file like the nginx config is updated, Pebble won't detect a change,
+                # so replan won't trigger a restart, and the new config won't be applied.
+                # As a result, we explicitly restart to ensure the new config is always applied.
+                self.container.restart(self.pebble_service_name)
                 self.unit.status = ActiveStatus()
             else:
                 self._handle_no_api_relation()
@@ -201,6 +235,11 @@ class TestObserverFrontendCharm(ops.CharmBase):
         if not relation_data:
             self.unit.status = WaitingStatus("Waiting for test observer api relation data")
             return None
+
+        # As of revision 351, the backend charm provides the URL directly in the relation data,
+        # so if that is available, we prioritize it
+        if "url" in relation_data:
+            return relation_data["url"]
 
         hostname = relation_data["hostname"]
         port = relation_data["port"]
@@ -251,6 +290,59 @@ class TestObserverFrontendCharm(ops.CharmBase):
                 },
             }
         )
+
+    # TODO: This really needs to handle all possible states
+    # and should act as a state-reconciliation function.
+    # For now though, we only use it to handle ingress-related conflicts
+    def _on_collect_unit_status(self, event: ops.CollectStatusEvent) -> None:
+        """Set the unit status based on the current state.
+
+        For example, this can be used to block the charm if config values are missing or invalid,
+        or if there are conflicting relations.
+        The ops framework triggers a CollectStatusEvent at the end of each hook.
+        """
+
+        has_ingress_conflict = self.model.get_relation("ingress") and self.model.get_relation("nginx-route")
+        if has_ingress_conflict:
+            event.add_status(BlockedStatus(INGRESS_CONFLICT_MESSAGE))
+            return
+
+        # For now, we don't want this function to overwrite any status other than BlockedStatus related to ingress conflicts
+        if self.unit.status == BlockedStatus(INGRESS_CONFLICT_MESSAGE):
+            # If the conflict is resolved, we can set the status to active again
+            if not has_ingress_conflict:
+                event.add_status(ActiveStatus())
+            return
+
+    def _get_url(self) -> str:
+        """Get the URL to use for this charm's service"""
+        # By default, we use the hostname and port from the config values,
+        # which is needed for the `nginx-route` relation.
+        port = int(self.config["port"])
+        if port == 443:
+            scheme = "https"
+        else:
+            scheme = "http"
+        url = f"{scheme}://{self.config['hostname']}"
+        if port not in (80, 443):
+            url = f"{url}:{port}"
+
+        # If the ingress relation is present and provides a URL,
+        # that is the authoritative URL, so we use that instead
+        if self.model.get_relation(INGRESS_RELATION_NAME) and self.ingress.url is not None:
+            url = self.ingress.url
+        return url.rstrip("/")
+
+    def _update_backend_relation_data(self):
+        if not self.unit.is_leader():
+            return
+
+        url = self._get_url()
+        # Prior to revision 242, this charm provided no relation data. Subsequent revisions provide the URL.
+        data = {"url": url}
+        logger.debug("Updating data bag for %s with\n: %s", self.app, data)
+        for relation in self.model.relations["test-observer-rest-api"]:
+            relation.data[self.app].update(data)
 
 
 if __name__ == "__main__":  # pragma: nocover
