@@ -83,7 +83,9 @@ jobs:
 
       - name: Release charms to Charmhub
         run: |
+          # Ensure we're on the candidate tag
           TAG="${{ github.event.inputs.candidate_tag }}"
+          git checkout $TAG
           
           # Login to Charmhub using credentials
           echo "${{ secrets.CHARMHUB_TOKEN }}" | charmcraft login --verbose
@@ -97,8 +99,6 @@ jobs:
           FRONTEND_REVISION=$(charmcraft revisions test-observer-frontend | head -2 | tail -1 | awk '{print $1}')
           charmcraft release test-observer-frontend --revision=$FRONTEND_REVISION --channel=latest/candidate
           echo "Released test-observer-frontend revision $FRONTEND_REVISION to Charmhub candidate channel"
-          
-          echo "Released $TAG charms to Charmhub candidate channel"
 
   deploy-to-staging:
     name: Deploy to Staging
@@ -108,13 +108,14 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-        with:
-          ref: ${{ github.event.inputs.candidate_tag }}
-          persist-credentials: false
-
-      - name: Deploy to staging
+      - name: Trigger staging refresh workflow
         run: |
-          echo "TODO: Implement staging deployment for tag ${{ github.event.inputs.candidate_tag }}"
+          # Trigger the refresh-test-observer-staging workflow in canonical/certification-ops
+          gh workflow run refresh-test-observer-staging.yaml \
+            --repo canonical/certification-ops \
+            --ref main
+          
+          echo "Triggered Test Observer staging refresh"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
