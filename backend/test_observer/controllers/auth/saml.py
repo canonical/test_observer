@@ -198,8 +198,8 @@ async def _prepare_from_fastapi_request(request: Request) -> dict[str, Any]:
     result: dict[str, Any] = {
         "http_host": request.url.hostname,
         "server_port": request.url.port,
-         # request.url reconstructs the full URL using the Host header; avoid relying on it for security checks.
-         # Using request.scope["path"] ensures the script_name is based on the ASGI path (independent of Host).
+        # request.url reconstructs the full URL using the Host header; avoid relying on it for security checks.
+        # Using request.scope["path"] ensures the script_name is based on the ASGI path (independent of Host).
         "script_name": request.scope["path"],
         "post_data": {},
         "get_data": {},
