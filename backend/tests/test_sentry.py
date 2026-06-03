@@ -23,6 +23,9 @@ def test_sentry_initializes_without_error():
     as that would require integration testing with a real Sentry instance.
 
     This test was added after `sentry_sdk.init` broke in a staging deployment following dependency updates.
-    All tests ran without SENTRY_DSN set, which means sentry_sdk.init() was not excercised by tests.
+    All tests ran without SENTRY_DSN set, which means sentry_sdk.init() was not exercised by tests.
     """
-    sentry_sdk.init("https://abc123xyz@o0.ingest.sentry.io/123456")
+    try:
+        sentry_sdk.init("https://abc123xyz@o0.ingest.sentry.io/123456")
+    finally:
+        sentry_sdk.get_client().close()
