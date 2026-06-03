@@ -59,7 +59,12 @@ def get_user_session_browser_friendly(request: Request, db: Session = Depends(ge
     """
 
     # Enforce that this dependency is only used for the /docs endpoint
-    if request.url.path != "/docs":
+    # We use request.scope["path"] instead of request.url.path
+    # because request.scope["path"] ensures the script_name is based on the ASGI path
+    # request.url reconstructs the URL using the Host header
+    # and should be avoided for auth/security checks
+    # See CVE-2026-48710
+    if request.scope["path"] != "/docs":
         return None
 
     if request.method != "GET" and "X-CSRF-Token" not in request.headers:

@@ -40,7 +40,8 @@ async def custom_openapi(request: Request):
         # Get security scopes for all dependencies
         security_scopes: list[Permission] = []
         for dep in route.dependant.dependencies:
-            security_scopes.extend(dep.security_scopes)
+            security_scopes.extend(dep.oauth_scopes)
+
         if len(security_scopes) == 0:
             continue
 
