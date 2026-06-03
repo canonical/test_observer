@@ -59,8 +59,8 @@ def get_user_session_browser_friendly(request: Request, db: Session = Depends(ge
     """
 
     # Enforce that this dependency is only used for the /docs endpoint
-    # request.url is constructed from the Host header, which can be manipulated if proper validation is missing.
-    # Thus, it is more secure to use request.scope["path"] instead, as it cannot be manipulated by the Host header.
+    # request.url reconstructs the full URL using the Host header; avoid relying on it for security checks.
+    # Using request.scope["path"] ensures the script_name is based on the ASGI path (independent of Host).
     if request.scope["path"] != "/docs":
         return None
 
