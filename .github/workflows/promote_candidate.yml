@@ -1,0 +1,143 @@
+# Copyright 2026 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+name: Promote Candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_tag:
+        description: 'Candidate tag to promote to stable (e.g., candidate/1.2.3-rc1)'
+        required: true
+
+permissions: {}
+
+jobs:
+  validate-and-promote:
+    name: Validate and Promote to Stable
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    outputs:
+      stable_tag: ${{ steps.extract-version.outputs.stable_tag }}
+
+    steps:
+      - name: Validate candidate tag format
+        run: |
+          TAG="${{ github.event.inputs.candidate_tag }}"
+          if ! [[ $TAG =~ ^candidate/[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$ ]]; then
+            echo "Error: Invalid candidate tag format: $TAG"
+            echo "Expected format: candidate/a.b.c-rcD (e.g., candidate/1.2.3-rc1)"
+            exit 1
+          fi
+          echo "Tag format validated: $TAG"
+
+      - name: Extract version for stable tag
+        id: extract-version
+        run: |
+          CANDIDATE_TAG="${{ github.event.inputs.candidate_tag }}"
+          # Extract version from candidate/a.b.c-rcD -> a.b.c
+          VERSION=$(echo $CANDIDATE_TAG | sed 's/candidate\/\([0-9]*\.[0-9]*\.[0-9]*\).*/\1/')
+          STABLE_TAG="stable/$VERSION"
+          echo "stable_tag=$STABLE_TAG" >> $GITHUB_OUTPUT
+          echo "Extracted stable tag: $STABLE_TAG"
+
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: main
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Update stable branch and create stable tag
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          
+          # Checkout or create stable branch
+          git fetch origin stable --depth=1 2>/dev/null || true
+          git checkout stable 2>/dev/null || git checkout -b stable
+          
+          # Reset stable to the commit of the candidate tag
+          git reset --hard ${{ github.event.inputs.candidate_tag }}
+          
+          # Push stable branch
+          git push origin stable
+          
+          # Create and push stable tag
+          STABLE_TAG="${{ steps.extract-version.outputs.stable_tag }}"
+          git tag $STABLE_TAG
+          git push origin $STABLE_TAG
+
+  release-to-charmhub:
+    name: Release to Charmhub Stable
+    runs-on: [self-hosted, linux, xlarge, jammy, x64]
+    needs: validate-and-promote
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository at stable tag
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ needs.validate-and-promote.outputs.stable_tag }}
+          persist-credentials: false
+
+      - name: Pack API charm
+        run: |
+          cd backend/charm
+          charmcraft pack
+
+      - name: Pack Frontend charm
+        run: |
+          cd frontend/charm
+          charmcraft pack
+
+      - name: Release charms to Charmhub stable
+        run: |
+          # Login to Charmhub using credentials
+          echo "${{ secrets.CHARMHUB_TOKEN }}" | charmcraft login --verbose
+          
+          # Release API charm to stable channel
+          API_REVISION=$(charmcraft revisions test-observer-api | head -2 | tail -1 | awk '{print $1}')
+          charmcraft release test-observer-api --revision=$API_REVISION --channel=latest/stable
+          echo "Released test-observer-api revision $API_REVISION to Charmhub stable channel"
+          
+          # Release Frontend charm to stable channel
+          FRONTEND_REVISION=$(charmcraft revisions test-observer-frontend | head -2 | tail -1 | awk '{print $1}')
+          charmcraft release test-observer-frontend --revision=$FRONTEND_REVISION --channel=latest/stable
+          echo "Released test-observer-frontend revision $FRONTEND_REVISION to Charmhub stable channel"
+
+  deploy-to-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: release-to-charmhub
+    permissions:
+      contents: read
+
+    steps:
+     - name: Trigger production refresh workflow
+       run: |
+         # Trigger the refresh-test-observer-production workflow in canonical/certification-ops
+         gh workflow run refresh-test-observer-production.yaml \
+           --repo canonical/certification-ops \
+           --ref main
+          
+         echo "Triggered Test Observer production refresh"
+       env:
+         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
