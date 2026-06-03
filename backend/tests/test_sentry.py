@@ -26,6 +26,6 @@ def test_sentry_initializes_without_error():
     All tests ran without SENTRY_DSN set, which means sentry_sdk.init() was not exercised by tests.
     """
     try:
-        sentry_sdk.init("https://abc123xyz@o0.ingest.sentry.io/123456")
+        sentry_sdk.init("https://abc123xyz@test.example/123456")
     finally:
         sentry_sdk.get_client().close()
