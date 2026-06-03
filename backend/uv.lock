@@ -1569,7 +1569,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.33.0,<3.0.0" },
     { name = "sentry-sdk", specifier = "==2.8.0" },
     { name = "sqlalchemy", specifier = ">=2.0.16,<3.0.0" },
-    { name = "starlette", specifier = "==1.0.1" },
+    { name = "starlette", specifier = ">=1.0.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.47.0,<0.48.0" },
 ]
 
