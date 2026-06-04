@@ -499,22 +499,14 @@ class TestObserverBackendCharm(CharmBase):
 
     def _get_url(self) -> str:
         """Get the URL to use for this charm's service."""
-        # By default, we use the hostname and port from the config values,
-        # which is needed for the `nginx-route` relation.
-        port = int(self.config["port"])
-        if port == 443:
-            scheme = "https"
-        else:
-            scheme = "http"
-        url = f"{scheme}://{self.config['hostname']}"
-        if port not in (80, 443):
-            url = f"{url}:{port}"
-
         # If the ingress relation is present and provides a URL,
         # that is the authoritative URL, so we use that instead
         if self.model.get_relation(INGRESS_RELATION_NAME) and self.ingress.url is not None:
-            url = self.ingress.url
-        return url.rstrip("/")
+            return self.ingress.url.rstrip("/")
+
+        # For compatibility with older charm revisions and deployments,
+        # we default to HTTPS with the hostname
+        return f"https://{self.config['hostname']}".rstrip("/")
 
     def _get_frontend_url(self) -> str:
         """Get the URL of the connected frontend, if any. The frontend URL is needed for CORS checks."""
