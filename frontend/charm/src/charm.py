@@ -324,7 +324,11 @@ class TestObserverFrontendCharm(ops.CharmBase):
 
         # For compatibility with older charm revisions and deployments,
         # we default to HTTPS with the hostname
-        return f"https://{self.config['hostname']}".rstrip("/")
+        port = int(self.config["port"])
+        url = f"https://{self.config['hostname']}".rstrip("/")
+        if port not in {80, 443}:
+            url = f"{url}:{port}"
+        return url
 
     def _update_backend_relation_data(self):
         if not self.unit.is_leader():
