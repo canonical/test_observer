@@ -73,7 +73,9 @@ class ArtefactPage extends ConsumerWidget {
                     Visibility(
                       visible: showSide,
                       maintainState: true,
-                      child: ArtefactPageSide(artefact: artefact),
+                      child: SelectionContainer.disabled(
+                        child: ArtefactPageSide(artefact: artefact),
+                      ),
                     ),
                     Expanded(child: ArtefactPageBody(artefact: artefact)),
                   ],
