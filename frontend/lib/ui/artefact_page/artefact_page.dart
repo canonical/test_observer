@@ -55,28 +55,38 @@ class ArtefactPage extends ConsumerWidget {
               ArtefactPageHeader(artefact: artefact),
               const SizedBox(height: Spacing.level4),
               Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Badge(
-                      isLabelVisible: hasActiveFilters,
-                      smallSize: 8,
-                      backgroundColor: YaruColors.orange,
-                      child: YaruOptionButton(
-                        child: const Icon(Icons.filter_alt),
-                        onPressed: () => ref
-                            .read(artefactPageSideVisibilityProvider.notifier)
-                            .set(!showSide),
+                // Split selection into independent sidebar/body regions so drag
+                // selection in one pane does not include text from the other.
+                child: SelectionContainer.disabled(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Badge(
+                        isLabelVisible: hasActiveFilters,
+                        smallSize: 8,
+                        backgroundColor: YaruColors.orange,
+                        child: YaruOptionButton(
+                          child: const Icon(Icons.filter_alt),
+                          onPressed: () => ref
+                              .read(artefactPageSideVisibilityProvider.notifier)
+                              .set(!showSide),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: Spacing.level2),
-                    Visibility(
-                      visible: showSide,
-                      maintainState: true,
-                      child: ArtefactPageSide(artefact: artefact),
-                    ),
-                    Expanded(child: ArtefactPageBody(artefact: artefact)),
-                  ],
+                      const SizedBox(width: Spacing.level2),
+                      Visibility(
+                        visible: showSide,
+                        maintainState: true,
+                        child: SelectionArea(
+                          child: ArtefactPageSide(artefact: artefact),
+                        ),
+                      ),
+                      Expanded(
+                        child: SelectionArea(
+                          child: ArtefactPageBody(artefact: artefact),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

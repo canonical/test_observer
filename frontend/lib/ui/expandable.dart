@@ -25,6 +25,7 @@ class Expandable extends StatelessWidget {
     this.initiallyExpanded = false,
     this.tilePadding,
     this.childrenPadding = const EdgeInsets.only(left: Spacing.level4),
+    this.storageKey,
   });
 
   final List<Widget> children;
@@ -33,9 +34,14 @@ class Expandable extends StatelessWidget {
   final EdgeInsetsGeometry? tilePadding;
   final EdgeInsetsGeometry childrenPadding;
 
+  /// When provided, the expansion state is saved to [PageStorage] under this
+  /// key, so it survives the widget being scrolled out of a lazy list.
+  final Object? storageKey;
+
   @override
   Widget build(BuildContext context) {
     return ExpansionTile(
+      key: storageKey != null ? PageStorageKey(storageKey) : null,
       tilePadding: tilePadding,
       expansionAnimationStyle: AnimationStyle.noAnimation,
       controlAffinity: ListTileControlAffinity.leading,
