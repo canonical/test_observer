@@ -23,3 +23,10 @@ $config['module.enable']['exampleauth'] = true;
 // Local development is served over plain HTTP, so cookies must not be flagged
 // secure (the browser would otherwise drop them on http:// connections).
 $config['session.cookie.secure'] = false;
+
+// The default config uses SameSite=None, which browsers only accept on secure
+// (HTTPS) cookies. Since local dev serves the IdP over plain HTTP with
+// non-secure cookies, SameSite=None would be rejected and the session cookie
+// silently dropped (causing SimpleSAMLphp's "Missing cookie" error). Use Lax,
+// which is valid for non-secure cookies and sufficient for the SAML flow.
+$config['session.cookie.samesite'] = 'Lax';
