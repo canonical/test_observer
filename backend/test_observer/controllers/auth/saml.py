@@ -47,26 +47,9 @@ logger = logging.getLogger("test-observer-backend")
 
 @cache
 def _get_saml_settings() -> dict[str, Any]:
-    # For development with self-signed certificates, disable cert verification by default.
-    # In production, you should either use proper certificates or set SAML_INSECURE_METADATA=false
-    # to enable certificate verification.
-    validate_cert = os.getenv("SAML_INSECURE_METADATA", "true").lower() != "true"
-    
-    # Parse the IdP metadata
-    idp_metadata = OneLogin_Saml2_IdPMetadataParser.parse_remote(SAML_IDP_METADATA_URL, validate_cert=validate_cert)
-    
-    # Allow single-label domains (e.g. the "saml-idp" docker service hostname,
-    # which has no dot/TLD) when validating IdP URLs. This is needed for the
-    # local development setup where the IdP is reached via its compose service name.
-    allow_single_label_domains = os.getenv("SAML_ALLOW_SINGLE_LABEL_DOMAINS", "true").lower() == "true"
-
-    # Start with base settings
-    settings = {
+    return {
         "strict": True,
         "debug": True,
-        "security": {
-            "allowSingleLabelDomains": allow_single_label_domains,
-        },
         "sp": {
             "entityId": f"{SAML_SP_BASE_URL}",
             "assertionConsumerService": {
@@ -81,14 +64,8 @@ def _get_saml_settings() -> dict[str, Any]:
             "x509cert": SAML_SP_X509_CERT,
             "privateKey": SAML_SP_KEY,
         },
+        "idp": OneLogin_Saml2_IdPMetadataParser.parse_remote(SAML_IDP_METADATA_URL)["idp"],
     }
-
-    # Merge the IdP metadata to populate the idp section. The parser already
-    # returns the 'singleSignOnService'/'singleLogoutService' structure that
-    # OneLogin expects, so no further key transformation is needed.
-    settings = OneLogin_Saml2_IdPMetadataParser.merge_settings(settings, idp_metadata)
-
-    return settings
 
 
 @router.get("/login")

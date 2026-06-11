@@ -21,7 +21,7 @@
  * See: https://simplesamlphp.org/docs/stable/simplesamlphp-reference-idp-hosted
  */
 
-$metadata['https://localhost:8443/simplesaml/saml2/idp/metadata.php'] = array(
+$metadata['http://localhost:8080/simplesaml/saml2/idp/metadata.php'] = array(
         'host' => '__DEFAULT__',
 
         'privatekey' => 'server.pem',

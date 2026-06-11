@@ -30,7 +30,7 @@ services:
         condition: service_healthy
     environment:
       DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@test-observer-db:5432/test_observer_db"
-      SAML_IDP_METADATA_URL: "https://saml-idp/simplesaml/saml2/idp/metadata.php"
+      SAML_IDP_METADATA_URL: "http://saml-idp/simplesaml/saml2/idp/metadata.php"
       SEED_DATA: "true"
       DISABLE_PERIODIC_TASKS: "${DISABLE_PERIODIC_TASKS:-false}" # Can be overridden for GitHub CI
       UV_DYNAMIC_VERSIONING_BYPASS: "0.0.0" # this is to be set at image build time for production images
@@ -53,6 +53,8 @@ services:
       - "30001:80" # Adjust the port mapping as needed
     depends_on:
       test-observer-api:
+        condition: service_healthy
+      saml-idp:
         condition: service_healthy
 
   test-observer-db:
@@ -83,14 +85,15 @@ services:
       - ./backend/saml/simplesamlphp/config-override.php:/var/simplesamlphp/config/config-override.php
       - ./backend/saml/simplesamlphp/saml20-idp-hosted.php:/var/simplesamlphp/metadata/saml20-idp-hosted.php
       - ./backend/saml/simplesamlphp/saml20-sp-remote.php:/var/simplesamlphp/metadata/saml20-sp-remote.php
+      - ./backend/saml/simplesamlphp/apache-http.conf:/etc/apache2/sites-enabled/000-default.conf
     environment:
       SSP_ADMIN_PASSWORD: "secret1"
       SSP_APACHE_ALIAS: "simplesaml/"
-      SSP_BASE_URL_PATH: "https://localhost:8443/simplesaml/"
+      SSP_BASE_URL_PATH: "http://localhost:8080/simplesaml/"
       SSP_ENABLE_IDP: "true"
       SSP_SECRET_SALT: "mysalt"
     healthcheck:
-      test: [ "CMD-SHELL", "curl -fk https://localhost/simplesaml/saml2/idp/metadata.php || exit 1" ]
+      test: [ "CMD-SHELL", "curl -f http://localhost/simplesaml/saml2/idp/metadata.php || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5

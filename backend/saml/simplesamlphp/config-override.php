@@ -19,3 +19,7 @@ $config['production'] = false;
 $config['theme.header'] = 'Test Observer IdP';
 $config['enable.saml20-idp'] = true;
 $config['module.enable']['exampleauth'] = true;
+
+// Local development is served over plain HTTP, so cookies must not be flagged
+// secure (the browser would otherwise drop them on http:// connections).
+$config['session.cookie.secure'] = false;
