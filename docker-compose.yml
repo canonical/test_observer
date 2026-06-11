@@ -78,7 +78,6 @@ services:
     image: docker.io/cirrusid/simplesamlphp:v2.5.0
     ports:
       - "8080:80"
-      - "8443:443"
     volumes:
       - ./backend/saml/simplesamlphp/cert:/var/simplesamlphp/cert
       - ./backend/saml/simplesamlphp/authsources.php:/var/simplesamlphp/config/authsources.php
