@@ -15,14 +15,6 @@ SPDX-FileCopyrightText = "2026 Canonical Ltd."
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
-path = [
-    "backend/saml/simplesamlphp/cert/server.crt",
-    "backend/saml/simplesamlphp/cert/server.pem"
-]
-SPDX-FileCopyrightText = "2026 Canonical Ltd."
-SPDX-License-Identifier = "Apache-2.0"
-
-[[annotations]]
 path = "backend/charm/lib/charms/data_platform_libs/v0/data_interfaces.py"
 SPDX-FileCopyrightText = "2023 Canonical Ltd."
 SPDX-License-Identifier = "Apache-2.0"
