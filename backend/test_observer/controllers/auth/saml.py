@@ -14,6 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
+import os
 from datetime import datetime, timedelta
 from functools import cache
 from typing import Any
@@ -46,9 +47,26 @@ logger = logging.getLogger("test-observer-backend")
 
 @cache
 def _get_saml_settings() -> dict[str, Any]:
-    return {
+    # For development with self-signed certificates, disable cert verification by default.
+    # In production, you should either use proper certificates or set SAML_INSECURE_METADATA=false
+    # to enable certificate verification.
+    validate_cert = os.getenv("SAML_INSECURE_METADATA", "true").lower() != "true"
+    
+    # Parse the IdP metadata
+    idp_metadata = OneLogin_Saml2_IdPMetadataParser.parse_remote(SAML_IDP_METADATA_URL, validate_cert=validate_cert)
+    
+    # Allow single-label domains (e.g. the "saml-idp" docker service hostname,
+    # which has no dot/TLD) when validating IdP URLs. This is needed for the
+    # local development setup where the IdP is reached via its compose service name.
+    allow_single_label_domains = os.getenv("SAML_ALLOW_SINGLE_LABEL_DOMAINS", "true").lower() == "true"
+
+    # Start with base settings
+    settings = {
         "strict": True,
         "debug": True,
+        "security": {
+            "allowSingleLabelDomains": allow_single_label_domains,
+        },
         "sp": {
             "entityId": f"{SAML_SP_BASE_URL}",
             "assertionConsumerService": {
@@ -63,8 +81,14 @@ def _get_saml_settings() -> dict[str, Any]:
             "x509cert": SAML_SP_X509_CERT,
             "privateKey": SAML_SP_KEY,
         },
-        "idp": OneLogin_Saml2_IdPMetadataParser.parse_remote(SAML_IDP_METADATA_URL)["idp"],
     }
+
+    # Merge the IdP metadata to populate the idp section. The parser already
+    # returns the 'singleSignOnService'/'singleLogoutService' structure that
+    # OneLogin expects, so no further key transformation is needed.
+    settings = OneLogin_Saml2_IdPMetadataParser.merge_settings(settings, idp_metadata)
+
+    return settings
 
 
 @router.get("/login")
@@ -133,9 +157,21 @@ async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
     return {"message": "Authentication successful"}
 
 
+def _get_launchpad_api() -> LaunchpadAPI:
+    # In local development the SAML test users (e.g. mark@electricdemon.com) do
+    # not exist in Launchpad, so calling the real API fails. Allow swapping in
+    # the in-memory fake (the same one used by scripts/seed_data.py) via an env
+    # var so the dev login flow works end-to-end.
+    if os.getenv("USE_FAKE_LAUNCHPAD_API", "false").lower() == "true":
+        from tests.fake_launchpad_api import FakeLaunchpadAPI
+
+        return FakeLaunchpadAPI()
+    return LaunchpadAPI()
+
+
 def _create_user(db: Session, auth: OneLogin_Saml2_Auth) -> User:
     email = auth.get_nameid()
-    lp_user = LaunchpadAPI().get_user_by_email(email)
+    lp_user = _get_launchpad_api().get_user_by_email(email)
     attributes = auth.get_attributes()
     user = get_or_create(
         db,

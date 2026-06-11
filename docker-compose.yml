@@ -21,23 +21,23 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    # Without host network mode the SAML IdP url will be internal to the docker network
-    # so a redirect request sent to host will not work as the host can't access internal
-    # docker network
-    network_mode: host
+    ports:
+      - "30000:30000"
     depends_on:
       test-observer-db:
         condition: service_healthy
       saml-idp:
         condition: service_healthy
     environment:
-      DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@localhost:5432/test_observer_db"
+      DB_URL: "postgresql+pg8000://test_observer_user:test_observer_password@test-observer-db:5432/test_observer_db"
+      SAML_IDP_METADATA_URL: "https://saml-idp/simplesaml/saml2/idp/metadata.php"
       SEED_DATA: "true"
       DISABLE_PERIODIC_TASKS: "${DISABLE_PERIODIC_TASKS:-false}" # Can be overridden for GitHub CI
       UV_DYNAMIC_VERSIONING_BYPASS: "0.0.0" # this is to be set at image build time for production images
       PYTHONDONTWRITEBYTECODE: "1" # Prevent .pyc files in development
       SESSIONS_HTTPS_ONLY: "false"
       REQUIRE_AUTHENTICATION: "${REQUIRE_AUTHENTICATION:-false}"
+      USE_FAKE_LAUNCHPAD_API: "true"
     volumes:
       # Mount source code from host for development
       - ./backend:/home/app
@@ -73,19 +73,24 @@ services:
       start_period: 30s
 
   saml-idp:
-    image: docker.io/kristophjunge/test-saml-idp
+    image: docker.io/cirrusid/simplesamlphp:v2.5.0
     ports:
-      - "8080:8080"
-      - "8443:8443"
+      - "8080:80"
+      - "8443:443"
     volumes:
-      - ./backend/saml/simplesamlphp/authsources.php:/var/www/simplesamlphp/config/authsources.php
-      - ./backend/saml/simplesamlphp/saml20-idp-hosted.php:/var/www/simplesamlphp/metadata/saml20-idp-hosted.php
+      - ./backend/saml/simplesamlphp/cert:/var/simplesamlphp/cert
+      - ./backend/saml/simplesamlphp/authsources.php:/var/simplesamlphp/config/authsources.php
+      - ./backend/saml/simplesamlphp/config-override.php:/var/simplesamlphp/config/config-override.php
+      - ./backend/saml/simplesamlphp/saml20-idp-hosted.php:/var/simplesamlphp/metadata/saml20-idp-hosted.php
+      - ./backend/saml/simplesamlphp/saml20-sp-remote.php:/var/simplesamlphp/metadata/saml20-sp-remote.php
     environment:
-      SIMPLESAMLPHP_SP_ENTITY_ID: http://localhost:30000
-      SIMPLESAMLPHP_SP_ASSERTION_CONSUMER_SERVICE: http://localhost:30000/v1/auth/saml/acs
-      SIMPLESAMLPHP_SP_SINGLE_LOGOUT_SERVICE: http://localhost:30000/v1/auth/saml/sls
+      SSP_ADMIN_PASSWORD: "secret1"
+      SSP_APACHE_ALIAS: "simplesaml/"
+      SSP_BASE_URL_PATH: "https://localhost:8443/simplesaml/"
+      SSP_ENABLE_IDP: "true"
+      SSP_SECRET_SALT: "mysalt"
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:8080/simplesaml/saml2/idp/metadata.php || exit 1" ]
+      test: [ "CMD-SHELL", "curl -fk https://localhost/simplesaml/saml2/idp/metadata.php || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5

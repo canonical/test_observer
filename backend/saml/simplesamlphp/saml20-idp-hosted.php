@@ -21,7 +21,7 @@
  * See: https://simplesamlphp.org/docs/stable/simplesamlphp-reference-idp-hosted
  */
 
-$metadata['__DYNAMIC:1__'] = array(
+$metadata['https://localhost:8443/simplesaml/saml2/idp/metadata.php'] = array(
         'host' => '__DEFAULT__',
 
         'privatekey' => 'server.pem',
@@ -29,11 +29,15 @@ $metadata['__DYNAMIC:1__'] = array(
 
         'auth' => 'example-userpass',
 
+        // Advertise the emailAddress NameID format in the IdP metadata so the
+        // SP requests it (mirrors the production Canonical SSO IdP).
+        'NameIDFormat' => 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+
         // Use emailAddress NameIdFormat
         'authproc' => [
             100 => [
                 'class' => 'saml:AttributeNameID',
-                'attribute' => 'email',
+                'identifyingAttribute' => 'email',
                 'Format' => 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
             ],
         ],
