@@ -14,7 +14,6 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import logging
-import os
 from datetime import datetime, timedelta
 from functools import cache
 from typing import Any
@@ -31,6 +30,7 @@ from test_observer.common.config import (
     SAML_SP_BASE_URL,
     SAML_SP_KEY,
     SAML_SP_X509_CERT,
+    USE_LOCAL_LOGIN,
 )
 from test_observer.data_access.models import Team, User, UserSession
 from test_observer.data_access.repository import get_or_create
@@ -134,21 +134,13 @@ async def saml_login_callback(request: Request, db: Session = Depends(get_db)):
     return {"message": "Authentication successful"}
 
 
-def _get_launchpad_api() -> LaunchpadAPI:
-    # In local development the SAML test users (e.g. mark@electricdemon.com) do
-    # not exist in Launchpad, so calling the real API fails. Allow swapping in
-    # the in-memory fake (the same one used by scripts/seed_data.py) via an env
-    # var so the dev login flow works end-to-end.
-    if os.getenv("USE_FAKE_LAUNCHPAD_API", "false").lower() == "true":
-        from tests.fake_launchpad_api import FakeLaunchpadAPI
-
-        return FakeLaunchpadAPI()
-    return LaunchpadAPI()
-
-
 def _create_user(db: Session, auth: OneLogin_Saml2_Auth) -> User:
     email = auth.get_nameid()
-    lp_user = _get_launchpad_api().get_user_by_email(email)
+    lp_user = None
+    if not USE_LOCAL_LOGIN:
+        lp_user = LaunchpadAPI().get_user_by_email(email)
+    else:
+        logger.warning("USE_LOCAL_LOGIN is enabled, skipping Launchpad user lookup for email %s", email)
     attributes = auth.get_attributes()
     user = get_or_create(
         db,

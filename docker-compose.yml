@@ -37,7 +37,7 @@ services:
       PYTHONDONTWRITEBYTECODE: "1" # Prevent .pyc files in development
       SESSIONS_HTTPS_ONLY: "false"
       REQUIRE_AUTHENTICATION: "${REQUIRE_AUTHENTICATION:-false}"
-      USE_FAKE_LAUNCHPAD_API: "true"
+      USE_LOCAL_LOGIN: "${USE_LOCAL_LOGIN:-true}"
     volumes:
       # Mount source code from host for development
       - ./backend:/home/app
@@ -85,12 +85,13 @@ services:
       - ./backend/saml/simplesamlphp/saml20-idp-hosted.php:/var/simplesamlphp/metadata/saml20-idp-hosted.php
       - ./backend/saml/simplesamlphp/saml20-sp-remote.php:/var/simplesamlphp/metadata/saml20-sp-remote.php
       - ./backend/saml/simplesamlphp/apache-http.conf:/etc/apache2/sites-enabled/000-default.conf
+      - ./backend/saml/simplesamlphp/generate-certs.sh:/opt/simplesaml/run-on-start.sh
     environment:
-      SSP_ADMIN_PASSWORD: "secret1"
+      SSP_ADMIN_PASSWORD: "${SSP_ADMIN_PASSWORD:-secret1}"
       SSP_APACHE_ALIAS: "simplesaml/"
       SSP_BASE_URL_PATH: "http://localhost:8080/simplesaml/"
       SSP_ENABLE_IDP: "true"
-      SSP_SECRET_SALT: "mysalt"
+      SSP_SECRET_SALT: "${SSP_SECRET_SALT:-mysalt}"
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://localhost/simplesaml/saml2/idp/metadata.php || exit 1" ]
       interval: 10s

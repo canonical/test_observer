@@ -13,17 +13,4 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-# Serve SimpleSAMLphp over plain HTTP for local development.
-#
-# The upstream image only exposes the /simplesaml alias on the HTTPS (:443)
-# virtual host. This replaces the default :80 virtual host so the IdP is also
-# reachable over HTTP, avoiding self-signed certificate warnings in the browser
-# during local development.
-<VirtualHost *:80>
-    DocumentRoot /var/www/
-    Alias /simplesaml /var/simplesamlphp/public/
-
-    <Directory /var/simplesamlphp/public>
-        Require all granted
-    </Directory>
-</VirtualHost>
+# This directory is intended to hold auto-generated certs for local development.

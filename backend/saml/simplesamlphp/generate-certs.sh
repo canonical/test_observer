@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright 2026 Canonical Ltd.
 #
 # This program is free software: you can redistribute it and/or modify
@@ -13,17 +15,17 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-# Serve SimpleSAMLphp over plain HTTP for local development.
-#
-# The upstream image only exposes the /simplesaml alias on the HTTPS (:443)
-# virtual host. This replaces the default :80 virtual host so the IdP is also
-# reachable over HTTP, avoiding self-signed certificate warnings in the browser
-# during local development.
-<VirtualHost *:80>
-    DocumentRoot /var/www/
-    Alias /simplesaml /var/simplesamlphp/public/
+# Generate a self-signed SAML keypair for local development if not already present.
+set -e
 
-    <Directory /var/simplesamlphp/public>
-        Require all granted
-    </Directory>
-</VirtualHost>
+CERT_DIR=/var/simplesamlphp/cert
+
+if [ ! -f "${CERT_DIR}/server.pem" ]; then
+    openssl req -newkey rsa:2048 -new -x509 -days 3652 -nodes \
+        -out "${CERT_DIR}/server.crt" \
+        -keyout "${CERT_DIR}/server.pem" \
+        -subj '/C=NA/ST=NA/L=NA/O=TestObserver/OU=Dev/CN=localhost'
+    chmod 644 "${CERT_DIR}/server.crt"
+    chmod 640 "${CERT_DIR}/server.pem"
+    chown root:www-data "${CERT_DIR}/server.pem"
+fi
