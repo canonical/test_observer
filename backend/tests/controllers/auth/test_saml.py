@@ -352,7 +352,7 @@ class TestCreateUserLaunchpadLogin:
             handle="john-doe",
             email="john.doe@canonical.com",
             name="John Doe",
-            teams=["canonical", "hw-cert"],
+            teams=["team-1", "team-2"],
         )
         launchpad_instance = MagicMock()
         launchpad_instance.get_user_by_email.return_value = lp_user
