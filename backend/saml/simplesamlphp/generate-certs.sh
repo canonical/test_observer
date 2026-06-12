@@ -20,7 +20,7 @@ set -e
 
 CERT_DIR=/var/simplesamlphp/cert
 
-if [ ! -f "${CERT_DIR}/server.pem" ]; then
+if [ ! -f "${CERT_DIR}/server.pem" ] || [ ! -f "${CERT_DIR}/server.crt" ]; then
     openssl req -newkey rsa:2048 -new -x509 -days 3652 -nodes \
         -out "${CERT_DIR}/server.crt" \
         -keyout "${CERT_DIR}/server.pem" \

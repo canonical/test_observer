@@ -27,7 +27,7 @@ import requests
 from sqlalchemy.orm import Session
 from urllib3.connectionpool import ConnectionPool
 
-from test_observer.common.config import SESSIONS_SECRET
+from test_observer.common.config import SESSIONS_SECRET, USE_LOCAL_LOGIN
 from test_observer.controllers.auth import saml
 from test_observer.data_access.models import Team, User, UserSession
 from test_observer.data_access.repository import get_or_create
@@ -49,7 +49,8 @@ def _idp_rewrite_target() -> str | None:
     public address is unreachable (running inside the api container).
     """
     try:
-        requests.get(f"http://{IDP_PUBLIC_NETLOC}/simplesaml/", timeout=2, allow_redirects=False)
+        resp = requests.get(f"http://{IDP_PUBLIC_NETLOC}/simplesaml/", timeout=2, allow_redirects=False)
+        resp.close()
         return None
     except requests.exceptions.RequestException:
         return IDP_INTERNAL_URL
@@ -222,7 +223,8 @@ class TestSAMLAuthentication:
         assert user.email == "mark@electricdemon.com"
         # The compose stack runs with USE_LOCAL_LOGIN=true, so the SAML flow
         # skips the Launchpad lookup and no launchpad handle is recorded.
-        assert user.launchpad_handle is None
+        if USE_LOCAL_LOGIN:
+            assert user.launchpad_handle is None
 
     def _logout_and_verify_session_cleared(self) -> None:
         logout_response = self.session.get(
@@ -352,7 +354,7 @@ class TestCreateUserLaunchpadLogin:
             handle="john-doe",
             email="john.doe@canonical.com",
             name="John Doe",
-            teams=["canonical", "hw-cert"],
+            teams=["team-1", "team-2"],
         )
         launchpad_instance = MagicMock()
         launchpad_instance.get_user_by_email.return_value = lp_user
@@ -363,7 +365,7 @@ class TestCreateUserLaunchpadLogin:
 
         launchpad_instance.get_user_by_email.assert_called_once_with("john.doe@canonical.com")
         assert user.launchpad_handle == "john-doe"
-        assert {t.name for t in user.teams} == {"canonical", "hw-cert"}
+        assert {t.name for t in user.teams} == {"team-1", "team-2"}
 
     def test_launchpad_lookup_without_match_leaves_user_bare(
         self, db_session: Session, monkeypatch: pytest.MonkeyPatch
