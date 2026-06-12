@@ -38,3 +38,7 @@ __METRICS_INIT_DAYS__ = int(os.getenv("METRICS_INIT_DAYS", "30"))
 METRICS_INIT_DAYS = __METRICS_INIT_DAYS__ if __METRICS_INIT_DAYS__ > 0 else 0
 METRICS_INIT_ENABLED = os.getenv("METRICS_INIT_ENABLED", "true").lower() == "true"
 REQUIRE_AUTHENTICATION = os.getenv("REQUIRE_AUTHENTICATION", "false").lower() == "true"
+# When enabled, SAML logins skip the Launchpad user lookup. Intended for local
+# development against a local IdP where SAML users do not exist in Launchpad.
+# Defaults to false so production never skips the lookup unless opted in.
+USE_LOCAL_LOGIN = os.getenv("USE_LOCAL_LOGIN", "false").lower() == "true"
