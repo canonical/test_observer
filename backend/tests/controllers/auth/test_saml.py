@@ -351,20 +351,21 @@ class TestCreateUserLaunchpadLogin:
         monkeypatch.setattr(saml, "USE_LOCAL_LOGIN", False)
 
         lp_user = LaunchpadUser(
-            handle="john-doe",
-            email="john.doe@canonical.com",
-            name="John Doe",
+            handle="bob-barker",
+            email="launchpad.test@example.com",
+            name="Bob Barker",
             teams=["team-1", "team-2"],
         )
         launchpad_instance = MagicMock()
         launchpad_instance.get_user_by_email.return_value = lp_user
         monkeypatch.setattr(saml, "LaunchpadAPI", MagicMock(return_value=launchpad_instance))
 
-        auth = _build_auth("john.doe@canonical.com", "John Doe")
+        auth = _build_auth("launchpad.test@example.com", "Bob Barker")
         user = saml._create_user(db_session, auth)
 
-        launchpad_instance.get_user_by_email.assert_called_once_with("john.doe@canonical.com")
-        assert user.launchpad_handle == "john-doe"
+        launchpad_instance.get_user_by_email.assert_called_once_with("launchpad.test@example.com")
+        assert user.launchpad_handle == "bob-barker"
+
         assert {t.name for t in user.teams} == {"team-1", "team-2"}
 
     def test_launchpad_lookup_without_match_leaves_user_bare(
