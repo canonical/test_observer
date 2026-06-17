@@ -1,127 +1,36 @@
-# Copyright 2026 Canonical Ltd.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
-# SPDX-License-Identifier: Apache-2.0
-
-resource "juju_application" "test-observer-frontend" {
-  count      = var.deploy_test_observer_frontend ? 1 : 0
-  model_uuid = data.juju_model.model.uuid
-  name       = var.frontend_config.name
-
-  charm {
-    name     = "test-observer-frontend"
-    channel  = var.frontend_config.channel
-    base     = var.frontend_config.base
-    revision = var.frontend_config.revision
-  }
-  config = var.frontend_config.config
-  units  = var.frontend_config.units
-}
-
-resource "juju_application" "test-observer-api" {
-  model_uuid = data.juju_model.model.uuid
-  name       = var.api_config.name
-
+resource "juju_application" "backend" {
   charm {
     name     = "test-observer-api"
-    channel  = var.api_config.channel
-    base     = var.api_config.base
-    revision = var.api_config.revision
+    base     = var.backend.base
+    channel  = var.backend.channel
+    revision = var.backend.revision
   }
 
-  config = var.api_config.config
-  units  = var.api_config.units
-}
-
-resource "juju_application" "database" {
-  count      = var.deploy_database ? 1 : 0
-  name       = var.database_config.name
+  config     = var.backend.config
   model_uuid = data.juju_model.model.uuid
+  name       = var.backend.name
+  units      = var.backend.units
 
-  charm {
-    name     = "postgresql-k8s"
-    channel  = var.database_config.channel
-    base     = var.database_config.base
-    revision = var.database_config.revision
-  }
-  trust              = true
-  storage_directives = var.database_config.storage_directives
-  config             = var.database_config.config
-  units              = var.database_config.units
-}
-
-resource "juju_application" "backup-db" {
-  count      = var.enable_backups ? 1 : 0
-  name       = "backup-db"
-  model_uuid = data.juju_model.model.uuid
-
-  charm {
-    name     = "postgresql-k8s"
-    channel  = var.database_config.channel
-    base     = var.database_config.base
-    revision = var.database_config.revision
-  }
-
-  config = var.database_config.config
-}
-
-#Hardcoded for now, will be replaced with ValKey 
-resource "juju_application" "redis" {
-  name       = "redis"
-  model_uuid = data.juju_model.model.uuid
-
-  charm {
-    name     = "redis-k8s"
-    channel  = "latest/edge"
-    base     = "ubuntu@22.04"
-    revision = 27
+  resources = {
+    "api-image" : var.backend.image
   }
 }
 
-resource "juju_application" "s3-integrator" {
-  count      = var.enable_backups ? 1 : 0
-  name       = "backups-s3-integrator"
-  model_uuid = data.juju_model.model.uuid
-
+resource "juju_application" "frontend" {
   charm {
-    name     = "s3-integrator"
-    channel  = var.s3_backups_config.channel
-    revision = var.s3_backups_config.revision
-    base     = var.s3_backups_config.base
+    name     = "test-observer-frontend"
+    base     = var.frontend.base
+    channel  = var.frontend.channel
+    revision = var.frontend.revision
   }
 
-  config = {
-    endpoint     = var.s3_backups_config.config.endpoint
-    region       = var.s3_backups_config.config.region
-    bucket       = var.s3_backups_config.config.bucket
-    path         = var.s3_backups_config.config.path
-    s3-uri-style = var.s3_backups_config.config.s3_uri_style
-  }
-}
-
-resource "juju_application" "otelcol" {
-  count      = var.cos_offers != null ? 1 : 0
-  name       = "otelcol"
+  config     = var.frontend.config
+  count      = var.deploy_frontend ? 1 : 0
   model_uuid = data.juju_model.model.uuid
-  charm {
-    name     = "opentelemetry-collector-k8s"
-    channel  = var.otelcol_config.channel
-    revision = var.otelcol_config.revision
-    base     = var.otelcol_config.base
+  name       = var.frontend.name
+  units      = var.frontend.units
+
+  resources = {
+    "frontend-image" : var.frontend.image
   }
-  trust              = true
-  storage_directives = var.otelcol_config.storage_directives
-  config             = var.otelcol_config.config
 }

@@ -1,163 +1,126 @@
-# Copyright 2026 Canonical Ltd.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
-# SPDX-License-Identifier: Apache-2.0
-
 variable "juju_model_uuid" {
   description = "UUID of the Juju model to deploy to"
   type        = string
 }
-######### API #########
-variable "api_config" {
-  description = "Full configuration for the test observer API"
+
+variable "database" {
+  description = "The API/backend database relation information"
+  type = object({
+    endpoint = optional(string, null)
+    name     = optional(string, null)
+    source   = string
+    url      = optional(string, null)
+  })
+
+  validation {
+    condition     = (var.database.source == "local-model" && var.database.endpoint != null && var.database.url == null) || (var.database.source == "cross-model" && var.database.endpoint == null && var.database.url != null)
+    error_message = "A database is required, either in the local model or through a cross-model relation"
+  }
+}
+
+variable "redis" {
+  description = "The redis relation information"
+  type = object({
+    endpoint = optional(string, null)
+    name     = optional(string, null)
+    source   = string
+    url      = optional(string, null)
+  })
+
+  validation {
+    condition     = (var.redis.source == "local-model" && var.redis.endpoint != null && var.redis.url == null) || (var.redis.source == "cross-model" && var.redis.endpoint == null && var.redis.url != null)
+    error_message = "Redis is required, either in the local model or through a cross-model relation"
+  }
+}
+
+variable "backend" {
+  description = "The Test Observer API/backend application"
   type = object({
     name     = string
+    base     = optional(string, "ubuntu@22.04")
     channel  = optional(string)
-    base     = optional(string, "ubuntu@22.04")
-    units    = optional(number, 3)
     config   = map(string)
+    image    = optional(string, "ghcr.io/canonical/test_observer/api:latest")
     revision = optional(number)
+    units    = optional(number, 3)
   })
 }
 
-######### FRONTEND #########
-variable "deploy_test_observer_frontend" {
-  description = "Deploy the test observer frontend"
-  default     = true
+variable "deploy_frontend" {
+  description = "Whether to deploy the Test Observer frontend charm"
   type        = bool
+  default     = true
 }
 
-variable "frontend_config" {
-  description = "Full configuration for the test observer front end"
+variable "frontend" {
+  description = "The Test Observer frontend application"
   type = object({
     name     = string
+    base     = optional(string, "ubuntu@22.04")
     channel  = optional(string)
-    base     = optional(string, "ubuntu@22.04")
-    units    = optional(number, 3)
     config   = map(string)
+    image    = optional(string, "ghcr.io/canonical/test_observer/frontend:latest")
     revision = optional(number)
+    units    = optional(number, 3)
   })
   default = null
 
   validation {
-    condition     = !var.deploy_test_observer_frontend || (var.deploy_test_observer_frontend && var.frontend_config != null)
-    error_message = "frontend config must be set if deployed"
+    condition     = !var.deploy_frontend || (var.deploy_frontend && var.frontend != null)
+    error_message = "The frontend application must be defined if set to deploy"
   }
 }
 
-######### DATABASE #########
-
-variable "deploy_database" {
-  description = "Deploy a database with the api"
-  default     = true
-  type        = bool
-}
-
-
-variable "database_config" {
-  description = "Full configuration for the test observer database, if not external"
-  type = object({
-    name               = string
-    channel            = string
-    base               = optional(string, "ubuntu@22.04")
-    units              = number
-    config             = map(string)
-    revision           = optional(number)
-    storage_directives = optional(map(string))
-  })
-  default = null
+variable "network_endpoint_providers" {
+  description = "The network endpoint provider relation information for the backend and frontend"
+  type = map(object({
+    endpoint = optional(string, null)
+    name     = optional(string, null)
+    source   = string
+    url      = optional(string, null)
+  }))
+  default = {}
 
   validation {
-    condition     = !var.deploy_database || (var.deploy_database && var.database_config != null)
-    error_message = "database config must be set if deployed"
+    condition = (
+      length(var.network_endpoint_providers) != 1
+      || (
+        length(var.network_endpoint_providers) == 1 && contains(["backend", "frontend"], keys(var.network_endpoint_providers)[0])
+      )
+    )
+    error_message = "If only one network endpoint provider is supplied, it must be keyed by either 'backend' or 'frontend'"
   }
-}
-
-variable "external_database_url" {
-  description = "URL of external database charm endpoint to relate to"
-  default     = null
-  type        = string
 
   validation {
-    condition     = var.deploy_database || (!var.deploy_database && var.external_database_url != null)
-    error_message = "Database url must be set if not deploying an internal database"
+    condition = (
+      length(var.network_endpoint_providers) != 2
+      || (
+        contains(keys(var.network_endpoint_providers), "backend") &&
+        contains(keys(var.network_endpoint_providers), "frontend")
+      )
+    )
+    error_message = "If both network endpoint providers are supplied, both the 'backend' and 'frontend' keys are required"
   }
-}
-
-######### Backups #########
-
-variable "enable_backups" {
-  description = "Enable database backups"
-  type        = bool
-  default     = false
 
   validation {
-    condition     = !var.enable_backups || var.deploy_database
-    error_message = "enable_backups requires deploy_database to be true"
+    condition = (
+      length(var.network_endpoint_providers) != 2
+      || (
+        jsonencode(var.network_endpoint_providers[keys(var.network_endpoint_providers)[0]])
+        != jsonencode(var.network_endpoint_providers[keys(var.network_endpoint_providers)[1]])
+      )
+    )
+    error_message = "The backend and frontend need distinct network endpoint providers"
   }
-}
-
-variable "s3_backups_config" {
-  description = "Configuration of the S3 buckets backups are stored in"
-  type = object({
-    name     = string
-    channel  = optional(string, "latest/stable")
-    base     = optional(string, "ubuntu@22.04")
-    revision = optional(number)
-    config = object({
-      endpoint     = string
-      region       = string
-      bucket       = string
-      path         = string
-      s3_uri_style = string
-    })
-  })
-  default = null
 
   validation {
-    condition     = !var.enable_backups || (var.enable_backups && var.s3_backups_config != null)
-    error_message = "S3 backup configs must be set if backups are enabled"
-  }
-}
-
-######### COS #########
-
-variable "cos_offers" {
-  description = "Map of COS offers to integrate with, keyed by the application name to integrate with. The value should be the offer URL for the COS offer."
-  type = object({
-    loki    = optional(string)
-    tempo   = optional(string)
-    mimir   = optional(string)
-    grafana = optional(string)
-  })
-  default = null
-}
-
-variable "otelcol_config" {
-  description = "OTel Collector config to use for the charm."
-  type = object({
-    channel            = optional(string, "2/stable")
-    revision           = optional(number)
-    base               = optional(string, "ubuntu@22.04")
-    config             = optional(map(string))
-    storage_directives = optional(map(string))
-  })
-  default = null
-
-  validation {
-    condition     = var.cos_offers == null || (var.cos_offers != null && var.otelcol_config != null)
-    error_message = "otelcol_config must be set when cos_offers is provided"
+    condition = (
+      alltrue([
+        for provider, app in var.network_endpoint_providers :
+        (app.source == "local-model" && app.endpoint != null && app.url == null) ||
+        (app.source == "cross-model" && app.endpoint == null && app.url != null)
+      ])
+    )
+    error_message = "The network endpoint providers must be defined as either local-model (with endpoint) or cross-model (with url) relations"
   }
 }
