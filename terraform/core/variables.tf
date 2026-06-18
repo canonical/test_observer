@@ -54,7 +54,7 @@ variable "redis" {
   })
 
   validation {
-        condition = (
+    condition = (
       (
         var.redis.source == "local-model"
         && var.redis.name != null && var.redis.endpoint != null && var.redis.url == null
