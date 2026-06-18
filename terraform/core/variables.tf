@@ -30,7 +30,16 @@ variable "database" {
   })
 
   validation {
-    condition     = (var.database.source == "local-model" && var.database.endpoint != null && var.database.url == null) || (var.database.source == "cross-model" && var.database.endpoint == null && var.database.url != null)
+    condition = (
+      (
+        var.database.source == "local-model"
+        && var.database.name != null && var.database.endpoint != null && var.database.url == null
+      )
+      || (
+        var.database.source == "cross-model"
+        && var.database.name == null && var.database.endpoint == null && var.database.url != null
+      )
+    )
     error_message = "A database is required, either in the local model or through a cross-model relation"
   }
 }
@@ -45,7 +54,16 @@ variable "redis" {
   })
 
   validation {
-    condition     = (var.redis.source == "local-model" && var.redis.endpoint != null && var.redis.url == null) || (var.redis.source == "cross-model" && var.redis.endpoint == null && var.redis.url != null)
+        condition = (
+      (
+        var.redis.source == "local-model"
+        && var.redis.name != null && var.redis.endpoint != null && var.redis.url == null
+      )
+      || (
+        var.redis.source == "cross-model"
+        && var.redis.name == null && var.redis.endpoint == null && var.redis.url != null
+      )
+    )
     error_message = "Redis is required, either in the local model or through a cross-model relation"
   }
 }
@@ -99,24 +117,15 @@ variable "network_endpoint_providers" {
   default = {}
 
   validation {
-    condition = (
-      length(var.network_endpoint_providers) != 1
-      || (
-        length(var.network_endpoint_providers) == 1 && contains(["backend", "frontend"], keys(var.network_endpoint_providers)[0])
-      )
-    )
-    error_message = "If only one network endpoint provider is supplied, it must be keyed by either 'backend' or 'frontend'"
+    condition = length(
+      setsubtract(keys(var.network_endpoint_providers), ["backend", "frontend"])
+    ) == 0
+    error_message = "Only 'backend' and 'frontend' are allowed as keys for network_endpoint_providers."
   }
 
   validation {
-    condition = (
-      length(var.network_endpoint_providers) != 2
-      || (
-        contains(keys(var.network_endpoint_providers), "backend") &&
-        contains(keys(var.network_endpoint_providers), "frontend")
-      )
-    )
-    error_message = "If both network endpoint providers are supplied, both the 'backend' and 'frontend' keys are required"
+    condition     = length(var.network_endpoint_providers) <= 2
+    error_message = "You can provide a maximum of two network endpoint providers (backend and frontend)."
   }
 
   validation {
@@ -134,8 +143,8 @@ variable "network_endpoint_providers" {
     condition = (
       alltrue([
         for provider, app in var.network_endpoint_providers :
-        (app.source == "local-model" && app.endpoint != null && app.url == null) ||
-        (app.source == "cross-model" && app.endpoint == null && app.url != null)
+        (app.source == "local-model" && app.name != null && app.endpoint != null && app.url == null) ||
+        (app.source == "cross-model" && app.name == null && app.endpoint == null && app.url != null)
       ])
     )
     error_message = "The network endpoint providers must be defined as either local-model (with endpoint) or cross-model (with url) relations"
