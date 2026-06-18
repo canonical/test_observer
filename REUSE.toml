@@ -93,3 +93,8 @@ SPDX-License-Identifier = "GPL-3.0-only"
 path = "terraform/cloud-init.yaml"
 SPDX-FileCopyrightText = "2023 Canonical Ltd."
 SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
+path = "terraform/core/README.md"
+SPDX-FileCopyrightText = "2026 Canonical Ltd."
+SPDX-License-Identifier = "Apache-2.0"
