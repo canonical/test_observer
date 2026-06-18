@@ -22,5 +22,5 @@ output "backend_name" {
 
 output "frontend_name" {
   description = "The name of the frontend application from the test-observer-frontend charm"
-  value       = one(juju_application.frontend[*].name)
+  value       = var.deploy_frontend ? juju_application.frontend[0].name : null
 }
