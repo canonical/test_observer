@@ -151,11 +151,11 @@ class TestObserverBackendCharm(CharmBase):
     def _migrate_database(self):
         # only leader runs database migrations
         if not self.unit.is_leader():
-            raise SystemExit(0)
+            return
 
         if not self.api_container.can_connect():
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
-            raise SystemExit(0)
+            return
 
         self.unit.status = MaintenanceStatus("Migrating database")
 
@@ -168,7 +168,7 @@ class TestObserverBackendCharm(CharmBase):
         except APIError as e:
             logger.error(f"Failed to execute database migration command: {e}")
             self.unit.status = BlockedStatus("Database migration failed")
-            raise SystemExit(0)
+            return
 
         try:
             stdout, _ = process.wait_output()
@@ -178,7 +178,7 @@ class TestObserverBackendCharm(CharmBase):
             logger.error(e.stdout)
             logger.error(e.stderr)
             self.unit.status = BlockedStatus("Database migration failed")
-            raise SystemExit(0)
+            return
 
     def _on_database_changed(self, event):
         if not self._validate_saml_config():
