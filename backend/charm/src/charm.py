@@ -55,6 +55,10 @@ MIGRATION_REVISION_KEY = "migration-revision"
 MIGRATION_STATUS_KEY = "migration-status"
 MIGRATION_STATUS_COMPLETED = "completed"
 MIGRATION_STATUS_FAILED = "failed"
+# Unit status message shown while a unit is waiting for the database schema to be
+# migrated to the revision its image expects. Shared so the update-status
+# backstop can reliably detect this state.
+WAITING_FOR_MIGRATION_MSG = "Waiting for database migration"
 
 
 class TestObserverBackendCharm(CharmBase):
@@ -170,32 +174,43 @@ class TestObserverBackendCharm(CharmBase):
     def _on_upgrade_charm(self, event):
         self._migrate_database()
 
-    def _migrate_database(self):
-        # only leader runs database migrations
+    def _migrate_database(self) -> bool:
+        """Run database migrations on the leader and record the outcome.
+
+        Returns True when it is safe for the caller to reconcile workload
+        layers (migration succeeded, was a no-op, or this is a non-leader
+        unit). Returns False when a blocking/waiting status has been set that
+        callers must not mask by reconciling layers.
+        """
+        # only leader runs database migrations; followers reconcile based on the
+        # revision the leader publishes to the peer databag.
         if not self.unit.is_leader():
-            return
+            return True
 
         if not self.api_container.can_connect():
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
-            raise SystemExit(0)
+            return False
 
         expected_revision = self._get_expected_migration_revision()
+        if expected_revision is None:
+            self._set_migration_status(MIGRATION_STATUS_FAILED)
+            self.unit.status = BlockedStatus("Failed to determine expected migration revision")
+            return False
 
         # Idempotent gate: if the database has already been migrated to the
         # revision this image expects, there is nothing to do. This avoids
         # re-running alembic on every hook that touches the database relation.
         if (
-            expected_revision is not None
-            and self._get_migration_status() == MIGRATION_STATUS_COMPLETED
+            self._get_migration_status() == MIGRATION_STATUS_COMPLETED
             and self._get_published_migration_revision() == expected_revision
         ):
-            return
+            return True
 
         self.unit.status = MaintenanceStatus("Migrating database")
 
         try:
             process = self.api_container.exec(
-                ["alembic", "upgrade", "head"],
+                ["alembic", "upgrade", "heads"],
                 working_dir="/home/app",
                 environment=self._app_environment,
             )
@@ -209,7 +224,7 @@ class TestObserverBackendCharm(CharmBase):
             # Record the failure so a later update-status can retry it.
             self._set_migration_status(MIGRATION_STATUS_FAILED)
             self.unit.status = BlockedStatus("Database migration failed")
-            raise SystemExit(0)
+            return False
 
         # Publish the applied schema revision to the peer databag so that every
         # unit can gate workload startup until the database has been migrated to
@@ -217,6 +232,7 @@ class TestObserverBackendCharm(CharmBase):
         # serving traffic against an un-migrated or partially migrated schema.
         self._set_migration_status(MIGRATION_STATUS_COMPLETED, revision=expected_revision)
         self.unit.status = ActiveStatus()
+        return True
 
     def _on_update_status(self, event: UpdateStatusEvent) -> None:
         # The leader retries a previously failed migration on the next
@@ -228,10 +244,16 @@ class TestObserverBackendCharm(CharmBase):
                 # rather than overwriting it with a less informative status.
                 return
 
-        # Reconcile layers so units (re)start once migrations are ready. This
-        # also backstops any missed peer relation-changed events on followers.
-        self._update_api_layer()
-        self._update_celery_layer()
+        # Avoid restarting workloads on every update-status tick. Only reconcile
+        # layers when we were previously waiting for migrations and they are now
+        # ready (e.g. if a peer relation-changed event was missed).
+        if (
+            isinstance(self.unit.status, WaitingStatus)
+            and self.unit.status.message == WAITING_FOR_MIGRATION_MSG
+            and self._migrations_ready()
+        ):
+            self._update_api_layer()
+            self._update_celery_layer()
 
     def _on_peer_relation_changed(self, event) -> None:
         # The published migration revision may have changed; reconcile the
@@ -337,7 +359,10 @@ class TestObserverBackendCharm(CharmBase):
             )
             return
 
-        self._migrate_database()
+        # Don't reconcile layers if the migration set a blocking/waiting status,
+        # otherwise that status would be masked by the layer update below.
+        if not self._migrate_database():
+            return
         self._update_api_layer(None)
         self._update_celery_layer(None)
 
@@ -388,7 +413,7 @@ class TestObserverBackendCharm(CharmBase):
             return
 
         if not self._migrations_ready():
-            self.unit.status = WaitingStatus("Waiting for database migration")
+            self.unit.status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
             return
 
         self.unit.status = MaintenanceStatus(f"Updating {self.api_pebble_service_name} layer")
@@ -414,7 +439,7 @@ class TestObserverBackendCharm(CharmBase):
             return
 
         if not self._migrations_ready():
-            self.unit.status = WaitingStatus("Waiting for database migration")
+            self.unit.status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
             return
 
         self.unit.status = MaintenanceStatus(f"Updating {self.celery_pebble_service_name} layer")
