@@ -1232,6 +1232,104 @@ def test_no_assignment_when_no_team_reviewers_available(
     assert assignee is None
 
 
+def test_first_environment_gets_reviewer_assigned_to_env_review(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When the first environment is created, its environment review gets a reviewer assigned."""
+    # GIVEN a user in a team with a matching rule for snaps
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    reviewer = generator.gen_user(teams=[team])
+
+    # WHEN a single test execution is started with needs_assignment=True
+    response = execute({**snap_test_request, "needs_assignment": True})
+
+    # THEN the artefact has the reviewer assigned
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+    assert artefact.reviewers == [reviewer]
+
+    # AND the single environment review also has the reviewer assigned
+    env_review = test_execution.artefact_build.environment_reviews[0]
+    assert env_review.reviewers == [reviewer]
+
+
+def test_subsequent_environments_also_get_reviewer_assigned_to_env_review(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When environments 2–49 are created, their environment reviews also get a reviewer assigned.
+    """
+    # GIVEN a user in a team with a matching rule for snaps
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(teams=[team])
+
+    # WHEN 5 environments are created one by one, each with needs_assignment=True
+    last_response = None
+    for i in range(5):
+        last_response = execute({
+            **snap_test_request,
+            "environment": f"env-{i}",
+            "ci_link": f"http://localhost/{i}",
+            "needs_assignment": True,
+        })
+        assert last_response.status_code == 200
+
+    assert last_response is not None
+    test_execution = db_session.get(TestExecution, last_response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+
+    # THEN the artefact still has exactly 1 reviewer
+    assert len(artefact.reviewers) == 1
+
+    # AND every environment review has that reviewer assigned
+    for build in artefact.builds:
+        for env_review in build.environment_reviews:
+            assert len(env_review.reviewers) == 1, (
+                f"Environment review {env_review.id} should have exactly 1 reviewer assigned"
+            )
+
+
+def test_exceeding_50_environments_adds_new_artefact_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When an artefact accumulates more than 50 environments, a second reviewer is assigned.
+    """
+    # GIVEN two users in a team with a matching rule for snaps
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(email="reviewer1@example.com", teams=[team])
+    generator.gen_user(email="reviewer2@example.com", teams=[team])
+
+    # WHEN 52 environments are created one by one, each with needs_assignment=True
+    last_response = None
+    for i in range(52):
+        last_response = execute({
+            **snap_test_request,
+            "environment": f"env-{i}",
+            "ci_link": f"http://localhost/{i}",
+            "needs_assignment": True,
+        })
+        assert last_response.status_code == 200
+
+    assert last_response is not None
+    test_execution = db_session.get(TestExecution, last_response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+
+    # THEN the artefact has 2 reviewers (ceil(52 / 50) = 2)
+    assert len(artefact.reviewers) == 2
+
+    # AND every environment review has exactly one reviewer assigned
+    for build in artefact.builds:
+        for env_review in build.environment_reviews:
+            assert len(env_review.reviewers) == 1, (
+                f"Environment review {env_review.id} should have exactly 1 reviewer assigned"
+            )
+
+
 class TestAssignReviewersToEnvironments:
     """Tests for _assign_reviewers_to_environments method"""
 
