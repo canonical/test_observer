@@ -235,23 +235,31 @@ class TestObserverBackendCharm(CharmBase):
         return True
 
     def _on_update_status(self, event: UpdateStatusEvent) -> None:
-        # The leader retries a previously failed migration on the next
-        # update-status tick so transient failures self-heal.
-        if self.unit.is_leader() and self._get_migration_status() == MIGRATION_STATUS_FAILED:
-            self._migrate_database()
-            if self._get_migration_status() == MIGRATION_STATUS_FAILED:
-                # Still failing; leave the BlockedStatus set by _migrate_database
-                # rather than overwriting it with a less informative status.
+        # On the leader, (re)run migrations when the last attempt failed, or
+        # when the published revision no longer matches the Alembic heads this
+        # unit's image expects. The latter happens after a leadership change
+        # during a rolling upgrade, where a newly-elected leader inherits a
+        # stale published revision. Without this, units could stay blocked on
+        # "Waiting for database migration" until a database relation event
+        # happened to fire.
+        migrated = False
+        if self.unit.is_leader() and (
+            self._get_migration_status() == MIGRATION_STATUS_FAILED or not self._migrations_ready()
+        ):
+            if not self._migrate_database():
+                # A blocking/waiting status was set; don't mask it.
                 return
+            migrated = True
 
-        # Avoid restarting workloads on every update-status tick. Only reconcile
-        # layers when we were previously waiting for migrations and they are now
-        # ready (e.g. if a peer relation-changed event was missed).
-        if (
+        # Reconcile layers to start serving when we just (re)ran migrations on
+        # the leader, or when a unit was waiting for migrations that are now
+        # ready (backstop for a missed peer relation-changed event). Gated so
+        # that healthy workloads are not restarted on every update-status tick.
+        waiting_for_migration = (
             isinstance(self.unit.status, WaitingStatus)
             and self.unit.status.message == WAITING_FOR_MIGRATION_MSG
-            and self._migrations_ready()
-        ):
+        )
+        if (migrated or waiting_for_migration) and self._migrations_ready():
             self._update_api_layer()
             self._update_celery_layer()
 
@@ -412,23 +420,24 @@ class TestObserverBackendCharm(CharmBase):
             )
             return
 
+        if not self.api_container.can_connect():
+            self.unit.status = WaitingStatus("Waiting for Pebble for API")
+            return
+
         if not self._migrations_ready():
             self.unit.status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
             return
 
         self.unit.status = MaintenanceStatus(f"Updating {self.api_pebble_service_name} layer")
 
-        if self.api_container.can_connect():
-            self.api_container.add_layer(
-                self.api_pebble_service_name, self._api_pebble_layer, combine=True
-            )
-            self.api_container.restart(self.api_pebble_service_name)
-            version = self.version
-            if version:
-                self.unit.set_workload_version(self.version)
-            self.unit.status = ActiveStatus()
-        else:
-            self.unit.status = WaitingStatus("Waiting for Pebble for API")
+        self.api_container.add_layer(
+            self.api_pebble_service_name, self._api_pebble_layer, combine=True
+        )
+        self.api_container.restart(self.api_pebble_service_name)
+        version = self.version
+        if version:
+            self.unit.set_workload_version(self.version)
+        self.unit.status = ActiveStatus()
 
     def _update_celery_layer(self, _=None):
         if not self._validate_saml_config():
@@ -438,20 +447,28 @@ class TestObserverBackendCharm(CharmBase):
             )
             return
 
+        if not self.celery_container.can_connect():
+            self.unit.status = WaitingStatus("Waiting for Pebble for Celery")
+            return
+
+        # Migration readiness is determined by running alembic in the API
+        # container, so an unreachable API container - not migrations - is the
+        # real blocker here. Report that accurately instead of masking it.
+        if not self.api_container.can_connect():
+            self.unit.status = WaitingStatus("Waiting for Pebble for API")
+            return
+
         if not self._migrations_ready():
             self.unit.status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
             return
 
         self.unit.status = MaintenanceStatus(f"Updating {self.celery_pebble_service_name} layer")
 
-        if self.celery_container.can_connect():
-            self.celery_container.add_layer(
-                self.celery_pebble_service_name, self._celery_pebble_layer, combine=True
-            )
-            self.celery_container.replan()
-            self.unit.status = ActiveStatus()
-        else:
-            self.unit.status = WaitingStatus("Waiting for Pebble for Celery")
+        self.celery_container.add_layer(
+            self.celery_pebble_service_name, self._celery_pebble_layer, combine=True
+        )
+        self.celery_container.replan()
+        self.unit.status = ActiveStatus()
 
     def _postgres_relation_data(self) -> dict[str, str]:
         data = self.database.fetch_relation_data()
