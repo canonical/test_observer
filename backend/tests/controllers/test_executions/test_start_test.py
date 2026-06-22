@@ -16,6 +16,7 @@
 from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -1268,6 +1269,7 @@ def test_subsequent_environments_also_get_reviewer_assigned_to_env_review(
     # WHEN 5 environments are created one by one, each with needs_assignment=True
     last_response = None
     for i in range(5):
+        db_session.expire_all()  # simulate a fresh session per request
         last_response = execute({
             **snap_test_request,
             "environment": f"env-{i}",
@@ -1306,6 +1308,7 @@ def test_exceeding_50_environments_adds_new_artefact_reviewer(
     # WHEN 52 environments are created one by one, each with needs_assignment=True
     last_response = None
     for i in range(52):
+        db_session.expire_all()  # simulate a fresh session per request
         last_response = execute({
             **snap_test_request,
             "environment": f"env-{i}",
@@ -1328,6 +1331,162 @@ def test_exceeding_50_environments_adds_new_artefact_reviewer(
             assert len(env_review.reviewers) == 1, (
                 f"Environment review {env_review.id} should have exactly 1 reviewer assigned"
             )
+
+
+def test_repeated_call_for_same_environment_does_not_duplicate_notifications(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Calling start_test twice with the same ci_link (same env_review) must not create
+    duplicate notifications. get_or_create reuses the ArtefactBuildEnvironmentReview, and
+    _assign_reviewers_to_environments skips it because it already has a reviewer assigned.
+    """
+    # GIVEN a reviewer with a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    reviewer = generator.gen_user(teams=[team])
+
+    # WHEN the first call creates the assignment
+    execute({**snap_test_request, "needs_assignment": True})
+    notification_count_after_first = (
+        db_session.query(Notification).filter(Notification.user_id == reviewer.id).count()
+    )
+
+    # WHEN the same request is repeated (same ci_link → same test_execution and env_review)
+    db_session.expire_all()  # simulate a fresh session per request
+    execute({**snap_test_request, "needs_assignment": True})
+
+    # THEN no new notifications are created
+    notification_count_after_second = (
+        db_session.query(Notification).filter(Notification.user_id == reviewer.id).count()
+    )
+    assert notification_count_after_second == notification_count_after_first
+
+
+def test_environment_created_without_assignment_gets_reviewer_on_next_assignment_call(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """An env_review created with needs_assignment=False (no reviewer assigned) is picked up
+    and assigned on the next call with needs_assignment=True for the same artefact.
+    _assign_reviewers_to_environments scans all unassigned env_reviews, not just the
+    current one, so the gap is healed automatically.
+    """
+    # GIVEN a reviewer with a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(teams=[team])
+
+    # WHEN env-0 is created with assignment (reviewer assigned to env-0 review)
+    execute({**snap_test_request, "environment": "env-0", "ci_link": "http://localhost/0", "needs_assignment": True})
+    # WHEN env-1 is created without assignment (env-1 review has no reviewer)
+    db_session.expire_all()
+    execute({**snap_test_request, "environment": "env-1", "ci_link": "http://localhost/1", "needs_assignment": False})
+    # WHEN env-2 is created with assignment
+    db_session.expire_all()
+    response = execute(
+        {**snap_test_request, "environment": "env-2", "ci_link": "http://localhost/2", "needs_assignment": True}
+    )
+
+    # THEN all three env_reviews have a reviewer assigned — including env-1 which was skipped
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+    for build in artefact.builds:
+        for env_review in build.environment_reviews:
+            assert len(env_review.reviewers) == 1, (
+                f"Environment review {env_review.id} (env {env_review.environment.name}) "
+                "should have exactly 1 reviewer assigned"
+            )
+
+
+def test_reviewer_gets_at_most_one_artefact_jira_card(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """A reviewer must receive exactly one artefact-review Jira card per artefact,
+    regardless of how many environments are added afterwards.
+
+    The reviewer is only in newly_assigned_reviewers on the first call (subsequent calls
+    filter them out via .not_in()), so USER_ASSIGNED_ARTEFACT_REVIEW only appears in
+    the BatchReviewerAssignedMessage once.
+    """
+    # GIVEN a reviewer with a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(teams=[team])
+
+    # Pre-create the artefact (without assignment) so we can set jira_issue before
+    # any Jira card logic runs
+    response = execute({**snap_test_request, "needs_assignment": False})
+    artefact = db_session.get(TestExecution, response.json()["id"]).artefact_build.artefact
+    artefact.jira_issue = "PROJ-123"
+    db_session.commit()
+
+    # WHEN 5 environments are created one by one with needs_assignment=True,
+    # intercepting all Jira card creation
+    with patch(
+        "test_observer.controllers.test_executions.start_test.batch_create_jira_reviewer_cards"
+    ) as mock_create_cards:
+        for i in range(5):
+            db_session.expire_all()  # simulate a fresh session per request
+            execute({
+                **snap_test_request,
+                "environment": f"env-{i}",
+                "ci_link": f"http://localhost/{i}",
+                "needs_assignment": True,
+            })
+
+    # THEN USER_ASSIGNED_ARTEFACT_REVIEW appears exactly once across all Jira calls
+    artefact_card_count = sum(
+        1
+        for call in mock_create_cards.call_args_list
+        for _reviewer, notif_types in call.args[0].assigned_reviews
+        if NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW in notif_types
+    )
+    assert artefact_card_count == 1, (
+        f"Expected 1 artefact review Jira card, got {artefact_card_count}"
+    )
+
+
+def test_reviewer_gets_at_most_one_environment_jira_card(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """A reviewer must receive exactly one environment-review Jira card per artefact,
+    regardless of how many environments are added.
+    """
+    # GIVEN a reviewer with a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(teams=[team])
+
+    # Pre-create the artefact so we can set jira_issue before any Jira card logic runs
+    response = execute({**snap_test_request, "needs_assignment": False})
+    artefact = db_session.get(TestExecution, response.json()["id"]).artefact_build.artefact
+    artefact.jira_issue = "PROJ-123"
+    db_session.commit()
+
+    # WHEN 5 environments are created one by one with needs_assignment=True,
+    # intercepting all Jira card creation
+    with patch(
+        "test_observer.controllers.test_executions.start_test.batch_create_jira_reviewer_cards"
+    ) as mock_create_cards:
+        for i in range(5):
+            db_session.expire_all()  # simulate a fresh session per request
+            execute({
+                **snap_test_request,
+                "environment": f"env-{i}",
+                "ci_link": f"http://localhost/{i}",
+                "needs_assignment": True,
+            })
+
+    # THEN USER_ASSIGNED_ENVIRONMENT_REVIEW appears exactly once across all Jira calls
+    env_card_count = sum(
+        1
+        for call in mock_create_cards.call_args_list
+        for _reviewer, notif_types in call.args[0].assigned_reviews
+        if NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW in notif_types
+    )
+    assert env_card_count == 1, (
+        f"Expected 1 environment review Jira card, got {env_card_count}"
+    )
 
 
 class TestAssignReviewersToEnvironments:
