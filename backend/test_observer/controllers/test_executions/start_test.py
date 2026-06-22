@@ -157,14 +157,6 @@ class StartTestExecutionController:
             newly_assigned_environment_reviewers.add(reviewer)
             reviewers_to_assignment_count[reviewer.id] += 1
 
-        with self.db.begin_nested():
-            batch_create_review_notifications(
-                self.db,
-                list(newly_assigned_environment_reviewers),
-                self.artefact,
-                NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
-            )
-
         return list(newly_assigned_environment_reviewers)
 
     def assign_reviewer(self) -> BatchReviewerAssignedMessage | None:
@@ -207,19 +199,28 @@ class StartTestExecutionController:
             if self.artefact.reviewers:
                 newly_assigned_environment_reviewers = self._assign_reviewers_to_environments()
 
-            if self.artefact.jira_issue is not None and (newly_assigned_reviewers or newly_assigned_environment_reviewers):
-                artefact_reviews = [
-                    (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])
-                    for reviewer in newly_assigned_reviewers
-                ]
-                environment_reviews = [
-                    (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
-                    for reviewer in newly_assigned_environment_reviewers
-                ]
-                return BatchReviewerAssignedMessage(
-                    artefact=self.artefact,
-                    assigned_reviews=artefact_reviews + environment_reviews,
-                )
+            if newly_assigned_reviewers:
+                with self.db.begin_nested():
+                    batch_create_review_notifications(
+                        self.db,
+                        newly_assigned_environment_reviewers,
+                        self.artefact,
+                        NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
+                    )
+
+                if self.artefact.jira_issue is not None:
+                    artefact_reviews = [
+                        (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])
+                        for reviewer in newly_assigned_reviewers
+                    ]
+                    environment_reviews = [
+                        (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
+                        for reviewer in newly_assigned_environment_reviewers
+                    ]
+                    return BatchReviewerAssignedMessage(
+                        artefact=self.artefact,
+                        assigned_reviews=artefact_reviews + environment_reviews,
+                    )
 
         return None
 
