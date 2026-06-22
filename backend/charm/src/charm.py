@@ -496,6 +496,14 @@ class TestObserverBackendCharm(CharmBase):
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
             return
 
+        # Building the Pebble layer reads the database connection details via
+        # _app_environment -> _postgres_relation_data(), which raises SystemExit
+        # and aborts the hook if the relation has not provided endpoints yet.
+        # Gate on relation readiness first so we report the real blocker.
+        if not self._database_relation_ready():
+            self.unit.status = WaitingStatus("Waiting for database relation")
+            return
+
         if not self._migrations_ready():
             self.unit.status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
             return
@@ -528,6 +536,14 @@ class TestObserverBackendCharm(CharmBase):
         # real blocker here. Report that accurately instead of masking it.
         if not self.api_container.can_connect():
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
+            return
+
+        # The Celery layer also depends on _app_environment ->
+        # _postgres_relation_data(), which raises SystemExit and aborts the hook
+        # if the relation has not provided endpoints yet. Gate on relation
+        # readiness first so we report the real blocker.
+        if not self._database_relation_ready():
+            self.unit.status = WaitingStatus("Waiting for database relation")
             return
 
         if not self._migrations_ready():
