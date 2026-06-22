@@ -50,6 +50,11 @@ PEER_RELATION_NAME = "test-observer-peers"
 # Key in the peer application databag holding the Alembic revision the database
 # has been migrated to by the leader unit.
 MIGRATION_REVISION_KEY = "migration-revision"
+# Key in the peer application databag holding the id of the database relation the
+# recorded migration revision was applied against. Tracked so that re-relating to
+# a fresh database (new relation id) invalidates the idempotency gate instead of
+# skipping migrations against the new, un-migrated database.
+MIGRATION_DB_RELATION_ID_KEY = "migration-db-relation-id"
 # Key in the peer application databag holding the outcome of the last migration
 # attempt run by the leader unit.
 MIGRATION_STATUS_KEY = "migration-status"
@@ -191,18 +196,31 @@ class TestObserverBackendCharm(CharmBase):
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
             return False
 
+        # Running alembic requires the database relation to have provided
+        # credentials/endpoints (via _app_environment). Guard here so callers
+        # such as update-status and upgrade-charm don't abort the hook with a
+        # SystemExit raised from _postgres_relation_data().
+        if not self._database_relation_ready():
+            self.unit.status = WaitingStatus("Waiting for database relation")
+            return False
+
         expected_revision = self._get_expected_migration_revision()
         if expected_revision is None:
             self._set_migration_status(MIGRATION_STATUS_FAILED)
             self.unit.status = BlockedStatus("Failed to determine expected migration revision")
             return False
 
+        db_relation_id = self._current_database_relation_id()
+
         # Idempotent gate: if the database has already been migrated to the
-        # revision this image expects, there is nothing to do. This avoids
-        # re-running alembic on every hook that touches the database relation.
+        # revision this image expects - and for the same database relation - there
+        # is nothing to do. Comparing the relation id ensures that re-relating to
+        # a fresh database forces migrations to run again rather than trusting a
+        # stale revision recorded for the previous relation.
         if (
             self._get_migration_status() == MIGRATION_STATUS_COMPLETED
             and self._get_published_migration_revision() == expected_revision
+            and self._get_published_db_relation_id() == db_relation_id
         ):
             return True
 
@@ -230,7 +248,13 @@ class TestObserverBackendCharm(CharmBase):
         # unit can gate workload startup until the database has been migrated to
         # the revision their image expects. This prevents non-leader units from
         # serving traffic against an un-migrated or partially migrated schema.
-        self._set_migration_status(MIGRATION_STATUS_COMPLETED, revision=expected_revision)
+        # The database relation id is recorded alongside so the idempotency gate
+        # can tell "already migrated this database" from "migrated a previous one".
+        self._set_migration_status(
+            MIGRATION_STATUS_COMPLETED,
+            revision=expected_revision,
+            db_relation_id=self._current_database_relation_id(),
+        )
         self.unit.status = ActiveStatus()
         return True
 
@@ -241,10 +265,16 @@ class TestObserverBackendCharm(CharmBase):
         # during a rolling upgrade, where a newly-elected leader inherits a
         # stale published revision. Without this, units could stay blocked on
         # "Waiting for database migration" until a database relation event
-        # happened to fire.
+        # happened to fire. Only attempt when the database relation is ready so
+        # we don't abort the hook via _postgres_relation_data()'s SystemExit.
         migrated = False
-        if self.unit.is_leader() and (
-            self._get_migration_status() == MIGRATION_STATUS_FAILED or not self._migrations_ready()
+        if (
+            self.unit.is_leader()
+            and self._database_relation_ready()
+            and (
+                self._get_migration_status() == MIGRATION_STATUS_FAILED
+                or not self._migrations_ready()
+            )
         ):
             if not self._migrate_database():
                 # A blocking/waiting status was set; don't mask it.
@@ -313,6 +343,31 @@ class TestObserverBackendCharm(CharmBase):
             return None
         return peer_relation.data[self.app].get(MIGRATION_REVISION_KEY)
 
+    def _current_database_relation_id(self) -> int | None:
+        """Return the id of the active database relation, if any."""
+        relation = self.model.get_relation("database")
+        return relation.id if relation is not None else None
+
+    def _database_relation_ready(self) -> bool:
+        """Return True if the database relation has provided usable connection data.
+
+        This mirrors the checks in _postgres_relation_data() but without raising,
+        so callers can gate work on database readiness and set a clean status
+        instead of aborting the hook.
+        """
+        if self.model.get_relation("database") is None:
+            return False
+        data = self.database.fetch_relation_data()
+        return any(val and val.get("endpoints") for val in data.values())
+
+    def _get_published_db_relation_id(self) -> int | None:
+        """Return the database relation id the recorded migration applies to."""
+        peer_relation = self._peer_relation
+        if peer_relation is None:
+            return None
+        raw = peer_relation.data[self.app].get(MIGRATION_DB_RELATION_ID_KEY)
+        return int(raw) if raw is not None else None
+
     def _get_migration_status(self) -> str | None:
         """Return the outcome of the last migration attempt, if recorded."""
         peer_relation = self._peer_relation
@@ -320,8 +375,15 @@ class TestObserverBackendCharm(CharmBase):
             return None
         return peer_relation.data[self.app].get(MIGRATION_STATUS_KEY)
 
-    def _set_migration_status(self, status: str, revision: str | None = None) -> None:
-        """Record the migration outcome (and revision) in the peer databag.
+    def _set_migration_status(
+        self, status: str, revision: str | None = None, db_relation_id: int | None = None
+    ) -> None:
+        """Record the migration outcome in the peer databag.
+
+        On success, the applied revision and the database relation id it was
+        applied against are persisted together so the idempotency gate can
+        distinguish "already migrated this database" from "migrated a previous
+        database relation".
 
         Only the leader migrates and writes to the application databag.
         """
@@ -339,7 +401,13 @@ class TestObserverBackendCharm(CharmBase):
         peer_relation.data[self.app][MIGRATION_STATUS_KEY] = status
         if revision is not None:
             peer_relation.data[self.app][MIGRATION_REVISION_KEY] = revision
-            logger.info("Recorded migration status %s at revision %s", status, revision)
+            peer_relation.data[self.app][MIGRATION_DB_RELATION_ID_KEY] = str(db_relation_id)
+            logger.info(
+                "Recorded migration status %s at revision %s for database relation %s",
+                status,
+                revision,
+                db_relation_id,
+            )
         else:
             logger.info("Recorded migration status %s", status)
 
@@ -350,12 +418,16 @@ class TestObserverBackendCharm(CharmBase):
         to the peer databag, units must not start serving traffic, as the schema
         may be missing or only partially applied. During a rolling upgrade this
         also keeps a unit waiting if its image expects a newer revision than the
-        leader has migrated to so far.
+        leader has migrated to so far. The published database relation id must
+        also match the active one, so re-relating to a fresh database keeps units
+        waiting until that new database has been migrated.
         """
         expected = self._get_expected_migration_revision()
         if expected is None:
             # If we cannot determine what the image expects we cannot safely
             # assert the database is ready, so block startup.
+            return False
+        if self._get_published_db_relation_id() != self._current_database_relation_id():
             return False
         return self._get_published_migration_revision() == expected
 
