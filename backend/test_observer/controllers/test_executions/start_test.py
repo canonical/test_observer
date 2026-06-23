@@ -208,20 +208,19 @@ class StartTestExecutionController:
                         NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
                     )
 
-            if newly_assigned_reviewers:
-                if self.artefact.jira_issue is not None:
-                    artefact_reviews = [
-                        (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])
-                        for reviewer in newly_assigned_reviewers
-                    ]
-                    environment_reviews = [
-                        (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
-                        for reviewer in newly_assigned_environment_reviewers
-                    ]
-                    return BatchReviewerAssignedMessage(
-                        artefact=self.artefact,
-                        assigned_reviews=artefact_reviews + environment_reviews,
-                    )
+            if newly_assigned_reviewers and self.artefact.jira_issue is not None:
+                artefact_reviews = [
+                    (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])
+                    for reviewer in newly_assigned_reviewers
+                ]
+                environment_reviews = [
+                    (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
+                    for reviewer in newly_assigned_environment_reviewers
+                ]
+                return BatchReviewerAssignedMessage(
+                    artefact=self.artefact,
+                    assigned_reviews=artefact_reviews + environment_reviews,
+                )
 
         return None
 
