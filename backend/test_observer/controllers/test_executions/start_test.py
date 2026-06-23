@@ -199,7 +199,7 @@ class StartTestExecutionController:
             if self.artefact.reviewers:
                 newly_assigned_environment_reviewers = self._assign_reviewers_to_environments()
 
-            if newly_assigned_reviewers:
+            if newly_assigned_environment_reviewers:
                 with self.db.begin_nested():
                     batch_create_review_notifications(
                         self.db,
@@ -208,6 +208,7 @@ class StartTestExecutionController:
                         NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
                     )
 
+            if newly_assigned_reviewers:
                 if self.artefact.jira_issue is not None:
                     artefact_reviews = [
                         (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])

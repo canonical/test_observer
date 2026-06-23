@@ -1489,6 +1489,45 @@ def test_reviewer_gets_at_most_one_environment_jira_card(
     assert env_card_count == 1, f"Expected 1 environment review Jira card, got {env_card_count}"
 
 
+def test_reviewer_gets_notification_for_every_environment(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """A reviewer must receive one USER_ASSIGNED_ENVIRONMENT_REVIEW notification per environment,
+    not just for the first one. Subsequent environments added to an already-reviewed artefact
+    must also trigger a notification so the reviewer is aware of new work.
+    """
+    # GIVEN a reviewer with a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    reviewer = generator.gen_user(teams=[team])
+
+    # WHEN 3 environments are created one by one, each with needs_assignment=True
+    for i in range(3):
+        db_session.expire_all()  # simulate a fresh session per request
+        response = execute(
+            {
+                **snap_test_request,
+                "environment": f"env-{i}",
+                "ci_link": f"http://localhost/{i}",
+                "needs_assignment": True,
+            }
+        )
+        assert response.status_code == 200
+
+    # THEN the reviewer has exactly 3 USER_ASSIGNED_ENVIRONMENT_REVIEW notifications
+    env_notification_count = (
+        db_session.query(Notification)
+        .filter(
+            Notification.user_id == reviewer.id,
+            Notification.notification_type == NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
+        )
+        .count()
+    )
+    assert env_notification_count == 3, (
+        f"Expected 1 notification per environment (3 total), got {env_notification_count}"
+    )
+
+
 class TestAssignReviewersToEnvironments:
     """Tests for _assign_reviewers_to_environments method"""
 
