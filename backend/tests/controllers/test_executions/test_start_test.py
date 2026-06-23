@@ -1528,6 +1528,78 @@ def test_reviewer_gets_notification_for_every_environment(
     )
 
 
+def test_manually_assigned_reviewer_gets_env_review_assigned_on_new_environment(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When a reviewer is assigned to an artefact manually (no matching rule), new environment
+    reviews created with needs_assignment=True must still be assigned to that reviewer.
+    _assign_reviewers_to_environments() must run even when rule_ids is empty.
+    """
+    # GIVEN a reviewer assigned directly to the artefact (no team/matching rule)
+    reviewer = generator.gen_user()
+    artefact = generator.gen_artefact(
+        name=snap_test_request["name"],
+        version=snap_test_request["version"],
+        family=FamilyName.snap,
+        track=snap_test_request["track"],
+        store=snap_test_request["store"],
+        stage=snap_test_request["execution_stage"],
+        reviewers=[reviewer],
+    )
+    db_session.flush()
+
+    # WHEN a test execution is started with needs_assignment=True
+    db_session.expire_all()
+    response = execute({**snap_test_request, "needs_assignment": True})
+    assert response.status_code == 200
+
+    # THEN the environment review has the reviewer assigned
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    env_review = test_execution.artefact_build.environment_reviews[0]
+    assert env_review.reviewers == [reviewer], (
+        "Manually-assigned reviewer should be assigned to the environment review"
+    )
+
+
+def test_manually_assigned_reviewer_gets_notification_for_new_environment(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When a reviewer is manually assigned to an artefact and a new environment is created
+    with needs_assignment=True, they must receive a USER_ASSIGNED_ENVIRONMENT_REVIEW notification.
+    """
+    # GIVEN a reviewer assigned directly to the artefact (no team/matching rule)
+    reviewer = generator.gen_user()
+    artefact = generator.gen_artefact(
+        name=snap_test_request["name"],
+        version=snap_test_request["version"],
+        family=FamilyName.snap,
+        track=snap_test_request["track"],
+        store=snap_test_request["store"],
+        stage=snap_test_request["execution_stage"],
+        reviewers=[reviewer],
+    )
+    db_session.flush()
+
+    # WHEN a test execution is started with needs_assignment=True
+    db_session.expire_all()
+    response = execute({**snap_test_request, "needs_assignment": True})
+    assert response.status_code == 200
+
+    # THEN the reviewer receives a USER_ASSIGNED_ENVIRONMENT_REVIEW notification
+    notification_count = (
+        db_session.query(Notification)
+        .filter(
+            Notification.user_id == reviewer.id,
+            Notification.notification_type == NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
+        )
+        .count()
+    )
+    assert notification_count == 1, (
+        f"Manually-assigned reviewer should receive 1 environment review notification, got {notification_count}"
+    )
+
+
 class TestAssignReviewersToEnvironments:
     """Tests for _assign_reviewers_to_environments method"""
 
