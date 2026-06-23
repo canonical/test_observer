@@ -163,6 +163,10 @@ provides:
     interface: grafana_dashboard
     scope: global
 
+peers:
+  test-observer-peers:
+    interface: test_observer_peers
+
 actions:
   delete-artefact:
     description: Deletes an Artefact together with it's builds, test executions and test results

@@ -33,7 +33,7 @@ from charms.traefik_k8s.v2.ingress import (
     IngressPerAppRequirer,
     IngressPerAppRevokedEvent,
 )
-from ops import CollectStatusEvent, StoredState
+from ops import CollectStatusEvent, StoredState, UpdateStatusEvent
 from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
@@ -45,6 +45,25 @@ logger = logging.getLogger(__name__)
 
 INGRESS_RELATION_NAME = "ingress"
 INGRESS_CONFLICT_MESSAGE = "Cannot have both ingress and nginx-route relations at the same time"
+
+PEER_RELATION_NAME = "test-observer-peers"
+# Key in the peer application databag holding the Alembic revision the database
+# has been migrated to by the leader unit.
+MIGRATION_REVISION_KEY = "migration-revision"
+# Key in the peer application databag holding the id of the database relation the
+# recorded migration revision was applied against. Tracked so that re-relating to
+# a fresh database (new relation id) invalidates the idempotency gate instead of
+# skipping migrations against the new, un-migrated database.
+MIGRATION_DB_RELATION_ID_KEY = "migration-db-relation-id"
+# Key in the peer application databag holding the outcome of the last migration
+# attempt run by the leader unit.
+MIGRATION_STATUS_KEY = "migration-status"
+MIGRATION_STATUS_COMPLETED = "completed"
+MIGRATION_STATUS_FAILED = "failed"
+# Unit status message shown while a unit is waiting for the database schema to be
+# migrated to the revision its image expects. Shared so the update-status
+# backstop can reliably detect this state.
+WAITING_FOR_MIGRATION_MSG = "Waiting for database migration"
 
 
 class TestObserverBackendCharm(CharmBase):
@@ -80,6 +99,14 @@ class TestObserverBackendCharm(CharmBase):
             self._on_database_relation_broken,
         )
 
+        # When the leader publishes a newly applied migration revision to the peer
+        # databag, every unit must re-evaluate whether it may now (re)start its
+        # workload against the migrated schema.
+        self.framework.observe(
+            self.on[PEER_RELATION_NAME].relation_changed,
+            self._on_peer_relation_changed,
+        )
+
         # Traefik will default to prefixing routes with <model-name>-<app-name>,
         # so we need to use strip_prefix=True to remove that and keep the API working with expected routes
         self.ingress = IngressPerAppRequirer(
@@ -101,6 +128,10 @@ class TestObserverBackendCharm(CharmBase):
         )
 
         self.framework.observe(self.on.upgrade_charm, self._on_upgrade_charm)
+
+        # update-status fires periodically; use it to retry a failed migration
+        # and to reconcile workload layers once migrations become ready.
+        self.framework.observe(self.on.update_status, self._on_update_status)
 
         self._setup_nginx()
 
@@ -148,37 +179,257 @@ class TestObserverBackendCharm(CharmBase):
     def _on_upgrade_charm(self, event):
         self._migrate_database()
 
-    def _migrate_database(self):
-        # only leader runs database migrations
+    def _migrate_database(self) -> bool:
+        """Run database migrations on the leader and record the outcome.
+
+        Returns True when it is safe for the caller to reconcile workload
+        layers (migration succeeded, was a no-op, or this is a non-leader
+        unit). Returns False when a blocking/waiting status has been set that
+        callers must not mask by reconciling layers.
+        """
+        # only leader runs database migrations; followers reconcile based on the
+        # revision the leader publishes to the peer databag.
         if not self.unit.is_leader():
-            raise SystemExit(0)
+            return True
 
         if not self.api_container.can_connect():
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
-            raise SystemExit(0)
+            return False
+
+        # Running alembic requires the database relation to have provided
+        # credentials/endpoints (via _app_environment). Guard here so callers
+        # such as update-status and upgrade-charm don't abort the hook with a
+        # SystemExit raised from _postgres_relation_data().
+        if not self._database_relation_ready():
+            self.unit.status = WaitingStatus("Waiting for database relation")
+            return False
+
+        expected_revision = self._get_expected_migration_revision()
+        if expected_revision is None:
+            self._set_migration_status(MIGRATION_STATUS_FAILED)
+            self.unit.status = BlockedStatus("Failed to determine expected migration revision")
+            return False
+
+        db_relation_id = self._current_database_relation_id()
+
+        # Idempotent gate: if the database has already been migrated to the
+        # revision this image expects - and for the same database relation - there
+        # is nothing to do. Comparing the relation id ensures that re-relating to
+        # a fresh database forces migrations to run again rather than trusting a
+        # stale revision recorded for the previous relation.
+        if (
+            self._get_migration_status() == MIGRATION_STATUS_COMPLETED
+            and self._get_published_migration_revision() == expected_revision
+            and self._get_published_db_relation_id() == db_relation_id
+        ):
+            return True
 
         self.unit.status = MaintenanceStatus("Migrating database")
 
         try:
             process = self.api_container.exec(
-                ["alembic", "upgrade", "head"],
+                ["alembic", "upgrade", "heads"],
                 working_dir="/home/app",
                 environment=self._app_environment,
             )
-        except APIError as e:
-            logger.error(f"Failed to execute database migration command: {e}")
-            self.unit.status = BlockedStatus("Database migration failed")
-            raise SystemExit(0)
-
-        try:
             stdout, _ = process.wait_output()
             logger.info(stdout)
-            self.unit.status = ActiveStatus()
-        except ExecError as e:
-            logger.error(e.stdout)
-            logger.error(e.stderr)
+        except (APIError, ExecError) as e:
+            logger.error("Database migration failed: %s", e)
+            if isinstance(e, ExecError):
+                logger.error(e.stdout)
+                logger.error(e.stderr)
+            # Record the failure so a later update-status can retry it.
+            self._set_migration_status(MIGRATION_STATUS_FAILED)
             self.unit.status = BlockedStatus("Database migration failed")
-            raise SystemExit(0)
+            return False
+
+        # Publish the applied schema revision to the peer databag so that every
+        # unit can gate workload startup until the database has been migrated to
+        # the revision their image expects. This prevents non-leader units from
+        # serving traffic against an un-migrated or partially migrated schema.
+        # The database relation id is recorded alongside so the idempotency gate
+        # can tell "already migrated this database" from "migrated a previous one".
+        self._set_migration_status(
+            MIGRATION_STATUS_COMPLETED,
+            revision=expected_revision,
+            db_relation_id=self._current_database_relation_id(),
+        )
+        self.unit.status = ActiveStatus()
+        return True
+
+    def _on_update_status(self, event: UpdateStatusEvent) -> None:
+        # On the leader, (re)run migrations when the last attempt failed, or
+        # when the published revision no longer matches the Alembic heads this
+        # unit's image expects. The latter happens after a leadership change
+        # during a rolling upgrade, where a newly-elected leader inherits a
+        # stale published revision. Without this, units could stay blocked on
+        # "Waiting for database migration" until a database relation event
+        # happened to fire. Only attempt when the database relation is ready so
+        # we don't abort the hook via _postgres_relation_data()'s SystemExit.
+        migrated = False
+        if (
+            self.unit.is_leader()
+            and self._database_relation_ready()
+            and (
+                self._get_migration_status() == MIGRATION_STATUS_FAILED
+                or not self._migrations_ready()
+            )
+        ):
+            if not self._migrate_database():
+                # A blocking/waiting status was set; don't mask it.
+                return
+            migrated = True
+
+        # Reconcile layers to start serving when we just (re)ran migrations on
+        # the leader, or when a unit was waiting for migrations that are now
+        # ready (backstop for a missed peer relation-changed event). Gated so
+        # that healthy workloads are not restarted on every update-status tick.
+        waiting_for_migration = (
+            isinstance(self.unit.status, WaitingStatus)
+            and self.unit.status.message == WAITING_FOR_MIGRATION_MSG
+        )
+        if (migrated or waiting_for_migration) and self._migrations_ready():
+            self._update_api_layer()
+            self._update_celery_layer()
+
+    def _on_peer_relation_changed(self, event) -> None:
+        # The published migration revision may have changed; reconcile the
+        # workload layers so units start once the schema they expect is ready.
+        self._update_api_layer()
+        self._update_celery_layer()
+
+    @property
+    def _peer_relation(self):
+        return self.model.get_relation(PEER_RELATION_NAME)
+
+    @staticmethod
+    def _parse_alembic_heads(output: str) -> str | None:
+        """Parse the revision identifiers from ``alembic heads`` output.
+
+        ``alembic heads`` prints lines like ``1a2b3c4d (head)``. With multiple
+        heads there will be multiple lines, so the revisions are sorted and
+        joined to produce a stable identifier regardless of output ordering.
+        """
+        revisions = sorted(line.split()[0] for line in output.splitlines() if line.strip())
+        if not revisions:
+            return None
+        return ",".join(revisions)
+
+    def _get_expected_migration_revision(self) -> str | None:
+        """Return the head revision the unit's image/code expects.
+
+        This is read from the bundled Alembic migration scripts via
+        ``alembic heads`` and does not require a database connection.
+        """
+        if not self.api_container.can_connect():
+            return None
+        try:
+            process = self.api_container.exec(
+                ["alembic", "heads"],
+                working_dir="/home/app",
+            )
+            stdout, _ = process.wait_output()
+        except (APIError, ExecError) as e:
+            logger.warning("Failed to determine expected migration revision: %s", e)
+            return None
+
+        return self._parse_alembic_heads(stdout)
+
+    def _get_published_migration_revision(self) -> str | None:
+        """Return the migration revision the leader has applied, if any."""
+        peer_relation = self._peer_relation
+        if peer_relation is None:
+            return None
+        return peer_relation.data[self.app].get(MIGRATION_REVISION_KEY)
+
+    def _current_database_relation_id(self) -> int | None:
+        """Return the id of the active database relation, if any."""
+        relation = self.model.get_relation("database")
+        return relation.id if relation is not None else None
+
+    def _database_relation_ready(self) -> bool:
+        """Return True if the database relation has provided usable connection data.
+
+        This mirrors the checks in _postgres_relation_data() but without raising,
+        so callers can gate work on database readiness and set a clean status
+        instead of aborting the hook.
+        """
+        if self.model.get_relation("database") is None:
+            return False
+        data = self.database.fetch_relation_data()
+        return any(val and val.get("endpoints") for val in data.values())
+
+    def _get_published_db_relation_id(self) -> int | None:
+        """Return the database relation id the recorded migration applies to."""
+        peer_relation = self._peer_relation
+        if peer_relation is None:
+            return None
+        raw = peer_relation.data[self.app].get(MIGRATION_DB_RELATION_ID_KEY)
+        return int(raw) if raw is not None else None
+
+    def _get_migration_status(self) -> str | None:
+        """Return the outcome of the last migration attempt, if recorded."""
+        peer_relation = self._peer_relation
+        if peer_relation is None:
+            return None
+        return peer_relation.data[self.app].get(MIGRATION_STATUS_KEY)
+
+    def _set_migration_status(
+        self, status: str, revision: str | None = None, db_relation_id: int | None = None
+    ) -> None:
+        """Record the migration outcome in the peer databag.
+
+        On success, the applied revision and the database relation id it was
+        applied against are persisted together so the idempotency gate can
+        distinguish "already migrated this database" from "migrated a previous
+        database relation".
+
+        Only the leader migrates and writes to the application databag.
+        """
+        if not self.unit.is_leader():
+            return
+
+        peer_relation = self._peer_relation
+        if peer_relation is None:
+            logger.warning(
+                "Peer relation %s not available; cannot record migration status",
+                PEER_RELATION_NAME,
+            )
+            return
+
+        peer_relation.data[self.app][MIGRATION_STATUS_KEY] = status
+        if revision is not None:
+            peer_relation.data[self.app][MIGRATION_REVISION_KEY] = revision
+            peer_relation.data[self.app][MIGRATION_DB_RELATION_ID_KEY] = str(db_relation_id)
+            logger.info(
+                "Recorded migration status %s at revision %s for database relation %s",
+                status,
+                revision,
+                db_relation_id,
+            )
+        else:
+            logger.info("Recorded migration status %s", status)
+
+    def _migrations_ready(self) -> bool:
+        """Return True if the database is migrated to the revision this unit expects.
+
+        Until the leader has run migrations and published the applied revision
+        to the peer databag, units must not start serving traffic, as the schema
+        may be missing or only partially applied. During a rolling upgrade this
+        also keeps a unit waiting if its image expects a newer revision than the
+        leader has migrated to so far. The published database relation id must
+        also match the active one, so re-relating to a fresh database keeps units
+        waiting until that new database has been migrated.
+        """
+        expected = self._get_expected_migration_revision()
+        if expected is None:
+            # If we cannot determine what the image expects we cannot safely
+            # assert the database is ready, so block startup.
+            return False
+        if self._get_published_db_relation_id() != self._current_database_relation_id():
+            return False
+        return self._get_published_migration_revision() == expected
 
     def _on_database_changed(self, event):
         if not self._validate_saml_config():
@@ -188,7 +439,10 @@ class TestObserverBackendCharm(CharmBase):
             )
             return
 
-        self._migrate_database()
+        # Don't reconcile layers if the migration set a blocking/waiting status,
+        # otherwise that status would be masked by the layer update below.
+        if not self._migrate_database():
+            return
         self._update_api_layer(None)
         self._update_celery_layer(None)
 
@@ -238,19 +492,32 @@ class TestObserverBackendCharm(CharmBase):
             )
             return
 
+        if not self.api_container.can_connect():
+            self.unit.status = WaitingStatus("Waiting for Pebble for API")
+            return
+
+        # Building the Pebble layer reads the database connection details via
+        # _app_environment -> _postgres_relation_data(), which raises SystemExit
+        # and aborts the hook if the relation has not provided endpoints yet.
+        # Gate on relation readiness first so we report the real blocker.
+        if not self._database_relation_ready():
+            self.unit.status = WaitingStatus("Waiting for database relation")
+            return
+
+        if not self._migrations_ready():
+            self.unit.status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
+            return
+
         self.unit.status = MaintenanceStatus(f"Updating {self.api_pebble_service_name} layer")
 
-        if self.api_container.can_connect():
-            self.api_container.add_layer(
-                self.api_pebble_service_name, self._api_pebble_layer, combine=True
-            )
-            self.api_container.restart(self.api_pebble_service_name)
-            version = self.version
-            if version:
-                self.unit.set_workload_version(self.version)
-            self.unit.status = ActiveStatus()
-        else:
-            self.unit.status = WaitingStatus("Waiting for Pebble for API")
+        self.api_container.add_layer(
+            self.api_pebble_service_name, self._api_pebble_layer, combine=True
+        )
+        self.api_container.restart(self.api_pebble_service_name)
+        version = self.version
+        if version:
+            self.unit.set_workload_version(self.version)
+        self.unit.status = ActiveStatus()
 
     def _update_celery_layer(self, _=None):
         if not self._validate_saml_config():
@@ -260,16 +527,36 @@ class TestObserverBackendCharm(CharmBase):
             )
             return
 
+        if not self.celery_container.can_connect():
+            self.unit.status = WaitingStatus("Waiting for Pebble for Celery")
+            return
+
+        # Migration readiness is determined by running alembic in the API
+        # container, so an unreachable API container - not migrations - is the
+        # real blocker here. Report that accurately instead of masking it.
+        if not self.api_container.can_connect():
+            self.unit.status = WaitingStatus("Waiting for Pebble for API")
+            return
+
+        # The Celery layer also depends on _app_environment ->
+        # _postgres_relation_data(), which raises SystemExit and aborts the hook
+        # if the relation has not provided endpoints yet. Gate on relation
+        # readiness first so we report the real blocker.
+        if not self._database_relation_ready():
+            self.unit.status = WaitingStatus("Waiting for database relation")
+            return
+
+        if not self._migrations_ready():
+            self.unit.status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
+            return
+
         self.unit.status = MaintenanceStatus(f"Updating {self.celery_pebble_service_name} layer")
 
-        if self.celery_container.can_connect():
-            self.celery_container.add_layer(
-                self.celery_pebble_service_name, self._celery_pebble_layer, combine=True
-            )
-            self.celery_container.replan()
-            self.unit.status = ActiveStatus()
-        else:
-            self.unit.status = WaitingStatus("Waiting for Pebble for Celery")
+        self.celery_container.add_layer(
+            self.celery_pebble_service_name, self._celery_pebble_layer, combine=True
+        )
+        self.celery_container.replan()
+        self.unit.status = ActiveStatus()
 
     def _postgres_relation_data(self) -> dict[str, str]:
         data = self.database.fetch_relation_data()
