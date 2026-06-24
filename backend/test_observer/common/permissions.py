@@ -172,6 +172,9 @@ def check_artefact_permission(
     if required_permission.value in IGNORE_PERMISSIONS:
         return
 
+    if user and user.is_admin:
+        return
+
     if app and required_permission in app.permissions:
         return
 

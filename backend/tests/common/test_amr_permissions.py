@@ -271,7 +271,7 @@ class TestCheckArtefactPermission:
 
     def test_team_permission_grants_access_without_amr(self, generator: DataGenerator, db_session: Session):
         """A user whose team has the required permission should be granted access even with no matching AMR"""
-        team = generator.gen_team(name="privileged-team", permissions=[Permission.change_artefact.value])
+        team = generator.gen_team(name="privileged-team", permissions=[Permission.change_artefact])
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
