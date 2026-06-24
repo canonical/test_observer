@@ -184,16 +184,17 @@ class StartTestExecutionController:
                 expected_number_of_reviewers = _ceil_division(environment_count, ENVIRONMENTS_PER_REVIEWER)
                 number_of_reviewers_to_assign = max(0, expected_number_of_reviewers - len(self.artefact.reviewers))
                 newly_assigned_reviewers = random.sample(users, min(len(users), number_of_reviewers_to_assign))
-                self.artefact.reviewers += newly_assigned_reviewers
-                self.artefact.due_date = self.determine_due_date()
+                if newly_assigned_reviewers:
+                    self.artefact.reviewers += newly_assigned_reviewers
+                    self.artefact.due_date = self.determine_due_date()
 
-                with self.db.begin_nested():
-                    batch_create_review_notifications(
-                        self.db,
-                        newly_assigned_reviewers,
-                        self.artefact,
-                        NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
-                    )
+                    with self.db.begin_nested():
+                        batch_create_review_notifications(
+                            self.db,
+                            newly_assigned_reviewers,
+                            self.artefact,
+                            NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+                        )
 
         newly_assigned_environment_reviewers: list[User] = []
         if self.artefact.reviewers:
