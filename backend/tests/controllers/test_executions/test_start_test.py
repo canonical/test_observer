@@ -1266,9 +1266,7 @@ def test_due_date_not_updated_when_no_new_reviewers_assigned(
     test_execution = db_session.get(TestExecution, first_response.json()["id"])
     assert test_execution is not None
     artefact = test_execution.artefact_build.artefact
-    assert artefact.due_date != sentinel_date, (
-        "due_date must not be updated when no new reviewers are assigned"
-    )
+    assert artefact.due_date != sentinel_date, "due_date must not be updated when no new reviewers are assigned"
 
 
 def test_first_environment_gets_reviewer_assigned_to_env_review(
