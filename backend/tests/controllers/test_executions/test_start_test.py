@@ -1537,13 +1537,13 @@ def test_manually_assigned_reviewer_gets_env_review_assigned_on_new_environment(
     """
     # GIVEN a reviewer assigned directly to the artefact (no team/matching rule)
     reviewer = generator.gen_user()
-    artefact = generator.gen_artefact(
-        name=snap_test_request["name"],
-        version=snap_test_request["version"],
+    generator.gen_artefact(
+        name=snap_test_request["name"],  # type: ignore[arg-type]
+        version=snap_test_request["version"],  # type: ignore[arg-type]
         family=FamilyName.snap,
-        track=snap_test_request["track"],
-        store=snap_test_request["store"],
-        stage=snap_test_request["execution_stage"],
+        track=snap_test_request["track"],  # type: ignore[arg-type]
+        store=snap_test_request["store"],  # type: ignore[arg-type]
+        stage=snap_test_request["execution_stage"],  # type: ignore[arg-type]
         reviewers=[reviewer],
     )
     db_session.flush()
@@ -1557,9 +1557,7 @@ def test_manually_assigned_reviewer_gets_env_review_assigned_on_new_environment(
     test_execution = db_session.get(TestExecution, response.json()["id"])
     assert test_execution is not None
     env_review = test_execution.artefact_build.environment_reviews[0]
-    assert env_review.reviewers == [reviewer], (
-        "Manually-assigned reviewer should be assigned to the environment review"
-    )
+    assert env_review.reviewers == [reviewer], "Manually-assigned reviewer should be assigned to the environment review"
 
 
 def test_manually_assigned_reviewer_gets_notification_for_new_environment(
@@ -1570,13 +1568,13 @@ def test_manually_assigned_reviewer_gets_notification_for_new_environment(
     """
     # GIVEN a reviewer assigned directly to the artefact (no team/matching rule)
     reviewer = generator.gen_user()
-    artefact = generator.gen_artefact(
-        name=snap_test_request["name"],
-        version=snap_test_request["version"],
+    generator.gen_artefact(
+        name=snap_test_request["name"],  # type: ignore[arg-type]
+        version=snap_test_request["version"],  # type: ignore[arg-type]
         family=FamilyName.snap,
-        track=snap_test_request["track"],
-        store=snap_test_request["store"],
-        stage=snap_test_request["execution_stage"],
+        track=snap_test_request["track"],  # type: ignore[arg-type]
+        store=snap_test_request["store"],  # type: ignore[arg-type]
+        stage=snap_test_request["execution_stage"],  # type: ignore[arg-type]
         reviewers=[reviewer],
     )
     db_session.flush()

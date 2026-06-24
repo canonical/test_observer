@@ -210,8 +210,7 @@ class StartTestExecutionController:
 
         if newly_assigned_reviewers and self.artefact.jira_issue is not None:
             artefact_reviews = [
-                (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])
-                for reviewer in newly_assigned_reviewers
+                (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW]) for reviewer in newly_assigned_reviewers
             ]
             environment_reviews = [
                 (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
