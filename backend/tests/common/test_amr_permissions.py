@@ -287,3 +287,28 @@ class TestCheckArtefactPermission:
             artefact,
             Permission.change_artefact,
         )
+
+    def test_amr_grants_access_without_team_permission(self, generator: DataGenerator, db_session: Session):
+        """A user whose team has a matching AMR granting the permission should be granted access even with no direct team permissions"""
+        team = generator.gen_team(name="amr-team")
+        generator.gen_artefact_matching_rule(
+            family=FamilyName.snap,
+            stage="stable",
+            teams=[team],
+            grant_permissions=[Permission.change_artefact],
+        )
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+        user = generator.gen_user(name="grace", teams=[team])
+
+        # Team has no direct permissions, but the AMR grants the permission — should pass
+        check_artefact_permission(
+            db_session,
+            user,
+            None,
+            artefact,
+            Permission.change_artefact,
+        )
