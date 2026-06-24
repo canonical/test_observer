@@ -1233,6 +1233,40 @@ def test_no_assignment_when_no_team_reviewers_available(
     assert assignee is None
 
 
+def test_due_date_not_updated_when_no_new_reviewers_assigned(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """due_date must not be updated when needs_assignment=True but number_of_reviewers_to_assign
+    is 0 (artefact already has enough reviewers for the current environment count).
+    Eligible users exist in the team, but no new assignment is needed, so the due_date
+    set on a previous call must remain unchanged.
+    """
+    # GIVEN a reviewer already assigned to the artefact via a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(teams=[team])
+
+    # AND the artefact already has a reviewer and a due_date from the first call
+    first_response = execute({**snap_test_request, "needs_assignment": True})
+    assert first_response.status_code == 200
+    test_execution = db_session.get(TestExecution, first_response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+    original_due_date = artefact.due_date
+    assert original_due_date is not None
+
+    # WHEN a second environment is added (still well below ENVIRONMENTS_PER_REVIEWER,
+    # so number_of_reviewers_to_assign remains 0)
+    db_session.expire_all()
+    execute({**snap_test_request, "environment": "env-2", "ci_link": "http://localhost/2", "needs_assignment": True})
+
+    # THEN the due_date is unchanged
+    db_session.expire(artefact)
+    assert artefact.due_date == original_due_date, (
+        "due_date must not be updated when no new reviewers are assigned"
+    )
+
+
 def test_first_environment_gets_reviewer_assigned_to_env_review(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
