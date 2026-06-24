@@ -18,7 +18,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.common.permissions import check_amr_permission
+from test_observer.common.permissions import check_amr_permission, check_artefact_permission
 from test_observer.data_access.models_enums import FamilyName, StageName
 from tests.data_generator import DataGenerator
 
@@ -261,6 +261,29 @@ class TestCheckAMRPermission:
         check_amr_permission(
             db_session,
             admin_user,
+            artefact,
+            Permission.change_artefact,
+        )
+
+
+class TestCheckArtefactPermission:
+    """Test that direct team permissions override the AMR requirement"""
+
+    def test_team_permission_grants_access_without_amr(self, generator: DataGenerator, db_session: Session):
+        """A user whose team has the required permission should be granted access even with no matching AMR"""
+        team = generator.gen_team(name="privileged-team", permissions=[Permission.change_artefact.value])
+        artefact = generator.gen_artefact(
+            name="test-snap",
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+        user = generator.gen_user(name="frank", teams=[team])
+
+        # No AMR exists, but the team has the permission directly — should pass
+        check_artefact_permission(
+            db_session,
+            user,
+            None,
             artefact,
             Permission.change_artefact,
         )
