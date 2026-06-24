@@ -175,6 +175,9 @@ def check_artefact_permission(
     if app and required_permission in app.permissions:
         return
 
+    if user and any(required_permission in t.permissions for t in user.teams):
+        return
+
     check_amr_permission(db, user, artefact, required_permission)
 
 
