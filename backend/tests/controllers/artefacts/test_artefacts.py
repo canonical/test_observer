@@ -517,7 +517,7 @@ def test_update_artefact_comment_as_user_with_permission(
     rather than having permission denied due to AMR checks.
     """
     artefact = generator.gen_artefact()
-    team = generator.gen_team(name="test-team", permissions=[Permission.change_rerun, Permission.change_rerun_bulk])
+    team = generator.gen_team(name="test-team", permissions=[Permission.change_artefact])
     user = generator.gen_user(name="user", teams=[team])
     authenticate_user(test_client, user, generator, create_session_cookie)
     response = test_client.patch(
