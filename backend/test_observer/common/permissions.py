@@ -148,18 +148,11 @@ def has_amr_permissions(
     """
     Determine whether a user has the required permission for a list of artefacts based on AMR matching.
 
-    Uses the match_artefact query to find the matching AMR(s) for the artefact,
-    then checks if the user is in one of the teams associated with those AMRs and
-    if the AMR grants the required permission.
-
     Args:
         db: Database session
         user: Current user (can be None)
-        artefact: Artefact being accessed
+        artefacts: List of artefacts being accessed
         required_permission: Permission to check for
-
-    Raises:
-        HTTPException(403): If user is not authorized
     """
     if not user:
         return False
