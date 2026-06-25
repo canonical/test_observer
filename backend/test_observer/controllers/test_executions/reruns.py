@@ -22,9 +22,10 @@ from sqlalchemy import asc, delete, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
-from test_observer.common.config import IGNORE_PERMISSIONS
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import (
+    has_amr_permissions,
+    has_general_permission,
     openapi_scope_declaration,
     permission_checker,
 )
@@ -38,7 +39,6 @@ from test_observer.data_access.models import (
     Application,
     Artefact,
     ArtefactBuild,
-    ArtefactMatchingRule,
     Environment,
     FamilyName,
     TestExecution,
@@ -46,7 +46,6 @@ from test_observer.data_access.models import (
     TestResult,
     User,
 )
-from test_observer.data_access.queries import batch_match_artefacts
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
@@ -178,15 +177,12 @@ def _validate_amr_permissions_for_request(
     Raises:
         HTTPException(403): If any affected artefact is unauthorized
     """
-    # Early exits
-    ignored_permission = permission.value in IGNORE_PERMISSIONS
-    app_has_permission = app is not None and permission in app.permissions
-    if ignored_permission or app_has_permission:
+    if has_general_permission(user, app, permission):
         return
+
+    # If user is None, we cannot check AMR permissions, so raise 403
     if user is None:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
-    elif user.is_admin:
-        return
 
     # Collect conditions to find affected TestExecutions
     conditions = _build_rerun_conditions(request)
@@ -195,7 +191,6 @@ def _validate_amr_permissions_for_request(
     if not conditions:
         return
 
-    # Check user authorization
     # Query for all unique artefacts affected by the request
     affected_artefacts_query = (
         select(Artefact)
@@ -206,56 +201,8 @@ def _validate_amr_permissions_for_request(
     )
 
     affected_artefacts = db.scalars(affected_artefacts_query).all()
-
-    # If no affected artefacts, no permissions to check (e.g., invalid test_execution_ids)
-    if not affected_artefacts:
-        return
-
-    batch_match_result = db.execute(batch_match_artefacts(list(affected_artefacts))).all()
-
-    # Build map: artefact_id → set of matching AMR IDs
-    artefact_to_amrs: dict[int, set[int]] = {}
-    matched_amr_ids = set()
-    for artefact_id, amr_id in batch_match_result:
-        artefact_to_amrs.setdefault(artefact_id, set()).add(amr_id)
-        matched_amr_ids.add(amr_id)
-
-    # Fetch all matching AMRs with teams in a single query
-    if matched_amr_ids:
-        matching_rules = (
-            db.query(ArtefactMatchingRule)
-            .filter(ArtefactMatchingRule.id.in_(matched_amr_ids))
-            .options(selectinload(ArtefactMatchingRule.teams))
-            .all()
-        )
-    else:
-        matching_rules = []
-
-    # Build map: AMR ID → rule with teams
-    amr_rules = {rule.id: rule for rule in matching_rules}
-
-    # Check permission for each affected artefact using all-or-nothing semantics
-    user_team_ids = {team.id for team in user.teams}
-
-    for artefact in affected_artefacts:
-        matching_amr_ids = artefact_to_amrs.get(artefact.id, set())
-
-        if not matching_amr_ids:
-            # No AMRs match this artefact
-            raise HTTPException(status_code=403, detail="Insufficient permissions")
-
-        # Check if user is in a team with a matching AMR that grants the permission
-        has_permission = False
-        for amr_id in matching_amr_ids:
-            rule = amr_rules.get(amr_id)
-            if rule is not None and permission in rule.grant_permissions:
-                rule_team_ids = {team.id for team in rule.teams}
-                if user_team_ids & rule_team_ids:
-                    has_permission = True
-                    break
-
-        if not has_permission:
-            raise HTTPException(status_code=403, detail="Insufficient permissions")
+    if not has_amr_permissions(db, user, list(affected_artefacts), permission):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
 
 
 @router.post(

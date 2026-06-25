@@ -18,7 +18,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.common.permissions import check_amr_permission, check_artefact_permission
+from test_observer.common.permissions import check_amr_permissions, check_artefact_permission
 from test_observer.data_access.models_enums import FamilyName, StageName
 from tests.data_generator import DataGenerator
 
@@ -50,10 +50,10 @@ class TestCheckAMRPermission:
         generator._add_object(user)
 
         # Should not raise when user is in matching team
-        check_amr_permission(
+        check_amr_permissions(
             db_session,
             user,
-            artefact,
+            [artefact],
             Permission.change_artefact,
         )
 
@@ -85,10 +85,10 @@ class TestCheckAMRPermission:
 
         # Should raise 403 when user is not in matching team
         with pytest.raises(HTTPException) as exc_info:
-            check_amr_permission(
+            check_amr_permissions(
                 db_session,
                 user,
-                artefact,
+                [artefact],
                 Permission.change_artefact,
             )
         assert exc_info.value.status_code == 403
@@ -118,10 +118,10 @@ class TestCheckAMRPermission:
 
         # Should raise 403
         with pytest.raises(HTTPException) as exc_info:
-            check_amr_permission(
+            check_amr_permissions(
                 db_session,
                 user,
-                artefact,
+                [artefact],
                 Permission.change_artefact,
             )
         assert exc_info.value.status_code == 403
@@ -151,10 +151,10 @@ class TestCheckAMRPermission:
 
         # Should raise 403 because no AMR matches this artefact
         with pytest.raises(HTTPException) as exc_info:
-            check_amr_permission(
+            check_amr_permissions(
                 db_session,
                 user,
-                artefact,
+                [artefact],
                 Permission.change_artefact,
             )
         assert exc_info.value.status_code == 403
@@ -184,10 +184,10 @@ class TestCheckAMRPermission:
 
         # Should raise 403 because change_artefact is not granted
         with pytest.raises(HTTPException) as exc_info:
-            check_amr_permission(
+            check_amr_permissions(
                 db_session,
                 user,
-                artefact,
+                [artefact],
                 Permission.change_artefact,
             )
         assert exc_info.value.status_code == 403
@@ -203,10 +203,10 @@ class TestCheckAMRPermission:
 
         # Should raise 403 when user is None
         with pytest.raises(HTTPException) as exc_info:
-            check_amr_permission(
+            check_amr_permissions(
                 db_session,
                 None,
-                artefact,
+                [artefact],
                 Permission.change_artefact,
             )
         assert exc_info.value.status_code == 403
@@ -225,13 +225,22 @@ class TestCheckAMRPermission:
         admin_user.is_admin = True
         generator._add_object(admin_user)
 
-        # Should not raise even though no AMR matches
-        check_amr_permission(
+        # The admin user should be allowed due to admin privileges, so this should not raise
+        check_artefact_permission(
             db_session,
             admin_user,
+            None,
             artefact,
             Permission.change_artefact,
         )
+        # But the permission should not come from an AMR, since there isn't one
+        with pytest.raises(HTTPException):
+            check_amr_permissions(
+                db_session,
+                admin_user,
+                [artefact],
+                Permission.change_artefact,
+            )
 
     def test_admin_user_bypass_with_non_granting_amr(self, generator: DataGenerator, db_session: Session):
         """Admin user should be allowed even when AMR doesn't grant the required permission"""
@@ -257,13 +266,23 @@ class TestCheckAMRPermission:
         admin_user.teams = []
         generator._add_object(admin_user)
 
-        # Should not raise even though AMR doesn't grant change_artefact
-        check_amr_permission(
+        # The admin user should be allowed due to admin privileges, so this should not raise
+        check_artefact_permission(
             db_session,
             admin_user,
+            None,
             artefact,
             Permission.change_artefact,
         )
+
+        # But the permission should not come from an AMR, since it doesn't apply to the admin user
+        with pytest.raises(HTTPException):
+            check_amr_permissions(
+                db_session,
+                admin_user,
+                [artefact],
+                Permission.change_artefact,
+            )
 
 
 class TestCheckArtefactPermission:
