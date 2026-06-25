@@ -23,7 +23,7 @@ from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
 from test_observer.data_access.models import Application, Artefact, ArtefactMatchingRule, User
-from test_observer.data_access.queries import match_artefact
+from test_observer.data_access.queries import batch_match_artefacts
 from test_observer.users.user_injection import get_current_user, get_current_user_browser_friendly
 
 
@@ -87,14 +87,66 @@ def permission_checker(
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
 
-def check_amr_permission(
-    db: Session,
+def has_general_permission(
     user: User | None,
-    artefact: Artefact,
+    app: Application | None,
     required_permission: Permission,
+    ignored_permissions: set[str] | None = None,
+) -> bool:
+    """
+    Determine whether a user or application has the required permission.
+
+    Args:
+        user: The User to check (can be None)
+        app: The Application to check (can be None)
+        required_permission: Permission to check for
+        ignored_permissions:
+            Optional set of permissions to ignore.
+            If None, defaults to IGNORE_PERMISSIONS from config.
+    """
+    if user and (user.is_admin or any(required_permission in t.permissions for t in user.teams)):
+        return True
+    if app and required_permission in app.permissions:
+        return True
+
+    if ignored_permissions is None:
+        ignored_permissions = IGNORE_PERMISSIONS
+    return required_permission in ignored_permissions
+
+
+def check_general_permission(
+    user: User | None,
+    app: Application | None,
+    required_permission: Permission,
+    ignored_permissions: set[str] | None = None,
 ) -> None:
     """
-    Check if a user has the required permission for an artefact based on AMR matching.
+    Centralized permission check for general operations.
+
+    Respects IGNORE_PERMISSIONS config and checks in order:
+    1. App has the permission (usually a testing codepath)
+    2. User is an admin or has the permission via their teams
+
+    Args:
+        user: The User to check (can be None)
+        app: The Application to check (can be None)
+        required_permission: Permission to check for
+
+    Raises:
+        HTTPException(403): If user is not authorized
+    """
+    if not has_general_permission(user, app, required_permission, ignored_permissions):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+
+def has_amr_permissions(
+    db: Session,
+    user: User | None,
+    artefacts: list[Artefact],
+    required_permission: Permission,
+) -> bool:
+    """
+    Determine whether a user has the required permission for a list of artefacts based on AMR matching.
 
     Uses the match_artefact query to find the matching AMR(s) for the artefact,
     then checks if the user is in one of the teams associated with those AMRs and
@@ -109,39 +161,74 @@ def check_amr_permission(
     Raises:
         HTTPException(403): If user is not authorized
     """
-    if user is None:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    if not user:
+        return False
 
-    if user.is_admin:
-        return
+    # If no affected artefacts, no permissions to check (e.g., invalid test_execution_ids)
+    if not artefacts:
+        return True
 
-    # Query for matching AMR IDs using the centralized matching logic
-    matching_amr_ids = db.execute(match_artefact(artefact)).scalars().all()
+    batch_match_result = db.execute(batch_match_artefacts(list(artefacts))).all()
 
-    if not matching_amr_ids:
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    # Build map: artefact_id → set of matching AMR IDs
+    artefact_to_amrs: dict[int, set[int]] = {}
+    matched_amr_ids: set[int] = set()
+    for artefact_id, amr_id in batch_match_result:
+        artefact_to_amrs.setdefault(artefact_id, set()).add(amr_id)
+        matched_amr_ids.add(amr_id)
 
-    matching_rules = (
-        db.query(ArtefactMatchingRule)
-        .filter(ArtefactMatchingRule.id.in_(matching_amr_ids))
-        .options(selectinload(ArtefactMatchingRule.teams))
-        .all()
-    )
+    # Fetch all matching AMRs with teams in a single query
+    if matched_amr_ids:
+        matching_rules = (
+            db.query(ArtefactMatchingRule)
+            .filter(ArtefactMatchingRule.id.in_(matched_amr_ids))
+            .options(selectinload(ArtefactMatchingRule.teams))
+            .all()
+        )
+    else:
+        matching_rules = []
 
-    # Check if user is in any of the teams from matching AMRs
-    # and if those AMRs grant the required permission
+    # Build map: AMR ID → rule with teams
+    amr_rules = {rule.id: rule for rule in matching_rules}
+
+    # Check permission for each affected artefact using all-or-nothing semantics
     user_team_ids = {team.id for team in user.teams}
 
-    for rule in matching_rules:
-        rule_team_ids = {team.id for team in rule.teams}
+    for artefact in artefacts:
+        matching_amr_ids = artefact_to_amrs.get(artefact.id, set())
 
-        user_in_rule_team = user_team_ids & rule_team_ids
-        rule_grants_permission = required_permission in rule.grant_permissions
-        if user_in_rule_team and rule_grants_permission:
-            return
+        if not matching_amr_ids:
+            # No AMRs match this artefact
+            return False
 
-    # If we get here, user doesn't have permission
-    raise HTTPException(status_code=403, detail="Insufficient permissions")
+        # Check if user is in a team with a matching AMR that grants the permission
+        has_permission = False
+        for amr_id in matching_amr_ids:
+            rule = amr_rules.get(amr_id)
+            if rule is not None and required_permission in rule.grant_permissions:
+                rule_team_ids = {team.id for team in rule.teams}
+                if user_team_ids & rule_team_ids:
+                    has_permission = True
+                    break
+
+        if not has_permission:
+            return False
+
+    return True
+
+
+def check_amr_permissions(
+    db: Session,
+    user: User | None,
+    artefacts: list[Artefact],
+    required_permission: Permission,
+) -> None:
+    """
+    Centralized permission check for artefact operations based on AMR matching.
+    Errors with HTTP 403 if the user does not have the required permission.
+    """
+    if not has_amr_permissions(db, user, artefacts, required_permission):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
 
 
 def check_artefact_permission(
@@ -150,13 +237,10 @@ def check_artefact_permission(
     app: Application | None,
     artefact: Artefact,
     required_permission: Permission,
+    ignored_permissions: set[str] | None = None,
 ) -> None:
     """
     Centralized permission check for artefact operations.
-
-    Respects IGNORE_PERMISSIONS config and checks in order:
-    1. App has the permission (usually a testing codepath)
-    2. User matches AMR for the artefact with the permission
 
     Args:
         db: Database session
@@ -164,24 +248,20 @@ def check_artefact_permission(
         app: Current application (can be None)
         artefact: Artefact being accessed
         required_permission: Permission to check for
+        ignored_permissions:
+            Optional set of permissions to ignore.
+            If None, defaults to IGNORE_PERMISSIONS from config.
 
     Raises:
         HTTPException(403): If user is not authorized
     """
-    # Honor IGNORE_PERMISSIONS config (aligned with permission_checker)
-    if required_permission.value in IGNORE_PERMISSIONS:
+
+    if has_general_permission(user, app, required_permission, ignored_permissions) or has_amr_permissions(
+        db, user, [artefact], required_permission
+    ):
         return
 
-    if user and user.is_admin:
-        return
-
-    if app and required_permission in app.permissions:
-        return
-
-    if user and any(required_permission in t.permissions for t in user.teams):
-        return
-
-    check_amr_permission(db, user, artefact, required_permission)
+    raise HTTPException(status_code=403, detail="Insufficient permissions")
 
 
 def openapi_scope_declaration() -> None:
