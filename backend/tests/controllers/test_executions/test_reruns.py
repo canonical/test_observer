@@ -34,7 +34,7 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.main import app
 from test_observer.users.user_injection import get_current_user
-from tests.conftest import make_authenticated_request
+from tests.conftest import authenticate_user, make_authenticated_request
 from tests.data_generator import DataGenerator
 
 reruns_url = "/v1/test-executions/reruns"
@@ -942,6 +942,34 @@ def test_delete_bulk_permission_not_required_for_single_id(
 
     assert response.status_code == 200
     assert len(get().json()) == 0
+
+
+def test_user_team_permission_respected_for_post(
+    test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
+):
+    """Test that team permissions are respected for POST and not ignored by AMR permission checks.
+    If no AMR exists, but the user has the required team permissions, the request should succeed.
+    """
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te_1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+    te_2 = generator.gen_test_execution(ab, e, ci_link="http://ci2")
+    te_3 = generator.gen_test_execution(ab, e, ci_link="http://ci3")
+
+    team = generator.gen_team(name="test-team", permissions=[Permission.change_rerun, Permission.change_rerun_bulk])
+    user = generator.gen_user(name="user", teams=[team])
+    authenticate_user(test_client, user, generator, create_session_cookie)
+
+    response = test_client.post(
+        "/v1/test-executions/reruns", headers={"X-CSRF-Token": "1"}, json={"test_execution_ids": [te_1.id]}
+    )
+    assert response.status_code == 200
+
+    response = test_client.post(
+        "/v1/test-executions/reruns", headers={"X-CSRF-Token": "1"}, json={"test_execution_ids": [te_2.id, te_3.id]}
+    )
+    assert response.status_code == 200
 
 
 # ==============================================================================
