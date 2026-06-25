@@ -13,6 +13,8 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from collections.abc import Sequence
+
 from fastapi import Depends, HTTPException
 from fastapi.security import SecurityScopes
 from sqlalchemy.orm import Session, selectinload
@@ -141,7 +143,7 @@ def check_general_permission(
 def has_amr_permissions(
     db: Session,
     user: User | None,
-    artefacts: list[Artefact],
+    artefacts: Sequence[Artefact],
     required_permission: Permission,
 ) -> bool:
     """
@@ -160,7 +162,7 @@ def has_amr_permissions(
     if not artefacts:
         return True
 
-    batch_match_result = db.execute(batch_match_artefacts(list(artefacts))).all()
+    batch_match_result = db.execute(batch_match_artefacts(artefacts)).all()
 
     # Build map: artefact_id → set of matching AMR IDs
     artefact_to_amrs: dict[int, set[int]] = {}
@@ -212,7 +214,7 @@ def has_amr_permissions(
 def check_amr_permissions(
     db: Session,
     user: User | None,
-    artefacts: list[Artefact],
+    artefacts: Sequence[Artefact],
     required_permission: Permission,
 ) -> None:
     """

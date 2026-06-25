@@ -201,7 +201,7 @@ def _validate_amr_permissions_for_request(
     )
 
     affected_artefacts = db.scalars(affected_artefacts_query).all()
-    if not has_amr_permissions(db, user, list(affected_artefacts), permission):
+    if not has_amr_permissions(db, user, affected_artefacts, permission):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
 
