@@ -225,6 +225,8 @@ class TestSAMLAuthentication:
         # skips the Launchpad lookup and no launchpad handle is recorded.
         if USE_LOCAL_LOGIN:
             assert user.launchpad_handle is None
+        else:
+            assert user.launchpad_handle == self.CREDENTIALS["username"]
 
     def _logout_and_verify_session_cleared(self) -> None:
         logout_response = self.session.get(
