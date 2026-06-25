@@ -111,7 +111,7 @@ def has_general_permission(
 
     if ignored_permissions is None:
         ignored_permissions = IGNORE_PERMISSIONS
-    return required_permission in ignored_permissions
+    return required_permission.value in ignored_permissions
 
 
 def check_general_permission(
@@ -123,14 +123,13 @@ def check_general_permission(
     """
     Centralized permission check for general operations.
 
-    Respects IGNORE_PERMISSIONS config and checks in order:
-    1. App has the permission (usually a testing codepath)
-    2. User is an admin or has the permission via their teams
-
     Args:
         user: The User to check (can be None)
         app: The Application to check (can be None)
         required_permission: Permission to check for
+        ignored_permissions:
+            Optional set of permissions to ignore.
+            If None, defaults to IGNORE_PERMISSIONS from config.
 
     Raises:
         HTTPException(403): If user is not authorized
