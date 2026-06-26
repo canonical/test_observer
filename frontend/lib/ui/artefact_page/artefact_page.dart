@@ -80,7 +80,7 @@ class ArtefactPage extends ConsumerWidget {
                           child: ArtefactPageSide(artefact: artefact),
                         ),
                       ),
-                      if (showSide) const SizedBox(width: Spacing.level4),
+                      const SizedBox(width: Spacing.level4),
                       Expanded(
                         child: SelectionArea(
                           child: ArtefactPageBody(artefact: artefact),
