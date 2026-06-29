@@ -20,5 +20,12 @@ build
 
 backend/scripts/test-results-reports/
 
+# SAML development certificates (auto-generated at container startup)
+backend/saml/simplesamlphp/cert/server.pem
+backend/saml/simplesamlphp/cert/server.crt
+
 # spread artifacts
 artifacts/
+
+# Temp files
+.DS_Store

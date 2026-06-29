@@ -1,7 +1,7 @@
 <?php
 
-// Copyright 2025 Canonical Ltd.
-
+// Copyright 2026 Canonical Ltd.
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License version 3, as
 // published by the Free Software Foundation.
@@ -11,9 +11,9 @@
 // GNU Affero General Public License for more details.
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
-// SPDX-License-Identifier: GPL-3.0-only
+//
+// SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 /**
  * SAML 2.0 IdP configuration for SimpleSAMLphp.
@@ -21,7 +21,7 @@
  * See: https://simplesamlphp.org/docs/stable/simplesamlphp-reference-idp-hosted
  */
 
-$metadata['__DYNAMIC:1__'] = array(
+$metadata['http://localhost:8080/simplesaml/saml2/idp/metadata.php'] = array(
         'host' => '__DEFAULT__',
 
         'privatekey' => 'server.pem',
@@ -29,11 +29,15 @@ $metadata['__DYNAMIC:1__'] = array(
 
         'auth' => 'example-userpass',
 
+        // Advertise the emailAddress NameID format in the IdP metadata so the
+        // SP requests it (mirrors the production Canonical SSO IdP).
+        'NameIDFormat' => 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
+
         // Use emailAddress NameIdFormat
         'authproc' => [
             100 => [
                 'class' => 'saml:AttributeNameID',
-                'attribute' => 'email',
+                'identifyingAttribute' => 'email',
                 'Format' => 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress',
             ],
         ],

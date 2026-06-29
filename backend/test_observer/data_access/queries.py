@@ -13,6 +13,8 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from collections.abc import Sequence
+
 from sqlalchemy import Integer, Select, and_, case, false, func, literal, or_, select, union_all
 
 from test_observer.data_access.models import Artefact, ArtefactBuild, ArtefactMatchingRule
@@ -150,7 +152,7 @@ def match_artefact(artefact: Artefact) -> Select[tuple[int]]:
     return select_rules
 
 
-def batch_match_artefacts(artefacts: list[Artefact]) -> Select[tuple[int, int]]:
+def batch_match_artefacts(artefacts: Sequence[Artefact]) -> Select[tuple[int, int]]:
     """Match multiple artefacts to their AMRs in a single query.
 
     Returns a query that produces (artefact_id, amr_id) tuples for all matching pairs.

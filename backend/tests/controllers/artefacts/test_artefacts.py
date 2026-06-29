@@ -13,6 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from collections.abc import Callable
 from datetime import date, timedelta
 from operator import itemgetter
 from typing import Any
@@ -33,7 +34,7 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.main import app
 from test_observer.users.user_injection import get_current_user
-from tests.conftest import make_authenticated_request
+from tests.conftest import authenticate_user, make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
@@ -505,6 +506,28 @@ def test_update_artefact_comment(test_client: TestClient, generator: DataGenerat
 
     assert response.status_code == 200
     assert a.comment == comment
+
+
+def test_update_artefact_comment_as_user_with_permission(
+    test_client: TestClient,
+    generator: DataGenerator,
+    create_session_cookie: Callable[[int], str],
+):
+    """Test that a user with the appropriate permission as determined by their teams can update an artefact's comment,
+    rather than having permission denied due to AMR checks.
+    """
+    artefact = generator.gen_artefact()
+    team = generator.gen_team(name="test-team", permissions=[Permission.change_artefact])
+    user = generator.gen_user(name="user", teams=[team])
+    authenticate_user(test_client, user, generator, create_session_cookie)
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        headers={"X-CSRF-Token": "1"},
+        json={"comment": "Updated comment"},
+    )
+
+    assert response.status_code == 200
+    assert artefact.comment == "Updated comment"
 
 
 def test_update_artefact_jira_issue(test_client: TestClient, generator: DataGenerator):
