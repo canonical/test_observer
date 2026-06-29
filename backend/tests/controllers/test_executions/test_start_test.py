@@ -652,11 +652,7 @@ class TestFamilyIndependentTests:
         assert test_execution
         assert reviewer in test_execution.artefact_build.artefact.reviewers
 
-        notifications = (
-            self._db_session.query(Notification)
-            .filter(Notification.user_id == reviewer.id)
-            .all()
-        )
+        notifications = self._db_session.query(Notification).filter(Notification.user_id == reviewer.id).all()
 
         notification_types = {n.notification_type for n in notifications}
         assert NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW in notification_types
@@ -1586,12 +1582,7 @@ def test_reviewer_assigned_to_environment_gets_both_jira_cards(
     # THEN the reviewer's Jira cards include both notification types
     mock_create_cards.assert_called_once()
     message = mock_create_cards.call_args[0][0]
-    reviewer_assigned_types = {
-        t
-        for r, types in message.assigned_reviews
-        if r.id == reviewer.id
-        for t in types
-    }
+    reviewer_assigned_types = {t for r, types in message.assigned_reviews if r.id == reviewer.id for t in types}
 
     assert NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW in reviewer_assigned_types
     assert NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW in reviewer_assigned_types
@@ -1606,7 +1597,7 @@ def test_no_new_jira_cards_when_existing_reviewer_assigned_to_new_environment(
     # GIVEN a reviewer with a matching rule and an artefact with jira_issue
     rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
     team = generator.gen_team(artefact_matching_rules=[rule])
-    reviewer = generator.gen_user(teams=[team])
+    generator.gen_user(teams=[team])
 
     response = execute({**snap_test_request, "needs_assignment": False})
     test_execution = db_session.get(TestExecution, response.json()["id"])
@@ -1624,7 +1615,9 @@ def test_no_new_jira_cards_when_existing_reviewer_assigned_to_new_environment(
         "test_observer.controllers.test_executions.start_test.batch_create_jira_reviewer_cards"
     ) as mock_second_call:
         db_session.expire_all()
-        execute({**snap_test_request, "environment": "env-1", "ci_link": "http://localhost/1", "needs_assignment": True})
+        execute(
+            {**snap_test_request, "environment": "env-1", "ci_link": "http://localhost/1", "needs_assignment": True}
+        )
 
     # THEN no new Jira cards are created on the second call
     mock_second_call.assert_not_called()
