@@ -37,12 +37,12 @@ def upgrade() -> None:
         sa.Column("priority", sa.Integer(), nullable=False, server_default="0"),
     )
     op.create_index(
-        "ix_rerun_request_priority_created_at",
+        "idx_rerun_request_priority_created_at",
         "test_execution_rerun_request",
         [sa.text("priority DESC"), sa.text("created_at ASC")],
     )
 
 
 def downgrade() -> None:
-    op.drop_index("ix_rerun_request_priority_created_at", table_name="test_execution_rerun_request")
+    op.drop_index("idx_rerun_request_priority_created_at", table_name="test_execution_rerun_request")
     op.drop_column("test_execution_rerun_request", "priority")
