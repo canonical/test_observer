@@ -342,11 +342,12 @@ class DataGenerator:
         self._add_object(test_result)
         return test_result
 
-    def gen_rerun_request(self, test_execution: TestExecution) -> TestExecutionRerunRequest:
+    def gen_rerun_request(self, test_execution: TestExecution, priority: int = 0) -> TestExecutionRerunRequest:
         rerun = TestExecutionRerunRequest(
             test_plan_id=test_execution.test_plan_id,
             artefact_build_id=test_execution.artefact_build_id,
             environment_id=test_execution.environment_id,
+            priority=priority,
         )
         self._add_object(rerun)
         return rerun

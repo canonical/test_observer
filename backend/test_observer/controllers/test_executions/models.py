@@ -302,6 +302,7 @@ class TestExecutionsPatchRequest(BaseModel):
 class RerunRequest(BaseModel):
     test_execution_ids: set[int] = Field(default_factory=set)
     test_results_filters: TestResultSearchFilters | None = None
+    priority: int | None = None
 
 
 class PendingRerun(BaseModel):
@@ -313,6 +314,7 @@ class PendingRerun(BaseModel):
     test_execution: TestExecutionResponse = Field(validation_alias=AliasPath("test_executions", 0))
     artefact: ArtefactResponse = Field(validation_alias=AliasPath("artefact_build", "artefact"))
     artefact_build: ArtefactBuildMinimalResponse = Field(validation_alias=AliasPath("artefact_build"))
+    priority: int
 
 
 class DeleteReruns(BaseModel):
