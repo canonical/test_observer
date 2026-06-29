@@ -16,6 +16,7 @@
 from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -1309,3 +1310,75 @@ class TestAssignReviewersToEnvironments:
             f"Duplicate reviewers found in result. "
             f"Length: {len(newly_assigned_reviewers)}, Unique: {len(set(newly_assigned_reviewers))}"
         )
+
+
+class TestJiraCardAssignment:
+    """Tests for Jira card creation when reviewers are assigned.
+
+    Uses snap_test_request specifically because the Jira card path requires a
+    pre-existing artefact with jira_issue set, and pre-creation requires knowing
+    the family-specific filter fields. The behaviour under test is family-agnostic.
+    """
+
+    _JIRA_PATCH = "test_observer.controllers.test_executions.start_test.batch_create_jira_reviewer_cards"
+
+    def _setup_artefact_with_jira(self, generator: DataGenerator) -> None:
+        """Pre-create the artefact that snap_test_request will match, with a jira_issue set."""
+        artefact = generator.gen_artefact(
+            name=snap_test_request["name"],
+            version=snap_test_request["version"],
+            family=FamilyName.snap,
+            track=snap_test_request["track"],
+            store=snap_test_request["store"],
+            stage=snap_test_request["execution_stage"],
+        )
+        artefact.jira_issue = "TEST-123"
+        self._db_session.flush()
+
+    def _setup_team_with_reviewer(self, generator: DataGenerator) -> None:
+        rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        team = generator.gen_team(name="reviewers", artefact_matching_rules=[rule])
+        self._reviewer = generator.gen_user(email="reviewer@example.com", teams=[team])
+
+    def test_reviewer_assigned_to_environment_gets_only_environment_jira_card(
+        self, execute: Execute, generator: DataGenerator
+    ):
+        """A reviewer assigned to an environment review should receive only an
+        environment Jira card, not an additional artefact-level card."""
+        self._setup_artefact_with_jira(generator)
+        self._setup_team_with_reviewer(generator)
+
+        with patch(self._JIRA_PATCH) as mock_jira:
+            execute({**snap_test_request, "needs_assignment": True})
+
+        mock_jira.assert_called_once()
+        message = mock_jira.call_args[0][0]
+        reviewer_cards = {r.id: types for r, types in message.assigned_reviews}
+
+        assert self._reviewer.id in reviewer_cards
+        assigned_types = reviewer_cards[self._reviewer.id]
+        assert NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW in assigned_types
+        assert NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW not in assigned_types
+
+    def test_no_jira_cards_created_on_repeated_start_test(
+        self, execute: Execute, generator: DataGenerator
+    ):
+        """Once reviewers are already assigned, a subsequent start-test call must
+        not create any additional Jira cards."""
+        self._setup_artefact_with_jira(generator)
+        self._setup_team_with_reviewer(generator)
+
+        # First call assigns the reviewer and creates their card.
+        with patch(self._JIRA_PATCH):
+            execute({**snap_test_request, "needs_assignment": True})
+
+        # Second call — same artefact already has reviewers.
+        with patch(self._JIRA_PATCH) as mock_jira_second:
+            execute({**snap_test_request, "ci_link": "http://second-run", "needs_assignment": True})
+
+        mock_jira_second.assert_not_called()
+
+    @pytest.fixture(autouse=True)
+    def _set_db_session(self, db_session: Session) -> None:
+        self._db_session = db_session
+        self._reviewer = None
