@@ -65,6 +65,11 @@ SPDX-FileCopyrightText = "2025 Canonical Ltd."
 SPDX-License-Identifier = "AGPL-3.0-only"
 
 [[annotations]]
+path = "backend/charm/uv.lock"
+SPDX-FileCopyrightText = "2026 Canonical Ltd."
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
 path = "docs/**/*"
 SPDX-FileCopyrightText = "2025 Canonical Ltd."
 SPDX-License-Identifier = "CC-BY-SA-4.0"
