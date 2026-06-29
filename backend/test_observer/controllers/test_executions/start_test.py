@@ -97,6 +97,9 @@ class StartTestExecutionController:
 
     def execute(self):
         self.create_artefact()
+        # arch must be resolved after the artefact exists: for an existing image the
+        # request may omit arch, in which case it is derived from the image's build.
+        self.resolved_arch = self._resolve_arch()
         self.create_environment()
         self.create_artefact_build()
         self.create_artefact_build_environment()
@@ -281,7 +284,7 @@ class StartTestExecutionController:
             self.db,
             ArtefactBuild,
             filter_kwargs={
-                "architecture": self.request.arch,
+                "architecture": self.resolved_arch,
                 "revision": getattr(self.request, "revision", None),
                 "artefact_id": self.artefact.id,
             },
@@ -293,16 +296,20 @@ class StartTestExecutionController:
             Environment,
             filter_kwargs={
                 "name": self.request.environment,
-                "architecture": self.request.arch,
+                "architecture": self.resolved_arch,
             },
         )
 
     def create_artefact(self) -> None:
+        # The lookup filter must hold exactly the artefact's family-specific unique key;
+        # any other fields go in creation_kwargs so a differing value can't miss the
+        # existing row and then trip the unique constraint on insert.
         filter_kwargs = {
             "name": self.request.name,
             "version": self.request.version,
             "family": self.request.family,
         }
+        creation_kwargs: dict = {"stage": self.request.execution_stage}
 
         match self.request:
             case StartSnapTestExecutionRequest():
@@ -316,12 +323,26 @@ class StartTestExecutionController:
                 filter_kwargs["series"] = self.request.series
                 filter_kwargs["repo"] = self.request.repo
                 filter_kwargs["source"] = self.request.source
+
+            # An image is identified by its sha256 alone, so an existing image can be
+            # tested by submitting only its sha256; the rest is needed only to create it.
             case StartImageTestExecutionRequest():
-                filter_kwargs["os"] = self.request.os
-                filter_kwargs["release"] = self.request.release
-                filter_kwargs["sha256"] = self.request.sha256
-                filter_kwargs["owner"] = self.request.owner
-                filter_kwargs["image_url"] = str(self.request.image_url)
+                filter_kwargs = {"family": self.request.family, "sha256": self.request.sha256}
+                if self.db.query(Artefact).filter_by(**filter_kwargs).one_or_none() is None and any(
+                    getattr(self.request, field) is None for field in self.request.REQUIRED_CREATION_FIELDS
+                ):
+                    raise HTTPException(
+                        status_code=422,
+                        detail="No image with this sha256 exists yet; provide the full image details to create it.",
+                    )
+                creation_kwargs |= {
+                    "name": self.request.name,
+                    "version": self.request.version,
+                    "os": self.request.os,
+                    "release": self.request.release,
+                    "owner": self.request.owner,
+                    "image_url": str(self.request.image_url),
+                }
 
             # In other families, a single artefact will progress through stages,
             # i.e. move from edge to stable. Solutions are different. Different stages are treated
@@ -331,14 +352,22 @@ class StartTestExecutionController:
                 filter_kwargs["source"] = self.request.source
                 filter_kwargs["stage"] = self.request.execution_stage
                 filter_kwargs["bundled_builds_hash"] = calculate_bundled_builds_hash([])
+                creation_kwargs = {}
 
-        self.artefact = get_or_create(
-            self.db,
-            Artefact,
-            filter_kwargs=filter_kwargs,
-            creation_kwargs={"stage": self.request.execution_stage}
-            if not isinstance(self.request, StartSolutionTestExecutionRequest)
-            else {},
+        self.artefact = get_or_create(self.db, Artefact, filter_kwargs=filter_kwargs, creation_kwargs=creation_kwargs)
+
+    def _resolve_arch(self) -> str:
+        if self.request.arch is not None:
+            return self.request.arch
+
+        # arch was omitted: only valid for an existing image, derive it from its build.
+        architectures = self.artefact.architectures
+        if len(architectures) == 1:
+            return next(iter(architectures))
+
+        raise HTTPException(
+            status_code=422,
+            detail="'arch' is required and could not be derived from the image's builds.",
         )
 
     def delete_rerun_request(self):
