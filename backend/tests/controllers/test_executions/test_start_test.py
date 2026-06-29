@@ -24,7 +24,7 @@ from httpx import Response
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.controllers.test_executions.start_test import StartTestExecutionController
+from test_observer.controllers.test_executions.start_test import ENVIRONMENTS_PER_REVIEWER, StartTestExecutionController
 from test_observer.data_access.models import (
     Artefact,
     Notification,
@@ -629,11 +629,11 @@ class TestFamilyIndependentTests:
 
         assert len(notifications) == 0
 
-    def test_reviewer_assigned_to_environment_does_not_also_get_artefact_notification(
+    def test_reviewer_assigned_to_environment_also_gets_artefact_notification(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        """A reviewer who is assigned to an environment review should receive only the
-        environment notification, not an additional artefact-level notification."""
+        """A reviewer newly assigned to an artefact who also gets an environment review
+        should receive both an artefact and an environment notification."""
         snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
         charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
@@ -656,7 +656,7 @@ class TestFamilyIndependentTests:
 
         notification_types = {n.notification_type for n in notifications}
         assert NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW in notification_types
-        assert NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW not in notification_types
+        assert NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW in notification_types
 
     @pytest.fixture(autouse=True)
     def _set_db_session(self, db_session: Session) -> None:
@@ -1363,16 +1363,17 @@ def test_subsequent_environments_also_get_reviewer_assigned_to_env_review(
 def test_exceeding_50_environments_adds_new_artefact_reviewer(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
-    """When an artefact accumulates more than 50 environments, a second reviewer is assigned."""
+    """When an artefact accumulates more than ENVIRONMENTS_PER_REVIEWER environments,
+    a second reviewer is assigned."""
     # GIVEN two users in a team with a matching rule for snaps
     rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
     team = generator.gen_team(artefact_matching_rules=[rule])
     generator.gen_user(email="reviewer1@example.com", teams=[team])
     generator.gen_user(email="reviewer2@example.com", teams=[team])
 
-    # WHEN 52 environments are created one by one, each with needs_assignment=True
+    # WHEN ENVIRONMENTS_PER_REVIEWER + 2 environments are created one by one, each with needs_assignment=True
     last_response = None
-    for i in range(52):
+    for i in range(ENVIRONMENTS_PER_REVIEWER + 2):
         db_session.expire_all()  # simulate a fresh session per request
         last_response = execute(
             {
@@ -1389,7 +1390,7 @@ def test_exceeding_50_environments_adds_new_artefact_reviewer(
     assert test_execution is not None
     artefact = test_execution.artefact_build.artefact
 
-    # THEN the artefact has 2 reviewers (ceil(52 / 50) = 2)
+    # THEN the artefact has 2 reviewers (ceil((ENVIRONMENTS_PER_REVIEWER + 2) / ENVIRONMENTS_PER_REVIEWER) = 2)
     assert len(artefact.reviewers) == 2
 
     # AND every environment review has exactly one reviewer assigned

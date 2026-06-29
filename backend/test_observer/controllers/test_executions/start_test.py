@@ -201,12 +201,11 @@ class StartTestExecutionController:
                     NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
                 )
 
-        artefact_only_reviewers = [r for r in newly_assigned_reviewers if r not in newly_assigned_environment_reviewers]
-        if artefact_only_reviewers:
+        if newly_assigned_reviewers:
             with self.db.begin_nested():
                 batch_create_review_notifications(
                     self.db,
-                    artefact_only_reviewers,
+                    newly_assigned_reviewers,
                     self.artefact,
                     NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
                 )
