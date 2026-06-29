@@ -603,6 +603,39 @@ class TestFamilyIndependentTests:
         # Verify notifications are for the right type
         assert all(n.notification_type == NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW for n in notifications)
 
+    def test_reviewer_assigned_to_environment_does_not_also_get_artefact_notification(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        """A reviewer who is assigned to an environment review should only receive the environment
+        notification, not an additional artefact-level notification."""
+        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
+
+        team = generator.gen_team(
+            name="reviewers",
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
+        )
+        reviewer = generator.gen_user(email="reviewer@example.com", teams=[team])
+
+        response = execute({**start_request, "needs_assignment": True})
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        assert reviewer in test_execution.artefact_build.artefact.reviewers
+
+        notifications = (
+            self._db_session.query(Notification)
+            .filter(Notification.user_id == reviewer.id)
+            .all()
+        )
+
+        notification_types = {n.notification_type for n in notifications}
+        assert NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW in notification_types
+        assert NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW not in notification_types
+
     def test_start_test_without_needs_assignment_no_notifications(
         self, execute: Execute, start_request: dict[str, Any]
     ):
