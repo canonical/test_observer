@@ -4,7 +4,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,12 +15,20 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-terraform {
-  required_version = ">= 1.5"
-  required_providers {
-    juju = {
-      source  = "juju/juju"
-      version = "~> 1.5.0"
-    }
-  }
-}
+"""Functions for interacting with the workload.
+
+The intention is that this module could be used outside the context of a charm.
+"""
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+# Functions for interacting with the workload, for example over HTTP:
+
+
+def get_version() -> str | None:
+    """Get the running version of the workload."""
+    # You'll need to implement this function (or remove it if not needed).
+    return None

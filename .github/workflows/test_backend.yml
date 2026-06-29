@@ -53,7 +53,7 @@ jobs:
       - name: Start test observer api
         run: docker compose up --wait -d test-observer-api
       - name: Run test observer api tests
-        run: docker compose exec test-observer-api pytest
+        run: docker compose exec test-observer-api pytest --ignore=charm/
       - name: Check if alembic migrations are up to date
         run: docker compose exec test-observer-api alembic check
       - name: Compare schema with repository
