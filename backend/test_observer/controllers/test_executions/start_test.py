@@ -188,14 +188,6 @@ class StartTestExecutionController:
                     self.artefact.reviewers += newly_assigned_reviewers
                     self.artefact.due_date = self.determine_due_date()
 
-                    with self.db.begin_nested():
-                        batch_create_review_notifications(
-                            self.db,
-                            newly_assigned_reviewers,
-                            self.artefact,
-                            NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
-                        )
-
         newly_assigned_environment_reviewers: list[User] = []
         if self.artefact.reviewers:
             newly_assigned_environment_reviewers = self._assign_reviewers_to_environments()
@@ -207,6 +199,18 @@ class StartTestExecutionController:
                     newly_assigned_environment_reviewers,
                     self.artefact,
                     NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
+                )
+
+        artefact_only_reviewers = [
+            r for r in newly_assigned_reviewers if r not in newly_assigned_environment_reviewers
+        ]
+        if artefact_only_reviewers:
+            with self.db.begin_nested():
+                batch_create_review_notifications(
+                    self.db,
+                    artefact_only_reviewers,
+                    self.artefact,
+                    NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
                 )
 
         if newly_assigned_reviewers and self.artefact.jira_issue is not None:
