@@ -187,7 +187,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution, priority: int
 def without_server_fields(reruns: list[dict] | dict) -> list[dict] | dict:
     """Strip server-generated fields (e.g. created_at) before comparing to an expected dict."""
     if isinstance(reruns, list):
-        return [without_server_fields(r) for r in reruns]
+        return [{k: v for k, v in r.items() if k != "created_at"} for r in reruns]
     return {k: v for k, v in reruns.items() if k != "created_at"}
 
 
