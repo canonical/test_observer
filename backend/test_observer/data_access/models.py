@@ -954,6 +954,10 @@ class IssueTestResultAttachmentRule(Base):
     test_results: Mapped[list["IssueTestResultAttachment"]] = relationship(back_populates="attachment_rule")
 
     families: Mapped[list[FamilyName]] = mapped_column(ARRAY(Enum(FamilyName)), default=list)
+    artefacts: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    artefact_versions: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    artefact_stages: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    artefact_tracks: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
     environment_names: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
     test_case_names: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
     template_ids: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)

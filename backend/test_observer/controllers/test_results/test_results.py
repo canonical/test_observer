@@ -175,6 +175,18 @@ def search_test_results(
         list[str] | None,
         Query(description="Filter by artefact names"),
     ] = None,
+    artefact_versions: Annotated[
+        list[str] | None,
+        Query(description="Filter by artefact versions"),
+    ] = None,
+    artefact_stages: Annotated[
+        list[str] | None,
+        Query(description="Filter by artefact stages"),
+    ] = None,
+    artefact_tracks: Annotated[
+        list[str] | None,
+        Query(description="Filter by artefact tracks"),
+    ] = None,
     artefact_is_archived: Annotated[
         bool | None,
         Query(description="Filter by whether the artefact is archived"),
@@ -235,6 +247,9 @@ def search_test_results(
     filters = TestResultSearchFilters(
         families=families or [],
         artefacts=artefacts or [],
+        artefact_versions=artefact_versions or [],
+        artefact_stages=artefact_stages or [],
+        artefact_tracks=artefact_tracks or [],
         artefact_is_archived=artefact_is_archived,
         environments=environments or [],
         test_cases=test_cases or [],
