@@ -7503,6 +7503,11 @@
           "priority": {
             "type": "integer",
             "title": "Priority"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
           }
         },
         "type": "object",
@@ -7513,7 +7518,8 @@
           "test_execution",
           "artefact",
           "artefact_build",
-          "priority"
+          "priority",
+          "created_at"
         ],
         "title": "PendingRerun"
       },
