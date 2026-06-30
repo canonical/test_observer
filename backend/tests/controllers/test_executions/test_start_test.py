@@ -377,6 +377,9 @@ class TestFamilyIndependentTests:
         When an artefact has multiple builds and multiple reviewers,
         each build's environment reviews should get reviewer assignments
         """
+        if start_request["family"] == "image":
+            pytest.skip("an image is single-architecture, so it cannot have multiple builds")
+
         # Create a team that can review all families
         snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
@@ -731,24 +734,113 @@ def test_charm_required_fields(execute: Execute, field: str):
 @pytest.mark.parametrize(
     "field",
     [
-        "name",
-        "version",
-        "os",
-        "release",
-        "arch",
         "sha256",
-        "owner",
-        "image_url",
-        "execution_stage",
         "environment",
+        "test_plan",
     ],
 )
-def test_image_required_fields(execute: Execute, field: str):
+def test_image_schema_required_fields(execute: Execute, field: str):
+    """Fields that are always required by the request schema for images."""
     request = image_test_request.copy()
     request.pop(field)
     response = execute(request)
 
     assert_fails_validation(response, field, "missing")
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "name",
+        "version",
+        "os",
+        "release",
+        "arch",
+        "owner",
+        "image_url",
+        "execution_stage",
+    ],
+)
+def test_image_missing_create_fields_returns_422(execute: Execute, field: str):
+    """When no image with the sha256 exists yet, creating one requires all these
+    fields. Omitting any returns a clean 422 (not a 500)."""
+    request = image_test_request.copy()
+    request.pop(field)
+    response = execute(request)
+
+    assert response.status_code == 422
+
+
+# A second, distinct sha256 used for tests that pre-seed an existing image so that the
+# request under test resolves to "existing" rather than "create".
+_EXISTING_IMAGE_SHA256 = "a" * 64
+
+
+def _existing_image_request(**overrides: object) -> dict[str, Any]:
+    """A minimal image start-test payload for an image that already exists: just the
+    sha256 plus the test-execution context, no descriptive fields and no arch."""
+    request: dict[str, Any] = {
+        "family": "image",
+        "sha256": _EXISTING_IMAGE_SHA256,
+        "environment": "xps",
+        "test_plan": "image test plan",
+        "ci_link": "http://localhost",
+    }
+    request.update(overrides)
+    return request
+
+
+def test_image_minimal_payload_reuses_existing_artefact(
+    execute: Execute, generator: DataGenerator, db_session: Session
+):
+    """An existing image can be tested with only its sha256 + test context; arch is
+    derived from the image's single build."""
+    image = generator.gen_image(sha256=_EXISTING_IMAGE_SHA256, name="noble-desktop-arm64")
+    generator.gen_artefact_build(image, architecture="arm64")
+
+    response = execute(_existing_image_request())
+
+    assert response.status_code == 200
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    assert test_execution.artefact_build.artefact_id == image.id
+    # arch was omitted and derived from the existing build
+    assert test_execution.artefact_build.architecture == "arm64"
+    assert test_execution.environment.architecture == "arm64"
+
+
+def test_image_conflicting_arch_is_rejected(execute: Execute, generator: DataGenerator):
+    """A provided arch that differs from the existing image's build is rejected (422)."""
+    image = generator.gen_image(sha256=_EXISTING_IMAGE_SHA256)
+    generator.gen_artefact_build(image, architecture="amd64")
+
+    response = execute(_existing_image_request(arch="arm64"))
+
+    assert response.status_code == 422
+
+
+def test_image_same_sha_reuses_existing_artefact(execute: Execute, db_session: Session):
+    """Regression: two image payloads sharing a sha256 used to 500 via an uncaught
+    NoResultFound. The sha256 identifies the image, so the second request now reuses
+    the existing artefact."""
+    first = {**image_test_request, "sha256": _EXISTING_IMAGE_SHA256}
+    first_response = execute(first)
+    assert first_response.status_code == 200
+    first_te = db_session.get(TestExecution, first_response.json()["id"])
+    assert first_te is not None
+
+    second = {
+        **image_test_request,
+        "sha256": _EXISTING_IMAGE_SHA256,
+        "name": "different-image",
+        "ci_link": "http://localhost/other",
+    }
+    second_response = execute(second)
+    assert second_response.status_code == 200
+    second_te = db_session.get(TestExecution, second_response.json()["id"])
+    assert second_te is not None
+
+    assert first_te.artefact_build.artefact_id == second_te.artefact_build.artefact_id
 
 
 @pytest.mark.parametrize(
