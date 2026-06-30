@@ -328,12 +328,24 @@ class StartTestExecutionController:
             # tested by submitting only its sha256; the rest is needed only to create it.
             case StartImageTestExecutionRequest():
                 filter_kwargs = {"family": self.request.family, "sha256": self.request.sha256}
-                if self.db.query(Artefact).filter_by(**filter_kwargs).one_or_none() is None and any(
+                existing_image = self.db.query(Artefact).filter_by(**filter_kwargs).one_or_none()
+
+                if existing_image is None and any(
                     getattr(self.request, field) is None for field in self.request.REQUIRED_CREATION_FIELDS
                 ):
                     raise HTTPException(
                         status_code=422,
                         detail="No image with this sha256 exists yet; provide the full image details to create it.",
+                    )
+                # An image is single-architecture: a provided arch must match the existing build.
+                if (
+                    existing_image is not None
+                    and self.request.arch is not None
+                    and self.request.arch not in existing_image.architectures
+                ):
+                    raise HTTPException(
+                        status_code=422,
+                        detail="'arch' must match the existing image build architecture.",
                     )
                 creation_kwargs |= {
                     "name": self.request.name,

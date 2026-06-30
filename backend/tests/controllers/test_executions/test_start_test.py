@@ -377,6 +377,9 @@ class TestFamilyIndependentTests:
         When an artefact has multiple builds and multiple reviewers,
         each build's environment reviews should get reviewer assignments
         """
+        if start_request["family"] == "image":
+            pytest.skip("an image is single-architecture, so it cannot have multiple builds")
+
         # Create a team that can review all families
         snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
@@ -792,7 +795,7 @@ def test_image_minimal_payload_reuses_existing_artefact(
 ):
     """An existing image can be tested with only its sha256 + test context; arch is
     derived from the image's single build."""
-    image = generator.gen_image(sha256=_EXISTING_IMAGE_SHA256, name="noble-desktop-amd64")
+    image = generator.gen_image(sha256=_EXISTING_IMAGE_SHA256, name="noble-desktop-arm64")
     generator.gen_artefact_build(image, architecture="arm64")
 
     response = execute(_existing_image_request())
@@ -804,6 +807,16 @@ def test_image_minimal_payload_reuses_existing_artefact(
     # arch was omitted and derived from the existing build
     assert test_execution.artefact_build.architecture == "arm64"
     assert test_execution.environment.architecture == "arm64"
+
+
+def test_image_conflicting_arch_is_rejected(execute: Execute, generator: DataGenerator):
+    """A provided arch that differs from the existing image's build is rejected (422)."""
+    image = generator.gen_image(sha256=_EXISTING_IMAGE_SHA256)
+    generator.gen_artefact_build(image, architecture="amd64")
+
+    response = execute(_existing_image_request(arch="arm64"))
+
+    assert response.status_code == 422
 
 
 def test_image_same_sha_reuses_existing_artefact(execute: Execute, db_session: Session):
