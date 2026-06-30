@@ -358,6 +358,7 @@ class PendingRerun(BaseModel):
     artefact: ArtefactResponse = Field(validation_alias=AliasPath("artefact_build", "artefact"))
     artefact_build: ArtefactBuildMinimalResponse = Field(validation_alias=AliasPath("artefact_build"))
     priority: int
+    created_at: datetime
 
 
 class DeleteReruns(BaseModel):

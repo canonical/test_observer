@@ -14,6 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Callable
+from datetime import datetime
 from operator import itemgetter
 from typing import Any
 
@@ -183,6 +184,13 @@ def test_execution_to_pending_rerun(test_execution: TestExecution, priority: int
     return jsonable_encoder(return_data)
 
 
+def without_server_fields(reruns: list[dict] | dict) -> list[dict] | dict:
+    """Strip server-generated fields (e.g. created_at) before comparing to an expected dict."""
+    if isinstance(reruns, list):
+        return [without_server_fields(r) for r in reruns]
+    return {k: v for k, v in reruns.items() if k != "created_at"}
+
+
 # ==============================================================================
 # Basic POST Operations - Single ID
 # ==============================================================================
@@ -203,7 +211,7 @@ def test_valid_post(post: Post, test_execution: TestExecution):
     response = post({"test_execution_ids": [test_execution.id]})
 
     assert response.status_code == 200
-    assert response.json() == [test_execution_to_pending_rerun(test_execution)]
+    assert without_server_fields(response.json()) == [test_execution_to_pending_rerun(test_execution)]
 
 
 def test_post_with_valid_and_invalid_ids(post: Post, test_execution: TestExecution):
@@ -228,7 +236,15 @@ def test_get_after_one_post(get: Get, post: Post, test_execution: TestExecution)
 
     post({"test_execution_ids": [test_execution.id]})
 
-    assert get().json() == [test_execution_to_pending_rerun(test_execution)]
+    assert without_server_fields(get().json()) == [test_execution_to_pending_rerun(test_execution)]
+
+
+def test_get_returns_created_at(get: Get, post: Post, test_execution: TestExecution):
+    post({"test_execution_ids": [test_execution.id]})
+
+    rerun = get().json()[0]
+    assert "created_at" in rerun
+    datetime.fromisoformat(rerun["created_at"])
 
 
 def test_get_after_two_identical_posts(get: Get, post: Post, test_execution: TestExecution):
@@ -237,7 +253,7 @@ def test_get_after_two_identical_posts(get: Get, post: Post, test_execution: Tes
     post({"test_execution_ids": [test_execution.id]})
     post({"test_execution_ids": [test_execution.id]})
 
-    assert get().json() == [test_execution_to_pending_rerun(test_execution)]
+    assert without_server_fields(get().json()) == [test_execution_to_pending_rerun(test_execution)]
 
 
 def test_get_after_two_different_posts(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
@@ -250,7 +266,7 @@ def test_get_after_two_different_posts(get: Get, post: Post, test_execution: Tes
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert get().json() == [
+    assert without_server_fields(get().json()) == [
         test_execution_to_pending_rerun(te1),
         test_execution_to_pending_rerun(te2),
     ]
@@ -266,7 +282,7 @@ def test_get_after_post_with_two_test_execution_ids(get: Get, post: Post, genera
 
     post({"test_execution_ids": [te1.id, te2.id]})
 
-    assert sorted(get().json(), key=itemgetter("test_execution_id")) == [
+    assert sorted(without_server_fields(get().json()), key=itemgetter("test_execution_id")) == [
         test_execution_to_pending_rerun(te1),
         test_execution_to_pending_rerun(te2),
     ]
@@ -279,7 +295,7 @@ def test_get_with_limit(get: Get, post: Post, test_execution: TestExecution, gen
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert get(limit=1).json() == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(limit=1).json()) == [test_execution_to_pending_rerun(te1)]
 
 
 # ==============================================================================
@@ -407,8 +423,8 @@ def test_get_with_family(get: Get, post: Post, test_execution: TestExecution, ge
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert get(family=FamilyName.snap).json() == [test_execution_to_pending_rerun(te1)]
-    assert get(family=FamilyName.charm).json() == [test_execution_to_pending_rerun(te2)]
+    assert without_server_fields(get(family=FamilyName.snap).json()) == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(family=FamilyName.charm).json()) == [test_execution_to_pending_rerun(te2)]
     assert get(family=FamilyName.image).json() == []
 
 
@@ -457,8 +473,8 @@ def test_get_with_environment_filter(get: Get, post: Post, test_execution: TestE
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert get(environment="rpi2").json() == [test_execution_to_pending_rerun(te1)]
-    assert get(environment="dawson-i").json() == [test_execution_to_pending_rerun(te2)]
+    assert without_server_fields(get(environment="rpi2").json()) == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(environment="dawson-i").json()) == [test_execution_to_pending_rerun(te2)]
     assert get(environment="nonexistent").json() == []
 
 
@@ -475,9 +491,9 @@ def test_get_with_build_architecture_filter(get: Get, post: Post, generator: Dat
 
     post({"test_execution_ids": [te1.id, te2.id, te3.id]})
 
-    assert get(build_architecture="arm64").json() == [test_execution_to_pending_rerun(te1)]
-    assert get(build_architecture="amd64").json() == [test_execution_to_pending_rerun(te2)]
-    assert get(build_architecture="armhf").json() == [test_execution_to_pending_rerun(te3)]
+    assert without_server_fields(get(build_architecture="arm64").json()) == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(build_architecture="amd64").json()) == [test_execution_to_pending_rerun(te2)]
+    assert without_server_fields(get(build_architecture="armhf").json()) == [test_execution_to_pending_rerun(te3)]
     assert get(build_architecture="riscv64").json() == []
 
 
@@ -495,9 +511,9 @@ def test_get_with_environment_architecture_filter(get: Get, post: Post, generato
 
     post({"test_execution_ids": [te1.id, te2.id, te3.id]})
 
-    assert get(environment_architecture="arm64").json() == [test_execution_to_pending_rerun(te1)]
-    assert get(environment_architecture="amd64").json() == [test_execution_to_pending_rerun(te2)]
-    assert get(environment_architecture="armhf").json() == [test_execution_to_pending_rerun(te3)]
+    assert without_server_fields(get(environment_architecture="arm64").json()) == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(environment_architecture="amd64").json()) == [test_execution_to_pending_rerun(te2)]
+    assert without_server_fields(get(environment_architecture="armhf").json()) == [test_execution_to_pending_rerun(te3)]
 
 
 def test_get_with_combined_filters(get: Get, post: Post, generator: DataGenerator):
@@ -527,15 +543,19 @@ def test_get_with_combined_filters(get: Get, post: Post, generator: DataGenerato
     assert result[1]["test_execution_id"] in [te1.id, te3.id]
 
     # Test combining family + environment
-    assert get(family=FamilyName.snap, environment="rpi4").json() == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(family=FamilyName.snap, environment="rpi4").json()) == [
+        test_execution_to_pending_rerun(te1)
+    ]
 
     # Test combining all filters
-    assert get(
-        family=FamilyName.snap,
-        build_architecture="arm64",
-        environment="rpi4",
-        environment_architecture="arm64",
-    ).json() == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(
+        get(
+            family=FamilyName.snap,
+            build_architecture="arm64",
+            environment="rpi4",
+            environment_architecture="arm64",
+        ).json()
+    ) == [test_execution_to_pending_rerun(te1)]
 
     # Test filter combination with no matches
     assert (
@@ -567,7 +587,7 @@ def test_get_multiple_reruns_same_build_different_environments(get: Get, post: P
     assert len(result) == 3
 
     # Only specific environment
-    assert get(environment="rpi4").json() == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(environment="rpi4").json()) == [test_execution_to_pending_rerun(te1)]
 
     # All should be returned with environment_architecture filter
     result = get(environment_architecture="arm64").json()
