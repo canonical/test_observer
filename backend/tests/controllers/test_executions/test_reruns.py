@@ -1695,13 +1695,13 @@ def test_post_without_priority_does_not_change_existing_priority(post: Post, get
     assert reruns[0]["priority"] == 7
 
 
-def test_bulk_post_without_priority_does_not_change_existing_priority(
+def test_silent_post_without_priority_does_not_change_existing_priority(
     test_client: TestClient, get: Get, generator: DataGenerator
 ):
-    """Bulk silent post without priority should not overwrite an existing rerun's priority."""
+    """Silent post without priority should not overwrite an existing rerun's priority."""
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
-    e = generator.gen_environment("bulk-no-priority-env")
+    e = generator.gen_environment("silent-no-priority-env")
     te = generator.gen_test_execution(ab, e)
 
     make_authenticated_request(
@@ -1732,13 +1732,13 @@ def test_post_updates_priority_if_rerun_already_exists(post: Post, get: Get, tes
     assert reruns[0]["priority"] == 5
 
 
-def test_bulk_post_updates_priority_if_rerun_already_exists(
+def test_silent_post_updates_priority_if_rerun_already_exists(
     test_client: TestClient, get: Get, generator: DataGenerator
 ):
-    """Bulk silent post with a different priority should update existing reruns."""
+    """Silent post with a different priority should update an existing rerun's priority."""
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(a)
-    e = generator.gen_environment("bulk-update-env")
+    e = generator.gen_environment("silent-update-env")
     te = generator.gen_test_execution(ab, e)
 
     make_authenticated_request(
