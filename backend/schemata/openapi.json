@@ -7376,6 +7376,10 @@
           },
           "artefact_build": {
             "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
           }
         },
         "type": "object",
@@ -7385,7 +7389,8 @@
           "family",
           "test_execution",
           "artefact",
-          "artefact_build"
+          "artefact_build",
+          "priority"
         ],
         "title": "PendingRerun"
       },
@@ -7477,6 +7482,17 @@
                 "type": "null"
               }
             ]
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
           }
         },
         "type": "object",

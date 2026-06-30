@@ -578,7 +578,14 @@ class TestExecutionRerunRequest(Base):
             "environment_id",
             name="uq_rerun_request_group",
         ),
+        Index(
+            "idx_rerun_request_priority_created_at",
+            desc(column("priority")),
+            column("created_at"),
+        ),
     )
+
+    priority: Mapped[int] = mapped_column(default=0)
 
     test_plan_id: Mapped[int] = mapped_column(ForeignKey("test_plan.id", ondelete="CASCADE"), index=True)
     test_plan: Mapped["TestPlan"] = relationship(back_populates="rerun_requests")

@@ -18,7 +18,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query, Response, Security, status
 from fastapi.security import SecurityScopes
-from sqlalchemy import asc, delete, or_, select, tuple_
+from sqlalchemy import Select, asc, delete, desc, literal, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
@@ -54,28 +54,25 @@ from .models import DeleteReruns, PendingRerun, RerunRequest
 from .router import router
 
 
+class _TestExecutionNotFound(ValueError): ...
+
+
+# ==============================================================================
+# DB helpers
+# ==============================================================================
+
+
 def _build_rerun_conditions(request: RerunRequest | DeleteReruns) -> list:
-    """Build conditions for finding affected TestExecutions.
+    """Return SQLAlchemy WHERE conditions identifying the affected TestExecutions.
 
-    Constructs a list of SQLAlchemy conditions for either direct test execution IDs
-    or filtered test results.
-
-    Args:
-        request: RerunRequest or DeleteReruns with either test_execution_ids or test_results_filters
-
-    Returns:
-        List of SQLAlchemy conditions (may be empty if neither criterion is provided)
-
-    Raises:
-        HTTPException(422): If test_results_filters is provided but has no filters
+    Raises HTTPException(422) if test_results_filters is provided but empty.
+    Returns an empty list if neither criterion is provided (caller should no-op).
     """
     conditions = []
 
-    # Add condition for direct test execution IDs
-    if request.test_execution_ids is not None and len(request.test_execution_ids) > 0:
+    if request.test_execution_ids:
         conditions.append(TestExecution.id.in_(request.test_execution_ids))
 
-    # Add condition for filtered test results
     if request.test_results_filters is not None:
         filters = request.test_results_filters
         if not filters.has_filters():
@@ -89,18 +86,9 @@ def _build_rerun_conditions(request: RerunRequest | DeleteReruns) -> list:
     return conditions
 
 
-def modify_reruns(
-    db: Session,
-    request: RerunRequest | DeleteReruns,
-):
-    conditions = _build_rerun_conditions(request)
-
-    # Do nothing if no conditions were added
-    if not conditions:
-        return
-
-    # Build subquery selecting the composite key from TestExecution
-    subquery = (
+def _rerun_group_subquery(conditions: list) -> Select[tuple[int, int, int]]:
+    """Select the composite key (test_plan_id, artefact_build_id, environment_id) for matching executions."""
+    return (
         select(
             TestExecution.test_plan_id,
             TestExecution.artefact_build_id,
@@ -110,31 +98,69 @@ def modify_reruns(
         .distinct()
     )
 
-    if isinstance(request, RerunRequest):
+
+def _create_reruns(db: Session, conditions: list, priority: int | None) -> None:
+    subquery = _rerun_group_subquery(conditions)
+    if priority is not None:
+        subquery = subquery.add_columns(literal(priority).label("priority"))
+        insert_stmt = pg_insert(TestExecutionRerunRequest).from_select(
+            ["test_plan_id", "artefact_build_id", "environment_id", "priority"],
+            subquery,
+        )
         db.execute(
-            pg_insert(TestExecutionRerunRequest)
-            .from_select(
-                [
-                    "test_plan_id",
-                    "artefact_build_id",
-                    "environment_id",
-                ],
-                subquery,
+            insert_stmt.on_conflict_do_update(
+                constraint="uq_rerun_request_group",
+                set_={"priority": insert_stmt.excluded.priority},
             )
-            .on_conflict_do_nothing()
         )
     else:
-        db.execute(
-            delete(TestExecutionRerunRequest).where(
-                tuple_(
-                    TestExecutionRerunRequest.test_plan_id,
-                    TestExecutionRerunRequest.artefact_build_id,
-                    TestExecutionRerunRequest.environment_id,
-                ).in_(subquery)
-            )
+        insert_stmt = pg_insert(TestExecutionRerunRequest).from_select(
+            ["test_plan_id", "artefact_build_id", "environment_id"],
+            subquery,
         )
+        db.execute(insert_stmt.on_conflict_do_nothing())
 
-    db.commit()
+
+def _delete_reruns(db: Session, conditions: list) -> None:
+    subquery = _rerun_group_subquery(conditions)
+    db.execute(
+        delete(TestExecutionRerunRequest).where(
+            tuple_(
+                TestExecutionRerunRequest.test_plan_id,
+                TestExecutionRerunRequest.artefact_build_id,
+                TestExecutionRerunRequest.environment_id,
+            ).in_(subquery)
+        )
+    )
+
+
+def _create_rerun_request(
+    test_execution_id: int, db: Session, priority: int | None = None
+) -> TestExecutionRerunRequest:
+    te = db.get(TestExecution, test_execution_id)
+    if not te:
+        raise _TestExecutionNotFound
+
+    rerun = get_or_create(
+        db,
+        TestExecutionRerunRequest,
+        {
+            "test_plan_id": te.test_plan_id,
+            "artefact_build_id": te.artefact_build_id,
+            "environment_id": te.environment_id,
+        },
+        creation_kwargs={"priority": priority} if priority is not None else None,
+    )
+    # If the record already existed, get_or_create ignores creation_kwargs,
+    # so explicitly update priority here.
+    if priority is not None:
+        rerun.priority = priority
+    return rerun
+
+
+# ==============================================================================
+# Permission helpers (FastAPI dependencies)
+# ==============================================================================
 
 
 def require_bulk_permission(
@@ -143,55 +169,28 @@ def require_bulk_permission(
     user: User | None = Depends(get_current_user),
     app: Application | None = Depends(get_current_application),
 ):
-    if (request.test_execution_ids is not None and len(request.test_execution_ids) > 1) or (
-        request.test_results_filters is not None
-    ):
+    if len(request.test_execution_ids) > 1 or request.test_results_filters is not None:
         permission_checker(security_scopes, user, app)
 
 
-def _validate_amr_permissions_for_request(
+def _validate_amr_permissions(
     db: Session,
     user: User | None,
     app: Application | None,
     request: RerunRequest | DeleteReruns,
     permission: Permission,
 ) -> None:
-    """
-    Validate AMR permissions for rerun requests with optimized batch querying.
-
-    Handles two cases:
-    1. Direct IDs: When request.test_execution_ids is provided
-    2. Filters: When request.test_results_filters is provided
-
-    Uses all-or-nothing semantics: raise HTTPException(403) if ANY artefact is unauthorized.
-    Honors IGNORE_PERMISSIONS, app.permissions, and admin bypass through early exits.
-    Uses batch querying to reduce database load from O(n) to O(1) for AMR matching.
-
-    Args:
-        db: Database session
-        user: Current user (can be None)
-        app: Current application (can be None)
-        request: RerunRequest or DeleteReruns with either test_execution_ids or test_results_filters
-        permission: Permission to check (e.g., Permission.change_rerun)
-
-    Raises:
-        HTTPException(403): If any affected artefact is unauthorized
-    """
+    """Raise HTTPException(403) if the user/app lacks AMR permission on any affected artefact."""
     if has_general_permission(user, app, permission):
         return
 
-    # If user is None, we cannot check AMR permissions, so raise 403
     if user is None:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
-    # Collect conditions to find affected TestExecutions
     conditions = _build_rerun_conditions(request)
-
-    # If no conditions, nothing to check
     if not conditions:
         return
 
-    # Query for all unique artefacts affected by the request
     affected_artefacts_query = (
         select(Artefact)
         .distinct()
@@ -199,10 +198,14 @@ def _validate_amr_permissions_for_request(
         .join(TestExecution, TestExecution.artefact_build_id == ArtefactBuild.id)
         .where(or_(*conditions))
     )
-
     affected_artefacts = db.scalars(affected_artefacts_query).all()
     if not has_amr_permissions(db, user, affected_artefacts, permission):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+
+# ==============================================================================
+# Route handlers
+# ==============================================================================
 
 
 @router.post(
@@ -231,11 +234,13 @@ def create_rerun_requests(
     user: User | None = Depends(get_current_user),
     app: Application | None = Depends(get_current_application),
 ):
-    # Validate AMR permissions in addition to basic app/user permissions
-    _validate_amr_permissions_for_request(db, user, app, request, Permission.change_rerun)
+    _validate_amr_permissions(db, user, app, request, Permission.change_rerun)
 
     if silent:
-        modify_reruns(db, request)
+        conditions = _build_rerun_conditions(request)
+        if conditions:
+            _create_reruns(db, conditions, request.priority)
+            db.commit()
         return
 
     if request.test_results_filters is not None:
@@ -247,7 +252,7 @@ def create_rerun_requests(
     rerun_requests = []
     for test_execution_id in request.test_execution_ids:
         with contextlib.suppress(_TestExecutionNotFound):
-            rerun_requests.append(_create_rerun_request(test_execution_id, db))
+            rerun_requests.append(_create_rerun_request(test_execution_id, db, request.priority))
 
     if not rerun_requests:
         raise HTTPException(
@@ -261,22 +266,6 @@ def create_rerun_requests(
     db.commit()
 
     return rerun_requests
-
-
-def _create_rerun_request(test_execution_id: int, db: Session) -> TestExecutionRerunRequest:
-    te = db.get(TestExecution, test_execution_id)
-    if not te:
-        raise _TestExecutionNotFound
-
-    return get_or_create(
-        db,
-        TestExecutionRerunRequest,
-        {
-            "test_plan_id": te.test_plan_id,
-            "artefact_build_id": te.artefact_build_id,
-            "environment_id": te.environment_id,
-        },
-    )
 
 
 @router.get(
@@ -305,7 +294,11 @@ def get_rerun_requests(
             selectinload(TestExecutionRerunRequest.test_plan),
             selectinload(TestExecutionRerunRequest.test_executions),
         )
-        .order_by(asc(TestExecutionRerunRequest.created_at))
+        .order_by(
+            desc(TestExecutionRerunRequest.priority),
+            asc(TestExecutionRerunRequest.created_at),
+            asc(TestExecutionRerunRequest.id),
+        )
     )
 
     if family is not None:
@@ -339,10 +332,9 @@ def delete_rerun_requests(
     user: User | None = Depends(get_current_user),
     app: Application | None = Depends(get_current_application),
 ):
-    # Validate AMR permissions in addition to basic app/user permissions
-    _validate_amr_permissions_for_request(db, user, app, request, Permission.change_rerun)
+    _validate_amr_permissions(db, user, app, request, Permission.change_rerun)
 
-    modify_reruns(db, request)
-
-
-class _TestExecutionNotFound(ValueError): ...
+    conditions = _build_rerun_conditions(request)
+    if conditions:
+        _delete_reruns(db, conditions)
+        db.commit()

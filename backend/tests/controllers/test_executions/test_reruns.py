@@ -113,11 +113,12 @@ type Get = Callable[..., Response]
 type Delete = Callable[[Any], Response]
 
 
-def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
+def test_execution_to_pending_rerun(test_execution: TestExecution, priority: int = 0) -> dict:
     return_data = {
         "test_execution_id": test_execution.id,
         "ci_link": test_execution.ci_link,
         "family": test_execution.artefact_build.artefact.family,
+        "priority": priority,
         "test_execution": {
             "id": test_execution.id,
             "ci_link": test_execution.ci_link,
@@ -1618,3 +1619,145 @@ class TestRerunAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
             del app.dependency_overrides[get_current_application]
+
+
+# ==============================================================================
+# Priority Tests
+# ==============================================================================
+
+
+def test_post_default_priority_is_zero(post: Post, get: Get, test_execution: TestExecution):
+    post({"test_execution_ids": [test_execution.id]})
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == 0
+
+
+def test_post_custom_priority_is_returned(post: Post, get: Get, test_execution: TestExecution):
+    post({"test_execution_ids": [test_execution.id], "priority": 5})
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == 5
+
+
+def test_post_negative_priority_is_returned(post: Post, get: Get, test_execution: TestExecution):
+    post({"test_execution_ids": [test_execution.id], "priority": -3})
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == -3
+
+
+def test_get_sorted_by_priority_descending(post: Post, get: Get, generator: DataGenerator):
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("e1")
+    e2 = generator.gen_environment("e2")
+    e3 = generator.gen_environment("e3")
+    te1 = generator.gen_test_execution(ab, e1)
+    te2 = generator.gen_test_execution(ab, e2)
+    te3 = generator.gen_test_execution(ab, e3)
+
+    post({"test_execution_ids": [te1.id], "priority": 0})
+    post({"test_execution_ids": [te2.id], "priority": 10})
+    post({"test_execution_ids": [te3.id], "priority": -1})
+
+    reruns = get().json()
+    priorities = [r["priority"] for r in reruns]
+    assert priorities == [10, 0, -1]
+
+
+def test_get_fifo_within_same_priority(get: Get, generator: DataGenerator):
+    """Within same priority, older reruns should come first."""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("env-fifo-1")
+    e2 = generator.gen_environment("env-fifo-2")
+    te1 = generator.gen_test_execution(ab, e1)
+    te2 = generator.gen_test_execution(ab, e2)
+
+    rr1 = generator.gen_rerun_request(te1, priority=1)
+    rr2 = generator.gen_rerun_request(te2, priority=1)
+
+    reruns = get().json()
+    te_ids = [r["test_execution_id"] for r in reruns]
+    # te1's rerun was created first, so it should appear first
+    assert te_ids.index(te1.id) < te_ids.index(te2.id)
+    assert rr1.priority == rr2.priority == 1
+
+
+def test_post_without_priority_does_not_change_existing_priority(post: Post, get: Get, test_execution: TestExecution):
+    """Posting without a priority should not overwrite an existing rerun's priority."""
+    post({"test_execution_ids": [test_execution.id], "priority": 7})
+    post({"test_execution_ids": [test_execution.id]})  # no priority supplied
+
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == 7
+
+
+def test_silent_post_without_priority_does_not_change_existing_priority(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """Silent post without priority should not overwrite an existing rerun's priority."""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("silent-no-priority-env")
+    te = generator.gen_test_execution(ab, e)
+
+    make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_execution_ids": [te.id], "priority": 3},
+        ),
+        Permission.change_rerun,
+    )
+    make_authenticated_request(
+        lambda: test_client.post(reruns_url, params={"silent": True}, json={"test_execution_ids": [te.id]}),
+        Permission.change_rerun,
+    )
+
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == 3
+
+
+def test_post_updates_priority_if_rerun_already_exists(post: Post, get: Get, test_execution: TestExecution):
+    """Re-posting a rerun with a different priority should update the priority."""
+    post({"test_execution_ids": [test_execution.id], "priority": 1})
+    post({"test_execution_ids": [test_execution.id], "priority": 5})
+
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == 5
+
+
+def test_silent_post_updates_priority_if_rerun_already_exists(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """Silent post with a different priority should update an existing rerun's priority."""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("silent-update-env")
+    te = generator.gen_test_execution(ab, e)
+
+    make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_execution_ids": [te.id], "priority": 2},
+        ),
+        Permission.change_rerun,
+    )
+    make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_execution_ids": [te.id], "priority": 9},
+        ),
+        Permission.change_rerun,
+    )
+
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == 9
