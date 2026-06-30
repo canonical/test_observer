@@ -15,7 +15,7 @@
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Literal, Self
+from typing import Annotated, ClassVar, Literal, Self
 
 from pydantic import (
     AliasPath,
@@ -216,24 +216,67 @@ class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
 
 class StartImageTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.image] = FamilyName.image
-    execution_stage: ImageStage = Field(
+
+    # Fields that must be present to register a brand new image. An existing image is
+    # identified by sha256 alone, so these may be omitted when it already exists. Kept
+    # next to the field declarations below so the two stay in sync.
+    REQUIRED_CREATION_FIELDS: ClassVar[tuple[str, ...]] = (
+        "name",
+        "version",
+        "os",
+        "release",
+        "owner",
+        "image_url",
+        "execution_stage",
+        "arch",
+    )
+
+    # sha256 alone identifies an existing image, so all other fields are optional and
+    # only required to create a new one (enforced by the controller via
+    # REQUIRED_CREATION_FIELDS). The type: ignore lines relax base-class required fields;
+    # the narrowing is intentional for this discriminated-union member.
+    name: str | None = Field(  # type: ignore[assignment]
+        default=None,
+        description="User-defined name identifying the artefact under test. "
+        "Not unique - multiple versions/stages of the same artefact share this name. "
+        "Examples: 'core22', 'ubuntu-desktop', 'snapd'",
+    )
+    version: str | None = Field(  # type: ignore[assignment]
+        default=None,
+        description="Version identifier of the artefact being tested. "
+        "Format depends on artefact family - e.g., revisions for "
+        "charms/snaps, version numbers for debs.",
+    )
+    arch: str | None = Field(  # type: ignore[assignment]
+        default=None,
+        description="CPU architecture where tests will execute. "
+        "Common values: 'amd64', 'arm64', 'armhf', 's390x', 'ppc64el'",
+    )
+    execution_stage: ImageStage | None = Field(
+        default=None,
         description="Promotion stage of the image being tested. "
         "Options: 'pending' (awaiting approval), 'current' (approved and published). "
-        "Use 'pending' for images undergoing testing before promotion."
+        "Use 'pending' for images undergoing testing before promotion.",
     )
-    os: str = Field(description="Operating system of the image. Examples: 'ubuntu', 'ubuntu-core', 'ubuntu-server'")
-    release: str = Field(
-        description="OS release codename or version. Examples: 'focal', 'jammy', 'noble', '20.04', '22.04', '24.04'"
+    os: str | None = Field(
+        default=None, description="Operating system of the image. Examples: 'ubuntu', 'ubuntu-core', 'ubuntu-server'"
+    )
+    release: str | None = Field(
+        default=None,
+        description="OS release codename or version. Examples: 'focal', 'jammy', 'noble', '20.04', '22.04', '24.04'",
     )
     sha256: str = Field(
         description="SHA256 checksum hash uniquely identifying this image build. "
         "Used to verify image integrity and uniqueness."
     )
-    owner: str = Field(
-        description="Team or organization responsible for the image. Examples: 'canonical', 'ubuntu-images', team names"
+    owner: str | None = Field(
+        default=None,
+        description="Team or organization responsible for the image. "
+        "Examples: 'canonical', 'ubuntu-images', team names",
     )
-    image_url: HttpUrl = Field(
-        description="Direct URL where the image file can be downloaded or accessed. Should be a valid HTTP/HTTPS URL."
+    image_url: HttpUrl | None = Field(
+        default=None,
+        description="Direct URL where the image file can be downloaded or accessed. Should be a valid HTTP/HTTPS URL.",
     )
 
 
