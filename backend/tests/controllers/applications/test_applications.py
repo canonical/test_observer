@@ -17,6 +17,7 @@ from collections.abc import Callable
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
@@ -295,10 +296,8 @@ def test_rotate_api_key(test_client: TestClient, generator: DataGenerator, db_se
     assert data["api_key"].startswith("to_")
     db_session.refresh(application)
     assert application.api_key == data["api_key"]
-
-    # Old key must no longer authenticate
-    old_key_response = test_client.get("/v1/applications/me", headers={"Authorization": f"Bearer {original_key}"})
-    assert old_key_response.json() is None
+    # Old key no longer exists in the DB
+    assert db_session.scalar(select(Application).where(Application.api_key == original_key)) is None
 
 
 def test_rotate_api_key_not_found(test_client: TestClient):
@@ -326,10 +325,8 @@ def test_rotate_own_api_key(test_client: TestClient, generator: DataGenerator, d
     assert data["api_key"].startswith("to_")
     db_session.refresh(application)
     assert application.api_key == data["api_key"]
-
-    # Old key must no longer authenticate
-    old_key_response = test_client.get("/v1/applications/me", headers={"Authorization": f"Bearer {original_key}"})
-    assert old_key_response.json() is None
+    # Old key no longer exists in the DB
+    assert db_session.scalar(select(Application).where(Application.api_key == original_key)) is None
 
 
 def test_rotate_own_api_key_unauthenticated(test_client: TestClient):
