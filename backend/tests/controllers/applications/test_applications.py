@@ -255,3 +255,25 @@ def test_update_invalid_permissions_api(test_client: TestClient, generator: Data
 def test_create_invalid_permissions_orm(generator: DataGenerator):
     with pytest.raises(DBAPIError):
         generator.gen_application(permissions=["invalid_permission"])
+
+
+def test_delete_application(test_client: TestClient, generator: DataGenerator, db_session: Session):
+    application = generator.gen_application()
+    application_id = application.id
+
+    response = make_authenticated_request(
+        lambda: test_client.delete(f"/v1/applications/{application_id}"),
+        Permission.change_application,
+    )
+
+    assert response.status_code == 204
+    assert db_session.get(Application, application_id) is None
+
+
+def test_delete_application_idempotent(test_client: TestClient):
+    response = make_authenticated_request(
+        lambda: test_client.delete("/v1/applications/999999"),
+        Permission.change_application,
+    )
+
+    assert response.status_code == 204
