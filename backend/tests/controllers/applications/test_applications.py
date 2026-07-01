@@ -277,3 +277,54 @@ def test_delete_application_idempotent(test_client: TestClient):
     )
 
     assert response.status_code == 204
+
+
+def test_rotate_api_key(test_client: TestClient, generator: DataGenerator, db_session: Session):
+    application = generator.gen_application()
+    original_key = application.api_key
+
+    response = make_authenticated_request(
+        lambda: test_client.post(f"/v1/applications/{application.id}/rotate"),
+        Permission.change_application,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == application.id
+    assert data["api_key"] != original_key
+    assert data["api_key"].startswith("to_")
+    db_session.refresh(application)
+    assert application.api_key == data["api_key"]
+
+
+def test_rotate_api_key_not_found(test_client: TestClient):
+    response = make_authenticated_request(
+        lambda: test_client.post("/v1/applications/999999/rotate"),
+        Permission.change_application,
+    )
+
+    assert response.status_code == 404
+
+
+def test_rotate_own_api_key(test_client: TestClient, generator: DataGenerator, db_session: Session):
+    application = generator.gen_application(permissions=["view_user"])
+    original_key = application.api_key
+
+    response = test_client.post(
+        "/v1/applications/me/rotate",
+        headers={"Authorization": f"Bearer {application.api_key}"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == application.id
+    assert data["api_key"] != original_key
+    assert data["api_key"].startswith("to_")
+    db_session.refresh(application)
+    assert application.api_key == data["api_key"]
+
+
+def test_rotate_own_api_key_unauthenticated(test_client: TestClient):
+    response = test_client.post("/v1/applications/me/rotate")
+
+    assert response.status_code == 401

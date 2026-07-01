@@ -59,6 +59,38 @@ def get_applications(
     return db.scalars(select(Application))
 
 
+@router.post(
+    "/me/rotate",
+    response_model=ApplicationResponse,
+)
+def rotate_own_api_key(
+    app: Application | None = Depends(get_current_application),
+    db: Session = Depends(get_db),
+):
+    if app is None:
+        raise HTTPException(status_code=401, detail="Not authenticated as an application")
+    app.api_key = Application.gen_api_key()
+    db.commit()
+    return app
+
+
+@router.post(
+    "/{application_id}/rotate",
+    response_model=ApplicationResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_application])],
+)
+def rotate_api_key(
+    application_id: int,
+    db: Session = Depends(get_db),
+):
+    application = db.get(Application, application_id)
+    if application is None:
+        raise HTTPException(404, f"Application with id {application_id} not found")
+    application.api_key = Application.gen_api_key()
+    db.commit()
+    return application
+
+
 @router.get("/me", response_model=ApplicationResponse | None)
 def get_authenticated_application(
     app: Application | None = Depends(get_current_application),
