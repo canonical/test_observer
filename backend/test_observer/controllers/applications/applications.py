@@ -84,6 +84,22 @@ def get_application(
     return application
 
 
+@router.delete(
+    "/{application_id}",
+    status_code=204,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_application])],
+)
+def delete_application(
+    application_id: int,
+    db: Session = Depends(get_db),
+):
+    application = db.get(Application, application_id)
+    if application is None:
+        return
+    db.delete(application)
+    db.commit()
+
+
 @router.patch(
     "/{application_id}",
     response_model=ApplicationResponse,
