@@ -13,9 +13,10 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from datetime import date, timedelta
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -43,6 +44,8 @@ from test_observer.data_access.models_enums import (
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
+
+_PATCHED_ENVIRONMENTS_PER_REVIEWER = 5
 
 type Execute = Callable[[dict[str, Any]], Response]
 
@@ -260,7 +263,7 @@ class TestFamilyIndependentTests:
     def test_artefact_with_many_environments_is_assigned_multiple_reviewers(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        """Assert that an artefact with more than 50 environments is assigned more than one reviewer"""
+        """Assert that an artefact with more than the patched limit gets more than one reviewer"""
         # Create a team that can review all families
         snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
@@ -281,8 +284,8 @@ class TestFamilyIndependentTests:
         assert test_execution
         artefact = test_execution.artefact_build.artefact
 
-        # Now create 50+ more environments for the same artefact by executing tests with different environment names
-        for i in range(51):
+        # Now create more than the patched limit of environments for the same artefact
+        for i in range(_PATCHED_ENVIRONMENTS_PER_REVIEWER + 1):
             env_request = {
                 **start_request,
                 "environment": f"env-{i}",
@@ -295,14 +298,14 @@ class TestFamilyIndependentTests:
         artefact.reviewers = []
         self._db_session.commit()
 
-        # Trigger assignment again now that we have 52 environments
+        # Trigger assignment again once the artefact is over the patched environment limit
         execute({**start_request, "environment": "final-env", "ci_link": "http://final", "needs_assignment": True})
 
         # Refresh the artefact to get updated relationships
         self._db_session.refresh(artefact)
 
-        # Verify the artefact now has more than 50 environments (52 from before + 1 new = 53)
-        assert artefact.all_environment_reviews_count == 53
+        # Verify the artefact now has 1 initial + (patched limit + 1) + 1 final environments
+        assert artefact.all_environment_reviews_count == _PATCHED_ENVIRONMENTS_PER_REVIEWER + 3
 
         assert len(artefact.reviewers) == 2
 
@@ -336,8 +339,8 @@ class TestFamilyIndependentTests:
         assert test_execution
         artefact = test_execution.artefact_build.artefact
 
-        # Create 50+ more environments to trigger multiple reviewer assignment
-        for i in range(51):
+        # Create more than the patched limit of environments to trigger multiple reviewer assignment
+        for i in range(_PATCHED_ENVIRONMENTS_PER_REVIEWER + 1):
             env_request = {
                 **start_request,
                 "environment": f"env-{i}",
@@ -350,7 +353,7 @@ class TestFamilyIndependentTests:
         artefact.reviewers = []
         self._db_session.commit()
 
-        # Trigger assignment again now that we have 52 environments
+        # Trigger assignment again once the artefact is over the patched environment limit
         execute({**start_request, "environment": "final-env", "ci_link": "http://final", "needs_assignment": True})
 
         # Refresh the artefact to get updated relationships
@@ -399,8 +402,8 @@ class TestFamilyIndependentTests:
         assert test_execution
         artefact = test_execution.artefact_build.artefact
 
-        # Create 50+ more environments with different architectures
-        for i in range(26):
+        # Create more than the patched limit of environments across multiple architectures
+        for i in range(_PATCHED_ENVIRONMENTS_PER_REVIEWER // 2 + 1):
             env_request = {
                 **start_request,
                 "arch": "amd64",
@@ -410,7 +413,7 @@ class TestFamilyIndependentTests:
             }
             execute(env_request)
 
-        for i in range(26):
+        for i in range(_PATCHED_ENVIRONMENTS_PER_REVIEWER // 2 + 1):
             env_request = {
                 **start_request,
                 "arch": "arm64",
@@ -473,8 +476,8 @@ class TestFamilyIndependentTests:
         assert test_execution
         artefact = test_execution.artefact_build.artefact
 
-        # Create 50+ more environments to trigger multiple reviewer assignment
-        for i in range(51):
+        # Create more than the patched limit of environments to trigger multiple reviewer assignment
+        for i in range(_PATCHED_ENVIRONMENTS_PER_REVIEWER + 1):
             env_request = {
                 **start_request,
                 "environment": f"env-{i}",
@@ -487,7 +490,7 @@ class TestFamilyIndependentTests:
         artefact.reviewers = []
         self._db_session.commit()
 
-        # Trigger assignment again now that we have 52 environments
+        # Trigger assignment again once the artefact is over the patched environment limit
         execute({**start_request, "environment": "final-env", "ci_link": "http://final", "needs_assignment": True})
 
         # Refresh the artefact to get updated relationships
@@ -508,8 +511,7 @@ class TestFamilyIndependentTests:
                 if reviewer_id in reviewer_assignment_counts:
                     reviewer_assignment_counts[reviewer_id] += 1
 
-        # Verify equal distribution: each reviewer should get ceil(total / num_reviewers)
-        # With 53 environments and 2 reviewers: ceil(53/2) = 27
+        # Verify equal distribution across the patched environment count
         expected_max_per_reviewer = (total_env_reviews + len(artefact.reviewers) - 1) // len(artefact.reviewers)
         expected_min_per_reviewer = total_env_reviews // len(artefact.reviewers)
 
@@ -567,7 +569,8 @@ class TestFamilyIndependentTests:
     def test_start_test_with_needs_assignment_creates_notifications(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        """When starting test with needs_assignment=true, notifications should be created for environment reviewers"""
+        """When starting test with needs_assignment=true, a single combined artefact-review
+        notification should be created per assigned reviewer, and no environment notifications."""
         # Create a team with matching rules for all families
         snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
@@ -590,9 +593,20 @@ class TestFamilyIndependentTests:
         assert test_execution
         assert len(test_execution.artefact_build.artefact.reviewers) > 0
 
-        # Get all notifications for the assigned reviewers
+        # Each assigned reviewer gets exactly one artefact-review notification
         assigned_reviewer_ids = [r.id for r in test_execution.artefact_build.artefact.reviewers]
-        notifications = (
+        artefact_notifications = (
+            self._db_session.query(Notification)
+            .filter(
+                Notification.user_id.in_(assigned_reviewer_ids),
+                Notification.notification_type == NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+            )
+            .all()
+        )
+        assert len(artefact_notifications) == len(assigned_reviewer_ids)
+
+        # No environment-review notifications are created anymore
+        env_notifications = (
             self._db_session.query(Notification)
             .filter(
                 Notification.user_id.in_(assigned_reviewer_ids),
@@ -600,11 +614,7 @@ class TestFamilyIndependentTests:
             )
             .all()
         )
-
-        # Should have notifications for environment reviews (at least one per reviewer)
-        assert len(notifications) == len(assigned_reviewer_ids)
-        # Verify notifications are for the right type
-        assert all(n.notification_type == NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW for n in notifications)
+        assert len(env_notifications) == 0
 
     def test_start_test_without_needs_assignment_no_notifications(
         self, execute: Execute, start_request: dict[str, Any]
@@ -631,9 +641,46 @@ class TestFamilyIndependentTests:
 
         assert len(notifications) == 0
 
+    def test_reviewer_gets_single_artefact_notification_no_environment_notification(
+        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+    ):
+        """A reviewer newly assigned to an artefact receives a single artefact-review
+        notification and no separate environment-review notification."""
+        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
+
+        team = generator.gen_team(
+            name="reviewers",
+            artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
+        )
+        reviewer = generator.gen_user(email="reviewer@example.com", teams=[team])
+
+        response = execute({**start_request, "needs_assignment": True})
+
+        test_execution = self._db_session.get(TestExecution, response.json()["id"])
+        assert test_execution
+        assert reviewer in test_execution.artefact_build.artefact.reviewers
+
+        notifications = self._db_session.query(Notification).filter(Notification.user_id == reviewer.id).all()
+
+        notification_types = [n.notification_type for n in notifications]
+        assert notification_types == [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW]
+        assert NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW not in notification_types
+
     @pytest.fixture(autouse=True)
     def _set_db_session(self, db_session: Session) -> None:
         self._db_session = db_session
+
+    @pytest.fixture(autouse=True)
+    def _patch_environments_per_reviewer(self) -> Generator[None, None, None]:
+        with patch(
+            "test_observer.controllers.test_executions.start_test.ENVIRONMENTS_PER_REVIEWER",
+            _PATCHED_ENVIRONMENTS_PER_REVIEWER,
+        ):
+            yield
 
     def _assert_objects_created(self, request: dict[str, Any], response: Response) -> None:
         assert response.status_code == 200
@@ -1322,6 +1369,486 @@ def test_no_assignment_when_no_team_reviewers_available(
         else None
     )
     assert assignee is None
+
+
+def test_due_date_not_updated_when_no_new_reviewers_assigned(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """due_date must not be updated when needs_assignment=True but number_of_reviewers_to_assign
+    is 0 (artefact already has enough reviewers for the current environment count).
+    Two eligible users exist so the users query is non-empty, but the artefact already has
+    one reviewer which is sufficient for < ENVIRONMENTS_PER_REVIEWER environments.
+    determine_due_date must not be called a second time.
+    """
+    # GIVEN two eligible reviewers (so `users` is non-empty on the second call too)
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(email="reviewer1@example.com", teams=[team])
+    generator.gen_user(email="reviewer2@example.com", teams=[team])
+
+    # AND the artefact already has a reviewer and a due_date from the first call
+    first_response = execute({**snap_test_request, "needs_assignment": True})
+    assert first_response.status_code == 200
+
+    # WHEN a second environment is added (still well below ENVIRONMENTS_PER_REVIEWER,
+    # so number_of_reviewers_to_assign remains 0), with determine_due_date patched
+    # to a sentinel so any unwanted call would produce a detectable value
+    db_session.expire_all()
+    sentinel_date = date(2099, 1, 1)
+    with patch.object(StartTestExecutionController, "determine_due_date", return_value=sentinel_date):
+        execute(
+            {**snap_test_request, "environment": "env-2", "ci_link": "http://localhost/2", "needs_assignment": True}
+        )
+
+    # THEN the due_date was NOT updated to the sentinel (determine_due_date was not called)
+    test_execution = db_session.get(TestExecution, first_response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+    assert artefact.due_date != sentinel_date, "due_date must not be updated when no new reviewers are assigned"
+
+
+def test_first_environment_gets_reviewer_assigned_to_env_review(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When the first environment is created, its environment review gets a reviewer assigned."""
+    # GIVEN a user in a team with a matching rule for snaps
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    reviewer = generator.gen_user(teams=[team])
+
+    # WHEN a single test execution is started with needs_assignment=True
+    response = execute({**snap_test_request, "needs_assignment": True})
+
+    # THEN the artefact has the reviewer assigned
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+    assert artefact.reviewers == [reviewer]
+
+    # AND the single environment review also has the reviewer assigned
+    env_review = test_execution.artefact_build.environment_reviews[0]
+    assert env_review.reviewers == [reviewer]
+
+
+def test_subsequent_environments_also_get_reviewer_assigned_to_env_review(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When subsequent environments are created below the reviewer threshold, their environment
+    reviews also get a reviewer assigned."""
+    # GIVEN a user in a team with a matching rule for snaps
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(teams=[team])
+
+    # WHEN 5 environments are created one by one, each with needs_assignment=True
+    last_response = None
+    for i in range(5):
+        db_session.expire_all()  # simulate a fresh session per request
+        last_response = execute(
+            {
+                **snap_test_request,
+                "environment": f"env-{i}",
+                "ci_link": f"http://localhost/{i}",
+                "needs_assignment": True,
+            }
+        )
+        assert last_response.status_code == 200
+
+    assert last_response is not None
+    test_execution = db_session.get(TestExecution, last_response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+
+    # THEN the artefact still has exactly 1 reviewer
+    assert len(artefact.reviewers) == 1
+
+    # AND every environment review has that reviewer assigned
+    for build in artefact.builds:
+        for env_review in build.environment_reviews:
+            assert len(env_review.reviewers) == 1, (
+                f"Environment review {env_review.id} should have exactly 1 reviewer assigned"
+            )
+
+
+@patch(
+    "test_observer.controllers.test_executions.start_test.ENVIRONMENTS_PER_REVIEWER",
+    _PATCHED_ENVIRONMENTS_PER_REVIEWER,
+)
+def test_exceeding_50_environments_adds_new_artefact_reviewer(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When an artefact accumulates more than ENVIRONMENTS_PER_REVIEWER environments,
+    a second reviewer is assigned."""
+    # GIVEN two users in a team with a matching rule for snaps
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(email="reviewer1@example.com", teams=[team])
+    generator.gen_user(email="reviewer2@example.com", teams=[team])
+
+    # WHEN the patched limit + 2 environments are created one by one, each with needs_assignment=True
+    last_response = None
+    for i in range(_PATCHED_ENVIRONMENTS_PER_REVIEWER + 2):
+        db_session.expire_all()  # simulate a fresh session per request
+        last_response = execute(
+            {
+                **snap_test_request,
+                "environment": f"env-{i}",
+                "ci_link": f"http://localhost/{i}",
+                "needs_assignment": True,
+            }
+        )
+        assert last_response.status_code == 200
+
+    assert last_response is not None
+    test_execution = db_session.get(TestExecution, last_response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+
+    # THEN the artefact has 2 reviewers
+    # (ceil((_PATCHED_ENVIRONMENTS_PER_REVIEWER + 2) / _PATCHED_ENVIRONMENTS_PER_REVIEWER) = 2)
+    assert len(artefact.reviewers) == 2
+
+    # AND every environment review has exactly one reviewer assigned
+    for build in artefact.builds:
+        for env_review in build.environment_reviews:
+            assert len(env_review.reviewers) == 1, (
+                f"Environment review {env_review.id} should have exactly 1 reviewer assigned"
+            )
+
+
+def test_repeated_call_for_same_environment_does_not_duplicate_notifications(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """Calling start_test twice with the same ci_link (same env_review) must not create
+    duplicate notifications. get_or_create reuses the ArtefactBuildEnvironmentReview, and
+    _assign_reviewers_to_environments skips it because it already has a reviewer assigned.
+    """
+    # GIVEN a reviewer with a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    reviewer = generator.gen_user(teams=[team])
+
+    # WHEN the first call creates the assignment
+    execute({**snap_test_request, "needs_assignment": True})
+    notification_count_after_first = db_session.query(Notification).filter(Notification.user_id == reviewer.id).count()
+
+    # WHEN the same request is repeated (same ci_link → same test_execution and env_review)
+    db_session.expire_all()  # simulate a fresh session per request
+    execute({**snap_test_request, "needs_assignment": True})
+
+    # THEN no new notifications are created
+    notification_count_after_second = db_session.query(Notification).filter(Notification.user_id == reviewer.id).count()
+    assert notification_count_after_second == notification_count_after_first
+
+
+def test_environment_created_without_assignment_gets_reviewer_on_next_assignment_call(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """An env_review created with needs_assignment=False (no reviewer assigned) is picked up
+    and assigned on the next call with needs_assignment=True for the same artefact.
+    _assign_reviewers_to_environments scans all unassigned env_reviews, not just the
+    current one, so the gap is healed automatically.
+    """
+    # GIVEN a reviewer with a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(teams=[team])
+
+    # WHEN env-0 is created with assignment (reviewer assigned to env-0 review)
+    execute({**snap_test_request, "environment": "env-0", "ci_link": "http://localhost/0", "needs_assignment": True})
+    # WHEN env-1 is created without assignment (env-1 review has no reviewer)
+    db_session.expire_all()
+    execute({**snap_test_request, "environment": "env-1", "ci_link": "http://localhost/1", "needs_assignment": False})
+    # WHEN env-2 is created with assignment
+    db_session.expire_all()
+    response = execute(
+        {**snap_test_request, "environment": "env-2", "ci_link": "http://localhost/2", "needs_assignment": True}
+    )
+
+    # THEN all three env_reviews have a reviewer assigned — including env-1 which was skipped
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+    for build in artefact.builds:
+        for env_review in build.environment_reviews:
+            assert len(env_review.reviewers) == 1, (
+                f"Environment review {env_review.id} (env {env_review.environment.name}) "
+                "should have exactly 1 reviewer assigned"
+            )
+
+
+def test_reviewer_gets_at_most_one_artefact_jira_card(db_session: Session, execute: Execute, generator: DataGenerator):
+    """A reviewer must receive exactly one artefact-review Jira card per artefact,
+    regardless of how many environments are added afterwards.
+
+    The reviewer is only in newly_assigned_reviewers on the first call (subsequent calls
+    filter them out via .not_in()), so USER_ASSIGNED_ARTEFACT_REVIEW only appears in
+    the BatchReviewerAssignedMessage once.
+    """
+    # GIVEN a reviewer with a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(teams=[team])
+
+    # Pre-create the artefact (without assignment) so we can set jira_issue before
+    # any Jira card logic runs
+    response = execute({**snap_test_request, "needs_assignment": False})
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+    artefact.jira_issue = "PROJ-123"
+    db_session.commit()
+
+    # WHEN 5 environments are created one by one with needs_assignment=True,
+    # intercepting all Jira card creation
+    with patch(
+        "test_observer.controllers.test_executions.start_test.batch_create_jira_reviewer_cards"
+    ) as mock_create_cards:
+        for i in range(5):
+            db_session.expire_all()  # simulate a fresh session per request
+            execute(
+                {
+                    **snap_test_request,
+                    "environment": f"env-{i}",
+                    "ci_link": f"http://localhost/{i}",
+                    "needs_assignment": True,
+                }
+            )
+
+    # THEN USER_ASSIGNED_ARTEFACT_REVIEW appears exactly once across all Jira calls
+    artefact_card_count = sum(
+        1
+        for call in mock_create_cards.call_args_list
+        for _reviewer, notif_types in call.args[0].assigned_reviews
+        if NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW in notif_types
+    )
+    assert artefact_card_count == 1, f"Expected 1 artefact review Jira card, got {artefact_card_count}"
+
+
+def test_no_environment_jira_cards_are_created(db_session: Session, execute: Execute, generator: DataGenerator):
+    """Environment-review Jira cards are no longer created, regardless of how many
+    environments are added.
+    """
+    # GIVEN a reviewer with a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(teams=[team])
+
+    # Pre-create the artefact so we can set jira_issue before any Jira card logic runs
+    response = execute({**snap_test_request, "needs_assignment": False})
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+    artefact.jira_issue = "PROJ-123"
+    db_session.commit()
+
+    # WHEN 5 environments are created one by one with needs_assignment=True,
+    # intercepting all Jira card creation
+    with patch(
+        "test_observer.controllers.test_executions.start_test.batch_create_jira_reviewer_cards"
+    ) as mock_create_cards:
+        for i in range(5):
+            db_session.expire_all()  # simulate a fresh session per request
+            execute(
+                {
+                    **snap_test_request,
+                    "environment": f"env-{i}",
+                    "ci_link": f"http://localhost/{i}",
+                    "needs_assignment": True,
+                }
+            )
+
+    # THEN no USER_ASSIGNED_ENVIRONMENT_REVIEW card is ever created
+    env_card_count = sum(
+        1
+        for call in mock_create_cards.call_args_list
+        for _reviewer, notif_types in call.args[0].assigned_reviews
+        if NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW in notif_types
+    )
+    assert env_card_count == 0, f"Expected 0 environment review Jira cards, got {env_card_count}"
+
+
+def test_reviewer_gets_single_combined_jira_card(db_session: Session, execute: Execute, generator: DataGenerator):
+    """A reviewer newly assigned to an artefact receives a single combined Jira card
+    (USER_ASSIGNED_ARTEFACT_REVIEW) and no separate environment card."""
+    # GIVEN a reviewer with a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    reviewer = generator.gen_user(teams=[team])
+
+    # Pre-create the artefact so we can set jira_issue before the assignment call
+    response = execute({**snap_test_request, "needs_assignment": False})
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+    artefact.jira_issue = "PROJ-123"
+    db_session.commit()
+
+    # WHEN the first assignment call runs (reviewer gets assigned to artefact + env review)
+    with patch(
+        "test_observer.controllers.test_executions.start_test.batch_create_jira_reviewer_cards"
+    ) as mock_create_cards:
+        db_session.expire_all()
+        execute({**snap_test_request, "needs_assignment": True})
+
+    # THEN the reviewer gets exactly one card, of the artefact-review type, and no env card
+    mock_create_cards.assert_called_once()
+    message = mock_create_cards.call_args[0][0]
+    reviewer_card_types = [t for r, types in message.assigned_reviews if r.id == reviewer.id for t in types]
+
+    assert reviewer_card_types == [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW]
+    assert NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW not in reviewer_card_types
+
+
+def test_no_new_jira_cards_when_existing_reviewer_assigned_to_new_environment(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When a reviewer already assigned to an artefact is assigned to a new environment review,
+    no new Jira cards should be created — cards are only created when new artefact reviewers
+    are assigned, not when existing reviewers pick up additional environments."""
+    # GIVEN a reviewer with a matching rule and an artefact with jira_issue
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    generator.gen_user(teams=[team])
+
+    response = execute({**snap_test_request, "needs_assignment": False})
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    test_execution.artefact_build.artefact.jira_issue = "PROJ-123"
+    db_session.commit()
+
+    # WHEN the first call assigns the reviewer (to artefact + env-0)
+    with patch("test_observer.controllers.test_executions.start_test.batch_create_jira_reviewer_cards"):
+        db_session.expire_all()
+        execute({**snap_test_request, "needs_assignment": True})
+
+    # WHEN a second environment is added, assigning the same reviewer to env-1
+    with patch(
+        "test_observer.controllers.test_executions.start_test.batch_create_jira_reviewer_cards"
+    ) as mock_second_call:
+        db_session.expire_all()
+        execute(
+            {**snap_test_request, "environment": "env-1", "ci_link": "http://localhost/1", "needs_assignment": True}
+        )
+
+    # THEN no new Jira cards are created on the second call
+    mock_second_call.assert_not_called()
+
+
+def test_existing_reviewer_gets_no_notification_for_new_environment(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When a reviewer already assigned to an artefact is assigned to a new environment review,
+    they should NOT receive any new notification — per-environment notifications no longer exist."""
+    # GIVEN a reviewer with a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    reviewer = generator.gen_user(teams=[team])
+
+    # WHEN the first call assigns the reviewer (to artefact + env-0)
+    execute({**snap_test_request, "needs_assignment": True})
+    notifications_after_first = db_session.query(Notification).filter(Notification.user_id == reviewer.id).count()
+
+    # WHEN a second environment is added
+    db_session.expire_all()
+    execute({**snap_test_request, "environment": "env-1", "ci_link": "http://localhost/1", "needs_assignment": True})
+
+    # THEN the reviewer has no new notifications
+    notifications_after_second = db_session.query(Notification).filter(Notification.user_id == reviewer.id).count()
+    assert notifications_after_second == notifications_after_first
+
+
+def test_reviewer_gets_single_notification_regardless_of_environment_count(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """A reviewer newly assigned to an artefact receives exactly one notification,
+    regardless of how many environments the artefact accumulates.
+    """
+    # GIVEN a reviewer with a matching rule
+    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    team = generator.gen_team(artefact_matching_rules=[rule])
+    reviewer = generator.gen_user(teams=[team])
+
+    # WHEN 3 environments are created one by one, each with needs_assignment=True
+    for i in range(3):
+        db_session.expire_all()  # simulate a fresh session per request
+        response = execute(
+            {
+                **snap_test_request,
+                "environment": f"env-{i}",
+                "ci_link": f"http://localhost/{i}",
+                "needs_assignment": True,
+            }
+        )
+        assert response.status_code == 200
+
+    # THEN the reviewer has exactly one notification, of the artefact-review type
+    notifications = db_session.query(Notification).filter(Notification.user_id == reviewer.id).all()
+    assert [n.notification_type for n in notifications] == [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW]
+
+
+def test_manually_assigned_reviewer_gets_env_review_assigned_on_new_environment(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """When a reviewer is assigned to an artefact manually (no matching rule), new environment
+    reviews created with needs_assignment=True must still be assigned to that reviewer.
+    _assign_reviewers_to_environments() must run even when rule_ids is empty.
+    """
+    # GIVEN a reviewer assigned directly to the artefact (no team/matching rule)
+    reviewer = generator.gen_user()
+    generator.gen_artefact(
+        name=snap_test_request["name"],  # type: ignore[arg-type]
+        version=snap_test_request["version"],  # type: ignore[arg-type]
+        family=FamilyName.snap,
+        track=snap_test_request["track"],  # type: ignore[arg-type]
+        store=snap_test_request["store"],  # type: ignore[arg-type]
+        stage=snap_test_request["execution_stage"],  # type: ignore[arg-type]
+        reviewers=[reviewer],
+    )
+    db_session.flush()
+
+    # WHEN a test execution is started with needs_assignment=True
+    db_session.expire_all()
+    response = execute({**snap_test_request, "needs_assignment": True})
+    assert response.status_code == 200
+
+    # THEN the environment review has the reviewer assigned
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    env_review = test_execution.artefact_build.environment_reviews[0]
+    assert env_review.reviewers == [reviewer], "Manually-assigned reviewer should be assigned to the environment review"
+
+
+def test_manually_assigned_reviewer_gets_no_notification_on_new_environment(
+    db_session: Session, execute: Execute, generator: DataGenerator
+):
+    """A reviewer manually pre-assigned to an artefact is not a newly assigned reviewer,
+    so starting a test execution for a new environment creates no notification for them
+    (per-environment notifications no longer exist).
+    """
+    # GIVEN a reviewer assigned directly to the artefact (no team/matching rule)
+    reviewer = generator.gen_user()
+    generator.gen_artefact(
+        name=snap_test_request["name"],  # type: ignore[arg-type]
+        version=snap_test_request["version"],  # type: ignore[arg-type]
+        family=FamilyName.snap,
+        track=snap_test_request["track"],  # type: ignore[arg-type]
+        store=snap_test_request["store"],  # type: ignore[arg-type]
+        stage=snap_test_request["execution_stage"],  # type: ignore[arg-type]
+        reviewers=[reviewer],
+    )
+    db_session.flush()
+
+    # WHEN a test execution is started with needs_assignment=True
+    db_session.expire_all()
+    response = execute({**snap_test_request, "needs_assignment": True})
+    assert response.status_code == 200
+
+    # THEN the reviewer receives no notification
+    notification_count = db_session.query(Notification).filter(Notification.user_id == reviewer.id).count()
+    assert notification_count == 0, (
+        f"Manually pre-assigned reviewer should receive no notification, got {notification_count}"
+    )
 
 
 class TestAssignReviewersToEnvironments:
