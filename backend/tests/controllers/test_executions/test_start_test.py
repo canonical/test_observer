@@ -45,6 +45,8 @@ from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
+_PATCHED_ENVIRONMENTS_PER_REVIEWER = 5
+
 type Execute = Callable[[dict[str, Any]], Response]
 
 
@@ -261,7 +263,7 @@ class TestFamilyIndependentTests:
     def test_artefact_with_many_environments_is_assigned_multiple_reviewers(
         self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
     ):
-        """Assert that an artefact with more than 50 environments is assigned more than one reviewer"""
+        """Assert that an artefact with more than the patched limit gets more than one reviewer"""
         # Create a team that can review all families
         snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
         deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
@@ -282,8 +284,8 @@ class TestFamilyIndependentTests:
         assert test_execution
         artefact = test_execution.artefact_build.artefact
 
-        # Now create 50+ more environments for the same artefact by executing tests with different environment names
-        for i in range(51):
+        # Now create more than the patched limit of environments for the same artefact
+        for i in range(_PATCHED_ENVIRONMENTS_PER_REVIEWER + 1):
             env_request = {
                 **start_request,
                 "environment": f"env-{i}",
@@ -296,14 +298,14 @@ class TestFamilyIndependentTests:
         artefact.reviewers = []
         self._db_session.commit()
 
-        # Trigger assignment again now that we have 52 environments
+        # Trigger assignment again once the artefact is over the patched environment limit
         execute({**start_request, "environment": "final-env", "ci_link": "http://final", "needs_assignment": True})
 
         # Refresh the artefact to get updated relationships
         self._db_session.refresh(artefact)
 
-        # Verify the artefact now has more than 50 environments (52 from before + 1 new = 53)
-        assert artefact.all_environment_reviews_count == 53
+        # Verify the artefact now has 1 initial + (patched limit + 1) + 1 final environments
+        assert artefact.all_environment_reviews_count == _PATCHED_ENVIRONMENTS_PER_REVIEWER + 3
 
         assert len(artefact.reviewers) == 2
 
@@ -337,8 +339,8 @@ class TestFamilyIndependentTests:
         assert test_execution
         artefact = test_execution.artefact_build.artefact
 
-        # Create 50+ more environments to trigger multiple reviewer assignment
-        for i in range(51):
+        # Create more than the patched limit of environments to trigger multiple reviewer assignment
+        for i in range(_PATCHED_ENVIRONMENTS_PER_REVIEWER + 1):
             env_request = {
                 **start_request,
                 "environment": f"env-{i}",
@@ -351,7 +353,7 @@ class TestFamilyIndependentTests:
         artefact.reviewers = []
         self._db_session.commit()
 
-        # Trigger assignment again now that we have 52 environments
+        # Trigger assignment again once the artefact is over the patched environment limit
         execute({**start_request, "environment": "final-env", "ci_link": "http://final", "needs_assignment": True})
 
         # Refresh the artefact to get updated relationships
@@ -400,8 +402,8 @@ class TestFamilyIndependentTests:
         assert test_execution
         artefact = test_execution.artefact_build.artefact
 
-        # Create 50+ more environments with different architectures
-        for i in range(26):
+        # Create more than the patched limit of environments across multiple architectures
+        for i in range(_PATCHED_ENVIRONMENTS_PER_REVIEWER // 2 + 1):
             env_request = {
                 **start_request,
                 "arch": "amd64",
@@ -411,7 +413,7 @@ class TestFamilyIndependentTests:
             }
             execute(env_request)
 
-        for i in range(26):
+        for i in range(_PATCHED_ENVIRONMENTS_PER_REVIEWER // 2 + 1):
             env_request = {
                 **start_request,
                 "arch": "arm64",
@@ -474,8 +476,8 @@ class TestFamilyIndependentTests:
         assert test_execution
         artefact = test_execution.artefact_build.artefact
 
-        # Create 50+ more environments to trigger multiple reviewer assignment
-        for i in range(51):
+        # Create more than the patched limit of environments to trigger multiple reviewer assignment
+        for i in range(_PATCHED_ENVIRONMENTS_PER_REVIEWER + 1):
             env_request = {
                 **start_request,
                 "environment": f"env-{i}",
@@ -488,7 +490,7 @@ class TestFamilyIndependentTests:
         artefact.reviewers = []
         self._db_session.commit()
 
-        # Trigger assignment again now that we have 52 environments
+        # Trigger assignment again once the artefact is over the patched environment limit
         execute({**start_request, "environment": "final-env", "ci_link": "http://final", "needs_assignment": True})
 
         # Refresh the artefact to get updated relationships
@@ -509,8 +511,7 @@ class TestFamilyIndependentTests:
                 if reviewer_id in reviewer_assignment_counts:
                     reviewer_assignment_counts[reviewer_id] += 1
 
-        # Verify equal distribution: each reviewer should get ceil(total / num_reviewers)
-        # With 53 environments and 2 reviewers: ceil(53/2) = 27
+        # Verify equal distribution across the patched environment count
         expected_max_per_reviewer = (total_env_reviews + len(artefact.reviewers) - 1) // len(artefact.reviewers)
         expected_min_per_reviewer = total_env_reviews // len(artefact.reviewers)
 
@@ -672,6 +673,14 @@ class TestFamilyIndependentTests:
     @pytest.fixture(autouse=True)
     def _set_db_session(self, db_session: Session) -> None:
         self._db_session = db_session
+
+    @pytest.fixture(autouse=True)
+    def _patch_environments_per_reviewer(self):
+        with patch(
+            "test_observer.controllers.test_executions.start_test.ENVIRONMENTS_PER_REVIEWER",
+            _PATCHED_ENVIRONMENTS_PER_REVIEWER,
+        ):
+            yield
 
     def _assert_objects_created(self, request: dict[str, Any], response: Response) -> None:
         assert response.status_code == 200
@@ -1424,7 +1433,7 @@ def test_first_environment_gets_reviewer_assigned_to_env_review(
 def test_subsequent_environments_also_get_reviewer_assigned_to_env_review(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
-    """When environments 2–49 are created, their environment reviews also get a reviewer assigned."""
+    """When subsequent environments are created below the reviewer threshold, their environment reviews also get a reviewer assigned."""
     # GIVEN a user in a team with a matching rule for snaps
     rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
     team = generator.gen_team(artefact_matching_rules=[rule])
@@ -1459,7 +1468,10 @@ def test_subsequent_environments_also_get_reviewer_assigned_to_env_review(
                 f"Environment review {env_review.id} should have exactly 1 reviewer assigned"
             )
 
-
+@patch(
+    "test_observer.controllers.test_executions.start_test.ENVIRONMENTS_PER_REVIEWER",
+    _PATCHED_ENVIRONMENTS_PER_REVIEWER,
+)
 def test_exceeding_50_environments_adds_new_artefact_reviewer(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
@@ -1471,9 +1483,9 @@ def test_exceeding_50_environments_adds_new_artefact_reviewer(
     generator.gen_user(email="reviewer1@example.com", teams=[team])
     generator.gen_user(email="reviewer2@example.com", teams=[team])
 
-    # WHEN ENVIRONMENTS_PER_REVIEWER + 2 environments are created one by one, each with needs_assignment=True
+    # WHEN the patched limit + 2 environments are created one by one, each with needs_assignment=True
     last_response = None
-    for i in range(ENVIRONMENTS_PER_REVIEWER + 2):
+    for i in range(_PATCHED_ENVIRONMENTS_PER_REVIEWER + 2):
         db_session.expire_all()  # simulate a fresh session per request
         last_response = execute(
             {
@@ -1490,7 +1502,8 @@ def test_exceeding_50_environments_adds_new_artefact_reviewer(
     assert test_execution is not None
     artefact = test_execution.artefact_build.artefact
 
-    # THEN the artefact has 2 reviewers (ceil((ENVIRONMENTS_PER_REVIEWER + 2) / ENVIRONMENTS_PER_REVIEWER) = 2)
+    # THEN the artefact has 2 reviewers
+    # (ceil((_PATCHED_ENVIRONMENTS_PER_REVIEWER + 2) / _PATCHED_ENVIRONMENTS_PER_REVIEWER) = 2)
     assert len(artefact.reviewers) == 2
 
     # AND every environment review has exactly one reviewer assigned
