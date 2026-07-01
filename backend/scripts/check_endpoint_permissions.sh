@@ -40,6 +40,7 @@ EXCEPTIONS='[
   {"method": "get", "path": "/v1/users/me/notifications/count"},
   {"method": "post", "path": "/v1/users/me/notifications/{notification_id}/dismiss"},
   {"method": "get", "path": "/v1/applications/me"},
+  {"method": "post", "path": "/v1/applications/me/rotate"},
   {"method": "get", "path": "/health/live"},
   {"method": "get", "path": "/health/ready"}
 ]'
