@@ -68,7 +68,7 @@ def rotate_own_api_key(
     db: Session = Depends(get_db),
 ):
     if app is None:
-        raise HTTPException(status_code=401, detail="Not authenticated as an application")
+        raise HTTPException(status_code=401, detail="Not authenticated")
     app.api_key = Application.gen_api_key()
     db.commit()
     return app
@@ -85,7 +85,7 @@ def rotate_api_key(
 ):
     application = db.get(Application, application_id)
     if application is None:
-        raise HTTPException(404, f"Application with id {application_id} not found")
+        raise HTTPException(status_code=404, detail=f"Application with id {application_id} not found")
     application.api_key = Application.gen_api_key()
     db.commit()
     return application
@@ -112,7 +112,7 @@ def get_application(
 ):
     application = db.get(Application, application_id)
     if application is None:
-        raise HTTPException(404, f"Application with id {application_id} not found")
+        raise HTTPException(status_code=404, detail=f"Application with id {application_id} not found")
     return application
 
 
