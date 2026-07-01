@@ -297,9 +297,7 @@ def test_rotate_api_key(test_client: TestClient, generator: DataGenerator, db_se
     assert application.api_key == data["api_key"]
 
     # Old key must no longer authenticate
-    old_key_response = test_client.get(
-        "/v1/applications/me", headers={"Authorization": f"Bearer {original_key}"}
-    )
+    old_key_response = test_client.get("/v1/applications/me", headers={"Authorization": f"Bearer {original_key}"})
     assert old_key_response.json() is None
 
 
@@ -330,9 +328,7 @@ def test_rotate_own_api_key(test_client: TestClient, generator: DataGenerator, d
     assert application.api_key == data["api_key"]
 
     # Old key must no longer authenticate
-    old_key_response = test_client.get(
-        "/v1/applications/me", headers={"Authorization": f"Bearer {original_key}"}
-    )
+    old_key_response = test_client.get("/v1/applications/me", headers={"Authorization": f"Bearer {original_key}"})
     assert old_key_response.json() is None
 
 
