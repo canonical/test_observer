@@ -4403,6 +4403,72 @@
         ]
       }
     },
+    "/v1/applications/me/rotate": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Rotate Own Api Key",
+        "operationId": "rotate_own_api_key_v1_applications_me_rotate_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/applications/{application_id}/rotate": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Rotate Api Key",
+        "operationId": "rotate_api_key_v1_applications__application_id__rotate_post",
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_application"
+        ]
+      }
+    },
     "/v1/applications/me": {
       "get": {
         "tags": [
