@@ -3238,6 +3238,69 @@
             "description": "Filter by artefact names"
           },
           {
+            "name": "artefact_versions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact versions",
+              "title": "Artefact Versions"
+            },
+            "description": "Filter by artefact versions"
+          },
+          {
+            "name": "artefact_stages",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact stages",
+              "title": "Artefact Stages"
+            },
+            "description": "Filter by artefact stages"
+          },
+          {
+            "name": "artefact_tracks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact tracks",
+              "title": "Artefact Tracks"
+            },
+            "description": "Filter by artefact tracks"
+          },
+          {
             "name": "artefact_is_archived",
             "in": "query",
             "required": false,
@@ -3944,6 +4007,42 @@
           "view_user"
         ]
       },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Delete User",
+        "operationId": "delete_user_v1_users__user_id__delete",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_user"
+        ]
+      },
       "patch": {
         "tags": [
           "users"
@@ -4438,6 +4537,42 @@
         },
         "x-permissions": [
           "view_application"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Delete Application",
+        "operationId": "delete_application_v1_applications__application_id__delete",
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_application"
         ]
       },
       "patch": {
@@ -7042,6 +7177,34 @@
             "type": "array",
             "title": "Families"
           },
+          "artefacts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefacts"
+          },
+          "artefact_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Versions"
+          },
+          "artefact_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Stages"
+          },
+          "artefact_tracks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Tracks"
+          },
           "environment_names": {
             "items": {
               "type": "string"
@@ -7211,6 +7374,34 @@
             "type": "array",
             "title": "Families"
           },
+          "artefacts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefacts"
+          },
+          "artefact_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Versions"
+          },
+          "artefact_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Stages"
+          },
+          "artefact_tracks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Tracks"
+          },
           "environment_names": {
             "items": {
               "type": "string"
@@ -7248,6 +7439,10 @@
           "id",
           "enabled",
           "families",
+          "artefacts",
+          "artefact_versions",
+          "artefact_stages",
+          "artefact_tracks",
           "environment_names",
           "test_case_names",
           "template_ids",
@@ -8935,6 +9130,27 @@
             },
             "type": "array",
             "title": "Artefacts"
+          },
+          "artefact_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Versions"
+          },
+          "artefact_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Stages"
+          },
+          "artefact_tracks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Tracks"
           },
           "artefact_is_archived": {
             "anyOf": [
