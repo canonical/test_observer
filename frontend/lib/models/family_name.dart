@@ -13,4 +13,4 @@
 // SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
-enum FamilyName { snap, deb, charm, image }
+enum FamilyName { snap, deb, charm, image, solution }

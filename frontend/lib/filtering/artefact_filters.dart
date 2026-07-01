@@ -46,6 +46,11 @@ List<Filter<Artefact>> getArtefactFiltersFor(FamilyName family) =>
           _artefactStatusFilter,
           _artefactDueDateFilter,
         ],
+      FamilyName.solution => [
+          _artefactAssigneeFilter,
+          _artefactStatusFilter,
+          _artefactDueDateFilter,
+        ],
     };
 
 final _artefactAssigneeFilter = createFilterFromExtractor<Artefact>(

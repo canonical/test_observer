@@ -39,6 +39,7 @@ String _tabDisplayName(String tab) {
     'debs' => 'Deb Testing',
     'charms' => 'Charm Testing',
     'images' => 'Image Testing',
+    'solutions' => 'Solution Testing',
     _ => tab,
   };
 }
