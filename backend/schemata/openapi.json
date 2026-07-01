@@ -7376,6 +7376,15 @@
           },
           "artefact_build": {
             "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
           }
         },
         "type": "object",
@@ -7385,7 +7394,9 @@
           "family",
           "test_execution",
           "artefact",
-          "artefact_build"
+          "artefact_build",
+          "priority",
+          "created_at"
         ],
         "title": "PendingRerun"
       },
@@ -7477,6 +7488,17 @@
                 "type": "null"
               }
             ]
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
           }
         },
         "type": "object",
@@ -7774,17 +7796,38 @@
       "StartImageTestExecutionRequest": {
         "properties": {
           "name": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Name",
             "description": "User-defined name identifying the artefact under test. Not unique - multiple versions/stages of the same artefact share this name. Examples: 'core22', 'ubuntu-desktop', 'snapd'"
           },
           "version": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Version",
             "description": "Version identifier of the artefact being tested. Format depends on artefact family - e.g., revisions for charms/snaps, version numbers for debs."
           },
           "arch": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Arch",
             "description": "CPU architecture where tests will execute. Common values: 'amd64', 'arm64', 'armhf', 's390x', 'ppc64el'"
           },
@@ -7840,16 +7883,37 @@
             "default": "image"
           },
           "execution_stage": {
-            "$ref": "#/components/schemas/ImageStage",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageStage"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "description": "Promotion stage of the image being tested. Options: 'pending' (awaiting approval), 'current' (approved and published). Use 'pending' for images undergoing testing before promotion."
           },
           "os": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Os",
             "description": "Operating system of the image. Examples: 'ubuntu', 'ubuntu-core', 'ubuntu-server'"
           },
           "release": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Release",
             "description": "OS release codename or version. Examples: 'focal', 'jammy', 'noble', '20.04', '22.04', '24.04'"
           },
@@ -7859,32 +7923,38 @@
             "description": "SHA256 checksum hash uniquely identifying this image build. Used to verify image integrity and uniqueness."
           },
           "owner": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Owner",
             "description": "Team or organization responsible for the image. Examples: 'canonical', 'ubuntu-images', team names"
           },
           "image_url": {
-            "type": "string",
-            "maxLength": 2083,
-            "minLength": 1,
-            "format": "uri",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Image Url",
             "description": "Direct URL where the image file can be downloaded or accessed. Should be a valid HTTP/HTTPS URL."
           }
         },
         "type": "object",
         "required": [
-          "name",
-          "version",
-          "arch",
           "environment",
           "test_plan",
-          "execution_stage",
-          "os",
-          "release",
-          "sha256",
-          "owner",
-          "image_url"
+          "sha256"
         ],
         "title": "StartImageTestExecutionRequest"
       },
