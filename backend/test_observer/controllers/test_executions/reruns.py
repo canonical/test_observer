@@ -18,7 +18,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query, Response, Security, status
 from fastapi.security import SecurityScopes
-from sqlalchemy import Select, asc, delete, desc, literal, or_, select, tuple_
+from sqlalchemy import Select, and_, asc, delete, desc, literal, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
@@ -31,6 +31,10 @@ from test_observer.common.permissions import (
 )
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
+)
+from test_observer.controllers.test_executions.execution_filters import (
+    apply_te_joins,
+    build_execution_filters,
 )
 from test_observer.controllers.test_results.filter_test_results import (
     filter_test_results,
@@ -65,7 +69,7 @@ class _TestExecutionNotFound(ValueError): ...
 def _build_rerun_conditions(request: RerunRequest | DeleteReruns) -> list:
     """Return SQLAlchemy WHERE conditions identifying the affected TestExecutions.
 
-    Raises HTTPException(422) if test_results_filters is provided but empty.
+    Raises HTTPException(422) if test_results_filters or test_executions_filters is provided but empty.
     Returns an empty list if neither criterion is provided (caller should no-op).
     """
     conditions = []
@@ -81,6 +85,19 @@ def _build_rerun_conditions(request: RerunRequest | DeleteReruns) -> list:
                 detail="At least one filter must be provided in test_results_filters",
             )
         filtered_ids_query = filter_test_results(select(TestResult.test_execution_id).distinct(), filters)
+        conditions.append(TestExecution.id.in_(filtered_ids_query))
+
+    if request.test_executions_filters is not None:
+        te_filters = request.test_executions_filters
+        query_filters, joins_needed = build_execution_filters(te_filters)
+        if not query_filters and not joins_needed:
+            raise HTTPException(
+                status_code=422,
+                detail="At least one filter must be provided in test_executions_filters",
+            )
+        filtered_ids_query = apply_te_joins(select(TestExecution.id).distinct(), joins_needed)
+        if query_filters:
+            filtered_ids_query = filtered_ids_query.where(and_(*query_filters))
         conditions.append(TestExecution.id.in_(filtered_ids_query))
 
     return conditions
@@ -169,7 +186,11 @@ def require_bulk_permission(
     user: User | None = Depends(get_current_user),
     app: Application | None = Depends(get_current_application),
 ):
-    if len(request.test_execution_ids) > 1 or request.test_results_filters is not None:
+    if (
+        len(request.test_execution_ids) > 1
+        or request.test_results_filters is not None
+        or request.test_executions_filters is not None
+    ):
         permission_checker(security_scopes, user, app)
 
 
@@ -243,10 +264,10 @@ def create_rerun_requests(
             db.commit()
         return
 
-    if request.test_results_filters is not None:
+    if request.test_results_filters is not None or request.test_executions_filters is not None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "Creating rerun requests from test results filters must be done silently",
+            "Creating rerun requests from filters must be done silently",
         )
 
     rerun_requests = []
