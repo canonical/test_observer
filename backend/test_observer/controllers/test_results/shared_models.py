@@ -30,6 +30,9 @@ from test_observer.data_access.models_enums import (
 class TestResultSearchFilters(BaseModel):
     families: list[FamilyName] = Field(default_factory=list)
     artefacts: list[str] = Field(default_factory=list)
+    artefact_versions: list[str] = Field(default_factory=list)
+    artefact_stages: list[str] = Field(default_factory=list)
+    artefact_tracks: list[str] = Field(default_factory=list)
     artefact_is_archived: bool | None = None
     environments: list[str] = Field(default_factory=list)
     test_cases: list[str] = Field(default_factory=list)

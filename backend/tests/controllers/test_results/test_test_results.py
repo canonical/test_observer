@@ -23,6 +23,7 @@ from fastapi.testclient import TestClient
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
     FamilyName,
+    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -945,6 +946,103 @@ class TestSearchTestResults:
         result_ids = {tr["test_result"]["id"] for tr in data["test_results"]}
 
         # Should only include result matching both filters
+        assert test_result.id in result_ids
+        assert other_result.id not in result_ids
+
+    def test_search_by_artefact_version(self, test_client: TestClient, generator: DataGenerator):
+        """Test filtering by artefact version"""
+        unique_marker = uuid.uuid4().hex[:8]
+
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("artefact_version"))
+        artefact = generator.gen_artefact(name=generate_unique_name(f"artefact_{unique_marker}"), version="1.2.3")
+        artefact_build = generator.gen_artefact_build(artefact)
+        test_execution = generator.gen_test_execution(artefact_build, environment)
+        test_result = generator.gen_test_result(test_case, test_execution)
+
+        # Create artefact with a different version that should be excluded
+        other_artefact = generator.gen_artefact(name=generate_unique_name(f"other_{unique_marker}"), version="9.9.9")
+        other_build = generator.gen_artefact_build(other_artefact)
+        other_execution = generator.gen_test_execution(other_build, environment)
+        other_result = generator.gen_test_result(test_case, other_execution)
+
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?artefact_versions=1.2.3"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        result_ids = {tr["test_result"]["id"] for tr in response.json()["test_results"]}
+        assert test_result.id in result_ids
+        assert other_result.id not in result_ids
+
+    def test_search_by_artefact_stage(self, test_client: TestClient, generator: DataGenerator):
+        """Test filtering by artefact stage"""
+        unique_marker = uuid.uuid4().hex[:8]
+
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("artefact_stage"))
+        artefact = generator.gen_artefact(
+            name=generate_unique_name(f"artefact_{unique_marker}"),
+            family=FamilyName.snap,
+            stage=StageName.edge,
+        )
+        artefact_build = generator.gen_artefact_build(artefact)
+        test_execution = generator.gen_test_execution(artefact_build, environment)
+        test_result = generator.gen_test_result(test_case, test_execution)
+
+        # Create artefact with a different stage that should be excluded
+        other_artefact = generator.gen_artefact(
+            name=generate_unique_name(f"other_{unique_marker}"),
+            family=FamilyName.snap,
+            stage=StageName.stable,
+        )
+        other_build = generator.gen_artefact_build(other_artefact)
+        other_execution = generator.gen_test_execution(other_build, environment)
+        other_result = generator.gen_test_result(test_case, other_execution)
+
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?artefact_stages=edge"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        result_ids = {tr["test_result"]["id"] for tr in response.json()["test_results"]}
+        assert test_result.id in result_ids
+        assert other_result.id not in result_ids
+
+    def test_search_by_artefact_track(self, test_client: TestClient, generator: DataGenerator):
+        """Test filtering by artefact track"""
+        unique_marker = uuid.uuid4().hex[:8]
+
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("artefact_track"))
+        artefact = generator.gen_artefact(
+            name=generate_unique_name(f"artefact_{unique_marker}"),
+            family=FamilyName.snap,
+            track="1.0",
+        )
+        artefact_build = generator.gen_artefact_build(artefact)
+        test_execution = generator.gen_test_execution(artefact_build, environment)
+        test_result = generator.gen_test_result(test_case, test_execution)
+
+        # Create artefact with a different track that should be excluded
+        other_artefact = generator.gen_artefact(
+            name=generate_unique_name(f"other_{unique_marker}"),
+            family=FamilyName.snap,
+            track="2.0",
+        )
+        other_build = generator.gen_artefact_build(other_artefact)
+        other_execution = generator.gen_test_execution(other_build, environment)
+        other_result = generator.gen_test_result(test_case, other_execution)
+
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?artefact_tracks=1.0"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        result_ids = {tr["test_result"]["id"] for tr in response.json()["test_results"]}
         assert test_result.id in result_ids
         assert other_result.id not in result_ids
 
