@@ -13,7 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from datetime import date, timedelta
 from typing import Any
 from unittest.mock import patch
@@ -24,7 +24,7 @@ from httpx import Response
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.controllers.test_executions.start_test import ENVIRONMENTS_PER_REVIEWER, StartTestExecutionController
+from test_observer.controllers.test_executions.start_test import StartTestExecutionController
 from test_observer.data_access.models import (
     Artefact,
     Notification,
@@ -675,7 +675,7 @@ class TestFamilyIndependentTests:
         self._db_session = db_session
 
     @pytest.fixture(autouse=True)
-    def _patch_environments_per_reviewer(self):
+    def _patch_environments_per_reviewer(self) -> Generator[None, None, None]:
         with patch(
             "test_observer.controllers.test_executions.start_test.ENVIRONMENTS_PER_REVIEWER",
             _PATCHED_ENVIRONMENTS_PER_REVIEWER,
@@ -1433,7 +1433,8 @@ def test_first_environment_gets_reviewer_assigned_to_env_review(
 def test_subsequent_environments_also_get_reviewer_assigned_to_env_review(
     db_session: Session, execute: Execute, generator: DataGenerator
 ):
-    """When subsequent environments are created below the reviewer threshold, their environment reviews also get a reviewer assigned."""
+    """When subsequent environments are created below the reviewer threshold, their environment
+    reviews also get a reviewer assigned."""
     # GIVEN a user in a team with a matching rule for snaps
     rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
     team = generator.gen_team(artefact_matching_rules=[rule])
@@ -1467,6 +1468,7 @@ def test_subsequent_environments_also_get_reviewer_assigned_to_env_review(
             assert len(env_review.reviewers) == 1, (
                 f"Environment review {env_review.id} should have exactly 1 reviewer assigned"
             )
+
 
 @patch(
     "test_observer.controllers.test_executions.start_test.ENVIRONMENTS_PER_REVIEWER",
