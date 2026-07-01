@@ -110,9 +110,13 @@ class IssueCreator:
 
         match notification_type:
             case NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW:
-                summary = f"Review artefact {artefact.name} version {artefact.version} - {reviewer.name}"
+                summary = (
+                    f"Review artefact and environments of Artefact {artefact.name} "
+                    f"version {artefact.version} - {reviewer.name}"
+                )
                 description = (
-                    f"Review artefact {artefact.name} version {artefact.version}\n\nArtefact page: {artefact_url}"
+                    f"Review artefact and test environments for artefact {artefact.name} "
+                    f"version {artefact.version}\n\nArtefact page: {artefact_url}"
                 )
             case NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW:
                 summary = (

@@ -188,18 +188,8 @@ class StartTestExecutionController:
                     self.artefact.reviewers += newly_assigned_reviewers
                     self.artefact.due_date = self.determine_due_date()
 
-        newly_assigned_environment_reviewers: list[User] = []
         if self.artefact.reviewers:
-            newly_assigned_environment_reviewers = self._assign_reviewers_to_environments()
-
-        if newly_assigned_environment_reviewers:
-            with self.db.begin_nested():
-                batch_create_review_notifications(
-                    self.db,
-                    newly_assigned_environment_reviewers,
-                    self.artefact,
-                    NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
-                )
+            self._assign_reviewers_to_environments()
 
         if newly_assigned_reviewers:
             with self.db.begin_nested():
@@ -214,13 +204,9 @@ class StartTestExecutionController:
             artefact_reviews = [
                 (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW]) for reviewer in newly_assigned_reviewers
             ]
-            environment_reviews = [
-                (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
-                for reviewer in newly_assigned_environment_reviewers
-            ]
             return BatchReviewerAssignedMessage(
                 artefact=self.artefact,
-                assigned_reviews=artefact_reviews + environment_reviews,
+                assigned_reviews=artefact_reviews,
             )
 
         return None

@@ -1518,9 +1518,7 @@ def test_reviewer_gets_at_most_one_artefact_jira_card(db_session: Session, execu
     assert artefact_card_count == 1, f"Expected 1 artefact review Jira card, got {artefact_card_count}"
 
 
-def test_no_environment_jira_cards_are_created(
-    db_session: Session, execute: Execute, generator: DataGenerator
-):
+def test_no_environment_jira_cards_are_created(db_session: Session, execute: Execute, generator: DataGenerator):
     """Environment-review Jira cards are no longer created, regardless of how many
     environments are added.
     """
@@ -1563,9 +1561,7 @@ def test_no_environment_jira_cards_are_created(
     assert env_card_count == 0, f"Expected 0 environment review Jira cards, got {env_card_count}"
 
 
-def test_reviewer_gets_single_combined_jira_card(
-    db_session: Session, execute: Execute, generator: DataGenerator
-):
+def test_reviewer_gets_single_combined_jira_card(db_session: Session, execute: Execute, generator: DataGenerator):
     """A reviewer newly assigned to an artefact receives a single combined Jira card
     (USER_ASSIGNED_ARTEFACT_REVIEW) and no separate environment card."""
     # GIVEN a reviewer with a matching rule
@@ -1644,18 +1640,14 @@ def test_existing_reviewer_gets_no_notification_for_new_environment(
 
     # WHEN the first call assigns the reviewer (to artefact + env-0)
     execute({**snap_test_request, "needs_assignment": True})
-    notifications_after_first = (
-        db_session.query(Notification).filter(Notification.user_id == reviewer.id).count()
-    )
+    notifications_after_first = db_session.query(Notification).filter(Notification.user_id == reviewer.id).count()
 
     # WHEN a second environment is added
     db_session.expire_all()
     execute({**snap_test_request, "environment": "env-1", "ci_link": "http://localhost/1", "needs_assignment": True})
 
     # THEN the reviewer has no new notifications
-    notifications_after_second = (
-        db_session.query(Notification).filter(Notification.user_id == reviewer.id).count()
-    )
+    notifications_after_second = db_session.query(Notification).filter(Notification.user_id == reviewer.id).count()
     assert notifications_after_second == notifications_after_first
 
 
