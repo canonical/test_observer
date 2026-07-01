@@ -77,6 +77,38 @@ params_query_matching_test_result_attachment_rules: list[dict] = [
         ],
     },
     {
+        "label": "match_artefact_name",
+        "attachment_rules": [
+            (True, {"artefacts": ["core"]}),
+            (True, {"artefacts": ["core", "other-artefact"]}),
+            (False, {"artefacts": ["other-artefact"]}),
+        ],
+    },
+    {
+        "label": "match_artefact_version",
+        "attachment_rules": [
+            (True, {"artefact_versions": ["1.1.1"]}),
+            (True, {"artefact_versions": ["1.1.1", "2.0.0"]}),
+            (False, {"artefact_versions": ["2.0.0"]}),
+        ],
+    },
+    {
+        "label": "match_artefact_stage",
+        "attachment_rules": [
+            (True, {"artefact_stages": ["beta"]}),
+            (True, {"artefact_stages": ["beta", "stable"]}),
+            (False, {"artefact_stages": ["stable"]}),
+        ],
+    },
+    {
+        "label": "match_artefact_track",
+        "attachment_rules": [
+            (True, {"artefact_tracks": ["latest"]}),
+            (True, {"artefact_tracks": ["latest", "1.0"]}),
+            (False, {"artefact_tracks": ["1.0"]}),
+        ],
+    },
+    {
         "label": "match_execution_metadata",
         "attachment_rules": [
             (True, {"execution_metadata": [("category1", "value1")]}),
@@ -185,6 +217,10 @@ def test_query_matching_test_result_attachment_rules(
             enabled=spec.get("enabled", True),
             test_results=spec.get("test_results", []),
             families=spec.get("families", []),
+            artefacts=spec.get("artefacts", []),
+            artefact_versions=spec.get("artefact_versions", []),
+            artefact_stages=spec.get("artefact_stages", []),
+            artefact_tracks=spec.get("artefact_tracks", []),
             environment_names=spec.get("environment_names", []),
             test_case_names=spec.get("test_case_names", []),
             template_ids=spec.get("template_ids", []),

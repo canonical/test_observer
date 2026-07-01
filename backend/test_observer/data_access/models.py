@@ -953,14 +953,20 @@ class IssueTestResultAttachmentRule(Base):
 
     test_results: Mapped[list["IssueTestResultAttachment"]] = relationship(back_populates="attachment_rule")
 
-    families: Mapped[list[FamilyName]] = mapped_column(ARRAY(Enum(FamilyName)), default=list)
-    environment_names: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    test_case_names: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    template_ids: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    families: Mapped[list[FamilyName]] = mapped_column(ARRAY(Enum(FamilyName)), nullable=False, default=list)
+    artefacts: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    artefact_versions: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    artefact_stages: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    artefact_tracks: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    environment_names: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    test_case_names: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    template_ids: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     execution_metadata: Mapped[list["IssueTestResultAttachmentRuleExecutionMetadata"]] = relationship(
         back_populates="attachment_rule", cascade="all, delete"
     )
-    test_result_statuses: Mapped[list[TestResultStatus]] = mapped_column(ARRAY(Enum(TestResultStatus)), default=list)
+    test_result_statuses: Mapped[list[TestResultStatus]] = mapped_column(
+        ARRAY(Enum(TestResultStatus)), nullable=False, default=list
+    )
 
 
 class IssueTestResultAttachmentRuleExecutionMetadata(Base):
