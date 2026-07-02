@@ -31,8 +31,8 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_index("test_execution_updated_at_ix", "test_execution", ["updated_at"], unique=False)
+    op.create_index(op.f("test_execution_updated_at_ix"), "test_execution", ["updated_at"], unique=False)
 
 
 def downgrade() -> None:
-    op.drop_index("test_execution_updated_at_ix", table_name="test_execution")
+    op.drop_index(op.f("test_execution_updated_at_ix"), table_name="test_execution")
