@@ -58,8 +58,8 @@ async def _initialize_all_metrics_in_thread() -> None:
         # abandon_on_cancel=True means if Kubernetes abruptly kills/stops the pod,
         # the app shutdown sequence won't hang waiting for this SQL query to finish.
         await to_thread.run_sync(_initialize_all_metrics, abandon_on_cancel=True)
-    except Exception as e:
-        logger.exception(f"Error during metrics initialization in thread: {e}")
+    except Exception:
+        logger.exception("Error during metrics initialization in thread")
 
 
 @asynccontextmanager
@@ -92,9 +92,7 @@ async def lifespan(_app: FastAPI):
             # We await the cancelled task so Python knows we intentionally acknowledged its closure
             await metrics_task
         except asyncio.CancelledError:
-            logger.info(
-                "Background metrics task detached. Worker thread will continue to run unmonitored until container exit."
-            )
+            logger.info("Background metrics task detached")
         except Exception as e:
             logger.exception(f"Unexpected error while cancelling metrics task: {e}")
 
