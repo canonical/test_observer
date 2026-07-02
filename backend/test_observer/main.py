@@ -13,10 +13,12 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
 import sentry_sdk
+from anyio import to_thread
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import start_http_server
@@ -42,6 +44,25 @@ logger = logging.getLogger("test-observer-backend")
 logging.basicConfig(level=logging.INFO)
 
 
+def _initialize_all_metrics() -> None:
+    with SessionLocal() as db:
+        initialize_all_metrics(db)
+
+
+async def _initialize_all_metrics_in_thread() -> None:
+    """
+    Initialize all Prometheus metrics from the database using a separate thread
+    so the main event loop is not blocked.
+    """
+    try:
+        # abandon_on_cancel=True ensures shutdown won't block waiting for this
+        # potentially long-running DB initialization to finish; the worker thread
+        # may continue running in the background until process exit.
+        await to_thread.run_sync(_initialize_all_metrics, abandon_on_cancel=True)
+    except Exception:
+        logger.exception("Error during metrics initialization in thread")
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """
@@ -55,24 +76,24 @@ async def lifespan(_app: FastAPI):
     try:
         start_http_server(METRICS_PORT)
         logger.info(f"Metrics server started on port {METRICS_PORT}")
-    except Exception as e:
-        logger.exception(f"Failed to start metrics server: {e}")
+    except Exception:
         # Continue startup even if metrics server fails
-
-    # Initialize metrics from database
-    db = SessionLocal()
-    try:
-        initialize_all_metrics(db)
-    except Exception as e:
-        logger.exception(f"Error during metrics initialization: {e}")
-        # Continue startup even if metrics init fails
-    finally:
-        db.close()
+        logger.exception("Failed to start metrics server")
+    # Run metrics initialization in the background without blocking the main event loop
+    metrics_task = asyncio.create_task(_initialize_all_metrics_in_thread())
 
     yield  # Application runs
 
     # Shutdown: cleanup if needed
-    pass
+    if not metrics_task.done():
+        logger.info("Metrics initialization still running; cancelling task for shutdown...")
+        metrics_task.cancel()
+    try:
+        await metrics_task
+    except asyncio.CancelledError:
+        logger.info("Background metrics task detached")
+    except Exception:
+        logger.exception("Unexpected error while awaiting metrics task in shutdown")
 
 
 app = FastAPI(
