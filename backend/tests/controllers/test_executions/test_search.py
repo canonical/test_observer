@@ -14,7 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 
@@ -489,8 +489,8 @@ class TestSearchTestExecutions:
         te_old = generator.gen_test_execution(build, env_old)
         te_new = generator.gen_test_execution(build, env_new)
 
-        te_old.updated_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
-        te_new.updated_at = datetime(2030, 1, 1, tzinfo=timezone.utc)
+        te_old.updated_at = datetime(2020, 1, 1, tzinfo=UTC)
+        te_new.updated_at = datetime(2030, 1, 1, tzinfo=UTC)
         generator.db_session.flush()
 
         cutoff = "2025-01-01T00:00:00"
@@ -515,8 +515,8 @@ class TestSearchTestExecutions:
         te_old = generator.gen_test_execution(build, env_old)
         te_new = generator.gen_test_execution(build, env_new)
 
-        te_old.updated_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
-        te_new.updated_at = datetime(2030, 1, 1, tzinfo=timezone.utc)
+        te_old.updated_at = datetime(2020, 1, 1, tzinfo=UTC)
+        te_new.updated_at = datetime(2030, 1, 1, tzinfo=UTC)
         generator.db_session.flush()
 
         cutoff = "2025-01-01T00:00:00"
@@ -543,9 +543,9 @@ class TestSearchTestExecutions:
         te_within = generator.gen_test_execution(build, env_within)
         te_after = generator.gen_test_execution(build, env_after)
 
-        te_before.updated_at = datetime(2019, 6, 1, tzinfo=timezone.utc)
-        te_within.updated_at = datetime(2022, 6, 1, tzinfo=timezone.utc)
-        te_after.updated_at = datetime(2026, 6, 1, tzinfo=timezone.utc)
+        te_before.updated_at = datetime(2019, 6, 1, tzinfo=UTC)
+        te_within.updated_at = datetime(2022, 6, 1, tzinfo=UTC)
+        te_after.updated_at = datetime(2026, 6, 1, tzinfo=UTC)
         generator.db_session.flush()
 
         response = make_authenticated_request(
