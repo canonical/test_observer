@@ -78,6 +78,18 @@ def build_execution_filters(
         query_filters.append(Artefact.name.in_(filters.artefacts))
         joins_needed.update(["artefact_build", "artefact"])
 
+    if filters.artefact_versions:
+        query_filters.append(Artefact.version.in_(filters.artefact_versions))
+        joins_needed.update(["artefact_build", "artefact"])
+
+    if filters.artefact_stages:
+        query_filters.append(Artefact.stage.in_(filters.artefact_stages))
+        joins_needed.update(["artefact_build", "artefact"])
+
+    if filters.artefact_tracks:
+        query_filters.append(Artefact.track.in_(filters.artefact_tracks))
+        joins_needed.update(["artefact_build", "artefact"])
+
     if filters.artefact_is_archived is not None:
         query_filters.append(Artefact.archived == filters.artefact_is_archived)
         joins_needed.update(["artefact_build", "artefact"])
