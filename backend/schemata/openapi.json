@@ -891,6 +891,44 @@
             "description": "Filter by event log: 'any' (executions with any events), 'none' (executions without events), or specific event name(s)"
           },
           {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter executions updated on or after this datetime",
+              "title": "From Date"
+            },
+            "description": "Filter executions updated on or after this datetime"
+          },
+          {
+            "name": "until_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter executions updated on or before this datetime",
+              "title": "Until Date"
+            },
+            "description": "Filter executions updated on or before this datetime"
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -6683,7 +6721,7 @@
           "test_executions_filters": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/TestExecutionSearchFilters"
+                "$ref": "#/components/schemas/TestExecutionRerunFilters"
               },
               {
                 "type": "null"
@@ -7763,7 +7801,7 @@
           "test_executions_filters": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/TestExecutionSearchFilters"
+                "$ref": "#/components/schemas/TestExecutionRerunFilters"
               },
               {
                 "type": "null"
@@ -8722,6 +8760,141 @@
         ],
         "title": "TestExecutionRelevantLinkResponse"
       },
+      "TestExecutionRerunFilters": {
+        "properties": {
+          "families": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyName"
+            },
+            "type": "array",
+            "title": "Families"
+          },
+          "artefacts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefacts"
+          },
+          "artefact_is_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artefact Is Archived"
+          },
+          "environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Environments"
+          },
+          "test_execution_statuses": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionStatus"
+            },
+            "type": "array",
+            "title": "Test Execution Statuses"
+          },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          },
+          "reviewer_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "any",
+                  "none"
+                ]
+              }
+            ],
+            "title": "Reviewer Ids"
+          },
+          "assignee_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "any",
+                  "none"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Ids",
+            "deprecated": true
+          },
+          "rerun_is_requested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Is Requested"
+          },
+          "execution_is_latest": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Is Latest"
+          },
+          "from_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Date"
+          },
+          "until_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until Date"
+          }
+        },
+        "type": "object",
+        "title": "TestExecutionRerunFilters",
+        "description": "Filter model for rerun create/delete operations.\n\nExcludes pagination (limit/offset) and search-only fields (event_names)\nthat have no meaning in the rerun context."
+      },
       "TestExecutionResponse": {
         "properties": {
           "id": {
@@ -8892,169 +9065,6 @@
           "is_rerun_requested"
         ],
         "title": "TestExecutionResponseWithContext"
-      },
-      "TestExecutionSearchFilters": {
-        "properties": {
-          "families": {
-            "items": {
-              "$ref": "#/components/schemas/FamilyName"
-            },
-            "type": "array",
-            "title": "Families"
-          },
-          "artefacts": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Artefacts"
-          },
-          "artefact_is_archived": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Artefact Is Archived"
-          },
-          "environments": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Environments"
-          },
-          "test_execution_statuses": {
-            "items": {
-              "$ref": "#/components/schemas/TestExecutionStatus"
-            },
-            "type": "array",
-            "title": "Test Execution Statuses"
-          },
-          "execution_metadata": {
-            "$ref": "#/components/schemas/ExecutionMetadata"
-          },
-          "reviewer_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "integer"
-                },
-                "type": "array"
-              },
-              {
-                "type": "string",
-                "enum": [
-                  "any",
-                  "none"
-                ]
-              }
-            ],
-            "title": "Reviewer Ids"
-          },
-          "assignee_ids": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "integer"
-                },
-                "type": "array"
-              },
-              {
-                "type": "string",
-                "enum": [
-                  "any",
-                  "none"
-                ]
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Assignee Ids",
-            "deprecated": true
-          },
-          "rerun_is_requested": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rerun Is Requested"
-          },
-          "execution_is_latest": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Execution Is Latest"
-          },
-          "event_names": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "string",
-                "enum": [
-                  "any",
-                  "none"
-                ]
-              }
-            ],
-            "title": "Event Names"
-          },
-          "from_date": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "From Date"
-          },
-          "until_date": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Until Date"
-          },
-          "limit": {
-            "type": "integer",
-            "title": "Limit",
-            "default": 50
-          },
-          "offset": {
-            "type": "integer",
-            "title": "Offset",
-            "default": 0
-          }
-        },
-        "type": "object",
-        "title": "TestExecutionSearchFilters",
-        "description": "Filter model for test execution search endpoint."
       },
       "TestExecutionSearchResponse": {
         "properties": {
