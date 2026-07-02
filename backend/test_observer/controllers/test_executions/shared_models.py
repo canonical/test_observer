@@ -61,8 +61,8 @@ class TestResultResponse(BaseModel):
     )
 
 
-class TestExecutionSearchFilters(BaseModel):
-    """Filter model for test execution search endpoint."""
+class _TestExecutionFilterBase(BaseModel):
+    """Shared filterable fields for test execution queries."""
 
     families: list[FamilyName] = Field(default_factory=list)
     artefacts: list[str] = Field(default_factory=list)
@@ -77,11 +77,8 @@ class TestExecutionSearchFilters(BaseModel):
     )
     rerun_is_requested: bool | None = None
     execution_is_latest: bool | None = None
-    event_names: list[str] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
     from_date: datetime | None = None
     until_date: datetime | None = None
-    limit: int = 50
-    offset: int = 0
 
     @model_validator(mode="before")
     @classmethod
@@ -94,3 +91,19 @@ class TestExecutionSearchFilters(BaseModel):
         if (reviewer_ids is None or reviewer_ids == []) and assignee_ids is not None:
             data["reviewer_ids"] = assignee_ids
         return data
+
+
+class TestExecutionSearchFilters(_TestExecutionFilterBase):
+    """Filter model for test execution search endpoint."""
+
+    event_names: list[str] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
+    limit: int = 50
+    offset: int = 0
+
+
+class TestExecutionRerunFilters(_TestExecutionFilterBase):
+    """Filter model for rerun create/delete operations.
+
+    Excludes pagination (limit/offset) and search-only fields (event_names)
+    that have no meaning in the rerun context.
+    """

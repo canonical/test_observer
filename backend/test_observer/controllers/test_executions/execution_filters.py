@@ -26,7 +26,7 @@ from sqlalchemy.orm import aliased
 
 from test_observer.common.constants import QueryValue
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.controllers.test_executions.shared_models import TestExecutionSearchFilters
+from test_observer.controllers.test_executions.shared_models import _TestExecutionFilterBase
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -65,7 +65,7 @@ def filter_execution_metadata(
 
 
 def build_execution_filters(
-    filters: TestExecutionSearchFilters,
+    filters: _TestExecutionFilterBase,
 ) -> tuple[list[ColumnElement[bool]], set[JoinName]]:
     query_filters: list[ColumnElement[bool]] = []
     joins_needed: set[JoinName] = set()
@@ -127,20 +127,21 @@ def build_execution_filters(
         )
         query_filters.append(~newer_execution_exists if filters.execution_is_latest else newer_execution_exists)
 
-    if filters.event_names != []:
+    event_names = getattr(filters, "event_names", [])
+    if event_names != []:
         event_exists = exists(select(1).select_from(TestEvent).where(TestEvent.test_execution_id == TestExecution.id))
-        if filters.event_names == QueryValue.ANY:
+        if event_names == QueryValue.ANY:
             query_filters.append(event_exists)
-        elif filters.event_names == QueryValue.NONE:
+        elif event_names == QueryValue.NONE:
             query_filters.append(~event_exists)
-        elif isinstance(filters.event_names, list) and filters.event_names:
+        elif isinstance(event_names, list) and event_names:
             query_filters.append(
                 exists(
                     select(1)
                     .select_from(TestEvent)
                     .where(
                         TestEvent.test_execution_id == TestExecution.id,
-                        TestEvent.event_name.in_(filters.event_names),
+                        TestEvent.event_name.in_(event_names),
                     )
                 )
             )
