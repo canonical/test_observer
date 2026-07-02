@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import FamilyName, StageName, TestExecutionStatus
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -244,6 +244,60 @@ class TestSearchTestExecutions:
         te_ids = {item["id"] for item in response.json()["test_executions"]}
         assert te_a.id in te_ids
         assert te_b.id not in te_ids
+
+    def test_filter_by_artefact_version(self, test_client: TestClient, generator: DataGenerator):
+        artefact_a = generator.gen_artefact(name=_uid("artefact"), version="1.0")
+        artefact_b = generator.gen_artefact(name=_uid("artefact"), version="2.0")
+        env = generator.gen_environment(name=_uid("env"))
+
+        te_a = generator.gen_test_execution(generator.gen_artefact_build(artefact_a), env)
+        te_b = generator.gen_test_execution(generator.gen_artefact_build(artefact_b), env)
+
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-executions?test_result=none&artefact_versions=1.0"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_a.id in te_ids
+        assert te_b.id not in te_ids
+
+    def test_filter_by_artefact_stage(self, test_client: TestClient, generator: DataGenerator):
+        artefact_edge = generator.gen_artefact(name=_uid("artefact"), stage=StageName.edge)
+        artefact_beta = generator.gen_artefact(name=_uid("artefact"), stage=StageName.beta)
+        env = generator.gen_environment(name=_uid("env"))
+
+        te_edge = generator.gen_test_execution(generator.gen_artefact_build(artefact_edge), env)
+        te_beta = generator.gen_test_execution(generator.gen_artefact_build(artefact_beta), env)
+
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-executions?test_result=none&artefact_stages=edge"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_edge.id in te_ids
+        assert te_beta.id not in te_ids
+
+    def test_filter_by_artefact_track(self, test_client: TestClient, generator: DataGenerator):
+        artefact_stable = generator.gen_artefact(name=_uid("artefact"), track="stable")
+        artefact_edge = generator.gen_artefact(name=_uid("artefact"), track="edge")
+        env = generator.gen_environment(name=_uid("env"))
+
+        te_stable = generator.gen_test_execution(generator.gen_artefact_build(artefact_stable), env)
+        te_edge = generator.gen_test_execution(generator.gen_artefact_build(artefact_edge), env)
+
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-executions?test_result=none&artefact_tracks=stable"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_stable.id in te_ids
+        assert te_edge.id not in te_ids
 
     def test_filter_by_rerun_requested_with_no_result(self, test_client: TestClient, generator: DataGenerator):
         artefact = generator.gen_artefact(name=_uid("artefact"))
