@@ -478,9 +478,7 @@ class TestSearchTestExecutions:
 
         assert response.status_code == 422
 
-    def test_filter_by_from_date_excludes_older_executions(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_filter_by_from_date_excludes_older_executions(self, test_client: TestClient, generator: DataGenerator):
         artefact = generator.gen_artefact(name=_uid("artefact"))
         build = generator.gen_artefact_build(artefact)
         env_old = generator.gen_environment(name=_uid("env_old"))
@@ -504,9 +502,7 @@ class TestSearchTestExecutions:
         assert te_new.id in te_ids
         assert te_old.id not in te_ids
 
-    def test_filter_by_until_date_excludes_newer_executions(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_filter_by_until_date_excludes_newer_executions(self, test_client: TestClient, generator: DataGenerator):
         artefact = generator.gen_artefact(name=_uid("artefact"))
         build = generator.gen_artefact_build(artefact)
         env_old = generator.gen_environment(name=_uid("env_old"))
@@ -530,9 +526,7 @@ class TestSearchTestExecutions:
         assert te_old.id in te_ids
         assert te_new.id not in te_ids
 
-    def test_filter_by_from_date_and_until_date_combined(
-        self, test_client: TestClient, generator: DataGenerator
-    ):
+    def test_filter_by_from_date_and_until_date_combined(self, test_client: TestClient, generator: DataGenerator):
         artefact = generator.gen_artefact(name=_uid("artefact"))
         build = generator.gen_artefact_build(artefact)
         env_before = generator.gen_environment(name=_uid("env_before"))
