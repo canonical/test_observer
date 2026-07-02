@@ -13,6 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -43,19 +44,20 @@ logger = logging.getLogger("test-observer-backend")
 logging.basicConfig(level=logging.INFO)
 
 
-def _initialize_all_metrics() -> None:
+async def _initialize_all_metrics() -> None:
     """
-    Initialize all Prometheus metrics from the database.
+    Initialize all Prometheus metrics from the database using a separate thread
+    so the main event loop is not blocked.
+    """
+    with SessionLocal() as db:
+        try:
+            # abandon_on_cancel=True means if Kubernetes abruptly kills/stops the pod,
+            # the app shutdown sequence won't hang waiting for this SQL query to finish.
+            await to_thread.run_sync(initialize_all_metrics, db, abandon_on_cancel=True)
 
-    This function is intended to be called during application startup to
-    ensure that the metrics reflect the current state of the database.
-    This wrapper allows the imported function to be run from a separate thread without blocking the main event loop.
-    """
-    db = SessionLocal()
-    try:
-        initialize_all_metrics(db)
-    finally:
-        db.close()
+        # Don't let metrics initialization failures prevent the app from starting.
+        except Exception as e:
+            logger.exception(f"Error during metrics initialization: {e}")
 
 
 @asynccontextmanager
@@ -75,12 +77,8 @@ async def lifespan(_app: FastAPI):
         logger.exception(f"Failed to start metrics server: {e}")
         # Continue startup even if metrics server fails
 
-    try:
-        # Run this in a separate thread to avoid blocking the event loop
-        await to_thread.run_sync(_initialize_all_metrics)
-    except Exception as e:
-        logger.exception(f"Error during metrics initialization: {e}")
-        # Continue startup even if metrics init fails
+    # Run metrics initialization in the background without blocking the main event loop
+    asyncio.create_task(_initialize_all_metrics())
 
     yield  # Application runs
 
