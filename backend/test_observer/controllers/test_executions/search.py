@@ -15,6 +15,7 @@
 
 import base64
 from collections import defaultdict
+from datetime import datetime
 from typing import Annotated, Literal, TypeVar
 
 from fastapi import Depends, HTTPException, Query, Security
@@ -276,6 +277,14 @@ def search_test_executions(
             )
         ),
     ] = None,
+    from_date: Annotated[
+        datetime | None,
+        Query(description="Filter executions updated on or after this datetime"),
+    ] = None,
+    until_date: Annotated[
+        datetime | None,
+        Query(description="Filter executions updated on or before this datetime"),
+    ] = None,
     limit: Annotated[int, Query(ge=0, le=1000, description="Maximum number of results to return")] = 50,
     offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination")] = 0,
     db: Session = Depends(get_db),
@@ -303,6 +312,8 @@ def search_test_executions(
         rerun_is_requested=rerun_is_requested,
         execution_is_latest=execution_is_latest,
         event_names=parse_list_or_query_value(event_names),  # type: ignore[arg-type]
+        from_date=from_date,
+        until_date=until_date,
         limit=limit,
         offset=offset,
     )
