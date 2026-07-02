@@ -39,6 +39,7 @@ class DashboardBody extends StatelessWidget {
         (FamilyName.deb, ViewModes.list) => const ArtefactsListView.debs(),
         (FamilyName.charm, ViewModes.list) => const ArtefactsListView.charms(),
         (FamilyName.image, ViewModes.list) => const ArtefactsListView.images(),
+        (FamilyName.solution, ViewModes.list) => const ArtefactsListView.solutions(),
       },
     );
   }

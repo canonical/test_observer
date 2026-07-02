@@ -256,6 +256,45 @@ const _imageColumnsMetadata = <ColumnMetadata>[
   ),
 ];
 
+const _solutionColumnsMetadata = <ColumnMetadata>[
+  (
+    name: 'Name',
+    queryParam: ArtefactSortingQuery.name,
+    flex: 2,
+    cellBuilder: _buildNameCell,
+  ),
+  (
+    name: 'Version',
+    queryParam: ArtefactSortingQuery.version,
+    flex: 2,
+    cellBuilder: _buildVersionCell,
+  ),
+  (
+    name: 'Due date',
+    queryParam: ArtefactSortingQuery.dueDate,
+    flex: 1,
+    cellBuilder: _buildDueDateCell,
+  ),
+  (
+    name: 'Reviews remaining',
+    queryParam: ArtefactSortingQuery.reviewsRemaining,
+    flex: 1,
+    cellBuilder: _buildReviewsRemainingCell,
+  ),
+  (
+    name: 'Status',
+    queryParam: ArtefactSortingQuery.status,
+    flex: 1,
+    cellBuilder: _buildStatusCell,
+  ),
+  (
+    name: 'Reviewers',
+    queryParam: ArtefactSortingQuery.assignee,
+    flex: 1,
+    cellBuilder: _buildAssigneeCell,
+  ),
+];
+
 Widget _buildNameCell(BuildContext context, Artefact artefact) =>
     Text(artefact.name);
 

@@ -59,5 +59,9 @@ List<StageName> familyStages(FamilyName family) {
         StageName.pending,
         StageName.current,
       ];
+    case FamilyName.solution:
+      return [
+        StageName.empty,
+      ];
   }
 }
