@@ -17,6 +17,7 @@ import logging
 from contextlib import asynccontextmanager
 
 import sentry_sdk
+from anyio import to_thread
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import start_http_server
@@ -42,6 +43,21 @@ logger = logging.getLogger("test-observer-backend")
 logging.basicConfig(level=logging.INFO)
 
 
+def _initialize_all_metrics() -> None:
+    """
+    Initialize all Prometheus metrics from the database.
+
+    This function is intended to be called during application startup to
+    ensure that the metrics reflect the current state of the database.
+    This wrapper allows the imported function to be run from a separate thread without blocking the main event loop.
+    """
+    db = SessionLocal()
+    try:
+        initialize_all_metrics(db)
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """
@@ -59,15 +75,12 @@ async def lifespan(_app: FastAPI):
         logger.exception(f"Failed to start metrics server: {e}")
         # Continue startup even if metrics server fails
 
-    # Initialize metrics from database
-    db = SessionLocal()
     try:
-        initialize_all_metrics(db)
+        # Run this in a separate thread to avoid blocking the event loop
+        await to_thread.run_sync(_initialize_all_metrics)
     except Exception as e:
         logger.exception(f"Error during metrics initialization: {e}")
         # Continue startup even if metrics init fails
-    finally:
-        db.close()
 
     yield  # Application runs
 
