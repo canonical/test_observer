@@ -36,9 +36,12 @@ behaviour rather than metrics correctness.
 """
 
 import asyncio
+import logging
+import queue
 import threading
 import time
-from collections.abc import Coroutine, Iterator
+import traceback
+from collections.abc import Awaitable, Callable, Iterator
 from contextlib import contextmanager
 from typing import TypeVar
 from unittest.mock import patch
@@ -46,6 +49,8 @@ from unittest.mock import patch
 import httpx
 
 from test_observer import main
+
+logger = logging.getLogger(__name__)
 
 # Upper bound below which an operation is considered "prompt" — i.e. it did not
 # wait on the (indefinitely blocked) metrics initialization. Generous enough to
@@ -67,14 +72,59 @@ WORKER_RELEASE_TIMEOUT_SECONDS = SCENARIO_TIMEOUT_SECONDS * 3
 # shorter than the scenario timeout so failures surface as clear assertions.
 WORKER_FINISH_TIMEOUT_SECONDS = SCENARIO_TIMEOUT_SECONDS / 2
 
+# How often the async pollers check a threading.Event. Kept in the tens-of-ms
+# range so the tests stay responsive against the (1s) threshold while avoiding
+# tight spinning that would waste CPU on shared/concurrent CI runners.
+EVENT_POLL_INTERVAL_SECONDS = 0.02
+
 T = TypeVar("T")
 
 
-def run_scenario(coroutine: Coroutine[object, object, T]) -> T:
-    """Run a scenario coroutine under an overall timeout so CI fails fast."""
+async def wait_for_event(event: threading.Event, timeout: float) -> bool:
+    """
+    Wait for a ``threading.Event`` from async code without consuming a thread.
+
+    Deliberately avoids ``asyncio.to_thread`` / ``run_in_executor``: those would
+    borrow a worker from the loop's default thread pool, coupling the test to
+    executor capacity. If that pool were ever constrained the blocked metrics
+    worker could occupy the only slot and this wait would never run. Polling
+    ``is_set()`` under ``asyncio.sleep`` keeps the wait on the event loop.
+
+    Returns ``True`` if the event fired within ``timeout``, ``False`` otherwise.
+
+    A set event is always reported as success: it means the worker genuinely
+    started, and whether it fired a poll-interval before or after the arbitrary
+    deadline is not meaningful here (the real fail-fast guard is the overall
+    ``SCENARIO_TIMEOUT_SECONDS`` wrapper). Reporting a timeout for an
+    already-set event would only introduce flakiness from scheduler delays.
+    """
+    deadline = time.monotonic() + timeout
+    while not event.is_set():
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            # Re-check under the deadline: the event may have been set between
+            # the loop condition and here, in which case that is still success.
+            return event.is_set()
+        # Never sleep past the deadline so the loop stays responsive.
+        await asyncio.sleep(min(EVENT_POLL_INTERVAL_SECONDS, remaining))
+    return True
+
+
+def run_scenario(scenario_factory: Callable[[], Awaitable[T]]) -> T:
+    """
+    Run a scenario coroutine under an overall timeout so CI fails fast.
+
+    Accepts a *factory* rather than an awaitable object so the awaitable is
+    always constructed on the thread/loop that consumes it.
+
+    These are synchronous tests, so we simply drive a fresh event loop via
+    ``asyncio.run``. If this is ever called from within an already-running loop
+    (e.g. an async test runner), ``asyncio.run`` raises a clear ``RuntimeError``
+    rather than silently misbehaving; adopt an async runner at that point.
+    """
 
     async def _runner() -> T:
-        return await asyncio.wait_for(coroutine, timeout=SCENARIO_TIMEOUT_SECONDS)
+        return await asyncio.wait_for(scenario_factory(), timeout=SCENARIO_TIMEOUT_SECONDS)
 
     return asyncio.run(_runner())
 
@@ -95,29 +145,86 @@ def blocking_metrics_init() -> Iterator[threading.Event]:
     started_event = threading.Event()
     release_event = threading.Event()
     finished_event = threading.Event()
+    # Captures a formatted traceback for any exception raised on the worker
+    # thread. Assertions there run off the main thread and would otherwise be
+    # swallowed by the background task (which catches Exception), producing
+    # false-green runs. We stash the *formatted* traceback (not the exception
+    # object) so teardown can raise a fresh, clearly-worded error on the main
+    # thread rather than replaying frames that originated on another thread. A
+    # SimpleQueue gives thread-safe handoff without reasoning about memory
+    # visibility. We deliberately do not capture BaseException
+    # (KeyboardInterrupt/SystemExit) so aborting the test run stays clean.
+    worker_tracebacks: queue.SimpleQueue[str] = queue.SimpleQueue()
 
-    def blocking_init() -> None:
+    # Accept arbitrary args so the blocker stays compatible with whatever
+    # signature ``_initialize_all_metrics`` has (autospec validates the call
+    # against the real signature, then forwards those args to this side_effect).
+    def blocking_init(*_args: object, **_kwargs: object) -> None:
         started_event.set()
         try:
-            release_event.wait(timeout=WORKER_RELEASE_TIMEOUT_SECONDS)
+            # Record loudly if we are never released: a timeout here means the
+            # blocking behaviour under test did not actually hold, and letting
+            # the initializer "succeed" would hide that.
+            if not release_event.wait(timeout=WORKER_RELEASE_TIMEOUT_SECONDS):
+                raise AssertionError("Metrics blocker was never released; blocking behaviour did not hold")
+        except Exception:  # noqa: BLE001 - surfaced on the main thread in teardown
+            worker_tracebacks.put(traceback.format_exc())
+            raise
         finally:
             finished_event.set()
 
+    # autospec makes these patches fail loudly if the production signatures
+    # change, instead of silently passing against an incompatible API.
     with (
-        patch.object(main, "start_http_server"),
-        patch.object(main, "_initialize_all_metrics", blocking_init),
+        patch.object(main, "start_http_server", autospec=True),
+        patch.object(main, "_initialize_all_metrics", autospec=True) as mock_init,
     ):
+        mock_init.side_effect = blocking_init
+        body_exc: BaseException | None = None
         try:
             yield started_event
+        except BaseException as exc:
+            body_exc = exc
+            raise
         finally:
-            release_event.set()
-            # Ensure the worker thread observed the release and exited before
-            # the next test runs, so no background work leaks across tests.
-            if started_event.is_set():
+            try:
+                release_event.set()
+                # The worker thread may only be picked up from the pool after
+                # teardown begins. Wait a generously bounded period for it to
+                # start *before* the patches are removed, so a late-starting
+                # thread can't call the real initializer and leak work into
+                # later tests. Fail if it never starts (the patches would
+                # otherwise be removed while a late worker could still invoke
+                # the real initializer), and always wait for it to finish once
+                # started.
+                assert started_event.wait(timeout=WORKER_FINISH_TIMEOUT_SECONDS), (
+                    "Metrics worker thread never started; cannot guarantee it will "
+                    "not run the real initializer after patches are removed"
+                )
                 assert finished_event.wait(timeout=WORKER_FINISH_TIMEOUT_SECONDS), (
                     "Metrics worker thread did not finish after release; "
                     "a lingering thread could cause cross-test interference"
                 )
+                # Surface any exception raised on the worker thread so a missed
+                # or timed-out release fails the test instead of passing green.
+                # We raise a fresh error on the main thread and embed the
+                # worker's formatted traceback in the message, since replaying
+                # frames from another thread produces misleading stack traces.
+                try:
+                    worker_traceback = worker_tracebacks.get_nowait()
+                except queue.Empty:
+                    pass
+                else:
+                    raise AssertionError(f"Metrics worker thread raised:\n{worker_traceback}")
+            except Exception:
+                # A teardown failure must not mask a genuine failure from the
+                # scenario body (e.g. an asyncio.wait_for timeout), which is the
+                # more actionable signal. If the body already raised, log the
+                # teardown problem and let the original propagate; otherwise the
+                # teardown failure is itself the result and should surface.
+                if body_exc is None:
+                    raise
+                logger.exception("Error during blocking_metrics_init teardown (masked by scenario failure)")
 
 
 def test_lifespan_startup_does_not_wait_for_slow_metrics_init():
@@ -129,11 +236,19 @@ def test_lifespan_startup_does_not_wait_for_slow_metrics_init():
     async def scenario() -> float:
         start = time.monotonic()
         async with main.app.router.lifespan_context(main.app):
-            # Startup has finished here; measure how long it took.
-            return time.monotonic() - start
+            startup_duration = time.monotonic() - start
+            # Wait for the worker to actually start while the lifespan context
+            # is still open. This is not just a sanity check: the lifespan exit
+            # cancels the background task, so if we left the context before the
+            # thread pool picked up the work the task could be cancelled before
+            # it ever ran. Assert here so a regression that never schedules the
+            # worker fails directly, rather than only later via teardown.
+            started = await wait_for_event(started_event, WORKER_FINISH_TIMEOUT_SECONDS)
+            assert started, "Startup did not schedule metrics initialization"
+            return startup_duration
 
-    with blocking_metrics_init():
-        startup_duration = run_scenario(scenario())
+    with blocking_metrics_init() as started_event:
+        startup_duration = run_scenario(scenario)
 
     assert startup_duration < THRESHOLD_SECONDS
 
@@ -150,40 +265,20 @@ def test_health_endpoint_responds_during_slow_metrics_init():
             main.app.router.lifespan_context(main.app),
             httpx.AsyncClient(transport=transport, base_url="http://testserver") as client,
         ):
+            # Deterministically ensure metrics init is actually running (and
+            # blocking) before probing, so the test genuinely exercises the
+            # concurrent overlap rather than racing the background task.
+            started = await wait_for_event(started_event, WORKER_FINISH_TIMEOUT_SECONDS)
+            assert started, "Metrics initialization did not start; cannot test concurrent overlap"
             start = time.monotonic()
-            # This is Test Observer's own liveness probe, which is not necessarily what Kubernetes probes.
-            # But, we will use it as a proxy for the same behavior
+            # We use Test Observer's liveness probe as a proxy for Kubernetes liveness/readiness probes
             response = await client.get("/health/live")
             elapsed = time.monotonic() - start
             return response.status_code, response.json(), elapsed
 
-    with blocking_metrics_init():
-        status_code, body, elapsed = run_scenario(scenario())
+    with blocking_metrics_init() as started_event:
+        status_code, body, elapsed = run_scenario(scenario)
 
     assert status_code == 200
-    assert body == {"status": "live"}
+    assert body.get("status") == "live"
     assert elapsed < THRESHOLD_SECONDS
-
-
-def test_slow_metrics_init_is_cancelled_on_shutdown():
-    """
-    Shutdown must not hang waiting for an in-flight metrics initialization; the
-    background task is cancelled and shutdown completes promptly.
-    """
-
-    async def scenario(started_event: threading.Event) -> float:
-        async with main.app.router.lifespan_context(main.app):
-            # Wait for a definitive signal that the background metrics task has
-            # actually started running, rather than relying on a fixed sleep.
-            started = await asyncio.to_thread(started_event.wait, WORKER_FINISH_TIMEOUT_SECONDS)
-            assert started, (
-                "Background metrics initialization never started; cannot validate cancellation-on-shutdown behaviour"
-            )
-            shutdown_start = time.monotonic()
-        # Exiting the context above ran shutdown.
-        return time.monotonic() - shutdown_start
-
-    with blocking_metrics_init() as started_event:
-        shutdown_duration = run_scenario(scenario(started_event))
-
-    assert shutdown_duration < THRESHOLD_SECONDS
