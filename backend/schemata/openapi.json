@@ -3238,6 +3238,69 @@
             "description": "Filter by artefact names"
           },
           {
+            "name": "artefact_versions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact versions",
+              "title": "Artefact Versions"
+            },
+            "description": "Filter by artefact versions"
+          },
+          {
+            "name": "artefact_stages",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact stages",
+              "title": "Artefact Stages"
+            },
+            "description": "Filter by artefact stages"
+          },
+          {
+            "name": "artefact_tracks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact tracks",
+              "title": "Artefact Tracks"
+            },
+            "description": "Filter by artefact tracks"
+          },
+          {
             "name": "artefact_is_archived",
             "in": "query",
             "required": false,
@@ -4400,6 +4463,72 @@
         },
         "x-permissions": [
           "add_application"
+        ]
+      }
+    },
+    "/v1/applications/me/rotate": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Rotate Own Api Key",
+        "operationId": "rotate_own_api_key_v1_applications_me_rotate_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/applications/{application_id}/rotate": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Rotate Api Key",
+        "operationId": "rotate_api_key_v1_applications__application_id__rotate_post",
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_application"
         ]
       }
     },
@@ -7124,6 +7253,34 @@
             "type": "array",
             "title": "Families"
           },
+          "artefacts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefacts"
+          },
+          "artefact_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Versions"
+          },
+          "artefact_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Stages"
+          },
+          "artefact_tracks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Tracks"
+          },
           "environment_names": {
             "items": {
               "type": "string"
@@ -7293,6 +7450,34 @@
             "type": "array",
             "title": "Families"
           },
+          "artefacts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefacts"
+          },
+          "artefact_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Versions"
+          },
+          "artefact_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Stages"
+          },
+          "artefact_tracks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Tracks"
+          },
           "environment_names": {
             "items": {
               "type": "string"
@@ -7330,6 +7515,10 @@
           "id",
           "enabled",
           "families",
+          "artefacts",
+          "artefact_versions",
+          "artefact_stages",
+          "artefact_tracks",
           "environment_names",
           "test_case_names",
           "template_ids",
@@ -9190,6 +9379,27 @@
             },
             "type": "array",
             "title": "Artefacts"
+          },
+          "artefact_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Versions"
+          },
+          "artefact_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Stages"
+          },
+          "artefact_tracks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Tracks"
           },
           "artefact_is_archived": {
             "anyOf": [

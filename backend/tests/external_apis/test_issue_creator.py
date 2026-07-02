@@ -93,10 +93,10 @@ class TestCreateReviewIssue:
         expected_artefact_url = get_artefact_url(artefact)
         call = mock_jira.create_issue.call_args_list[0]
         assert call.kwargs["project_key"] == "TO"
-        assert call.kwargs["summary"] == "Review artefact test-snap version 1.0.0 - Alice"
-        assert (
-            call.kwargs["description"]
-            == f"Review artefact test-snap version 1.0.0\n\nArtefact page: {expected_artefact_url}"
+        assert call.kwargs["summary"] == "Review test-snap version 1.0.0 - Alice"
+        assert call.kwargs["description"] == (
+            f"Review artefact and test environments for artefact test-snap version 1.0.0"
+            f"\n\nArtefact page: {expected_artefact_url}"
         )
         assert call.kwargs["issue_type"] == "Task"
         assert call.kwargs["parent_issue_key"] == "TO-123"
@@ -156,10 +156,10 @@ class TestCreateReviewIssue:
 
         first_call = mock_jira.create_issue.call_args_list[0]
         assert first_call.kwargs["project_key"] == "TO"
-        assert first_call.kwargs["summary"] == "Review artefact test-snap version 1.0.0 - Alice"
-        assert (
-            first_call.kwargs["description"]
-            == f"Review artefact test-snap version 1.0.0\n\nArtefact page: {expected_artefact_url}"
+        assert first_call.kwargs["summary"] == "Review test-snap version 1.0.0 - Alice"
+        assert first_call.kwargs["description"] == (
+            f"Review artefact and test environments for artefact test-snap version 1.0.0"
+            f"\n\nArtefact page: {expected_artefact_url}"
         )
         assert first_call.kwargs["issue_type"] == "Task"
         assert first_call.kwargs["parent_issue_key"] == "TO-123"

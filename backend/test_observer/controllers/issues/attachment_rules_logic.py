@@ -113,6 +113,38 @@ def query_matching_test_result_attachment_rules(
         )
     )
 
+    # Filter artefacts
+    stmt = stmt.where(
+        _array_empty_or_contains(
+            IssueTestResultAttachmentRule.artefacts,
+            literal(test_result.test_execution.artefact_build.artefact.name),
+        )
+    )
+
+    # Filter artefact_versions
+    stmt = stmt.where(
+        _array_empty_or_contains(
+            IssueTestResultAttachmentRule.artefact_versions,
+            literal(test_result.test_execution.artefact_build.artefact.version),
+        )
+    )
+
+    # Filter artefact_stages
+    stmt = stmt.where(
+        _array_empty_or_contains(
+            IssueTestResultAttachmentRule.artefact_stages,
+            literal(test_result.test_execution.artefact_build.artefact.stage),
+        )
+    )
+
+    # Filter artefact_tracks
+    stmt = stmt.where(
+        _array_empty_or_contains(
+            IssueTestResultAttachmentRule.artefact_tracks,
+            literal(test_result.test_execution.artefact_build.artefact.track),
+        )
+    )
+
     # Filter environment_names
     stmt = stmt.where(
         _array_empty_or_contains(

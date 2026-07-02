@@ -58,6 +58,10 @@ class IssueTestResultAttachmentRulePostRequest(BaseModel):
     enabled: bool = Field(default=True)
 
     families: list[FamilyName] = Field(default_factory=list)
+    artefacts: list[str] = Field(default_factory=list)
+    artefact_versions: list[str] = Field(default_factory=list)
+    artefact_stages: list[str] = Field(default_factory=list)
+    artefact_tracks: list[str] = Field(default_factory=list)
     environment_names: list[str] = Field(default_factory=list)
     test_case_names: list[str] = Field(default_factory=list)
     template_ids: list[str] = Field(default_factory=list)
