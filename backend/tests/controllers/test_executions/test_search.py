@@ -14,6 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import uuid
+from datetime import datetime, timezone
 
 from fastapi.testclient import TestClient
 
@@ -476,3 +477,86 @@ class TestSearchTestExecutions:
         )
 
         assert response.status_code == 422
+
+    def test_filter_by_from_date_excludes_older_executions(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        env_old = generator.gen_environment(name=_uid("env_old"))
+        env_new = generator.gen_environment(name=_uid("env_new"))
+
+        te_old = generator.gen_test_execution(build, env_old)
+        te_new = generator.gen_test_execution(build, env_new)
+
+        te_old.updated_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        te_new.updated_at = datetime(2030, 1, 1, tzinfo=timezone.utc)
+        generator.db_session.flush()
+
+        cutoff = "2025-01-01T00:00:00"
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-executions?test_result=none&from_date={cutoff}"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_new.id in te_ids
+        assert te_old.id not in te_ids
+
+    def test_filter_by_until_date_excludes_newer_executions(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        env_old = generator.gen_environment(name=_uid("env_old"))
+        env_new = generator.gen_environment(name=_uid("env_new"))
+
+        te_old = generator.gen_test_execution(build, env_old)
+        te_new = generator.gen_test_execution(build, env_new)
+
+        te_old.updated_at = datetime(2020, 1, 1, tzinfo=timezone.utc)
+        te_new.updated_at = datetime(2030, 1, 1, tzinfo=timezone.utc)
+        generator.db_session.flush()
+
+        cutoff = "2025-01-01T00:00:00"
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-executions?test_result=none&until_date={cutoff}"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_old.id in te_ids
+        assert te_new.id not in te_ids
+
+    def test_filter_by_from_date_and_until_date_combined(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        env_before = generator.gen_environment(name=_uid("env_before"))
+        env_within = generator.gen_environment(name=_uid("env_within"))
+        env_after = generator.gen_environment(name=_uid("env_after"))
+
+        te_before = generator.gen_test_execution(build, env_before)
+        te_within = generator.gen_test_execution(build, env_within)
+        te_after = generator.gen_test_execution(build, env_after)
+
+        te_before.updated_at = datetime(2019, 6, 1, tzinfo=timezone.utc)
+        te_within.updated_at = datetime(2022, 6, 1, tzinfo=timezone.utc)
+        te_after.updated_at = datetime(2026, 6, 1, tzinfo=timezone.utc)
+        generator.db_session.flush()
+
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-executions?test_result=none&from_date=2020-01-01T00:00:00&until_date=2025-01-01T00:00:00"
+            ),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_within.id in te_ids
+        assert te_before.id not in te_ids
+        assert te_after.id not in te_ids

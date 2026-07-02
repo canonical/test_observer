@@ -247,7 +247,7 @@ def create_rerun_requests(
                 "If true, omit returning created reruns in the response body. "
                 "Speeds up bulk operations, as the rerun schema contains a lot of "
                 "information and returning many reruns can be slow. "
-                "Required when creating reruns with test result filters."
+                "Required when creating reruns with test_results_filters or test_executions_filters."
             ),
         ),
     ] = False,
