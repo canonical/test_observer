@@ -46,10 +46,7 @@ logging.basicConfig(level=logging.INFO)
 
 def _initialize_all_metrics() -> None:
     with SessionLocal() as db:
-        try:
-            initialize_all_metrics(db)
-        except Exception as e:
-            logger.exception(f"Error during metrics initialization: {e}")
+        initialize_all_metrics(db)
 
 
 async def _initialize_all_metrics_in_thread() -> None:
@@ -57,9 +54,12 @@ async def _initialize_all_metrics_in_thread() -> None:
     Initialize all Prometheus metrics from the database using a separate thread
     so the main event loop is not blocked.
     """
-    # abandon_on_cancel=True means if Kubernetes abruptly kills/stops the pod,
-    # the app shutdown sequence won't hang waiting for this SQL query to finish.
-    await to_thread.run_sync(_initialize_all_metrics, abandon_on_cancel=True)
+    try:
+        # abandon_on_cancel=True means if Kubernetes abruptly kills/stops the pod,
+        # the app shutdown sequence won't hang waiting for this SQL query to finish.
+        await to_thread.run_sync(_initialize_all_metrics, abandon_on_cancel=True)
+    except Exception as e:
+        logger.exception(f"Error during metrics initialization in thread: {e}")
 
 
 @asynccontextmanager
