@@ -16,7 +16,7 @@
 """Add index on test_execution updated_at
 
 Revision ID: eba1d1c92dba
-Revises: ac1b18650275
+Revises: 624b22905ce2
 Create Date: 2026-07-02 16:19:59.487151+00:00
 
 """
