@@ -92,7 +92,9 @@ async def lifespan(_app: FastAPI):
             # We await the cancelled task so Python knows we intentionally acknowledged its closure
             await metrics_task
         except asyncio.CancelledError:
-            logger.info("Background metrics initialization task successfully cancelled.")
+            logger.info(
+                "Background metrics task detached. Worker thread will continue to run unmonitored until container exit."
+            )
         except Exception as e:
             logger.exception(f"Unexpected error while cancelling metrics task: {e}")
 
