@@ -55,8 +55,9 @@ async def _initialize_all_metrics_in_thread() -> None:
     so the main event loop is not blocked.
     """
     try:
-        # abandon_on_cancel=True means if Kubernetes abruptly kills/stops the pod,
-        # the app shutdown sequence won't hang waiting for this SQL query to finish.
+        # abandon_on_cancel=True ensures shutdown won't block waiting for this
+        # potentially long-running DB initialization to finish; the worker thread
+        # may continue running in the background until process exit.
         await to_thread.run_sync(_initialize_all_metrics, abandon_on_cancel=True)
     except Exception:
         logger.exception("Error during metrics initialization in thread")
@@ -75,10 +76,9 @@ async def lifespan(_app: FastAPI):
     try:
         start_http_server(METRICS_PORT)
         logger.info(f"Metrics server started on port {METRICS_PORT}")
-    except Exception as e:
-        logger.exception(f"Failed to start metrics server: {e}")
+    except Exception:
         # Continue startup even if metrics server fails
-
+        logger.exception("Failed to start metrics server")
     # Run metrics initialization in the background without blocking the main event loop
     metrics_task = asyncio.create_task(_initialize_all_metrics_in_thread())
 
@@ -88,13 +88,12 @@ async def lifespan(_app: FastAPI):
     if not metrics_task.done():
         logger.info("Metrics initialization still running; cancelling task for shutdown...")
         metrics_task.cancel()
-        try:
-            # We await the cancelled task so Python knows we intentionally acknowledged its closure
-            await metrics_task
-        except asyncio.CancelledError:
-            logger.info("Background metrics task detached")
-        except Exception as e:
-            logger.exception(f"Unexpected error while cancelling metrics task: {e}")
+    try:
+        await metrics_task
+    except asyncio.CancelledError:
+        logger.info("Background metrics task detached")
+    except Exception:
+        logger.exception("Unexpected error while awaiting metrics task in shutdown")
 
 
 app = FastAPI(
