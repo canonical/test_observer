@@ -6550,6 +6550,16 @@
                 "type": "null"
               }
             ]
+          },
+          "test_executions_filters": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TestExecutionSearchFilters"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -7555,6 +7565,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/TestResultSearchFilters"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "test_executions_filters": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TestExecutionSearchFilters"
               },
               {
                 "type": "null"
@@ -8683,6 +8703,169 @@
           "is_rerun_requested"
         ],
         "title": "TestExecutionResponseWithContext"
+      },
+      "TestExecutionSearchFilters": {
+        "properties": {
+          "families": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyName"
+            },
+            "type": "array",
+            "title": "Families"
+          },
+          "artefacts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefacts"
+          },
+          "artefact_is_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artefact Is Archived"
+          },
+          "environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Environments"
+          },
+          "test_execution_statuses": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionStatus"
+            },
+            "type": "array",
+            "title": "Test Execution Statuses"
+          },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          },
+          "reviewer_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "any",
+                  "none"
+                ]
+              }
+            ],
+            "title": "Reviewer Ids"
+          },
+          "assignee_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "any",
+                  "none"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Ids",
+            "deprecated": true
+          },
+          "rerun_is_requested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Is Requested"
+          },
+          "execution_is_latest": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Is Latest"
+          },
+          "event_names": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "any",
+                  "none"
+                ]
+              }
+            ],
+            "title": "Event Names"
+          },
+          "from_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Date"
+          },
+          "until_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until Date"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "default": 50
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "TestExecutionSearchFilters",
+        "description": "Filter model for test execution search endpoint."
       },
       "TestExecutionSearchResponse": {
         "properties": {
