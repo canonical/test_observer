@@ -44,20 +44,22 @@ logger = logging.getLogger("test-observer-backend")
 logging.basicConfig(level=logging.INFO)
 
 
-async def _initialize_all_metrics() -> None:
+def _initialize_all_metrics() -> None:
+    with SessionLocal() as db:
+        try:
+            initialize_all_metrics(db)
+        except Exception as e:
+            logger.exception(f"Error during metrics initialization: {e}")
+
+
+async def _initialize_all_metrics_in_thread() -> None:
     """
     Initialize all Prometheus metrics from the database using a separate thread
     so the main event loop is not blocked.
     """
-    with SessionLocal() as db:
-        try:
-            # abandon_on_cancel=True means if Kubernetes abruptly kills/stops the pod,
-            # the app shutdown sequence won't hang waiting for this SQL query to finish.
-            await to_thread.run_sync(initialize_all_metrics, db, abandon_on_cancel=True)
-
-        # Don't let metrics initialization failures prevent the app from starting.
-        except Exception as e:
-            logger.exception(f"Error during metrics initialization: {e}")
+    # abandon_on_cancel=True means if Kubernetes abruptly kills/stops the pod,
+    # the app shutdown sequence won't hang waiting for this SQL query to finish.
+    await to_thread.run_sync(_initialize_all_metrics, abandon_on_cancel=True)
 
 
 @asynccontextmanager
@@ -78,12 +80,21 @@ async def lifespan(_app: FastAPI):
         # Continue startup even if metrics server fails
 
     # Run metrics initialization in the background without blocking the main event loop
-    asyncio.create_task(_initialize_all_metrics())
+    metrics_task = asyncio.create_task(_initialize_all_metrics_in_thread())
 
     yield  # Application runs
 
     # Shutdown: cleanup if needed
-    pass
+    if not metrics_task.done():
+        logger.info("Metrics initialization still running; cancelling task for shutdown...")
+        metrics_task.cancel()
+        try:
+            # We await the cancelled task so Python knows we intentionally acknowledged its closure
+            await metrics_task
+        except asyncio.CancelledError:
+            logger.info("Background metrics initialization task successfully cancelled.")
+        except Exception as e:
+            logger.exception(f"Unexpected error while cancelling metrics task: {e}")
 
 
 app = FastAPI(
