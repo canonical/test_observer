@@ -648,6 +648,7 @@ class TestExecution(Base):
 
     __test__ = False
     __tablename__ = "test_execution"
+    __table_args__ = (Index(None, "updated_at"),)
 
     ci_link: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True)
     c3_link: Mapped[str | None] = mapped_column(String(200), nullable=True)

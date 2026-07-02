@@ -145,6 +145,12 @@ def build_execution_filters(
                 )
             )
 
+    if filters.from_date is not None:
+        query_filters.append(TestExecution.updated_at >= filters.from_date)
+
+    if filters.until_date is not None:
+        query_filters.append(TestExecution.updated_at <= filters.until_date)
+
     return query_filters, joins_needed
 
 
