@@ -61,7 +61,7 @@ class TestResultResponse(BaseModel):
     )
 
 
-class _TestExecutionFilterBase(BaseModel):
+class TestExecutionFilterBase(BaseModel):
     """Shared filterable fields for test execution queries."""
 
     families: list[FamilyName] = Field(default_factory=list)
@@ -93,7 +93,7 @@ class _TestExecutionFilterBase(BaseModel):
         return data
 
 
-class TestExecutionSearchFilters(_TestExecutionFilterBase):
+class TestExecutionSearchFilters(TestExecutionFilterBase):
     """Filter model for test execution search endpoint."""
 
     event_names: list[str] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
@@ -101,7 +101,7 @@ class TestExecutionSearchFilters(_TestExecutionFilterBase):
     offset: int = 0
 
 
-class TestExecutionRerunFilters(_TestExecutionFilterBase):
+class TestExecutionRerunFilters(TestExecutionFilterBase):
     """Filter model for rerun create/delete operations.
 
     Excludes pagination (limit/offset) and search-only fields (event_names)
