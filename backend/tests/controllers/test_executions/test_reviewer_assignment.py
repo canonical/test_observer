@@ -221,7 +221,6 @@ def test_reviewer_count_uses_latest_builds_not_all_builds(
         version="v1",
         track="22",
         store="ubuntu",
-        stage=SnapStage.beta,  # type: ignore[arg-type]
     )
     envs_per_old_build = ENVIRONMENTS_PER_REVIEWER // 2 + 1
     for rev in range(1, 3):
