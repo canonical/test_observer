@@ -25,6 +25,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
+from test_observer.controllers.test_executions.start_test import ENVIRONMENTS_PER_REVIEWER
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import (
     CharmStage,
@@ -193,3 +194,62 @@ class TestReviewerAssignmentWithMatchingRules:
         else:
             assert assignee is not None
             assert assignee.name in expected_user_names
+
+
+def test_reviewer_count_uses_latest_builds_not_all_builds(
+    start_test: Callable[[dict], dict],
+    db_session: Session,
+    generator: DataGenerator,
+):
+    """Regression test: reviewer count should be based on latest_builds, not all builds.
+
+    If an artefact has many historical builds with many test executions, the total
+    across all builds can exceed ENVIRONMENTS_PER_REVIEWER even when the current
+    (latest) builds have far fewer environments. Only the latest build per architecture
+    should be counted when deciding how many reviewers to assign.
+    """
+    # GIVEN a team with multiple users and a matching rule
+    team = generator.gen_team(name="snap-team")
+    for i in range(3):
+        generator.gen_user(name=f"User{i}", email=f"user{i}@test.com", teams=[team])
+    generator.gen_artefact_matching_rule(family=FamilyName.snap, teams=[team])
+
+    # AND an artefact with old builds whose total test executions exceed ENVIRONMENTS_PER_REVIEWER
+    artefact = generator.gen_artefact(
+        family=FamilyName.snap,
+        name="core22",
+        version="v1",
+        track="22",
+        store="ubuntu",
+        stage=SnapStage.beta,  # type: ignore[arg-type]
+    )
+    envs_per_old_build = ENVIRONMENTS_PER_REVIEWER // 2 + 1
+    for rev in range(1, 3):
+        old_build = generator.gen_artefact_build(artefact, architecture="amd64", revision=rev)
+        for i in range(envs_per_old_build):
+            env = generator.gen_environment(name=f"env-rev{rev}-{i}", architecture="amd64")
+            generator.gen_test_execution(old_build, env, ci_link=f"http://ci/{rev}/{i}")
+
+    # WHEN a new test starts with a higher revision (latest build has only 1 environment)
+    result = start_test(
+        {
+            "family": "snap",
+            "name": "core22",
+            "version": "v1",
+            "arch": "amd64",
+            "store": "ubuntu",
+            "track": "22",
+            "revision": 3,
+            "execution_stage": SnapStage.beta,
+            "environment": "env-new",
+            "ci_link": "http://ci/new",
+            "test_plan": "test",
+            "needs_assignment": True,
+        }
+    )
+
+    # THEN exactly 1 reviewer is assigned (not ceil(total_old_executions / ENVIRONMENTS_PER_REVIEWER))
+    test_execution = db_session.get(TestExecution, result["id"])
+    assert test_execution is not None
+    artefact_db = test_execution.artefact_build.artefact
+    assert len(artefact_db.reviewers) == 1
