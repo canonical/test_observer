@@ -423,6 +423,7 @@ class _ComboboxHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 title,
+                textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16),
               ),
             ),
