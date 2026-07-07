@@ -67,8 +67,14 @@ void main() {
       pageFiltersProvider(Uri(path: '${AppRoutes.snaps}/$artefactId')),
     );
 
-    expect(filters[0].name, 'Review status');
-    expect(filters[0].options, [(name: 'Undecided', isSelected: false)]);
+    final statusFilter = filters.firstWhere((f) => f.name == 'Review status');
+    expect(statusFilter.options, [(name: 'Undecided', isSelected: false)]);
+    final reviewerFilter =
+        filters.firstWhere((f) => f.name == 'Environment reviewer');
+    expect(reviewerFilter.options, [
+      (name: 'Dummy User (dummy.user@canonical.com)', isSelected: false),
+      (name: 'Unassigned', isSelected: false),
+    ]);
   });
 }
 
@@ -82,7 +88,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
   Future<List<ArtefactBuild>> getArtefactBuilds(int artefactId) async {
     return [
       dummyArtefactBuild.copyWith(
-        testExecutions: [dummyTestExecution],
+        testExecutions: [dummyTestExecution, dummyTestExecution2],
       ),
     ];
   }
@@ -91,6 +97,6 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
   Future<List<EnvironmentReview>> getArtefactEnvironmentReviews(
     int artefactId,
   ) async {
-    return [dummyEnvironmentReview];
+    return [dummyEnvironmentReview, dummyEnvironmentReviewWithReviewer];
   }
 }

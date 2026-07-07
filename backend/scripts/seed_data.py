@@ -45,7 +45,15 @@ from test_observer.controllers.issues.models import (
 )
 from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
 
-from test_observer.data_access.models import Artefact, User, TestResult, Application
+from test_observer.data_access.models import (
+    Application,
+    Artefact,
+    ArtefactBuild,
+    ArtefactBuildEnvironmentReview,
+    Environment,
+    TestResult,
+    User,
+)
 from test_observer.data_access.models_enums import (
     FamilyName,
     SnapStage,
@@ -197,7 +205,7 @@ START_TEST_EXECUTION_REQUESTS = [
         store="ubuntu",
         arch="armhf",
         execution_stage=SnapStage.beta,
-        environment="rp3bplus",
+        environment="rpi3bplus",
         ci_link="http://example12",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
@@ -791,6 +799,7 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     print("Seeding database with test data...")
 
     add_user("john.doe@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
+    add_user("jane.smith@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
 
     certbot = add_user("certbot@canonical.com", session, launchpad_api=FakeLaunchpadAPI())
     certbot.is_admin = True
@@ -876,6 +885,8 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
 
     _add_issue_attachments(client, session, issues, auth_headers)
 
+    _assign_environment_reviewers(session)
+
     print("Database seeding completed successfully!")
 
 
@@ -931,6 +942,46 @@ def _add_issue_attachments(
                 json={"test_results": [test_result.id]},
                 headers=auth_headers,
             ).raise_for_status()
+    session.commit()
+
+
+def _assign_environment_reviewers(session: Session) -> None:
+    artefact = session.scalar(
+        select(Artefact).where(
+            Artefact.family == FamilyName.snap,
+            Artefact.name == "core22",
+            Artefact.version == "20230531",
+            Artefact.track == "22",
+            Artefact.store == "ubuntu",
+            Artefact.branch == "",
+        )
+    )
+    if artefact is None:
+        raise ValueError("Could not find artefact for environment review assignment")
+
+    reviewer_assignments = {
+        "john.doe@canonical.com": ["rpi2", "rpi4"],
+        "jane.smith@canonical.com": ["rpi3aplus", "rpi3bplus"],
+    }
+
+    for email, assignments in reviewer_assignments.items():
+        user = session.scalar(select(User).where(User.email == email))
+        if user is None:
+            raise ValueError(f"Could not find user with email {email} for environment review assignment")
+
+        environment_reviews = session.scalars(
+            select(ArtefactBuildEnvironmentReview)
+            .join(ArtefactBuildEnvironmentReview.artefact_build)
+            .join(ArtefactBuildEnvironmentReview.environment)
+            .where(ArtefactBuild.artefact_id == artefact.id, Environment.name.in_(assignments))
+        ).all()
+
+        if user not in artefact.reviewers:
+            artefact.reviewers.append(user)
+
+        for review in environment_reviews:
+            review.reviewers = [user]
+
     session.commit()
 
 
