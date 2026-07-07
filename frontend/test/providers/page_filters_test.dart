@@ -69,6 +69,11 @@ void main() {
 
     expect(filters[0].name, 'Review status');
     expect(filters[0].options, [(name: 'Undecided', isSelected: false)]);
+    expect(filters[4].name, 'Environment reviewer');
+    expect(filters[4].options, [
+      (name: 'Unassigned', isSelected: false),
+      (name: 'Dummy User (dummy.user@canonical.com)', isSelected: false),
+    ]);
   });
 }
 
@@ -82,7 +87,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
   Future<List<ArtefactBuild>> getArtefactBuilds(int artefactId) async {
     return [
       dummyArtefactBuild.copyWith(
-        testExecutions: [dummyTestExecution],
+        testExecutions: [dummyTestExecution, dummyTestExecution2],
       ),
     ];
   }
@@ -91,6 +96,6 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
   Future<List<EnvironmentReview>> getArtefactEnvironmentReviews(
     int artefactId,
   ) async {
-    return [dummyEnvironmentReview];
+    return [dummyEnvironmentReview, dummyEnvironmentReviewWithReviewer];
   }
 }
