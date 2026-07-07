@@ -183,7 +183,7 @@ class StartTestExecutionController:
             )
 
             if users:
-                environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
+                environment_count = sum(len(b.test_executions) for b in self.artefact.latest_builds)
                 expected_number_of_reviewers = _ceil_division(environment_count, ENVIRONMENTS_PER_REVIEWER)
                 number_of_reviewers_to_assign = max(0, expected_number_of_reviewers - len(self.artefact.reviewers))
                 newly_assigned_reviewers = random.sample(users, min(len(users), number_of_reviewers_to_assign))
