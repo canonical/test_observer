@@ -71,8 +71,8 @@ void main() {
     expect(filters[0].options, [(name: 'Undecided', isSelected: false)]);
     expect(filters[4].name, 'Environment reviewer');
     expect(filters[4].options, [
-      (name: 'Unassigned', isSelected: false),
       (name: 'Dummy User (dummy.user@canonical.com)', isSelected: false),
+      (name: 'Unassigned', isSelected: false),
     ]);
   });
 }
