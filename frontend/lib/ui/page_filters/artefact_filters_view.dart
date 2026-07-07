@@ -81,10 +81,18 @@ class ArtefactFiltersView extends ConsumerWidget {
           .map((option) => option.name)
           .toSet();
 
+      // 'Environment reviewer' is long enough that the combobox text, which adds '(N selected)' after the title,
+      // where N is the number of selected elements,splits onto a new line after the number
+      // given the fixed max width of the sidebar.
+      // Add a newline for aesthetics in the case of 'Environment reviewer' to avoid the split.
+      final comboboxTitle = filter.name == 'Environment reviewer'
+          ? 'Environment reviewer\n'
+          : filter.name;
+
       widgets.add(
         MultiSelectCombobox<String>(
           key: key,
-          title: filter.name,
+          title: comboboxTitle,
           allOptions: options,
           itemToString: (option) => option,
           initialSelected: initialSelected,
