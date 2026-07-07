@@ -63,6 +63,10 @@ class MultiSelectCombobox<T> extends StatefulWidget {
   // Make selections mutually exclusive (only one item can be selected at a time)
   final bool isMutuallyExclusive;
 
+  // Separator between title and the selection count/meta option label
+  // Defaults to a space, but can be customized (e.g., to a newline)
+  final String titleSuffixSeparator;
+
   const MultiSelectCombobox({
     super.key,
     required this.title,
@@ -80,6 +84,7 @@ class MultiSelectCombobox<T> extends StatefulWidget {
     this.onMetaOptionChanged,
     this.showAllOptionsWithoutSearch = false,
     this.isMutuallyExclusive = false,
+    this.titleSuffixSeparator = ' ',
   })  : assert(
           asyncSuggestionsCallback != null ||
               (allOptions != null && itemToString != null),
@@ -229,9 +234,11 @@ class MultiSelectComboboxState<T> extends State<MultiSelectCombobox<T>> {
       // Find the label for the selected meta option
       final selectedMeta = widget.metaOptions!
           .firstWhere((opt) => opt.value == widget.selectedMetaOption);
-      displayText = '${widget.title} (${selectedMeta.label})';
+      displayText =
+          '${widget.title}${widget.titleSuffixSeparator}(${selectedMeta.label})';
     } else {
-      displayText = '${widget.title} (${_selected.length} selected)';
+      displayText =
+          '${widget.title}${widget.titleSuffixSeparator}(${_selected.length} selected)';
     }
 
     return Column(

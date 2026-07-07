@@ -81,23 +81,20 @@ class ArtefactFiltersView extends ConsumerWidget {
           .map((option) => option.name)
           .toSet();
 
-      // The combobox implementation in lib/ui/page_filters/multi_select_combobox.dart
-      // automatically appends '(N selected)' to the title of the combobox, where N is the number of selected elements.
-      //'Environment reviewer' is long enough that the text splits onto a new line
-      // after the number N, given the fixed max width of the sidebar.
-      // Add a newline for aesthetics in the case of 'Environment reviewer' to avoid the split.
-      final comboboxTitle = filter.name == 'Environment reviewer'
-          ? 'Environment reviewer\n'
-          : filter.name;
+      // Use newline separator for 'Environment reviewer' to improve layout
+      // when the title is long and would otherwise wrap awkwardly
+      final titleSuffixSeparator =
+          filter.name == 'Environment reviewer' ? '\n' : ' ';
 
       widgets.add(
         MultiSelectCombobox<String>(
           key: key,
-          title: comboboxTitle,
+          title: filter.name,
           allOptions: options,
           itemToString: (option) => option,
           initialSelected: initialSelected,
           maxSuggestions: 10,
+          titleSuffixSeparator: titleSuffixSeparator,
           onChanged: (option, isSelected) {
             // Update the filter state
             ref

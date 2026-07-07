@@ -67,10 +67,11 @@ void main() {
       pageFiltersProvider(Uri(path: '${AppRoutes.snaps}/$artefactId')),
     );
 
-    expect(filters[0].name, 'Review status');
-    expect(filters[0].options, [(name: 'Undecided', isSelected: false)]);
-    expect(filters[4].name, 'Environment reviewer');
-    expect(filters[4].options, [
+    final statusFilter = filters.firstWhere((f) => f.name == 'Review status');
+    expect(statusFilter.options, [(name: 'Undecided', isSelected: false)]);
+    final reviewerFilter =
+        filters.firstWhere((f) => f.name == 'Environment reviewer');
+    expect(reviewerFilter.options, [
       (name: 'Dummy User (dummy.user@canonical.com)', isSelected: false),
       (name: 'Unassigned', isSelected: false),
     ]);
