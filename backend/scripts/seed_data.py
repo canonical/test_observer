@@ -885,7 +885,6 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
 
     _add_issue_attachments(client, session, issues, auth_headers)
 
-    # Assign some environment reviewers
     _assign_environment_reviewers(session)
 
     print("Database seeding completed successfully!")
