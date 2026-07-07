@@ -32,13 +32,24 @@ class UserAvatar extends StatelessWidget {
     required this.user,
     required this.allEnvironmentReviewsCount,
     required this.completedEnvironmentReviewsCount,
+    this.reviewerAllCount,
+    this.reviewerCompletedCount,
   });
 
   final User user;
   final int allEnvironmentReviewsCount;
   final int completedEnvironmentReviewsCount;
+  final int? reviewerAllCount;
+  final int? reviewerCompletedCount;
+
+  bool get _hasReviewerStats =>
+      reviewerAllCount != null && reviewerCompletedCount != null;
 
   double get ratioCompleted {
+    if (_hasReviewerStats) {
+      if (reviewerAllCount == 0) return 0.0;
+      return reviewerCompletedCount! / reviewerAllCount!;
+    }
     if (allEnvironmentReviewsCount == 0) {
       return 0.0;
     }
@@ -79,8 +90,23 @@ class UserAvatar extends StatelessWidget {
   }
 
   String get _tooltipMessage {
-    String result = 'Completed: $completedEnvironmentReviewsCount / '
-        '$allEnvironmentReviewsCount (${(ratioCompleted * 100).round()}%)';
+    final overallRatio = allEnvironmentReviewsCount == 0
+        ? 0.0
+        : completedEnvironmentReviewsCount / allEnvironmentReviewsCount;
+    final overallLine =
+        'Overall: $completedEnvironmentReviewsCount / $allEnvironmentReviewsCount'
+        ' (${(overallRatio * 100).round()}%)';
+
+    String result;
+    if (_hasReviewerStats) {
+      final assignmentLine =
+          'Your assignments: $reviewerCompletedCount / $reviewerAllCount'
+          ' (${(ratioCompleted * 100).round()}%)';
+      result = '$assignmentLine\n$overallLine';
+    } else {
+      result = overallLine;
+    }
+
     if (user.isEmpty) {
       result = 'No reviewer assigned\n$result';
     } else {

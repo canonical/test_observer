@@ -19,6 +19,7 @@ import 'package:intersperse/intersperse.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
+import '../../providers/artefact_environment_reviews.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 import '../navigable_link.dart';
@@ -35,6 +36,9 @@ class ArtefactCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dueDate = artefact.dueDateString;
+    final environmentReviewsAsync =
+        ref.watch(artefactEnvironmentReviewsProvider(artefact.id));
+    final environmentReviews = environmentReviewsAsync.valueOrNull ?? const [];
 
     return NavigableLink(
       path: getArtefactPagePath(context, artefact.id),
@@ -89,6 +93,7 @@ class ArtefactCard extends ConsumerWidget {
                         artefact.allEnvironmentReviewsCount,
                     completedEnvironmentReviewsCount:
                         artefact.completedEnvironmentReviewsCount,
+                    environmentReviews: environmentReviews,
                   ),
                 ],
               ),
