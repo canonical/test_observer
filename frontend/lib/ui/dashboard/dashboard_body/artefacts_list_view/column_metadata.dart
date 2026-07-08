@@ -75,7 +75,7 @@ const _snapColumnsMetadata = <ColumnMetadata>[
     name: 'Reviewers',
     queryParam: ArtefactSortingQuery.assignee,
     flex: 1,
-    cellBuilder: _buildAssigneeCell,
+    cellBuilder: _buildReviewersCell,
   ),
 ];
 
@@ -138,7 +138,7 @@ const _debColumnsMetadata = <ColumnMetadata>[
     name: 'Reviewers',
     queryParam: ArtefactSortingQuery.assignee,
     flex: 1,
-    cellBuilder: _buildAssigneeCell,
+    cellBuilder: _buildReviewersCell,
   ),
 ];
 
@@ -195,7 +195,7 @@ const _charmColumnsMetadata = <ColumnMetadata>[
     name: 'Reviewers',
     queryParam: ArtefactSortingQuery.assignee,
     flex: 1,
-    cellBuilder: _buildAssigneeCell,
+    cellBuilder: _buildReviewersCell,
   ),
 ];
 
@@ -252,7 +252,7 @@ const _imageColumnsMetadata = <ColumnMetadata>[
     name: 'Reviewers',
     queryParam: ArtefactSortingQuery.assignee,
     flex: 1,
-    cellBuilder: _buildAssigneeCell,
+    cellBuilder: _buildReviewersCell,
   ),
 ];
 
@@ -294,7 +294,7 @@ Widget _buildStatusCell(BuildContext context, Artefact artefact) {
   );
 }
 
-Widget _buildAssigneeCell(BuildContext context, Artefact artefact) {
+Widget _buildReviewersCell(BuildContext context, Artefact artefact) {
   if (artefact.reviewers.isEmpty) {
     return const Text('N/A');
   }

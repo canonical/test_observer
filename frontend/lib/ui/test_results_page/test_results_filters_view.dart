@@ -39,7 +39,7 @@ enum FilterType {
   families,
   testResultStatuses,
   issues,
-  assignees,
+  reviewers,
   artefacts,
   artefactIsArchived,
   rerunIsRequested,
@@ -330,17 +330,17 @@ class _TestResultsFiltersViewState
               },
             ),
           ),
-        if (_isFilterEnabled(FilterType.assignees))
+        if (_isFilterEnabled(FilterType.reviewers))
           _box(
             _buildIntListFilterCombobox(
-              title: 'Assignees',
-              currentFilter: _selectedFilters.assignees,
+              title: 'Reviewers',
+              currentFilter: _selectedFilters.reviewers,
               metaOptions: const [
-                MetaOption(value: 'any', label: 'Has any assignee'),
-                MetaOption(value: 'none', label: 'Has no assignee'),
+                MetaOption(value: 'any', label: 'Has any reviewer'),
+                MetaOption(value: 'none', label: 'Has no reviewer'),
               ],
               onFilterChanged: (filter) {
-                _selectedFilters = _selectedFilters.copyWith(assignees: filter);
+                _selectedFilters = _selectedFilters.copyWith(reviewers: filter);
                 _notifyChanged(_selectedFilters);
               },
               asyncSuggestionsCallback: (pattern) async {

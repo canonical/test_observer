@@ -44,7 +44,7 @@ void main() {
     expect(filteredArtefacts, allArtefacts);
   });
 
-  test('it filters artefacts by assignees', () async {
+  test('it filters artefacts by reviewers', () async {
     final apiMock = ApiRepositoryMock();
     final container = createContainer(
       overrides: [apiProvider.overrideWith((ref) => apiMock)],
@@ -61,12 +61,40 @@ void main() {
       filteredFamilyArtefactsProvider(
         Uri(
           path: AppRoutes.snaps,
-          queryParameters: {'Assignee': firstArtefact.assignee.name},
+          queryParameters: {'Reviewer': firstArtefact.reviewers.first.name},
         ),
       ),
     );
 
     expect(filteredArtefacts, {firstArtefact.id: firstArtefact});
+  });
+
+  test('it filters artefacts by non-first reviewer', () async {
+    final apiMock = ApiRepositoryMock();
+    final container = createContainer(
+      overrides: [apiProvider.overrideWith((ref) => apiMock)],
+    );
+    const family = FamilyName.snap;
+
+    await container.read(familyArtefactsProvider(family).future);
+
+    final allArtefacts = await apiMock.getFamilyArtefacts(family);
+    final artefactWithMultipleReviewers =
+        allArtefacts.values.firstWhere((a) => a.reviewers.length > 1);
+    final secondReviewer = artefactWithMultipleReviewers.reviewers[1];
+
+    final filteredArtefacts = container.read(
+      filteredFamilyArtefactsProvider(
+        Uri(
+          path: AppRoutes.snaps,
+          queryParameters: {'Reviewer': secondReviewer.name},
+        ),
+      ),
+    );
+
+    expect(filteredArtefacts, {
+      artefactWithMultipleReviewers.id: artefactWithMultipleReviewers,
+    });
   });
 
   test('it filters artefacts by status', () async {

@@ -141,8 +141,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     @Default(IntListFilter.list([]))
     IntListFilter issues,
     @IntListFilterConverter()
+    @JsonKey(name: 'reviewer_ids')
     @Default(IntListFilter.list([]))
-    IntListFilter assignees,
+    IntListFilter reviewers,
     @JsonKey(name: 'from_date') DateTime? fromDate,
     @JsonKey(name: 'until_date') DateTime? untilDate,
     int? offset,
@@ -191,8 +192,8 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     final issues = IntListFilter.fromQueryParam(
       parseParam(parameters['issues']),
     );
-    final assignees = IntListFilter.fromQueryParam(
-      parseParam(parameters['assignee_ids']),
+    final reviewers = IntListFilter.fromQueryParam(
+      parseParam(parameters['reviewer_ids']),
     );
     final fromDate = parseParam(parameters['from_date'])
         .map((s) => DateTime.tryParse(s))
@@ -219,7 +220,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       templateIds: templateIds,
       executionMetadata: executionMetadata,
       issues: issues,
-      assignees: assignees,
+      reviewers: reviewers,
       fromDate: fromDate,
       untilDate: untilDate,
       offset: offset,
@@ -264,9 +265,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     if (issuesParam.isNotEmpty) {
       params['issues'] = issuesParam;
     }
-    final assigneesParam = assignees.toQueryParam();
-    if (assigneesParam.isNotEmpty) {
-      params['assignee_ids'] = assigneesParam;
+    final reviewersParam = reviewers.toQueryParam();
+    if (reviewersParam.isNotEmpty) {
+      params['reviewer_ids'] = reviewersParam;
     }
     if (fromDate != null) {
       params['from_date'] = [fromDate!.toIso8601String()];
@@ -295,7 +296,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       templateIds.isNotEmpty ||
       executionMetadata.isNotEmpty ||
       issues.isNotEmpty ||
-      assignees.isNotEmpty ||
+      reviewers.isNotEmpty ||
       fromDate != null ||
       untilDate != null;
 
