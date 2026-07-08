@@ -36,9 +36,15 @@ class ReviewersAvatars extends StatelessWidget {
   /// Returns a map from user id to (all, completed) assignment counts
   /// derived from [environmentReviews]. When [environmentReviews] is empty
   /// the map is empty and callers fall back to the overall artefact counts.
+  /// Reviewers with zero assignments are included with (all: 0, completed: 0).
   Map<int, ({int all, int completed})> get _reviewerStats {
     if (environmentReviews.isEmpty) return {};
     final stats = <int, ({int all, int completed})>{};
+    // Initialize all reviewers with 0/0
+    for (final reviewer in reviewers) {
+      stats[reviewer.id] = (all: 0, completed: 0);
+    }
+    // Update with actual review counts
     for (final review in environmentReviews) {
       final isCompleted = review.reviewDecision.isNotEmpty;
       for (final reviewer in review.reviewers) {

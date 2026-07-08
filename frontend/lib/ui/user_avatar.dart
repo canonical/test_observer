@@ -100,7 +100,7 @@ class UserAvatar extends StatelessWidget {
     String result;
     if (_hasReviewerStats) {
       final assignmentLine =
-          'Your assignments: $reviewerCompletedCount / $reviewerAllCount'
+          'Assignments: $reviewerCompletedCount / $reviewerAllCount'
           ' (${(ratioCompleted * 100).round()}%)';
       result = '$assignmentLine\n$overallLine';
     } else {
@@ -125,5 +125,79 @@ class UserAvatar extends StatelessWidget {
     final double lightness = (hsl.lightness - 0.2).clamp(0.0, 1.0);
 
     return hsl.withLightness(lightness).toColor();
+  }
+}
+
+class ReviewerCountAvatar extends StatelessWidget {
+  const ReviewerCountAvatar({
+    super.key,
+    required this.reviewers,
+    required this.allEnvironmentReviewsCount,
+    required this.completedEnvironmentReviewsCount,
+  });
+
+  final List<User> reviewers;
+  final int allEnvironmentReviewsCount;
+  final int completedEnvironmentReviewsCount;
+
+  double get ratioCompleted {
+    if (allEnvironmentReviewsCount == 0) {
+      return 0.0;
+    }
+    return completedEnvironmentReviewsCount / allEnvironmentReviewsCount;
+  }
+
+  String get _tooltipMessage {
+    final reviewerNames = reviewers.map((r) => r.name).join('\n');
+    final overallRatio = allEnvironmentReviewsCount == 0
+        ? 0.0
+        : completedEnvironmentReviewsCount / allEnvironmentReviewsCount;
+    final overallLine =
+        'Overall: $completedEnvironmentReviewsCount / $allEnvironmentReviewsCount'
+        ' (${(overallRatio * 100).round()}%)';
+
+    return '$reviewerNames\n$overallLine';
+  }
+
+  Color get _avatarColor =>
+      possibleColors[reviewers.hashCode % possibleColors.length];
+
+  Color get _progressColor {
+    final hsl = HSLColor.fromColor(_avatarColor);
+    final double lightness = (hsl.lightness - 0.2).clamp(0.0, 1.0);
+
+    return hsl.withLightness(lightness).toColor();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: _tooltipMessage,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CircleAvatar(
+            backgroundColor: _avatarColor,
+            child: Text(
+              reviewers.length.toString(),
+              style: Theme.of(context)
+                  .textTheme
+                  .labelLarge
+                  ?.apply(fontWeightDelta: 4),
+            ),
+          ),
+          SizedBox(
+            width: 43.0,
+            height: 43.0,
+            child: CircularProgressIndicator(
+              color: _progressColor,
+              backgroundColor: _avatarColor,
+              value: ratioCompleted,
+              semanticsLabel: 'Circular progress indicator',
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
