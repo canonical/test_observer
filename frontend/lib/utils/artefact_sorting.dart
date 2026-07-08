@@ -25,7 +25,7 @@ enum ArtefactSortingQuery {
   dueDate,
   reviewsRemaining,
   status,
-  assignee,
+  reviewer,
   series,
   source,
   repo,
@@ -86,7 +86,7 @@ int Function(Artefact, Artefact) _getArtefactCompareFunction(
           .compareTo(a2.remainingTestExecutionCount);
     case ArtefactSortingQuery.status:
       return (a1, a2) => a1.status.name.compareTo(a2.status.name);
-    case ArtefactSortingQuery.assignee:
+    case ArtefactSortingQuery.reviewer:
       return (a1, a2) {
         if (a1.reviewers.isEmpty) return 1;
         if (a2.reviewers.isEmpty) return -1;

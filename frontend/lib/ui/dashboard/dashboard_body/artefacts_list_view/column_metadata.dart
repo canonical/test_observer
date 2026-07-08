@@ -73,7 +73,7 @@ const _snapColumnsMetadata = <ColumnMetadata>[
   ),
   (
     name: 'Reviewers',
-    queryParam: ArtefactSortingQuery.assignee,
+    queryParam: ArtefactSortingQuery.reviewer,
     flex: 1,
     cellBuilder: _buildReviewersCell,
   ),
@@ -136,7 +136,7 @@ const _debColumnsMetadata = <ColumnMetadata>[
   ),
   (
     name: 'Reviewers',
-    queryParam: ArtefactSortingQuery.assignee,
+    queryParam: ArtefactSortingQuery.reviewer,
     flex: 1,
     cellBuilder: _buildReviewersCell,
   ),
@@ -193,7 +193,7 @@ const _charmColumnsMetadata = <ColumnMetadata>[
   ),
   (
     name: 'Reviewers',
-    queryParam: ArtefactSortingQuery.assignee,
+    queryParam: ArtefactSortingQuery.reviewer,
     flex: 1,
     cellBuilder: _buildReviewersCell,
   ),
@@ -250,7 +250,7 @@ const _imageColumnsMetadata = <ColumnMetadata>[
   ),
   (
     name: 'Reviewers',
-    queryParam: ArtefactSortingQuery.assignee,
+    queryParam: ArtefactSortingQuery.reviewer,
     flex: 1,
     cellBuilder: _buildReviewersCell,
   ),
