@@ -55,6 +55,7 @@ from test_observer.data_access.models import (
     User,
 )
 from test_observer.data_access.models_enums import (
+    ArtefactBuildEnvironmentReviewDecision,
     FamilyName,
     SnapStage,
     DebStage,
@@ -981,6 +982,9 @@ def _assign_environment_reviewers(session: Session) -> None:
 
         for review in environment_reviews:
             review.reviewers = [user]
+            # Mark jane.smith's rpi3bplus review as approved
+            if email == "jane.smith@canonical.com" and review.environment.name == "rpi3bplus":
+                review.review_decision = [ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS]
 
     session.commit()
 
