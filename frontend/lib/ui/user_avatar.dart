@@ -26,6 +26,15 @@ const possibleColors = [
   Colors.purpleAccent,
 ];
 
+/// Displays a reviewer avatar with a circular progress indicator.
+///
+/// If both [reviewerAllCount] and [reviewerCompletedCount] are provided,
+/// the progress indicator shows per-reviewer completion and the tooltip
+/// displays both per-reviewer and overall statistics.
+///
+/// If only overall counts are provided (or if reviewer counts are partially
+/// provided), the progress indicator and tooltip show overall statistics
+/// across all environments.
 class UserAvatar extends StatelessWidget {
   const UserAvatar({
     super.key,
@@ -42,6 +51,8 @@ class UserAvatar extends StatelessWidget {
   final int? reviewerAllCount;
   final int? reviewerCompletedCount;
 
+  /// Whether both reviewer-specific stats are available.
+  /// If only one is provided, this returns false and stats fall back to overall.
   bool get _hasReviewerStats =>
       reviewerAllCount != null && reviewerCompletedCount != null;
 
@@ -159,8 +170,8 @@ class ReviewerCountAvatar extends StatelessWidget {
     return '$reviewerNames\n$overallLine';
   }
 
-  Color get _avatarColor =>
-      possibleColors[reviewers.hashCode % possibleColors.length];
+  Color get _avatarColor => possibleColors[
+      Object.hashAll(reviewers.map((r) => r.id)) % possibleColors.length];
 
   Color get _progressColor {
     final hsl = HSLColor.fromColor(_avatarColor);
@@ -193,7 +204,8 @@ class ReviewerCountAvatar extends StatelessWidget {
               color: _progressColor,
               backgroundColor: _avatarColor,
               value: ratioCompleted,
-              semanticsLabel: 'Circular progress indicator',
+              semanticsLabel:
+                  'Overall review progress: $completedEnvironmentReviewsCount of $allEnvironmentReviewsCount',
             ),
           ),
         ],
