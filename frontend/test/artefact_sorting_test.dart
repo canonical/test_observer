@@ -19,7 +19,7 @@ import 'package:test/test.dart';
 import 'package:testcase_dashboard/routing.dart';
 import 'package:testcase_dashboard/utils/artefact_sorting.dart';
 
-import '../dummy_data.dart';
+import 'dummy_data.dart';
 
 void main() {
   test('sortArtefacts sorts by reviewer query parameter', () {
