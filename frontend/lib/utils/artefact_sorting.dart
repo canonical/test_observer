@@ -26,6 +26,8 @@ enum ArtefactSortingQuery {
   reviewsRemaining,
   status,
   reviewer,
+  // ignore: constant_identifier_names
+  assignee, // deprecated alias for reviewer, kept for URL backwards-compatibility
   series,
   source,
   repo,
@@ -87,6 +89,7 @@ int Function(Artefact, Artefact) _getArtefactCompareFunction(
     case ArtefactSortingQuery.status:
       return (a1, a2) => a1.status.name.compareTo(a2.status.name);
     case ArtefactSortingQuery.reviewer:
+    case ArtefactSortingQuery.assignee: // deprecated alias for reviewer
       return (a1, a2) {
         if (a1.reviewers.isEmpty) return 1;
         if (a2.reviewers.isEmpty) return -1;

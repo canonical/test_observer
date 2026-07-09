@@ -193,7 +193,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       parseParam(parameters['issues']),
     );
     final reviewers = IntListFilter.fromQueryParam(
-      parseParam(parameters['reviewer_ids']),
+      parseParam(parameters['reviewer_ids'] ?? parameters['assignee_ids']),
     );
     final fromDate = parseParam(parameters['from_date'])
         .map((s) => DateTime.tryParse(s))
