@@ -100,14 +100,15 @@ class _RerunConfirmationDialogState
           onPressed: () async {
             if (_formKey.currentState?.validate() != true) return;
             final priority = int.tryParse(_priorityController.text);
+            final router = GoRouter.of(context);
             await ref
                 .read(artefactBuildsProvider(widget.artefactId).notifier)
                 .rerunTestExecutions(
-                  {widget.testExecutionId},
-                  priority: priority,
-                );
+              {widget.testExecutionId},
+              priority: priority,
+            );
             if (!mounted) return;
-            context.pop();
+            router.pop();
           },
           child: const Text('yes'),
         ),
@@ -176,25 +177,27 @@ class _ModifyRerunDialogState extends ConsumerState<_ModifyRerunDialog> {
           onPressed: () async {
             if (_formKey.currentState?.validate() != true) return;
             final priority = int.tryParse(_priorityController.text);
+            final router = GoRouter.of(context);
             await ref
                 .read(artefactBuildsProvider(widget.artefactId).notifier)
                 .rerunTestExecutions(
-                  {widget.testExecutionId},
-                  priority: priority,
-                );
+              {widget.testExecutionId},
+              priority: priority,
+            );
             if (!mounted) return;
-            context.pop();
+            router.pop();
           },
           child: const Text('update priority'),
         ),
         TextButton(
           style: TextButton.styleFrom(foregroundColor: Colors.red),
           onPressed: () async {
+            final router = GoRouter.of(context);
             await ref
                 .read(artefactBuildsProvider(widget.artefactId).notifier)
                 .deleteRerunTestExecutions({widget.testExecutionId});
             if (!mounted) return;
-            context.pop();
+            router.pop();
           },
           child: const Text('delete rerun'),
         ),

@@ -91,6 +91,7 @@ class _ConfirmationDialogState extends ConsumerState<_ConfirmationDialog> {
     Future<void> handleYes() async {
       if (_formKey.currentState?.validate() != true) return;
       final priority = int.tryParse(_priorityController.text);
+      final router = GoRouter.of(context);
       final testExecutionIds = {
         for (final te in widget.testExecutionsToRerun) te.id,
       };
@@ -98,7 +99,7 @@ class _ConfirmationDialogState extends ConsumerState<_ConfirmationDialog> {
           .read(artefactBuildsProvider(widget.artefactId).notifier)
           .rerunTestExecutions(testExecutionIds, priority: priority);
       if (!mounted) return;
-      context.pop();
+      router.pop();
     }
 
     return AlertDialog(
