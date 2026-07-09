@@ -58,8 +58,6 @@ abstract class Artefact with _$Artefact {
   factory Artefact.fromJson(Map<String, Object?> json) =>
       _$ArtefactFromJson(json);
 
-  User get assignee => reviewers.isNotEmpty ? reviewers.first : emptyUser;
-
   String? get dueDateString {
     final month = dueDate?.month;
     final day = dueDate?.day;

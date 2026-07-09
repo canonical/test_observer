@@ -25,7 +25,8 @@ enum ArtefactSortingQuery {
   dueDate,
   reviewsRemaining,
   status,
-  assignee,
+  reviewer,
+  assignee, // deprecated alias for reviewer, kept for URL backwards-compatibility
   series,
   source,
   repo,
@@ -86,13 +87,16 @@ int Function(Artefact, Artefact) _getArtefactCompareFunction(
           .compareTo(a2.remainingTestExecutionCount);
     case ArtefactSortingQuery.status:
       return (a1, a2) => a1.status.name.compareTo(a2.status.name);
-    case ArtefactSortingQuery.assignee:
+    case ArtefactSortingQuery.reviewer:
+    case ArtefactSortingQuery.assignee: // deprecated alias for reviewer
       return (a1, a2) {
-        // no assignee is always larger
-        if (a1.assignee.isEmpty) return 1;
-        if (a2.assignee.isEmpty) return -1;
-
-        return a1.assignee.name.compareTo(a2.assignee.name);
+        if (a1.reviewers.isEmpty && a2.reviewers.isEmpty) return 0;
+        if (a1.reviewers.isEmpty) return 1;
+        if (a2.reviewers.isEmpty) return -1;
+        final countComparison =
+            a1.reviewers.length.compareTo(a2.reviewers.length);
+        if (countComparison != 0) return countComparison;
+        return a1.reviewers.first.name.compareTo(a2.reviewers.first.name);
       };
     case ArtefactSortingQuery.series:
       return (a1, a2) => a1.series.compareTo(a2.series);
