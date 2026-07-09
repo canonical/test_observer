@@ -21,6 +21,19 @@ import '../../../models/test_execution.dart';
 import '../../../providers/artefact_builds.dart';
 import '../../../routing.dart';
 
+const _priorityMin = -1000000;
+const _priorityMax = 1000000;
+
+String? _validatePriority(String? value) {
+  if (value == null || value.isEmpty) return 'Priority is required';
+  final n = int.tryParse(value);
+  if (n == null) return 'Enter a valid integer';
+  if (n < _priorityMin || n > _priorityMax) {
+    return 'Priority must be between $_priorityMin and $_priorityMax';
+  }
+  return null;
+}
+
 class RerunButton extends ConsumerWidget {
   const RerunButton({super.key, required this.testExecution});
 
@@ -31,27 +44,34 @@ class RerunButton extends ConsumerWidget {
     final artefactId =
         AppRoutes.artefactIdFromUri(AppRoutes.uriFromContext(context));
 
-    final handlePress = testExecution.isRerunRequested
-        ? null
-        : () => showDialog(
-              context: context,
-              builder: (_) => _RerunConfirmationDialog(
-                artefactId: artefactId,
-                testExecutionId: testExecution.id,
-              ),
-            );
+    if (testExecution.isRerunRequested) {
+      return TextButton(
+        onPressed: () => showDialog(
+          context: context,
+          builder: (_) => _ModifyRerunDialog(
+            artefactId: artefactId,
+            testExecutionId: testExecution.id,
+            currentPriority: testExecution.rerunPriority,
+          ),
+        ),
+        child: const Text('modify rerun'),
+      );
+    }
 
-    return Tooltip(
-      message: testExecution.isRerunRequested ? 'Already requested' : '',
-      child: TextButton(
-        onPressed: handlePress,
-        child: const Text('rerun'),
+    return TextButton(
+      onPressed: () => showDialog(
+        context: context,
+        builder: (_) => _RerunConfirmationDialog(
+          artefactId: artefactId,
+          testExecutionId: testExecution.id,
+        ),
       ),
+      child: const Text('rerun'),
     );
   }
 }
 
-class _RerunConfirmationDialog extends ConsumerWidget {
+class _RerunConfirmationDialog extends ConsumerStatefulWidget {
   const _RerunConfirmationDialog({
     required this.artefactId,
     required this.testExecutionId,
@@ -61,18 +81,48 @@ class _RerunConfirmationDialog extends ConsumerWidget {
   final int testExecutionId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_RerunConfirmationDialog> createState() =>
+      _RerunConfirmationDialogState();
+}
+
+class _RerunConfirmationDialogState
+    extends ConsumerState<_RerunConfirmationDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _priorityController = TextEditingController(text: '0');
+
+  @override
+  void dispose() {
+    _priorityController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text(
         'Are you sure you want to rerun this environment?',
+      ),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _priorityController,
+          decoration: const InputDecoration(labelText: 'Priority'),
+          keyboardType: TextInputType.numberWithOptions(signed: true),
+          validator: _validatePriority,
+        ),
       ),
       actions: [
         TextButton(
           autofocus: true,
           onPressed: () {
+            if (_formKey.currentState?.validate() != true) return;
+            final priority = int.tryParse(_priorityController.text);
             ref
-                .read(artefactBuildsProvider(artefactId).notifier)
-                .rerunTestExecutions({testExecutionId});
+                .read(artefactBuildsProvider(widget.artefactId).notifier)
+                .rerunTestExecutions(
+              {widget.testExecutionId},
+              priority: priority,
+            );
             context.pop();
           },
           child: const Text('yes'),
@@ -80,6 +130,97 @@ class _RerunConfirmationDialog extends ConsumerWidget {
         TextButton(
           onPressed: () => context.pop(),
           child: const Text('no'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ModifyRerunDialog extends ConsumerStatefulWidget {
+  const _ModifyRerunDialog({
+    required this.artefactId,
+    required this.testExecutionId,
+    required this.currentPriority,
+  });
+
+  final int artefactId;
+  final int testExecutionId;
+  final int? currentPriority;
+
+  @override
+  ConsumerState<_ModifyRerunDialog> createState() => _ModifyRerunDialogState();
+}
+
+class _ModifyRerunDialogState extends ConsumerState<_ModifyRerunDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _priorityController;
+
+  @override
+  void initState() {
+    super.initState();
+    _priorityController = TextEditingController(
+      text: (widget.currentPriority ?? 0).toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _priorityController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Modify rerun request'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Warning: this rerun may have already been picked up or started.',
+          ),
+          const SizedBox(height: 16),
+          Form(
+            key: _formKey,
+            child: TextFormField(
+              controller: _priorityController,
+              decoration: const InputDecoration(labelText: 'Priority'),
+              keyboardType: TextInputType.numberWithOptions(signed: true),
+              validator: _validatePriority,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            if (_formKey.currentState?.validate() != true) return;
+            final priority = int.tryParse(_priorityController.text);
+            ref
+                .read(artefactBuildsProvider(widget.artefactId).notifier)
+                .rerunTestExecutions(
+              {widget.testExecutionId},
+              priority: priority,
+            );
+            context.pop();
+          },
+          child: const Text('update priority'),
+        ),
+        TextButton(
+          style: TextButton.styleFrom(foregroundColor: Colors.red),
+          onPressed: () {
+            ref
+                .read(artefactBuildsProvider(widget.artefactId).notifier)
+                .deleteRerunTestExecutions({widget.testExecutionId});
+            context.pop();
+          },
+          child: const Text('delete rerun'),
+        ),
+        TextButton(
+          autofocus: true,
+          onPressed: () => context.pop(),
+          child: const Text('cancel'),
         ),
       ],
     );

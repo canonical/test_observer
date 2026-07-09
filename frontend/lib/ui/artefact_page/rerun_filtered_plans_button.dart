@@ -25,6 +25,19 @@ import '../../providers/filtered_enriched_test_executions.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 
+const _priorityMin = -1000000;
+const _priorityMax = 1000000;
+
+String? _validatePriority(String? value) {
+  if (value == null || value.isEmpty) return 'Priority is required';
+  final n = int.tryParse(value);
+  if (n == null) return 'Enter a valid integer';
+  if (n < _priorityMin || n > _priorityMax) {
+    return 'Priority must be between $_priorityMin and $_priorityMax';
+  }
+  return null;
+}
+
 class RerunFilteredPlansButton extends ConsumerWidget {
   const RerunFilteredPlansButton({super.key});
 
@@ -61,7 +74,7 @@ class RerunFilteredPlansButton extends ConsumerWidget {
   }
 }
 
-class _ConfirmationDialog extends ConsumerWidget {
+class _ConfirmationDialog extends ConsumerStatefulWidget {
   const _ConfirmationDialog({
     required this.testExecutionsToRerun,
     required this.artefactId,
@@ -71,12 +84,31 @@ class _ConfirmationDialog extends ConsumerWidget {
   final int artefactId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    handleYes() {
-      final testExecutionIds = {for (final te in testExecutionsToRerun) te.id};
+  ConsumerState<_ConfirmationDialog> createState() =>
+      _ConfirmationDialogState();
+}
+
+class _ConfirmationDialogState extends ConsumerState<_ConfirmationDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _priorityController = TextEditingController(text: '0');
+
+  @override
+  void dispose() {
+    _priorityController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    void handleYes() {
+      if (_formKey.currentState?.validate() != true) return;
+      final priority = int.tryParse(_priorityController.text);
+      final testExecutionIds = {
+        for (final te in widget.testExecutionsToRerun) te.id,
+      };
       ref
-          .read(artefactBuildsProvider(artefactId).notifier)
-          .rerunTestExecutions(testExecutionIds);
+          .read(artefactBuildsProvider(widget.artefactId).notifier)
+          .rerunTestExecutions(testExecutionIds, priority: priority);
       context.pop();
     }
 
@@ -84,14 +116,25 @@ class _ConfirmationDialog extends ConsumerWidget {
       scrollable: true,
       title: Text(
         'Are you sure you want to rerun the following'
-        ' ${testExecutionsToRerun.length} environments?',
+        ' ${widget.testExecutionsToRerun.length} environments?',
       ),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: testExecutionsToRerun
-            .map<Widget>((te) => Text(te.environment.name))
-            .intersperse(const SizedBox(height: Spacing.level2))
-            .toList(),
+        children: [
+          ...widget.testExecutionsToRerun
+              .map<Widget>((te) => Text(te.environment.name))
+              .intersperse(const SizedBox(height: Spacing.level2)),
+          const SizedBox(height: Spacing.level4),
+          Form(
+            key: _formKey,
+            child: TextFormField(
+              controller: _priorityController,
+              decoration: const InputDecoration(labelText: 'Priority'),
+              keyboardType: TextInputType.numberWithOptions(signed: true),
+              validator: _validatePriority,
+            ),
+          ),
+        ],
       ),
       actions: [
         TextButton(

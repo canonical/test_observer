@@ -23,6 +23,19 @@ import '../../../providers/test_results_search.dart';
 import '../../inline_url_text.dart';
 import '../../spacing.dart';
 
+const _priorityMin = -1000000;
+const _priorityMax = 1000000;
+
+String? _validatePriority(String? value) {
+  if (value == null || value.isEmpty) return 'Priority is required';
+  final n = int.tryParse(value);
+  if (n == null) return 'Enter a valid integer';
+  if (n < _priorityMin || n > _priorityMax) {
+    return 'Priority must be between $_priorityMin and $_priorityMax';
+  }
+  return null;
+}
+
 class _BulkModifyRerunsForm extends ConsumerStatefulWidget {
   const _BulkModifyRerunsForm(this.filters, this.shouldDelete);
 
@@ -38,6 +51,7 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
   late final GlobalKey<FormState> formKey;
   late bool onlyLatestExecutions;
   late bool excludeArchivedArtefacts;
+  final _priorityController = TextEditingController(text: '0');
 
   @override
   void initState() {
@@ -45,6 +59,12 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
     formKey = GlobalKey<FormState>();
     onlyLatestExecutions = !widget.shouldDelete;
     excludeArchivedArtefacts = !widget.shouldDelete;
+  }
+
+  @override
+  void dispose() {
+    _priorityController.dispose();
+    super.dispose();
   }
 
   Widget _buildCheckbox({
@@ -103,6 +123,13 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
                   : 'Create Rerun Requests',
               style: Theme.of(context).textTheme.titleLarge,
             ),
+            if (!widget.shouldDelete)
+              TextFormField(
+                controller: _priorityController,
+                decoration: const InputDecoration(labelText: 'Priority'),
+                keyboardType: TextInputType.numberWithOptions(signed: true),
+                validator: _validatePriority,
+              ),
             _buildCheckbox(
               title: 'Only latest test executions',
               value: onlyLatestExecutions,
@@ -196,10 +223,13 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
                                   filters: modifyTestResultFilters,
                                 );
                           } else {
+                            final priority =
+                                int.tryParse(_priorityController.text);
                             await ref
                                 .read(rerunsProvider.notifier)
                                 .createReruns(
                                   filters: modifyTestResultFilters,
+                                  priority: priority,
                                 );
                           }
 

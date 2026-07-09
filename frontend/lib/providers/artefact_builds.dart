@@ -29,13 +29,29 @@ class ArtefactBuilds extends _$ArtefactBuilds {
     return await api.getArtefactBuilds(artefactId);
   }
 
-  Future<void> rerunTestExecutions(Set<int> testExecutionIds) async {
+  Future<void> rerunTestExecutions(
+    Set<int> testExecutionIds, {
+    int? priority,
+  }) async {
     final api = ref.read(apiProvider);
-    final rerunRequests = await api.rerunTestExecutions(testExecutionIds);
+    final rerunRequests = await api.rerunTestExecutions(
+      testExecutionIds,
+      priority: priority,
+    );
 
     await _updateTestExecutions(
       rerunRequests.map((rr) => rr.testExecutionId).toSet(),
-      (te) => te.copyWith(isRerunRequested: true),
+      (te) => te.copyWith(isRerunRequested: true, rerunPriority: priority),
+    );
+  }
+
+  Future<void> deleteRerunTestExecutions(Set<int> testExecutionIds) async {
+    final api = ref.read(apiProvider);
+    await api.deleteRerunForTestExecutions(testExecutionIds);
+
+    await _updateTestExecutions(
+      testExecutionIds,
+      (te) => te.copyWith(isRerunRequested: false, rerunPriority: null),
     );
   }
 

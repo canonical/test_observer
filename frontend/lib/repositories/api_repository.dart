@@ -128,11 +128,16 @@ class ApiRepository {
   }
 
   Future<List<RerunRequest>> rerunTestExecutions(
-    Set<int> testExecutionIds,
-  ) async {
+    Set<int> testExecutionIds, {
+    int? priority,
+  }) async {
+    final data = <String, dynamic>{
+      'test_execution_ids': testExecutionIds.toList(),
+    };
+    if (priority != null) data['priority'] = priority;
     final response = await dio.post(
       '/v1/test-executions/reruns',
-      data: {'test_execution_ids': testExecutionIds.toList()},
+      data: data,
     );
     final List rerunsJson = response.data;
     final reruns =
@@ -140,9 +145,17 @@ class ApiRepository {
     return reruns;
   }
 
+  Future<void> deleteRerunForTestExecutions(Set<int> testExecutionIds) async {
+    await dio.delete(
+      '/v1/test-executions/reruns',
+      data: {'test_execution_ids': testExecutionIds.toList()},
+    );
+  }
+
   Future<void> createReruns({
     List<int>? testExecutionIds,
     TestResultsFilters? filters,
+    int? priority,
   }) async {
     final data = <String, dynamic>{};
     if (testExecutionIds != null && testExecutionIds.isNotEmpty) {
@@ -151,6 +164,7 @@ class ApiRepository {
     if (filters != null) {
       data['test_results_filters'] = filters.toJson();
     }
+    if (priority != null) data['priority'] = priority;
 
     await dio.post(
       '/v1/test-executions/reruns',
