@@ -353,9 +353,7 @@ class RerunRequest(BaseModel):
     test_execution_ids: set[int] = Field(default_factory=set)
     test_results_filters: TestResultSearchFilters | None = None
     test_executions_filters: TestExecutionRerunFilters | None = None
-    priority: int | None = Field(
-        default=None, ge=RERUN_PRIORITY_MIN, le=RERUN_PRIORITY_MAX
-    )
+    priority: int | None = Field(default=None, ge=RERUN_PRIORITY_MIN, le=RERUN_PRIORITY_MAX)
 
 
 class PendingRerun(BaseModel):

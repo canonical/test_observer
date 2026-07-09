@@ -1944,7 +1944,9 @@ def test_post_priority_above_max_is_rejected(test_client: TestClient, test_execu
 
 def test_post_priority_below_min_is_rejected(test_client: TestClient, test_execution: TestExecution):
     with override_permissions(Permission.change_rerun):
-        response = test_client.post(reruns_url, json={"test_execution_ids": [test_execution.id], "priority": -1_000_001})
+        response = test_client.post(
+            reruns_url, json={"test_execution_ids": [test_execution.id], "priority": -1_000_001}
+        )
     assert response.status_code == 422
 
 
