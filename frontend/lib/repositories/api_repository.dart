@@ -26,7 +26,6 @@ import '../models/environment_review.dart';
 import '../models/execution_metadata.dart';
 import '../models/family_name.dart';
 import '../models/issue.dart';
-import '../models/rerun_request.dart';
 import '../models/test_event.dart';
 import '../models/test_issue.dart';
 import '../models/test_result.dart';
@@ -127,7 +126,7 @@ class ApiRepository {
     return testEvents;
   }
 
-  Future<List<RerunRequest>> rerunTestExecutions(
+  Future<void> rerunTestExecutions(
     Set<int> testExecutionIds, {
     int? priority,
   }) async {
@@ -135,20 +134,10 @@ class ApiRepository {
       'test_execution_ids': testExecutionIds.toList(),
     };
     if (priority != null) data['priority'] = priority;
-    final response = await dio.post(
+    await dio.post(
       '/v1/test-executions/reruns',
+      queryParameters: {'silent': true},
       data: data,
-    );
-    final List rerunsJson = response.data;
-    final reruns =
-        rerunsJson.map((json) => RerunRequest.fromJson(json)).toList();
-    return reruns;
-  }
-
-  Future<void> deleteRerunForTestExecutions(Set<int> testExecutionIds) async {
-    await dio.delete(
-      '/v1/test-executions/reruns',
-      data: {'test_execution_ids': testExecutionIds.toList()},
     );
   }
 

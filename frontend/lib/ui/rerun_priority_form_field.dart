@@ -38,7 +38,7 @@ class RerunPriorityFormField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       decoration: const InputDecoration(labelText: 'Priority'),
-      keyboardType: TextInputType.numberWithOptions(signed: true),
+      keyboardType: const TextInputType.numberWithOptions(signed: true),
       validator: validateRerunPriority,
     );
   }

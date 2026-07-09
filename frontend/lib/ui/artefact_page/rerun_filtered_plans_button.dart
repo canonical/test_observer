@@ -88,15 +88,16 @@ class _ConfirmationDialogState extends ConsumerState<_ConfirmationDialog> {
 
   @override
   Widget build(BuildContext context) {
-    void handleYes() {
+    Future<void> handleYes() async {
       if (_formKey.currentState?.validate() != true) return;
       final priority = int.tryParse(_priorityController.text);
       final testExecutionIds = {
         for (final te in widget.testExecutionsToRerun) te.id,
       };
-      ref
+      await ref
           .read(artefactBuildsProvider(widget.artefactId).notifier)
           .rerunTestExecutions(testExecutionIds, priority: priority);
+      if (!mounted) return;
       context.pop();
     }
 

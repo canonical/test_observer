@@ -64,7 +64,7 @@ class ArtefactBuilds extends _$ArtefactBuilds {
 
   Future<void> deleteRerunTestExecutions(Set<int> testExecutionIds) async {
     final api = ref.read(apiProvider);
-    await api.deleteRerunForTestExecutions(testExecutionIds);
+    await api.deleteReruns(testExecutionIds: testExecutionIds.toList());
 
     final artefactBuilds = await future;
     final allExecutions = artefactBuilds.expand((ab) => ab.testExecutions);

@@ -143,6 +143,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution, priority: int
             "status": test_execution.status.name,
             "test_plan": test_execution.test_plan.name,
             "is_rerun_requested": bool(test_execution.rerun_request),
+            "rerun_priority": test_execution.rerun_request.priority if test_execution.rerun_request else None,
             "created_at": test_execution.created_at.isoformat(),
             "execution_metadata": {},
             "is_triaged": test_execution.is_triaged,
@@ -1938,14 +1939,18 @@ def test_bulk_permission_required_for_test_executions_filters(test_client: TestC
 
 def test_post_priority_above_max_is_rejected(test_client: TestClient, test_execution: TestExecution):
     with override_permissions(Permission.change_rerun):
-        response = test_client.post(reruns_url, json={"test_execution_ids": [test_execution.id], "priority": 1_000_001})
+        response = test_client.post(
+            reruns_url,
+            json={"test_execution_ids": [test_execution.id], "priority": 1_000_001},
+        )
     assert response.status_code == 422
 
 
 def test_post_priority_below_min_is_rejected(test_client: TestClient, test_execution: TestExecution):
     with override_permissions(Permission.change_rerun):
         response = test_client.post(
-            reruns_url, json={"test_execution_ids": [test_execution.id], "priority": -1_000_001}
+            reruns_url,
+            json={"test_execution_ids": [test_execution.id], "priority": -1_000_001},
         )
     assert response.status_code == 422
 
