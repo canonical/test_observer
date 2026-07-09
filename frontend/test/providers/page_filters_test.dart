@@ -42,10 +42,14 @@ void main() {
     final filters =
         container.read(pageFiltersProvider(Uri(path: AppRoutes.snaps)));
 
-    expect(filters[0].name, 'Assignee');
+    expect(filters[0].name, 'Reviewer');
     expect(
       filters[0].options,
-      [(name: dummyArtefact.assignee.name, isSelected: false)],
+      unorderedEquals(
+        dummyArtefact.reviewers
+            .map((r) => (name: r.name, isSelected: false))
+            .toList(),
+      ),
     );
     expect(filters[1].name, 'Status');
     expect(

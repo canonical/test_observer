@@ -233,7 +233,7 @@ void main() {
             },
           ),
           issues: const IntListFilter.list([1, 2]),
-          assignees: const IntListFilter.any(),
+          reviewers: const IntListFilter.any(),
           fromDate: DateTime.utc(2024, 1, 1),
           untilDate: DateTime.utc(2024, 12, 31),
           offset: 10,
@@ -250,7 +250,7 @@ void main() {
         expect(json['template_ids'], equals(['template1']));
         expect(json['execution_metadata'], isA<Map>());
         expect(json['issues'], equals([1, 2]));
-        expect(json['assignees'], equals('any'));
+        expect(json['reviewer_ids'], equals('any'));
         expect(json['from_date'], equals('2024-01-01T00:00:00.000Z'));
         expect(json['until_date'], equals('2024-12-31T00:00:00.000Z'));
         expect(json['offset'], equals(10));
@@ -260,19 +260,19 @@ void main() {
       test('serializes IntListFilter variants correctly in JSON', () {
         final filtersWithList = TestResultsFilters(
           issues: const IntListFilter.list([1, 2, 3]),
-          assignees: const IntListFilter.list([4, 5]),
+          reviewers: const IntListFilter.list([4, 5]),
         );
         final jsonList = filtersWithList.toJson();
         expect(jsonList['issues'], equals([1, 2, 3]));
-        expect(jsonList['assignees'], equals([4, 5]));
+        expect(jsonList['reviewer_ids'], equals([4, 5]));
 
         final filtersWithAny = TestResultsFilters(
           issues: const IntListFilter.any(),
-          assignees: const IntListFilter.none(),
+          reviewers: const IntListFilter.none(),
         );
         final jsonAny = filtersWithAny.toJson();
         expect(jsonAny['issues'], equals('any'));
-        expect(jsonAny['assignees'], equals('none'));
+        expect(jsonAny['reviewer_ids'], equals('none'));
       });
 
       test('omits default values', () {
@@ -304,7 +304,7 @@ void main() {
             'key': ['value1', 'value2'],
           },
           'issues': [1, 2, 3],
-          'assignees': 'any',
+          'reviewer_ids': 'any',
           'from_date': '2024-01-01T00:00:00.000Z',
           'until_date': '2024-12-31T00:00:00.000Z',
           'offset': 10,
@@ -321,7 +321,7 @@ void main() {
         expect(filters.templateIds, equals(['template1']));
         expect(filters.executionMetadata.data, isA<Map<String, Set<String>>>());
         expect(filters.issues.values, equals([1, 2, 3]));
-        expect(filters.assignees.isAny, isTrue);
+        expect(filters.reviewers.isAny, isTrue);
         expect(filters.fromDate, equals(DateTime.utc(2024, 1, 1)));
         expect(filters.untilDate, equals(DateTime.utc(2024, 12, 31)));
         expect(filters.offset, equals(10));
@@ -331,17 +331,17 @@ void main() {
       test('deserializes IntListFilter variants correctly', () {
         final jsonWithList = {
           'issues': [1, 2],
-          'assignees': [],
+          'reviewer_ids': [],
         };
         final filtersWithList = TestResultsFilters.fromJson(jsonWithList);
         expect(filtersWithList.issues.values, equals([1, 2]));
-        expect(filtersWithList.assignees.values, equals([]));
+        expect(filtersWithList.reviewers.values, equals([]));
 
-        final jsonWithKeywords = {'issues': 'any', 'assignees': 'none'};
+        final jsonWithKeywords = {'issues': 'any', 'reviewer_ids': 'none'};
         final filtersWithKeywords =
             TestResultsFilters.fromJson(jsonWithKeywords);
         expect(filtersWithKeywords.issues.isAny, isTrue);
-        expect(filtersWithKeywords.assignees.isNone, isTrue);
+        expect(filtersWithKeywords.reviewers.isNone, isTrue);
       });
 
       test('handles missing optional fields', () {
@@ -370,7 +370,7 @@ void main() {
             },
           ),
           issues: const IntListFilter.list([1, 2, 3]),
-          assignees: const IntListFilter.none(),
+          reviewers: const IntListFilter.none(),
           fromDate: DateTime.utc(2024, 1, 1),
           untilDate: DateTime.utc(2024, 12, 31),
           offset: 10,
@@ -397,7 +397,7 @@ void main() {
             '${base64Encode(utf8.encode('key'))}:${base64Encode(utf8.encode('value'))}',
           ],
           'issues': ['1,2,3'],
-          'assignee_ids': ['any'],
+          'reviewer_ids': ['any'],
           'from_date': ['2024-01-01T00:00:00.000Z'],
           'until_date': ['2024-12-31T00:00:00.000Z'],
           'offset': ['10'],
@@ -416,7 +416,7 @@ void main() {
         expect(filters.testCases, equals(['test1']));
         expect(filters.templateIds, equals(['template1', 'template2']));
         expect(filters.issues.values, equals([1, 2, 3]));
-        expect(filters.assignees.isAny, isTrue);
+        expect(filters.reviewers.isAny, isTrue);
         expect(filters.fromDate, equals(DateTime.utc(2024, 1, 1)));
         expect(filters.untilDate, equals(DateTime.utc(2024, 12, 31)));
         expect(filters.offset, equals(10));
@@ -426,21 +426,21 @@ void main() {
       test('fromQueryParams handles IntListFilter variants', () {
         final paramsWithList = {
           'issues': ['1,2,3'],
-          'assignee_ids': ['4,5'],
+          'reviewer_ids': ['4,5'],
         };
         final filtersWithList =
             TestResultsFilters.fromQueryParams(paramsWithList);
         expect(filtersWithList.issues.values, equals([1, 2, 3]));
-        expect(filtersWithList.assignees.values, equals([4, 5]));
+        expect(filtersWithList.reviewers.values, equals([4, 5]));
 
         final paramsWithKeywords = {
           'issues': ['any'],
-          'assignee_ids': ['none'],
+          'reviewer_ids': ['none'],
         };
         final filtersWithKeywords =
             TestResultsFilters.fromQueryParams(paramsWithKeywords);
         expect(filtersWithKeywords.issues.isAny, isTrue);
-        expect(filtersWithKeywords.assignees.isNone, isTrue);
+        expect(filtersWithKeywords.reviewers.isNone, isTrue);
       });
 
       test('fromQueryParams handles empty params', () {
@@ -472,7 +472,7 @@ void main() {
             },
           ),
           issues: const IntListFilter.list([1, 2]),
-          assignees: const IntListFilter.any(),
+          reviewers: const IntListFilter.any(),
           fromDate: DateTime.utc(2024, 1, 1),
           untilDate: DateTime.utc(2024, 12, 31),
           offset: 10,
@@ -494,7 +494,7 @@ void main() {
           ]),
         );
         expect(params['issues'], equals(['1', '2']));
-        expect(params['assignee_ids'], equals(['any']));
+        expect(params['reviewer_ids'], equals(['any']));
         expect(params['from_date'], equals(['2024-01-01T00:00:00.000Z']));
         expect(params['until_date'], equals(['2024-12-31T00:00:00.000Z']));
         expect(params['offset'], equals(['10']));
@@ -514,22 +514,22 @@ void main() {
       test('toQueryParams handles IntListFilter variants', () {
         final filtersWithList = TestResultsFilters(
           issues: const IntListFilter.list([1, 2]),
-          assignees: const IntListFilter.list([]),
+          reviewers: const IntListFilter.list([]),
         );
         final paramsWithList = filtersWithList.toQueryParams();
         expect(paramsWithList['issues'], equals(['1', '2']));
         expect(
-          paramsWithList.containsKey('assignee_ids'),
+          paramsWithList.containsKey('reviewer_ids'),
           isFalse,
         ); // empty list
 
         final filtersWithKeywords = TestResultsFilters(
           issues: const IntListFilter.any(),
-          assignees: const IntListFilter.none(),
+          reviewers: const IntListFilter.none(),
         );
         final paramsWithKeywords = filtersWithKeywords.toQueryParams();
         expect(paramsWithKeywords['issues'], equals(['any']));
-        expect(paramsWithKeywords['assignee_ids'], equals(['none']));
+        expect(paramsWithKeywords['reviewer_ids'], equals(['none']));
       });
     });
 
@@ -551,7 +551,7 @@ void main() {
             },
           ),
           issues: const IntListFilter.list([1, 2, 3]),
-          assignees: const IntListFilter.none(),
+          reviewers: const IntListFilter.none(),
           fromDate: DateTime.utc(2024, 1, 1),
           untilDate: DateTime.utc(2024, 12, 31),
           offset: 10,
@@ -575,7 +575,7 @@ void main() {
           equals(original.executionMetadata.data),
         );
         expect(restored.issues.values, equals(original.issues.values));
-        expect(restored.assignees.isNone, equals(original.assignees.isNone));
+        expect(restored.reviewers.isNone, equals(original.reviewers.isNone));
         expect(restored.fromDate, equals(original.fromDate));
         expect(restored.untilDate, equals(original.untilDate));
         expect(restored.offset, equals(original.offset));
@@ -652,13 +652,13 @@ void main() {
         expect(filters.hasFilters, isTrue);
       });
 
-      test('returns true when assignees is any', () {
-        const filters = TestResultsFilters(assignees: IntListFilter.any());
+      test('returns true when reviewers is any', () {
+        const filters = TestResultsFilters(reviewers: IntListFilter.any());
         expect(filters.hasFilters, isTrue);
       });
 
-      test('returns true when assignees is none', () {
-        const filters = TestResultsFilters(assignees: IntListFilter.none());
+      test('returns true when reviewers is none', () {
+        const filters = TestResultsFilters(reviewers: IntListFilter.none());
         expect(filters.hasFilters, isTrue);
       });
 
@@ -704,11 +704,11 @@ void main() {
       test('creates URI with IntListFilter variants', () {
         const filters = TestResultsFilters(
           issues: IntListFilter.any(),
-          assignees: IntListFilter.none(),
+          reviewers: IntListFilter.none(),
         );
         final uri = filters.toTestResultsUri();
         expect(uri.queryParameters['issues'], equals('any'));
-        expect(uri.queryParameters['assignee_ids'], equals('none'));
+        expect(uri.queryParameters['reviewer_ids'], equals('none'));
       });
     });
   });
