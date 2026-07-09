@@ -23,20 +23,8 @@ import '../../models/test_execution.dart';
 import '../../providers/artefact_builds.dart';
 import '../../providers/filtered_enriched_test_executions.dart';
 import '../../routing.dart';
+import '../rerun_priority_form_field.dart';
 import '../spacing.dart';
-
-const _priorityMin = -1000000;
-const _priorityMax = 1000000;
-
-String? _validatePriority(String? value) {
-  if (value == null || value.isEmpty) return 'Priority is required';
-  final n = int.tryParse(value);
-  if (n == null) return 'Enter a valid integer';
-  if (n < _priorityMin || n > _priorityMax) {
-    return 'Priority must be between $_priorityMin and $_priorityMax';
-  }
-  return null;
-}
 
 class RerunFilteredPlansButton extends ConsumerWidget {
   const RerunFilteredPlansButton({super.key});
@@ -127,12 +115,7 @@ class _ConfirmationDialogState extends ConsumerState<_ConfirmationDialog> {
           const SizedBox(height: Spacing.level4),
           Form(
             key: _formKey,
-            child: TextFormField(
-              controller: _priorityController,
-              decoration: const InputDecoration(labelText: 'Priority'),
-              keyboardType: TextInputType.numberWithOptions(signed: true),
-              validator: _validatePriority,
-            ),
+            child: RerunPriorityFormField(controller: _priorityController),
           ),
         ],
       ),

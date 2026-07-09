@@ -7874,7 +7874,9 @@
           "priority": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "integer",
+                "maximum": 1000000,
+                "minimum": -1000000
               },
               {
                 "type": "null"

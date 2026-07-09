@@ -21,20 +21,8 @@ import '../../../models/test_results_filters.dart';
 import '../../../providers/reruns.dart';
 import '../../../providers/test_results_search.dart';
 import '../../inline_url_text.dart';
+import '../../rerun_priority_form_field.dart';
 import '../../spacing.dart';
-
-const _priorityMin = -1000000;
-const _priorityMax = 1000000;
-
-String? _validatePriority(String? value) {
-  if (value == null || value.isEmpty) return 'Priority is required';
-  final n = int.tryParse(value);
-  if (n == null) return 'Enter a valid integer';
-  if (n < _priorityMin || n > _priorityMax) {
-    return 'Priority must be between $_priorityMin and $_priorityMax';
-  }
-  return null;
-}
 
 class _BulkModifyRerunsForm extends ConsumerStatefulWidget {
   const _BulkModifyRerunsForm(this.filters, this.shouldDelete);
@@ -124,12 +112,7 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
               style: Theme.of(context).textTheme.titleLarge,
             ),
             if (!widget.shouldDelete)
-              TextFormField(
-                controller: _priorityController,
-                decoration: const InputDecoration(labelText: 'Priority'),
-                keyboardType: TextInputType.numberWithOptions(signed: true),
-                validator: _validatePriority,
-              ),
+              RerunPriorityFormField(controller: _priorityController),
             _buildCheckbox(
               title: 'Only latest test executions',
               value: onlyLatestExecutions,
