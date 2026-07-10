@@ -89,7 +89,8 @@ class TestResultExpandable extends ConsumerWidget {
         ),
         _TestResultOutputExpandable(
           testResult: testResult,
-          initiallyExpanded: true,
+          initiallyExpanded: initiallyExpanded ||
+              testResult.status == TestResultStatus.failed,
         ),
       ],
     );
