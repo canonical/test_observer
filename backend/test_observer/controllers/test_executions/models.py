@@ -345,11 +345,15 @@ class TestExecutionsPatchRequest(BaseModel):
     execution_metadata: ExecutionMetadata | None = None
 
 
+RERUN_PRIORITY_MIN = -1_000_000
+RERUN_PRIORITY_MAX = 1_000_000
+
+
 class RerunRequest(BaseModel):
     test_execution_ids: set[int] = Field(default_factory=set)
     test_results_filters: TestResultSearchFilters | None = None
     test_executions_filters: TestExecutionRerunFilters | None = None
-    priority: int | None = None
+    priority: int | None = Field(default=None, ge=RERUN_PRIORITY_MIN, le=RERUN_PRIORITY_MAX)
 
 
 class PendingRerun(BaseModel):

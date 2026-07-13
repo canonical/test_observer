@@ -35,7 +35,7 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.main import app
 from test_observer.users.user_injection import get_current_user
-from tests.conftest import authenticate_user, make_authenticated_request
+from tests.conftest import authenticate_user, make_authenticated_request, override_permissions
 from tests.data_generator import DataGenerator
 
 reruns_url = "/v1/test-executions/reruns"
@@ -143,6 +143,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution, priority: int
             "status": test_execution.status.name,
             "test_plan": test_execution.test_plan.name,
             "is_rerun_requested": bool(test_execution.rerun_request),
+            "rerun_priority": test_execution.rerun_request.priority if test_execution.rerun_request else None,
             "created_at": test_execution.created_at.isoformat(),
             "execution_metadata": {},
             "is_triaged": test_execution.is_triaged,
@@ -1934,3 +1935,31 @@ def test_bulk_permission_required_for_test_executions_filters(test_client: TestC
     )
 
     assert response.status_code == 403
+
+
+def test_post_priority_above_max_is_rejected(test_client: TestClient, test_execution: TestExecution):
+    with override_permissions(Permission.change_rerun):
+        response = test_client.post(
+            reruns_url,
+            json={"test_execution_ids": [test_execution.id], "priority": 1_000_001},
+        )
+    assert response.status_code == 422
+
+
+def test_post_priority_below_min_is_rejected(test_client: TestClient, test_execution: TestExecution):
+    with override_permissions(Permission.change_rerun):
+        response = test_client.post(
+            reruns_url,
+            json={"test_execution_ids": [test_execution.id], "priority": -1_000_001},
+        )
+    assert response.status_code == 422
+
+
+def test_post_priority_at_max_is_accepted(post: Post, get: Get, test_execution: TestExecution):
+    post({"test_execution_ids": [test_execution.id], "priority": 1_000_000})
+    assert get().json()[0]["priority"] == 1_000_000
+
+
+def test_post_priority_at_min_is_accepted(post: Post, get: Get, test_execution: TestExecution):
+    post({"test_execution_ids": [test_execution.id], "priority": -1_000_000})
+    assert get().json()[0]["priority"] == -1_000_000

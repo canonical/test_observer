@@ -7874,7 +7874,9 @@
           "priority": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "integer",
+                "maximum": 1000000,
+                "minimum": -1000000
               },
               {
                 "type": "null"
@@ -9040,6 +9042,18 @@
             "type": "boolean",
             "title": "Is Rerun Requested",
             "readOnly": true
+          },
+          "rerun_priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Priority",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -9053,7 +9067,8 @@
           "created_at",
           "execution_metadata",
           "is_triaged",
-          "is_rerun_requested"
+          "is_rerun_requested",
+          "rerun_priority"
         ],
         "title": "TestExecutionResponse"
       },
@@ -9131,6 +9146,18 @@
             "type": "boolean",
             "title": "Is Rerun Requested",
             "readOnly": true
+          },
+          "rerun_priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Priority",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -9146,7 +9173,8 @@
           "is_triaged",
           "artefact",
           "artefact_build",
-          "is_rerun_requested"
+          "is_rerun_requested",
+          "rerun_priority"
         ],
         "title": "TestExecutionResponseWithContext"
       },

@@ -21,6 +21,7 @@ import '../../../models/test_results_filters.dart';
 import '../../../providers/reruns.dart';
 import '../../../providers/test_results_search.dart';
 import '../../inline_url_text.dart';
+import '../../rerun_priority_form_field.dart';
 import '../../spacing.dart';
 
 class _BulkModifyRerunsForm extends ConsumerStatefulWidget {
@@ -38,6 +39,7 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
   late final GlobalKey<FormState> formKey;
   late bool onlyLatestExecutions;
   late bool excludeArchivedArtefacts;
+  final _priorityController = TextEditingController(text: '0');
 
   @override
   void initState() {
@@ -45,6 +47,12 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
     formKey = GlobalKey<FormState>();
     onlyLatestExecutions = !widget.shouldDelete;
     excludeArchivedArtefacts = !widget.shouldDelete;
+  }
+
+  @override
+  void dispose() {
+    _priorityController.dispose();
+    super.dispose();
   }
 
   Widget _buildCheckbox({
@@ -103,6 +111,8 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
                   : 'Create Rerun Requests',
               style: Theme.of(context).textTheme.titleLarge,
             ),
+            if (!widget.shouldDelete)
+              RerunPriorityFormField(controller: _priorityController),
             _buildCheckbox(
               title: 'Only latest test executions',
               value: onlyLatestExecutions,
@@ -196,10 +206,13 @@ class _BulkModifyRerunsFormState extends ConsumerState<_BulkModifyRerunsForm> {
                                   filters: modifyTestResultFilters,
                                 );
                           } else {
+                            final priority =
+                                int.tryParse(_priorityController.text);
                             await ref
                                 .read(rerunsProvider.notifier)
                                 .createReruns(
                                   filters: modifyTestResultFilters,
+                                  priority: priority,
                                 );
                           }
 

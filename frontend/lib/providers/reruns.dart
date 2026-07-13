@@ -31,11 +31,13 @@ class Reruns extends _$Reruns {
   Future<void> createReruns({
     List<int>? testExecutionIds,
     TestResultsFilters? filters,
+    int? priority,
   }) async {
     final api = ref.read(apiProvider);
     await api.createReruns(
       testExecutionIds: testExecutionIds,
       filters: filters,
+      priority: priority,
     );
   }
 
