@@ -37,6 +37,7 @@ services:
       PYTHONDONTWRITEBYTECODE: "1" # Prevent .pyc files in development
       SESSIONS_HTTPS_ONLY: "false"
       REQUIRE_AUTHENTICATION: "${REQUIRE_AUTHENTICATION:-false}"
+      IGNORE_PERMISSIONS: "${IGNORE_PERMISSIONS:-view_user,change_user,view_team,change_team,add_application,change_application,view_application,view_permission,view_issue,change_issue,change_issue_attachment,change_issue_attachment_bulk,change_attachment_rule,change_auto_rerun,view_test,change_test,view_rerun,change_rerun,change_rerun_bulk,view_artefact,change_artefact,view_environment_review,change_environment_review,view_report,view_test_case_reported_issue,change_test_case_reported_issue,view_environment_reported_issue,change_environment_reported_issue,view_notification,change_notification}"
       USE_LOCAL_LOGIN: "${USE_LOCAL_LOGIN:-true}"
     volumes:
       # Mount source code from host for development
@@ -48,14 +49,38 @@ services:
     image: test-observer-frontend
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "30001:80" # Adjust the port mapping as needed
+    # Keep stdin/tty open so you can `docker attach test-observer-frontend`
+    # and press "r" (hot reload) / "R" (hot restart) in the Flutter dev server.
+    stdin_open: true
+    tty: true
     depends_on:
       test-observer-api:
         condition: service_healthy
       saml-idp:
         condition: service_healthy
+    volumes:
+      # Mount source code from host for development (enables live code changes)
+      - ./frontend:/app
+      # Preserve container-managed build artifacts / package config so they
+      # don't clash with the host's (potentially different-platform) versions.
+      - /app/.dart_tool
+      - /app/build
+    # The dev container starts instantly but Flutter needs time to compile
+    # before it serves on :80. This healthcheck lets `docker compose up --wait`
+    # (used locally and in the test_docker_compose CI workflow) block until the
+    # app is actually being served, rather than merely "running".
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:80/ || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      # Generous start_period: the very first `flutter run` compilation can take
+      # ~30-60s (longer on a cold pub cache). Failures during this window don't
+      # count against the retry budget.
+      start_period: 180s
 
   test-observer-db:
     image: docker.io/postgres:14
