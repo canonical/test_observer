@@ -48,8 +48,6 @@ echo "Watching lib/ and web/ for changes to trigger automatic hot restart..."
 
 echo "Starting Flutter web dev server (hot restart on save)..."
 # --web-hostname 0.0.0.0 so the server is reachable from outside the container.
-# You can also drive it manually: 'docker attach test-observer-frontend' and
-# press "r"/"R" (hot restart) or "q" (quit).
 exec flutter run \
     -d web-server \
     --web-hostname 0.0.0.0 \

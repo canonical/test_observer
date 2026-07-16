@@ -30,8 +30,7 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-RUN git clone https://github.com/flutter/flutter.git /opt/flutter && \
-    cd /opt/flutter && git checkout '3.29.3' && \
+RUN git clone --depth 1 --branch '3.29.3' https://github.com/flutter/flutter.git /opt/flutter && \
     /opt/flutter/bin/flutter doctor && \
     /opt/flutter/bin/flutter config --enable-web
 
@@ -44,6 +43,12 @@ WORKDIR /app
 COPY pubspec.* /app/
 RUN flutter pub get
 
+# Copy the entrypoint into the image so it works even without the runtime
+# bind-mount, and invoke it via `bash` so it doesn't depend on the executable
+# bit being preserved. In docker-compose the bind-mount overrides this copy
+# with the live host version.
+COPY dev_entrypoint.sh /app/dev_entrypoint.sh
+
 EXPOSE 80
 
-CMD ["./dev_entrypoint.sh"]
+CMD ["bash", "/app/dev_entrypoint.sh"]

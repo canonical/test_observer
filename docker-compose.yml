@@ -52,10 +52,6 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "30001:80" # Adjust the port mapping as needed
-    # Keep stdin/tty open so you can `docker attach test-observer-frontend`
-    # and press "r" (hot reload) / "R" (hot restart) in the Flutter dev server.
-    stdin_open: true
-    tty: true
     depends_on:
       test-observer-api:
         condition: service_healthy
