@@ -17,7 +17,7 @@
 
 import json
 from base64 import b64encode
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from os import environ
 
@@ -48,7 +48,7 @@ from tests.data_generator import DataGenerator
 
 
 @pytest.fixture(autouse=True)
-def _clear_ignore_permissions():
+def _clear_ignore_permissions() -> Iterator[None]:
     """
     Ensure permission checks are enforced during tests.
 
