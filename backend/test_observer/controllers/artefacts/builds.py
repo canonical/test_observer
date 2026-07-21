@@ -43,7 +43,7 @@ def get_artefact_builds(
     artefact: Artefact = Depends(
         ArtefactRetriever(
             selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions).options(*TEST_EXECUTION_OPTIONS),
-            selectinload(Artefact.builds).selectinload(ArtefactBuild.bundled_in),
+            selectinload(Artefact.builds),
         )
     ),
 ):

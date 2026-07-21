@@ -79,7 +79,6 @@ class ArtefactResponse(BaseModel):
     jira_issue: str | None
     all_environment_reviews_count: int
     completed_environment_reviews_count: int
-    bundled_builds: list["ArtefactBuildMinimalResponse"] = Field(default_factory=list)
 
     @computed_field(
         description=("Backward-compatible assignee field. Populated from the first entry in reviewers when present.")
@@ -147,7 +146,6 @@ class ArtefactBuildResponse(BaseModel):
     architecture: str
     revision: int | None
     test_executions: list[TestExecutionResponse]
-    bundled_in: list["ArtefactMinimalResponse"] = Field(default_factory=list)
 
 
 class ArtefactPatch(BaseModel):
@@ -156,10 +154,6 @@ class ArtefactPatch(BaseModel):
     stage: StageName | None = None
     comment: str | None = None
     jira_issue: str | None = None
-    bundled_builds: list[int] | None = Field(
-        default=None,
-        description="List of ArtefactBuild IDs to bundle with this artefact",
-    )
     assignee_id: int | None = Field(
         default=None,
         deprecated=True,

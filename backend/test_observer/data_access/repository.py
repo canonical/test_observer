@@ -32,7 +32,6 @@ def get_artefacts_by_family(
     family: FamilyName,
     load_environment_reviews: bool = False,
     load_builds: bool = False,
-    load_bundled_builds: bool = False,
     order_by_columns: Iterable[Any] | None = None,
 ) -> list[Artefact]:
     """
@@ -135,9 +134,6 @@ def get_artefacts_by_family(
         query = query.options(joinedload(Artefact.builds).joinedload(ArtefactBuild.environment_reviews))
     elif load_builds:
         query = query.options(joinedload(Artefact.builds))
-
-    if load_bundled_builds:
-        query = query.options(joinedload(Artefact.bundled_builds))
 
     if order_by_columns:
         query = query.order_by(*order_by_columns)
