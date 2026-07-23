@@ -211,15 +211,6 @@ class ArtefactBuildMinimalResponse(BaseModel):
     revision: int | None
 
 
-class ArtefactMinimalResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    name: str
-    version: str
-    family: str
-
-
 class ArtefactSearchResponse(BaseModel):
     artefacts: list[str]
     count: int
