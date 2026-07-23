@@ -15,7 +15,7 @@
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, ClassVar, Literal, Self
+from typing import Annotated, Any, ClassVar, Literal, Self
 
 from pydantic import (
     AliasPath,
@@ -285,24 +285,43 @@ class StartImageTestExecutionRequest(_StartTestExecutionRequest):
 
 class StartSolutionTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.solution]
-    track: str = Field(
-        description="Solution release track being tested. "
-        "Tracks represent different versions or streams of the solution. "
-        "Examples: 'latest' (default), version-based tracks like '1.0', '2.0'. "
-        "Use 'latest' if unsure."
+    attributes: dict[str, Any] = Field(default_factory=dict)
+    execution_stage: SolutionStage = Field(description="Promotion stage of the solution being tested.")
+    track: str | None = Field(
+        default=None,
+        deprecated=True,
+        description="Legacy field. Merged into attributes['track'] when attributes['track'] is not provided.",
     )
-    source: str = Field(
-        max_length=200,
-        description="Source identifier for the solution. "
-        "This identifies the packaging source or origin of the solution. "
-        "Examples: 'ppa:team/ppa-name', 'custom-repo', 'internal-source'.",
+    source: str | None = Field(
+        default=None,
+        deprecated=True,
+        description="Legacy field. Merged into attributes['source'] when attributes['source'] is not provided.",
     )
-    execution_stage: SolutionStage = Field(
-        description="Distribution channel/risk level of the solution being tested. "
-        "Options: 'edge' (cutting-edge updates), 'beta' (pre-release), "
-        "'candidate' (release candidate), 'stable' (production). "
-        "Choose based on where the solution currently resides in the release pipeline."
-    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_legacy_track_and_source(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+
+        # Backwards compatibility: fold the legacy track/source fields into attributes,
+        # without clobbering values explicitly set in attributes. An explicit null for
+        # attributes is left untouched so it falls through to normal (non-nullable) validation.
+        if "attributes" not in data:
+            attributes: Any = {}
+        else:
+            attributes = data["attributes"]
+            if attributes is None or not isinstance(attributes, dict):
+                return data
+            attributes = dict(attributes)
+
+        if data.get("track") is not None and "track" not in attributes:
+            attributes["track"] = data["track"]
+        if data.get("source") is not None and "source" not in attributes:
+            attributes["source"] = data["source"]
+
+        data["attributes"] = attributes
+        return data
 
 
 class C3TestResultStatus(StrEnum):

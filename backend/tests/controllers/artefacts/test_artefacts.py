@@ -20,7 +20,6 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
@@ -229,6 +228,18 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
     _assert_get_artefact_response(response.json(), a)
 
 
+def test_get_artefact_includes_attributes(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(attributes={"foo": "bar"})
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["attributes"] == {"foo": "bar"}
+
+
 def test_get_artefact_environment_reviews_counts_only_latest_build(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(artefact=a, revision=1)
@@ -329,6 +340,69 @@ def test_artefact_signoff_disallow_reject(test_client: TestClient, test_executio
     )
 
     assert response.status_code == 400
+
+
+def test_patch_artefact_updates_attributes(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(attributes={"old": "value"})
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"attributes": {"new": "value", "nested": {"key": "value"}}},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["attributes"] == {"new": "value", "nested": {"key": "value"}}
+
+    get_response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
+        Permission.view_artefact,
+    )
+    assert get_response.json()["attributes"] == {"new": "value", "nested": {"key": "value"}}
+
+
+def test_patch_artefact_without_attributes_preserves_existing_attributes(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    artefact = generator.gen_artefact(attributes={"keep": "me"})
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"comment": "updated comment"},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["attributes"] == {"keep": "me"}
+
+
+def test_patch_artefact_with_explicit_null_attributes_clears_them(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    artefact = generator.gen_artefact(attributes={"old": "value"})
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"attributes": None},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["attributes"] == {}
+
+    get_response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
+        Permission.view_artefact,
+    )
+    assert get_response.json()["attributes"] == {}
 
 
 def test_artefact_signoff_ignore_old_build_on_approve(test_client: TestClient, generator: DataGenerator):
@@ -1018,6 +1092,27 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
     assert response.json() == [{"version": "3", "artefact_id": artefact3.id}]
 
 
+def test_get_artefact_versions_does_not_mix_families(test_client: TestClient, generator: DataGenerator):
+    """Artefacts of different families sharing the same name (and otherwise-blank family-specific
+    fields) must not be mixed together in each other's version history."""
+    snap = generator.gen_artefact(family=FamilyName.snap, name="shared-name", version="1")
+    solution = generator.gen_artefact(family=FamilyName.solution, name="shared-name", version="2")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{snap.id}/versions"),
+        Permission.view_artefact,
+    )
+    assert response.status_code == 200
+    assert response.json() == [{"version": "1", "artefact_id": snap.id}]
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{solution.id}/versions"),
+        Permission.view_artefact,
+    )
+    assert response.status_code == 200
+    assert response.json() == [{"version": "2", "artefact_id": solution.id}]
+
+
 def test_get_artefact_history_default_filters(test_client: TestClient, generator: DataGenerator):
     charm_latest_1 = generator.gen_artefact(
         family=FamilyName.charm,
@@ -1159,15 +1254,16 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "comment": artefact.comment,
         "archived": artefact.archived,
         "family": artefact.family,
+        "attributes": artefact.attributes,
         "assignee": assignee,
         "reviewers": [],
+        "bundled_builds": [],
         "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
         "bug_link": artefact.bug_link,
         "jira_issue": artefact.jira_issue,
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
         "created_at": artefact.created_at.isoformat(),
-        "bundled_builds": [],
     }
     if artefact.reviewers:
         expected["reviewers"] = [
@@ -1449,289 +1545,3 @@ class TestArtefactPatchAMRPermissions:
             assert response.json()["comment"] == "Updated despite no permissions"
         finally:
             del app.dependency_overrides[get_current_user]
-
-
-def test_solution_artefacts_with_same_builds_in_different_order_cannot_be_created(generator: DataGenerator):
-    """Test that two solution artefacts with identical bundled builds set, but listed in a different order, cannot be
-    created."""
-    # GIVEN a solution was created
-    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
-    build1 = generator.gen_artefact_build(charm, architecture="amd64")
-    build2 = generator.gen_artefact_build(charm, architecture="arm64")
-
-    generator.gen_artefact(
-        name="my-solution",
-        family=FamilyName.solution,
-        stage=StageName.stable,
-        version="1.0",
-        track="latest",
-        source="my-source",
-        bundled_builds=[build2, build1],
-    )
-
-    # WHEN we attempt to create another identical solution
-    # THEN then unique constraint prevents the second solution from being created
-    with pytest.raises(IntegrityError):
-        generator.gen_artefact(
-            name="my-solution",
-            family=FamilyName.solution,
-            stage=StageName.stable,
-            version="1.0",
-            track="latest",
-            source="my-source",
-            bundled_builds=[build1, build2],
-        )
-
-
-def test_solution_artefacts_with_different_builds_are_created(generator: DataGenerator):
-    """Test that two solution artefacts with different bundled builds can be created."""
-    # GIVEN two different builds and a solution using one of them
-    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
-    build1 = generator.gen_artefact_build(charm, architecture="amd64")
-    build2 = generator.gen_artefact_build(charm, architecture="arm64")
-
-    generator.gen_artefact(
-        name="my-solution",
-        family=FamilyName.solution,
-        stage=StageName.stable,
-        version="1.0",
-        track="latest",
-        source="my-source",
-        bundled_builds=[build1],
-    )
-
-    # WHEN we attempt to create another solution with a different build
-    # THEN the unique constraint does not block this operation
-    generator.gen_artefact(
-        name="my-solution",
-        family=FamilyName.solution,
-        stage=StageName.stable,
-        version="1.0",
-        track="latest",
-        source="my-source",
-        bundled_builds=[build2],
-    )
-
-
-def test_updating_solution_to_have_same_bundled_builds_as_another_is_blocked_by_unique_constraint(
-    generator: DataGenerator,
-):
-    """Test that updating a solution artefact to have the same bundled builds as another solution is blocked by the
-    unique constraint."""
-    # GIVEN two solutions with different builds
-    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
-    build1 = generator.gen_artefact_build(charm, architecture="amd64")
-    build2 = generator.gen_artefact_build(charm, architecture="arm64")
-
-    generator.gen_artefact(
-        name="my-solution",
-        family=FamilyName.solution,
-        stage=StageName.stable,
-        version="1.0",
-        track="latest",
-        source="my-source",
-        bundled_builds=[build1],
-    )
-
-    solution2 = generator.gen_artefact(
-        name="my-solution",
-        family=FamilyName.solution,
-        stage=StageName.stable,
-        version="1.0",
-        track="latest",
-        source="my-source",
-        bundled_builds=[build2],
-    )
-
-    # WHEN we attempt to update solution2 to have the same bundled build as solution1
-    # THEN the unique constraint prevents this update from succeeding
-    with pytest.raises(IntegrityError):
-        solution2.bundled_builds = [build1]
-        generator._add_object(solution2)
-
-
-def test_patch_artefact_bundled_builds_set_valid_builds(generator: DataGenerator, test_client: TestClient):
-    """Test that patching an artefact with valid bundled_builds returns 200."""
-    # GIVEN a solution artefact and some builds to bundle
-    solution = generator.gen_artefact(
-        family=FamilyName.solution,
-        name="my-solution",
-        version="1.0",
-        track="latest",
-        source="my-source",
-    )
-    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
-    build1 = generator.gen_artefact_build(charm, architecture="amd64")
-    build2 = generator.gen_artefact_build(charm, architecture="arm64")
-
-    # WHEN patching with valid bundled builds
-    response = make_authenticated_request(
-        lambda: test_client.patch(
-            f"/v1/artefacts/{solution.id}",
-            json={"bundled_builds": [build1.id, build2.id]},
-        ),
-        Permission.change_artefact,
-    )
-
-    # THEN it succeeds with 200
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data["bundled_builds"]) == 2
-    bundled_ids = {b["id"] for b in data["bundled_builds"]}
-    assert bundled_ids == {build1.id, build2.id}
-
-
-def test_patch_artefact_bundled_builds_clear_to_empty(generator: DataGenerator, test_client: TestClient):
-    """Test that patching an artefact with null bundled_builds clears them."""
-    # GIVEN a solution artefact with bundled builds
-    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
-    build1 = generator.gen_artefact_build(charm, architecture="amd64")
-    solution = generator.gen_artefact(
-        family=FamilyName.solution,
-        name="my-solution",
-        version="1.0",
-        track="latest",
-        source="my-source",
-        bundled_builds=[build1],
-    )
-
-    # Verify it has builds
-    response = make_authenticated_request(
-        lambda: test_client.get(f"/v1/artefacts/{solution.id}"),
-        Permission.view_artefact,
-    )
-    assert len(response.json()["bundled_builds"]) == 1
-
-    # WHEN patching with null bundled_builds
-    response = make_authenticated_request(
-        lambda: test_client.patch(
-            f"/v1/artefacts/{solution.id}",
-            json={"bundled_builds": None},
-        ),
-        Permission.change_artefact,
-    )
-
-    # THEN it succeeds with 200 and bundled_builds is empty
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data["bundled_builds"]) == 0
-
-
-def test_patch_artefact_bundled_builds_duplicate_ids_returns_422(generator: DataGenerator, test_client: TestClient):
-    """Test that patching with duplicate build IDs returns 422."""
-    # GIVEN a solution artefact and a build
-    solution = generator.gen_artefact(
-        family=FamilyName.solution,
-        name="my-solution",
-        version="1.0",
-        track="latest",
-        source="my-source",
-    )
-    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
-    build = generator.gen_artefact_build(charm, architecture="amd64")
-
-    # WHEN patching with duplicate build IDs
-    response = make_authenticated_request(
-        lambda: test_client.patch(
-            f"/v1/artefacts/{solution.id}",
-            json={"bundled_builds": [build.id, build.id]},
-        ),
-        Permission.change_artefact,
-    )
-
-    # THEN it returns 422 with appropriate error message
-    assert response.status_code == 422
-    data = response.json()
-    assert "Duplicate build ids are not allowed in bundled_builds" in data["detail"]
-
-
-def test_patch_artefact_bundled_builds_unknown_id_returns_422(generator: DataGenerator, test_client: TestClient):
-    """Test that patching with unknown build IDs returns 422."""
-    # GIVEN a solution artefact
-    solution = generator.gen_artefact(
-        family=FamilyName.solution,
-        name="my-solution",
-        version="1.0",
-        track="latest",
-        source="my-source",
-    )
-    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
-    build = generator.gen_artefact_build(charm, architecture="amd64")
-
-    # Use a non-existent build ID (assuming IDs are sequential and large number doesn't exist)
-    unknown_build_id = 999999
-
-    # WHEN patching with unknown build ID
-    response = make_authenticated_request(
-        lambda: test_client.patch(
-            f"/v1/artefacts/{solution.id}",
-            json={"bundled_builds": [build.id, unknown_build_id]},
-        ),
-        Permission.change_artefact,
-    )
-
-    # THEN it returns 422 with appropriate error message
-    assert response.status_code == 422
-    data = response.json()
-    assert f"ArtefactBuild with id {unknown_build_id} not found" in data["detail"]
-
-
-def test_patch_artefact_bundled_builds_empty_list(generator: DataGenerator, test_client: TestClient):
-    """Test that patching with an empty bundled_builds list works."""
-    # GIVEN a solution artefact with bundled builds
-    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
-    build1 = generator.gen_artefact_build(charm, architecture="amd64")
-    solution = generator.gen_artefact(
-        family=FamilyName.solution,
-        name="my-solution",
-        version="1.0",
-        track="latest",
-        source="my-source",
-        bundled_builds=[build1],
-    )
-
-    # WHEN patching with empty list
-    response = make_authenticated_request(
-        lambda: test_client.patch(
-            f"/v1/artefacts/{solution.id}",
-            json={"bundled_builds": []},
-        ),
-        Permission.change_artefact,
-    )
-
-    # THEN it succeeds with 200 and bundled_builds is empty
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data["bundled_builds"]) == 0
-
-
-def test_patch_artefact_bundled_builds_preserves_order(generator: DataGenerator, test_client: TestClient):
-    """Test that patching preserves the order of bundled builds."""
-    # GIVEN a solution artefact and multiple builds
-    solution = generator.gen_artefact(
-        family=FamilyName.solution,
-        name="my-solution",
-        version="1.0",
-        track="latest",
-        source="my-source",
-    )
-    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
-    build1 = generator.gen_artefact_build(charm, architecture="amd64")
-    build2 = generator.gen_artefact_build(charm, architecture="arm64")
-    build3 = generator.gen_artefact_build(charm, architecture="ppc64el")
-
-    # WHEN patching with builds in a specific order
-    response = make_authenticated_request(
-        lambda: test_client.patch(
-            f"/v1/artefacts/{solution.id}",
-            json={"bundled_builds": [build3.id, build1.id, build2.id]},
-        ),
-        Permission.change_artefact,
-    )
-
-    # THEN the order is preserved
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data["bundled_builds"]) == 3
-    returned_ids = [b["id"] for b in data["bundled_builds"]]
-    assert returned_ids == [build3.id, build1.id, build2.id]

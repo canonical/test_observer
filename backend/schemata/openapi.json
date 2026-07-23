@@ -5668,13 +5668,6 @@
             },
             "type": "array",
             "title": "Test Executions"
-          },
-          "bundled_in": {
-            "items": {
-              "$ref": "#/components/schemas/ArtefactMinimalResponse"
-            },
-            "type": "array",
-            "title": "Bundled In"
           }
         },
         "type": "object",
@@ -6299,34 +6292,6 @@
         "title": "ArtefactMatchingRuleResponse",
         "description": "Artefact matching rule with associated teams"
       },
-      "ArtefactMinimalResponse": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "version": {
-            "type": "string",
-            "title": "Version"
-          },
-          "family": {
-            "type": "string",
-            "title": "Family"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "version",
-          "family"
-        ],
-        "title": "ArtefactMinimalResponse"
-      },
       "ArtefactPatch": {
         "properties": {
           "status": {
@@ -6382,20 +6347,17 @@
             ],
             "title": "Jira Issue"
           },
-          "bundled_builds": {
+          "attributes": {
             "anyOf": [
               {
-                "items": {
-                  "type": "integer"
-                },
-                "type": "array"
+                "additionalProperties": true,
+                "type": "object"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Bundled Builds",
-            "description": "List of ArtefactBuild IDs to bundle with this artefact"
+            "title": "Attributes"
           },
           "assignee_id": {
             "anyOf": [
@@ -6530,6 +6492,11 @@
             "type": "string",
             "title": "Comment"
           },
+          "attributes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Attributes"
+          },
           "archived": {
             "type": "boolean",
             "title": "Archived"
@@ -6581,13 +6548,6 @@
             "type": "integer",
             "title": "Completed Environment Reviews Count"
           },
-          "bundled_builds": {
-            "items": {
-              "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
-            },
-            "type": "array",
-            "title": "Bundled Builds"
-          },
           "assignee": {
             "anyOf": [
               {
@@ -6598,6 +6558,13 @@
               }
             ],
             "description": "Backward-compatible assignee field. Populated from the first entry in reviewers when present.",
+            "readOnly": true
+          },
+          "bundled_builds": {
+            "items": {},
+            "type": "array",
+            "title": "Bundled Builds",
+            "deprecated": true,
             "readOnly": true
           }
         },
@@ -6621,6 +6588,7 @@
           "family",
           "status",
           "comment",
+          "attributes",
           "archived",
           "reviewers",
           "due_date",
@@ -6629,7 +6597,8 @@
           "jira_issue",
           "all_environment_reviews_count",
           "completed_environment_reviews_count",
-          "assignee"
+          "assignee",
+          "bundled_builds"
         ],
         "title": "ArtefactResponse"
       },
@@ -7875,8 +7844,8 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 1000000,
-                "minimum": -1000000
+                "maximum": 1000000.0,
+                "minimum": -1000000.0
               },
               {
                 "type": "null"
@@ -8518,20 +8487,40 @@
             "const": "solution",
             "title": "Family"
           },
-          "track": {
-            "type": "string",
-            "title": "Track",
-            "description": "Solution release track being tested. Tracks represent different versions or streams of the solution. Examples: 'latest' (default), version-based tracks like '1.0', '2.0'. Use 'latest' if unsure."
-          },
-          "source": {
-            "type": "string",
-            "maxLength": 200,
-            "title": "Source",
-            "description": "Source identifier for the solution. This identifies the packaging source or origin of the solution. Examples: 'ppa:team/ppa-name', 'custom-repo', 'internal-source'."
+          "attributes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Attributes"
           },
           "execution_stage": {
             "$ref": "#/components/schemas/SolutionStage",
-            "description": "Distribution channel/risk level of the solution being tested. Options: 'edge' (cutting-edge updates), 'beta' (pre-release), 'candidate' (release candidate), 'stable' (production). Choose based on where the solution currently resides in the release pipeline."
+            "description": "Promotion stage of the solution being tested."
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track",
+            "description": "Legacy field. Merged into attributes['track'] when attributes['track'] is not provided.",
+            "deprecated": true
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source",
+            "description": "Legacy field. Merged into attributes['source'] when attributes['source'] is not provided.",
+            "deprecated": true
           }
         },
         "type": "object",
@@ -8542,8 +8531,6 @@
           "environment",
           "test_plan",
           "family",
-          "track",
-          "source",
           "execution_stage"
         ],
         "title": "StartSolutionTestExecutionRequest"
