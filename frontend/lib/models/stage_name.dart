@@ -61,7 +61,10 @@ List<StageName> familyStages(FamilyName family) {
       ];
     case FamilyName.solution:
       return [
-        StageName.empty,
+        StageName.edge,
+        StageName.beta,
+        StageName.candidate,
+        StageName.stable,
       ];
   }
 }
