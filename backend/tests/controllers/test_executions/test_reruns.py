@@ -166,6 +166,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution, priority: int
             "stage": test_execution.artefact_build.artefact.stage,
             "status": test_execution.artefact_build.artefact.status.name,
             "comment": test_execution.artefact_build.artefact.comment,
+            "attributes": test_execution.artefact_build.artefact.attributes,
             "archived": test_execution.artefact_build.artefact.archived,
             "assignee": (
                 test_execution.artefact_build.artefact.reviewers[0]

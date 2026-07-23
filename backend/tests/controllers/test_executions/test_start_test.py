@@ -121,19 +121,66 @@ solution_test_request = {
     "family": "solution",
     "name": "ubuntu-pro-fips",
     "version": "1.2.3",
-    "track": "22.04",
-    "source": "ppa:ubuntu-pro/fips",
     "arch": "amd64",
-    "execution_stage": SolutionStage.stable,
+    "execution_stage": SolutionStage.beta,
     "environment": "test-lab",
     "ci_link": "http://localhost",
     "test_plan": "fips test plan",
 }
 
 
+def test_start_test_creates_new_solution_with_attributes(
+    execute: Execute,
+    db_session: Session,
+) -> None:
+    attributes = {"foo": "bar", "nested": {"key": "value"}}
+
+    response = execute({**solution_test_request, "attributes": attributes})
+
+    assert response.status_code == 200
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    assert test_execution.artefact_build.artefact.attributes == attributes
+
+
+def test_start_test_without_attributes_creates_new_solution_with_empty_attributes(
+    execute: Execute,
+    db_session: Session,
+) -> None:
+    response = execute(solution_test_request)
+
+    assert response.status_code == 200
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    assert test_execution.artefact_build.artefact.attributes == {}
+
+
+def test_start_test_on_existing_solution_does_not_change_attributes(
+    execute: Execute,
+    db_session: Session,
+) -> None:
+    """Attributes are applied only on creation; resubmitting for an existing solution
+    with different attributes leaves the stored attributes unchanged."""
+    original = {"foo": "bar"}
+    response = execute({**solution_test_request, "attributes": original})
+    assert response.status_code == 200
+    te1 = db_session.get(TestExecution, response.json()["id"])
+    assert te1 is not None
+    artefact_id = te1.artefact_build.artefact_id
+
+    response = execute({**solution_test_request, "attributes": {"foo": "changed"}, "ci_link": "http://localhost/other"})
+    assert response.status_code == 200
+    te2 = db_session.get(TestExecution, response.json()["id"])
+    assert te2 is not None
+    db_session.expire_all()
+
+    assert te2.artefact_build.artefact_id == artefact_id
+    assert te2.artefact_build.artefact.attributes == original
+
+
 @pytest.mark.parametrize(
     "start_request",
-    [snap_test_request, deb_test_request, charm_test_request, image_test_request, solution_test_request],
+    [snap_test_request, deb_test_request, charm_test_request, image_test_request],
 )
 class TestFamilyIndependentTests:
     def test_starts_a_test(self, execute: Execute, start_request: dict[str, Any]):
@@ -895,10 +942,7 @@ def test_image_same_sha_reuses_existing_artefact(execute: Execute, db_session: S
     [
         "name",
         "version",
-        "track",
-        "source",
         "arch",
-        "execution_stage",
         "environment",
         "test_plan",
     ],
@@ -994,16 +1038,6 @@ def test_validates_stage_for_charms(execute: Execute, invalid_stage: StageName):
     assert response.status_code == 422
 
 
-@pytest.mark.parametrize(
-    "invalid_stage",
-    set(StageName) - set(SolutionStage),
-)
-def test_validates_stage_for_solutions(execute: Execute, invalid_stage: StageName):
-    response = execute({**solution_test_request, "execution_stage": invalid_stage})
-
-    assert response.status_code == 422
-
-
 def test_snap_branch_is_part_of_uniqueness(execute: Execute, db_session: Session):
     response = execute(snap_test_request)
     te1 = db_session.get(TestExecution, response.json()["id"])
@@ -1060,63 +1094,24 @@ def test_deb_with_source_and_stage_fails(execute: Execute):
     assert response.status_code == 422
 
 
-def test_solution_includes_track_source_and_stage(execute: Execute, db_session: Session):
-    """Verify that a solution test execution creates an artefact with track, source, and stage."""
-    response = execute(solution_test_request)
-    assert response.status_code == 200
-
-    test_execution = db_session.get(TestExecution, response.json()["id"])
-    assert test_execution
-
-    artefact = test_execution.artefact_build.artefact
-    assert artefact.name == solution_test_request["name"]
-    assert artefact.version == solution_test_request["version"]
-    assert artefact.track == solution_test_request["track"]
-    assert artefact.source == solution_test_request["source"]
-    assert artefact.stage == solution_test_request["execution_stage"]
-    assert artefact.family == FamilyName.solution
-
-
-def test_solution_track_source_stage_are_part_of_uniqueness(execute: Execute, db_session: Session):
-    """Verify that changing track, source, or stage creates a different artefact."""
+def test_solution_same_name_and_version_reuses_artefact(execute: Execute, db_session: Session):
+    """Solutions are identified by (name, version); resubmitting the same name and
+    version resolves to the same artefact, while a new version creates a new one."""
     response = execute(solution_test_request)
     te1 = db_session.get(TestExecution, response.json()["id"])
+    assert te1 is not None
 
-    # Different track should create a new artefact
-    request_different_track = {
-        **solution_test_request,
-        "track": "24.04",
-        "ci_link": "http://localhost/1",
-    }
-    response = execute(request_different_track)
+    response = execute({**solution_test_request, "ci_link": "http://localhost/1"})
     te2 = db_session.get(TestExecution, response.json()["id"])
+    assert te2 is not None
+    assert te2.artefact_build.artefact_id == te1.artefact_build.artefact_id
 
-    assert te1 and te2
-    assert te1.artefact_build.artefact_id != te2.artefact_build.artefact_id
-
-    # Different source should create a new artefact
-    request_different_source = {
-        **solution_test_request,
-        "source": "ppa:ubuntu-pro/other",
-        "ci_link": "http://localhost/2",
-    }
-    response = execute(request_different_source)
+    response = execute({**solution_test_request, "version": "2.0.0", "ci_link": "http://localhost/2"})
     te3 = db_session.get(TestExecution, response.json()["id"])
+    assert te3 is not None
+    assert te3.artefact_build.artefact_id != te1.artefact_build.artefact_id
 
-    assert te1 and te3
-    assert te1.artefact_build.artefact_id != te3.artefact_build.artefact_id
-
-    # Different stage should create a new artefact
-    request_different_stage = {
-        **solution_test_request,
-        "execution_stage": "beta",
-        "ci_link": "http://localhost/3",
-    }
-    response = execute(request_different_stage)
-    te4 = db_session.get(TestExecution, response.json()["id"])
-
-    assert te1 and te4
-    assert te1.artefact_build.artefact_id != te4.artefact_build.artefact_id
+    assert db_session.query(Artefact).filter(Artefact.name == solution_test_request["name"]).count() == 2
 
 
 def test_charm_assigned_to_charm_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):

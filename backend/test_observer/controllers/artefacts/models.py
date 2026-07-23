@@ -71,6 +71,7 @@ class ArtefactResponse(BaseModel):
     family: str
     status: ArtefactStatus
     comment: str
+    attributes: dict[str, Any]
     archived: bool
     reviewers: list[ReviewerResponse]
     due_date: date | None
@@ -154,6 +155,7 @@ class ArtefactPatch(BaseModel):
     stage: StageName | None = None
     comment: str | None = None
     jira_issue: str | None = None
+    attributes: dict[str, Any] | None = None
     assignee_id: int | None = Field(
         default=None,
         deprecated=True,

@@ -228,6 +228,18 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
     _assert_get_artefact_response(response.json(), a)
 
 
+def test_get_artefact_includes_attributes(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(attributes={"foo": "bar"})
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["attributes"] == {"foo": "bar"}
+
+
 def test_get_artefact_environment_reviews_counts_only_latest_build(test_client: TestClient, generator: DataGenerator):
     a = generator.gen_artefact(StageName.beta)
     ab = generator.gen_artefact_build(artefact=a, revision=1)
@@ -328,6 +340,45 @@ def test_artefact_signoff_disallow_reject(test_client: TestClient, test_executio
     )
 
     assert response.status_code == 400
+
+
+def test_patch_artefact_updates_attributes(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(attributes={"old": "value"})
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"attributes": {"new": "value", "nested": {"key": "value"}}},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["attributes"] == {"new": "value", "nested": {"key": "value"}}
+
+    get_response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
+        Permission.view_artefact,
+    )
+    assert get_response.json()["attributes"] == {"new": "value", "nested": {"key": "value"}}
+
+
+def test_patch_artefact_without_attributes_preserves_existing_attributes(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    artefact = generator.gen_artefact(attributes={"keep": "me"})
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"comment": "updated comment"},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["attributes"] == {"keep": "me"}
 
 
 def test_artefact_signoff_ignore_old_build_on_approve(test_client: TestClient, generator: DataGenerator):
@@ -1158,6 +1209,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "comment": artefact.comment,
         "archived": artefact.archived,
         "family": artefact.family,
+        "attributes": artefact.attributes,
         "assignee": assignee,
         "reviewers": [],
         "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
