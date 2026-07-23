@@ -178,6 +178,48 @@ def test_start_test_on_existing_solution_does_not_change_attributes(
     assert te2.artefact_build.artefact.attributes == original
 
 
+def test_start_test_legacy_track_and_source_are_merged_into_attributes(
+    execute: Execute,
+    db_session: Session,
+) -> None:
+    """The legacy track/source fields are deprecated but still accepted for backward
+    compatibility, and are folded into attributes for existing clients that haven't
+    migrated to the attributes field yet."""
+    response = execute({**solution_test_request, "track": "22.04", "source": "ppa:ubuntu-pro/fips"})
+
+    assert response.status_code == 200
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    assert test_execution.artefact_build.artefact.attributes == {
+        "track": "22.04",
+        "source": "ppa:ubuntu-pro/fips",
+    }
+
+
+def test_start_test_legacy_track_and_source_do_not_override_attributes(
+    execute: Execute,
+    db_session: Session,
+) -> None:
+    """When attributes explicitly sets track/source, the legacy fields must not clobber them."""
+    response = execute(
+        {
+            **solution_test_request,
+            "track": "legacy-track",
+            "source": "legacy-source",
+            "attributes": {"track": "explicit-track", "other": "value"},
+        }
+    )
+
+    assert response.status_code == 200
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    assert test_execution.artefact_build.artefact.attributes == {
+        "track": "explicit-track",
+        "other": "value",
+        "source": "legacy-source",
+    }
+
+
 @pytest.mark.parametrize(
     "start_request",
     [snap_test_request, deb_test_request, charm_test_request, image_test_request],

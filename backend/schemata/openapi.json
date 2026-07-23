@@ -6559,6 +6559,13 @@
             ],
             "description": "Backward-compatible assignee field. Populated from the first entry in reviewers when present.",
             "readOnly": true
+          },
+          "bundled_builds": {
+            "items": {},
+            "type": "array",
+            "title": "Bundled Builds",
+            "deprecated": true,
+            "readOnly": true
           }
         },
         "type": "object",
@@ -6590,7 +6597,8 @@
           "jira_issue",
           "all_environment_reviews_count",
           "completed_environment_reviews_count",
-          "assignee"
+          "assignee",
+          "bundled_builds"
         ],
         "title": "ArtefactResponse"
       },
@@ -8487,6 +8495,32 @@
           "execution_stage": {
             "$ref": "#/components/schemas/SolutionStage",
             "description": "Promotion stage of the solution being tested."
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track",
+            "description": "Legacy field. Merged into attributes['track'] when attributes['track'] is not provided.",
+            "deprecated": true
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source",
+            "description": "Legacy field. Merged into attributes['source'] when attributes['source'] is not provided.",
+            "deprecated": true
           }
         },
         "type": "object",

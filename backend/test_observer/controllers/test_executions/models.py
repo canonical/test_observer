@@ -287,6 +287,37 @@ class StartSolutionTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.solution]
     attributes: dict[str, Any] = Field(default_factory=dict)
     execution_stage: SolutionStage = Field(description="Promotion stage of the solution being tested.")
+    track: str | None = Field(
+        default=None,
+        deprecated=True,
+        description="Legacy field. Merged into attributes['track'] when attributes['track'] is not provided.",
+    )
+    source: str | None = Field(
+        default=None,
+        deprecated=True,
+        description="Legacy field. Merged into attributes['source'] when attributes['source'] is not provided.",
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def map_legacy_track_and_source(cls, data: object) -> object:
+        if not isinstance(data, dict):
+            return data
+
+        # Backwards compatibility: fold the legacy track/source fields into attributes,
+        # without clobbering values explicitly set in attributes.
+        attributes = data.get("attributes") or {}
+        if not isinstance(attributes, dict):
+            return data
+        attributes = dict(attributes)
+
+        if data.get("track") is not None and "track" not in attributes:
+            attributes["track"] = data["track"]
+        if data.get("source") is not None and "source" not in attributes:
+            attributes["source"] = data["source"]
+
+        data["attributes"] = attributes
+        return data
 
 
 class C3TestResultStatus(StrEnum):

@@ -381,6 +381,30 @@ def test_patch_artefact_without_attributes_preserves_existing_attributes(
     assert response.json()["attributes"] == {"keep": "me"}
 
 
+def test_patch_artefact_with_explicit_null_attributes_clears_them(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    artefact = generator.gen_artefact(attributes={"old": "value"})
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"attributes": None},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["attributes"] == {}
+
+    get_response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
+        Permission.view_artefact,
+    )
+    assert get_response.json()["attributes"] == {}
+
+
 def test_artefact_signoff_ignore_old_build_on_approve(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate)
     build1 = generator.gen_artefact_build(artefact, revision=1)
@@ -1233,6 +1257,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "attributes": artefact.attributes,
         "assignee": assignee,
         "reviewers": [],
+        "bundled_builds": [],
         "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
         "bug_link": artefact.bug_link,
         "jira_issue": artefact.jira_issue,

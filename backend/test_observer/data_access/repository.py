@@ -39,7 +39,9 @@ def get_artefacts_by_family(
 
     :session: DB session
     :family: name of the family
-    :load_stage: whether to eagerly load stage object in all artefacts
+    :load_environment_reviews: whether to eagerly load each build's environment reviews
+    :load_builds: whether to eagerly load each artefact's builds
+    :order_by_columns: optional columns to order the results by
     :return: list of Artefacts
     """
     if family == FamilyName.charm:
