@@ -47,7 +47,7 @@ List<Filter<Artefact>> getArtefactFiltersFor(FamilyName family) =>
           _artefactDueDateFilter,
         ],
       FamilyName.solution => [
-          _artefactAssigneeFilter,
+          _artefactReviewerFilter,
           _artefactStatusFilter,
           _artefactDueDateFilter,
         ],

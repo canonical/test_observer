@@ -289,9 +289,9 @@ const _solutionColumnsMetadata = <ColumnMetadata>[
   ),
   (
     name: 'Reviewers',
-    queryParam: ArtefactSortingQuery.assignee,
+    queryParam: ArtefactSortingQuery.reviewer,
     flex: 1,
-    cellBuilder: _buildAssigneeCell,
+    cellBuilder: _buildReviewersCell,
   ),
 ];
 
