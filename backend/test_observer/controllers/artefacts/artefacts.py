@@ -48,6 +48,7 @@ from test_observer.data_access.models_enums import (
     ImageStage,
     NotificationType,
     SnapStage,
+    SolutionStage,
     StageName,
 )
 from test_observer.data_access.repository import get_artefacts_by_family
@@ -399,6 +400,8 @@ def _validate_artefact_stage(artefact: Artefact, stage: StageName) -> None:
                 CharmStage(stage)
             case FamilyName.image:
                 ImageStage(stage)
+            case FamilyName.solution:
+                SolutionStage(stage)
     except ValueError as e:
         raise HTTPException(
             status_code=400,

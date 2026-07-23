@@ -59,5 +59,12 @@ List<StageName> familyStages(FamilyName family) {
         StageName.pending,
         StageName.current,
       ];
+    case FamilyName.solution:
+      return [
+        StageName.edge,
+        StageName.beta,
+        StageName.candidate,
+        StageName.stable,
+      ];
   }
 }
