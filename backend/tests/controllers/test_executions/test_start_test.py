@@ -220,6 +220,14 @@ def test_start_test_legacy_track_and_source_do_not_override_attributes(
     }
 
 
+def test_start_test_explicit_null_attributes_is_rejected(execute: Execute) -> None:
+    """attributes is non-nullable; an explicit null must fail validation rather than being
+    silently treated as an empty dict."""
+    response = execute({**solution_test_request, "attributes": None})
+
+    assert response.status_code == 422
+
+
 @pytest.mark.parametrize(
     "start_request",
     [snap_test_request, deb_test_request, charm_test_request, image_test_request],

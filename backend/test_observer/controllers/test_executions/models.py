@@ -305,11 +305,15 @@ class StartSolutionTestExecutionRequest(_StartTestExecutionRequest):
             return data
 
         # Backwards compatibility: fold the legacy track/source fields into attributes,
-        # without clobbering values explicitly set in attributes.
-        attributes = data.get("attributes") or {}
-        if not isinstance(attributes, dict):
-            return data
-        attributes = dict(attributes)
+        # without clobbering values explicitly set in attributes. An explicit null for
+        # attributes is left untouched so it falls through to normal (non-nullable) validation.
+        if "attributes" not in data:
+            attributes: Any = {}
+        else:
+            attributes = data["attributes"]
+            if attributes is None or not isinstance(attributes, dict):
+                return data
+            attributes = dict(attributes)
 
         if data.get("track") is not None and "track" not in attributes:
             attributes["track"] = data["track"]
