@@ -37,7 +37,7 @@ from test_observer.external_apis.launchpad.models import LaunchpadUser
 # The SP redirects to the IdP's publicly configured URL (SSP_BASE_URL_PATH).
 # That address is reachable when tests run on the host, but not from inside the
 # api container (where the IdP is the 'saml-idp' compose service on port 80).
-IDP_PUBLIC_NETLOC = "localhost:8081"
+IDP_PUBLIC_NETLOC = "localhost:8080"
 IDP_INTERNAL_URL = "http://saml-idp"
 
 
