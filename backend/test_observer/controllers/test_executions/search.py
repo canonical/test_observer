@@ -15,32 +15,30 @@
 
 import base64
 from collections import defaultdict
+from datetime import datetime
 from typing import Annotated, Literal, TypeVar
 
 from fastapi import Depends, HTTPException, Query, Security
-from sqlalchemy import Select, and_, desc, exists, func, select, true
-from sqlalchemy.orm import Session, aliased, selectinload
+from sqlalchemy import and_, desc, exists, func, select
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.constants import QueryValue
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.controllers.test_executions.execution_filters import (
+    apply_te_joins,
+    build_execution_filters,
+)
 from test_observer.controllers.test_executions.shared_models import (
     TestExecutionSearchFilters,
     TestResultResponse,
 )
 from test_observer.data_access.models import (
-    Artefact,
     ArtefactBuild,
-    ColumnElement,
-    Environment,
-    TestEvent,
     TestExecution,
     TestExecutionMetadata,
-    TestExecutionRerunRequest,
     TestResult,
-    User,
-    test_execution_metadata_association_table,
 )
 from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
 from test_observer.data_access.setup import get_db
@@ -50,8 +48,6 @@ from .router import router
 from .test_execution import TEST_EXECUTION_OPTIONS
 
 T = TypeVar("T")
-
-JoinName = Literal["test_execution", "artefact_build", "artefact", "environment"]
 
 # selectinload options used when querying from TestResult root (test_result=any/{ids})
 _TEST_RESULT_QUERY_OPTIONS = [
@@ -143,128 +139,13 @@ def parse_list_or_query_value(
     return input  # type: ignore[return-value]
 
 
-def _filter_execution_metadata(
-    execution_metadata: ExecutionMetadata,
-) -> ColumnElement[bool]:
-    conditions = []
-    for category, values in execution_metadata.root.items():
-        subq = select(true()).select_from(test_execution_metadata_association_table)
-        subq = subq.join(
-            TestExecutionMetadata,
-            test_execution_metadata_association_table.c.test_execution_metadata_id == TestExecutionMetadata.id,
-        )
-        subq = subq.where(
-            test_execution_metadata_association_table.c.test_execution_id == TestExecution.id,
-            TestExecutionMetadata.category == category,
-            TestExecutionMetadata.value.in_(values),
-        )
-        subq = subq.limit(1)
-        conditions.append(exists(subq))
-
-    return and_(*conditions)
-
-
-def _build_execution_filters(
-    filters: TestExecutionSearchFilters,
-) -> tuple[list[ColumnElement[bool]], set[JoinName]]:
-    query_filters: list[ColumnElement[bool]] = []
-    joins_needed: set[JoinName] = set()
-
-    if filters.families:
-        query_filters.append(Artefact.family.in_(filters.families))
-        joins_needed.update(["artefact_build", "artefact"])
-
-    if filters.artefacts:
-        query_filters.append(Artefact.name.in_(filters.artefacts))
-        joins_needed.update(["artefact_build", "artefact"])
-
-    if filters.artefact_is_archived is not None:
-        query_filters.append(Artefact.archived == filters.artefact_is_archived)
-        joins_needed.update(["artefact_build", "artefact"])
-
-    if filters.environments:
-        query_filters.append(Environment.name.in_(filters.environments))
-        joins_needed.add("environment")
-
-    if filters.execution_metadata and len(filters.execution_metadata) > 0:
-        query_filters.append(_filter_execution_metadata(filters.execution_metadata))
-
-    if filters.test_execution_statuses:
-        query_filters.append(TestExecution.status.in_(filters.test_execution_statuses))
-
-    if filters.reviewer_ids != []:
-        if filters.reviewer_ids == QueryValue.ANY:
-            query_filters.append(Artefact.reviewers.any())
-        elif filters.reviewer_ids == QueryValue.NONE:
-            query_filters.append(~Artefact.reviewers.any())
-        elif isinstance(filters.reviewer_ids, list) and filters.reviewer_ids:
-            query_filters.append(Artefact.reviewers.any(User.id.in_(filters.reviewer_ids)))
-        joins_needed.update(["artefact_build", "artefact"])
-
-    if filters.rerun_is_requested is not None:
-        rerun_exists = exists(
-            select(1)
-            .select_from(TestExecutionRerunRequest)
-            .where(
-                TestExecutionRerunRequest.test_plan_id == TestExecution.test_plan_id,
-                TestExecutionRerunRequest.artefact_build_id == TestExecution.artefact_build_id,
-                TestExecutionRerunRequest.environment_id == TestExecution.environment_id,
-            )
-        )
-        query_filters.append(rerun_exists if filters.rerun_is_requested else ~rerun_exists)
-
-    if filters.execution_is_latest is not None:
-        newer_execution = aliased(TestExecution)
-        newer_execution_exists = exists(
-            select(1)
-            .select_from(newer_execution)
-            .where(
-                TestExecution.test_plan_id == newer_execution.test_plan_id,
-                TestExecution.artefact_build_id == newer_execution.artefact_build_id,
-                TestExecution.environment_id == newer_execution.environment_id,
-                TestExecution.id < newer_execution.id,
-            )
-        )
-        query_filters.append(~newer_execution_exists if filters.execution_is_latest else newer_execution_exists)
-
-    if filters.event_names != []:
-        event_exists = exists(select(1).select_from(TestEvent).where(TestEvent.test_execution_id == TestExecution.id))
-        if filters.event_names == QueryValue.ANY:
-            query_filters.append(event_exists)
-        elif filters.event_names == QueryValue.NONE:
-            query_filters.append(~event_exists)
-        elif isinstance(filters.event_names, list) and filters.event_names:
-            query_filters.append(
-                exists(
-                    select(1)
-                    .select_from(TestEvent)
-                    .where(
-                        TestEvent.test_execution_id == TestExecution.id,
-                        TestEvent.event_name.in_(filters.event_names),
-                    )
-                )
-            )
-
-    return query_filters, joins_needed
-
-
-def _apply_te_joins(query: Select, joins_needed: set[JoinName]) -> Select:
-    if "artefact_build" in joins_needed:
-        query = query.join(TestExecution.artefact_build)
-    if "artefact" in joins_needed:
-        query = query.join(ArtefactBuild.artefact)
-    if "environment" in joins_needed:
-        query = query.join(TestExecution.environment)
-    return query
-
-
 def _search_executions(
     filters: TestExecutionSearchFilters,
     parsed_test_result: list[int] | QueryValue,
     db: Session,
 ) -> tuple[list[TestExecution], dict[int, list[TestResult]], int]:
     """Query test executions with a single path for any/none/specific result modes."""
-    query_filters, joins_needed = _build_execution_filters(filters)
+    query_filters, joins_needed = build_execution_filters(filters)
 
     if parsed_test_result == QueryValue.NONE:
         query_filters.append(
@@ -291,7 +172,7 @@ def _search_executions(
         )
 
     ids_query = select(TestExecution.id)
-    ids_query = _apply_te_joins(ids_query, joins_needed)
+    ids_query = apply_te_joins(ids_query, joins_needed)
     if query_filters:
         ids_query = ids_query.where(and_(*query_filters))
 
@@ -302,7 +183,7 @@ def _search_executions(
         ids_query = ids_query.limit(filters.limit)
 
     count_query = select(func.count()).select_from(
-        _apply_te_joins(select(TestExecution.id), joins_needed).where(and_(*query_filters)).subquery()
+        apply_te_joins(select(TestExecution.id), joins_needed).where(and_(*query_filters)).subquery()
     )
 
     execution_ids = [row[0] for row in db.execute(ids_query).all()]
@@ -344,6 +225,18 @@ def search_test_executions(
     artefacts: Annotated[
         list[str] | None,
         Query(description="Filter by artefact names"),
+    ] = None,
+    artefact_versions: Annotated[
+        list[str] | None,
+        Query(description="Filter by artefact versions"),
+    ] = None,
+    artefact_stages: Annotated[
+        list[str] | None,
+        Query(description="Filter by artefact stages"),
+    ] = None,
+    artefact_tracks: Annotated[
+        list[str] | None,
+        Query(description="Filter by artefact tracks"),
     ] = None,
     artefact_is_archived: Annotated[
         bool | None,
@@ -396,6 +289,14 @@ def search_test_executions(
             )
         ),
     ] = None,
+    from_date: Annotated[
+        datetime | None,
+        Query(description="Filter executions updated on or after this datetime"),
+    ] = None,
+    until_date: Annotated[
+        datetime | None,
+        Query(description="Filter executions updated on or before this datetime"),
+    ] = None,
     limit: Annotated[int, Query(ge=0, le=1000, description="Maximum number of results to return")] = 50,
     offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination")] = 0,
     db: Session = Depends(get_db),
@@ -414,6 +315,9 @@ def search_test_executions(
     filters = TestExecutionSearchFilters(
         families=families or [],
         artefacts=artefacts or [],
+        artefact_versions=artefact_versions or [],
+        artefact_stages=artefact_stages or [],
+        artefact_tracks=artefact_tracks or [],
         artefact_is_archived=artefact_is_archived,
         environments=environments or [],
         execution_metadata=execution_metadata or ExecutionMetadata(),
@@ -423,6 +327,8 @@ def search_test_executions(
         rerun_is_requested=rerun_is_requested,
         execution_is_latest=execution_is_latest,
         event_names=parse_list_or_query_value(event_names),  # type: ignore[arg-type]
+        from_date=from_date,
+        until_date=until_date,
         limit=limit,
         offset=offset,
     )

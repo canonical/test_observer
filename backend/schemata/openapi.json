@@ -288,11 +288,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "If true, omit returning created reruns in the response body. Speeds up bulk operations, as the rerun schema contains a lot of information and returning many reruns can be slow. Required when creating reruns with test result filters.",
+              "description": "If true, omit returning created reruns in the response body. Speeds up bulk operations, as the rerun schema contains a lot of information and returning many reruns can be slow. Required when creating reruns with test_results_filters or test_executions_filters.",
               "default": false,
               "title": "Silent"
             },
-            "description": "If true, omit returning created reruns in the response body. Speeds up bulk operations, as the rerun schema contains a lot of information and returning many reruns can be slow. Required when creating reruns with test result filters."
+            "description": "If true, omit returning created reruns in the response body. Speeds up bulk operations, as the rerun schema contains a lot of information and returning many reruns can be slow. Required when creating reruns with test_results_filters or test_executions_filters."
           }
         ],
         "requestBody": {
@@ -653,6 +653,69 @@
             "description": "Filter by artefact names"
           },
           {
+            "name": "artefact_versions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact versions",
+              "title": "Artefact Versions"
+            },
+            "description": "Filter by artefact versions"
+          },
+          {
+            "name": "artefact_stages",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact stages",
+              "title": "Artefact Stages"
+            },
+            "description": "Filter by artefact stages"
+          },
+          {
+            "name": "artefact_tracks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact tracks",
+              "title": "Artefact Tracks"
+            },
+            "description": "Filter by artefact tracks"
+          },
+          {
             "name": "artefact_is_archived",
             "in": "query",
             "required": false,
@@ -889,6 +952,44 @@
               "title": "Event Names"
             },
             "description": "Filter by event log: 'any' (executions with any events), 'none' (executions without events), or specific event name(s)"
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter executions updated on or after this datetime",
+              "title": "From Date"
+            },
+            "description": "Filter executions updated on or after this datetime"
+          },
+          {
+            "name": "until_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter executions updated on or before this datetime",
+              "title": "Until Date"
+            },
+            "description": "Filter executions updated on or before this datetime"
           },
           {
             "name": "limit",
@@ -6679,6 +6780,16 @@
                 "type": "null"
               }
             ]
+          },
+          "test_executions_filters": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TestExecutionRerunFilters"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -7750,10 +7861,22 @@
               }
             ]
           },
+          "test_executions_filters": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TestExecutionRerunFilters"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "priority": {
             "anyOf": [
               {
-                "type": "integer"
+                "type": "integer",
+                "maximum": 1000000,
+                "minimum": -1000000
               },
               {
                 "type": "null"
@@ -8702,6 +8825,162 @@
         ],
         "title": "TestExecutionRelevantLinkResponse"
       },
+      "TestExecutionRerunFilters": {
+        "properties": {
+          "families": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyName"
+            },
+            "type": "array",
+            "title": "Families"
+          },
+          "artefacts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefacts"
+          },
+          "artefact_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Versions"
+          },
+          "artefact_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Stages"
+          },
+          "artefact_tracks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Tracks"
+          },
+          "artefact_is_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artefact Is Archived"
+          },
+          "environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Environments"
+          },
+          "test_execution_statuses": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionStatus"
+            },
+            "type": "array",
+            "title": "Test Execution Statuses"
+          },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          },
+          "reviewer_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "any",
+                  "none"
+                ]
+              }
+            ],
+            "title": "Reviewer Ids"
+          },
+          "assignee_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "any",
+                  "none"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Ids",
+            "deprecated": true
+          },
+          "rerun_is_requested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Is Requested"
+          },
+          "execution_is_latest": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Is Latest"
+          },
+          "from_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Date"
+          },
+          "until_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until Date"
+          }
+        },
+        "type": "object",
+        "title": "TestExecutionRerunFilters",
+        "description": "Filter model for rerun create/delete operations.\n\nExcludes pagination (limit/offset) and search-only fields (event_names)\nthat have no meaning in the rerun context."
+      },
       "TestExecutionResponse": {
         "properties": {
           "id": {
@@ -8763,6 +9042,18 @@
             "type": "boolean",
             "title": "Is Rerun Requested",
             "readOnly": true
+          },
+          "rerun_priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Priority",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -8776,7 +9067,8 @@
           "created_at",
           "execution_metadata",
           "is_triaged",
-          "is_rerun_requested"
+          "is_rerun_requested",
+          "rerun_priority"
         ],
         "title": "TestExecutionResponse"
       },
@@ -8854,6 +9146,18 @@
             "type": "boolean",
             "title": "Is Rerun Requested",
             "readOnly": true
+          },
+          "rerun_priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Priority",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -8869,7 +9173,8 @@
           "is_triaged",
           "artefact",
           "artefact_build",
-          "is_rerun_requested"
+          "is_rerun_requested",
+          "rerun_priority"
         ],
         "title": "TestExecutionResponseWithContext"
       },

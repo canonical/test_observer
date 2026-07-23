@@ -263,6 +263,7 @@ class _ExpandableHeader extends StatelessWidget {
             Expanded(
               child: Text(
                 display,
+                textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16),
               ),
             ),

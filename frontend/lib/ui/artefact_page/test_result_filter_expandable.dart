@@ -55,7 +55,9 @@ class TestResultsFilterExpandable extends ConsumerWidget {
             filteredResults.any((result) => result.id == testResultIdToExpand);
 
         return SliverExpandable(
-          initiallyExpanded: shouldExpandStatus,
+          initiallyExpanded: shouldExpandStatus ||
+              (statusToFilterBy == TestResultStatus.failed &&
+                  filteredResults.isNotEmpty),
           title: Row(
             children: [
               TestResultHelpers.getStatusIcon(statusToFilterBy),

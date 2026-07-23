@@ -20,20 +20,20 @@ import 'filter.dart';
 List<Filter<Artefact>> getArtefactFiltersFor(FamilyName family) =>
     switch (family) {
       FamilyName.snap => [
-          _artefactAssigneeFilter,
+          _artefactReviewerFilter,
           _artefactStatusFilter,
           _artefactDueDateFilter,
           _artefactRiskFilter,
         ],
       FamilyName.deb => [
-          _artefactAssigneeFilter,
+          _artefactReviewerFilter,
           _artefactStatusFilter,
           _artefactDueDateFilter,
           _artefactSeriesFilter,
           _artefactPocketFilter,
         ],
       FamilyName.charm => [
-          _artefactAssigneeFilter,
+          _artefactReviewerFilter,
           _artefactStatusFilter,
           _artefactDueDateFilter,
           _artefactRiskFilter,
@@ -42,7 +42,7 @@ List<Filter<Artefact>> getArtefactFiltersFor(FamilyName family) =>
           _artefactOSFilter,
           _artefactReleaseFilter,
           _artefactOwnerFilter,
-          _artefactAssigneeFilter,
+          _artefactReviewerFilter,
           _artefactStatusFilter,
           _artefactDueDateFilter,
         ],
@@ -53,9 +53,9 @@ List<Filter<Artefact>> getArtefactFiltersFor(FamilyName family) =>
         ],
     };
 
-final _artefactAssigneeFilter = createFilterFromExtractor<Artefact>(
-  'Assignee',
-  (artefact) => artefact.assignee.name,
+final _artefactReviewerFilter = createFilterFromListExtractor<Artefact>(
+  'Reviewer',
+  (artefact) => artefact.reviewers.map((r) => r.name).toList(),
 );
 
 final _artefactStatusFilter = createFilterFromExtractor<Artefact>(

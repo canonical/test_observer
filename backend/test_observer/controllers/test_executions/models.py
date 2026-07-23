@@ -34,7 +34,10 @@ from test_observer.controllers.artefacts.models import (
     TestExecutionResponse,
 )
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.controllers.test_executions.shared_models import TestResultResponse
+from test_observer.controllers.test_executions.shared_models import (
+    TestExecutionRerunFilters,
+    TestResultResponse,
+)
 from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 from test_observer.data_access.models_enums import (
     CharmStage,
@@ -342,10 +345,15 @@ class TestExecutionsPatchRequest(BaseModel):
     execution_metadata: ExecutionMetadata | None = None
 
 
+RERUN_PRIORITY_MIN = -1_000_000
+RERUN_PRIORITY_MAX = 1_000_000
+
+
 class RerunRequest(BaseModel):
     test_execution_ids: set[int] = Field(default_factory=set)
     test_results_filters: TestResultSearchFilters | None = None
-    priority: int | None = None
+    test_executions_filters: TestExecutionRerunFilters | None = None
+    priority: int | None = Field(default=None, ge=RERUN_PRIORITY_MIN, le=RERUN_PRIORITY_MAX)
 
 
 class PendingRerun(BaseModel):
@@ -364,6 +372,7 @@ class PendingRerun(BaseModel):
 class DeleteReruns(BaseModel):
     test_execution_ids: set[int] = Field(default_factory=set)
     test_results_filters: TestResultSearchFilters | None = None
+    test_executions_filters: TestExecutionRerunFilters | None = None
 
 
 class TestEventResponse(BaseModel):

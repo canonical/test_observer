@@ -23,6 +23,7 @@ import '../../models/test_execution.dart';
 import '../../providers/artefact_builds.dart';
 import '../../providers/filtered_enriched_test_executions.dart';
 import '../../routing.dart';
+import '../rerun_priority_form_field.dart';
 import '../spacing.dart';
 
 class RerunFilteredPlansButton extends ConsumerWidget {
@@ -61,7 +62,7 @@ class RerunFilteredPlansButton extends ConsumerWidget {
   }
 }
 
-class _ConfirmationDialog extends ConsumerWidget {
+class _ConfirmationDialog extends ConsumerStatefulWidget {
   const _ConfirmationDialog({
     required this.testExecutionsToRerun,
     required this.artefactId,
@@ -71,27 +72,54 @@ class _ConfirmationDialog extends ConsumerWidget {
   final int artefactId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    handleYes() {
-      final testExecutionIds = {for (final te in testExecutionsToRerun) te.id};
-      ref
-          .read(artefactBuildsProvider(artefactId).notifier)
-          .rerunTestExecutions(testExecutionIds);
-      context.pop();
+  ConsumerState<_ConfirmationDialog> createState() =>
+      _ConfirmationDialogState();
+}
+
+class _ConfirmationDialogState extends ConsumerState<_ConfirmationDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _priorityController = TextEditingController(text: '0');
+
+  @override
+  void dispose() {
+    _priorityController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    Future<void> handleYes() async {
+      if (_formKey.currentState?.validate() != true) return;
+      final priority = int.tryParse(_priorityController.text);
+      final router = GoRouter.of(context);
+      final testExecutionIds = {
+        for (final te in widget.testExecutionsToRerun) te.id,
+      };
+      await ref
+          .read(artefactBuildsProvider(widget.artefactId).notifier)
+          .rerunTestExecutions(testExecutionIds, priority: priority);
+      if (!mounted) return;
+      router.pop();
     }
 
     return AlertDialog(
       scrollable: true,
       title: Text(
         'Are you sure you want to rerun the following'
-        ' ${testExecutionsToRerun.length} environments?',
+        ' ${widget.testExecutionsToRerun.length} environments?',
       ),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: testExecutionsToRerun
-            .map<Widget>((te) => Text(te.environment.name))
-            .intersperse(const SizedBox(height: Spacing.level2))
-            .toList(),
+        children: [
+          ...widget.testExecutionsToRerun
+              .map<Widget>((te) => Text(te.environment.name))
+              .intersperse(const SizedBox(height: Spacing.level2)),
+          const SizedBox(height: Spacing.level4),
+          Form(
+            key: _formKey,
+            child: RerunPriorityFormField(controller: _priorityController),
+          ),
+        ],
       ),
       actions: [
         TextButton(

@@ -130,6 +130,10 @@ class TestExecutionResponse(BaseModel):
     def is_rerun_requested(self) -> bool:
         return bool(self.rerun_request)
 
+    @computed_field
+    def rerun_priority(self) -> int | None:
+        return self.rerun_request.priority if self.rerun_request else None
+
     @field_validator("execution_metadata", mode="before")
     @classmethod
     def collect_execution_metadata(cls, v: Sequence) -> ExecutionMetadata:
