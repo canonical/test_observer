@@ -1068,6 +1068,27 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
     assert response.json() == [{"version": "3", "artefact_id": artefact3.id}]
 
 
+def test_get_artefact_versions_does_not_mix_families(test_client: TestClient, generator: DataGenerator):
+    """Artefacts of different families sharing the same name (and otherwise-blank family-specific
+    fields) must not be mixed together in each other's version history."""
+    snap = generator.gen_artefact(family=FamilyName.snap, name="shared-name", version="1")
+    solution = generator.gen_artefact(family=FamilyName.solution, name="shared-name", version="2")
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{snap.id}/versions"),
+        Permission.view_artefact,
+    )
+    assert response.status_code == 200
+    assert response.json() == [{"version": "1", "artefact_id": snap.id}]
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{solution.id}/versions"),
+        Permission.view_artefact,
+    )
+    assert response.status_code == 200
+    assert response.json() == [{"version": "2", "artefact_id": solution.id}]
+
+
 def test_get_artefact_history_default_filters(test_client: TestClient, generator: DataGenerator):
     charm_latest_1 = generator.gen_artefact(
         family=FamilyName.charm,

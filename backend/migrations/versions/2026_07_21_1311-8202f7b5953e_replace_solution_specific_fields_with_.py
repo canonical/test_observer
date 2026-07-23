@@ -19,6 +19,7 @@ depends_on = None
 
 def upgrade() -> None:
     op.add_column("artefact", sa.Column("attributes", postgresql.JSONB(), server_default="{}", nullable=False))
+    _assert_no_duplicate_solutions(["name", "version"])
     op.drop_index("unique_solution", table_name="artefact", postgresql_where="(family = 'solution'::familyname)")
     op.create_index(
         "unique_solution", "artefact", ["name", "version"], unique=True, postgresql_where=sa.text("family = 'solution'")
@@ -28,6 +29,10 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     _add_bundled_builds()
+    _assert_no_duplicate_solutions(
+        ["name", "source", "version", "track", "stage", "bundled_builds_hash"],
+        nullable_columns=["bundled_builds_hash"],
+    )
     op.drop_index("unique_solution", table_name="artefact", postgresql_where=sa.text("family = 'solution'"))
     op.create_index(
         "unique_solution",
@@ -37,6 +42,39 @@ def downgrade() -> None:
         postgresql_where="(family = 'solution'::familyname)",
     )
     op.drop_column("artefact", "attributes")
+
+
+def _assert_no_duplicate_solutions(key_columns: list[str], nullable_columns: list[str] | None = None) -> None:
+    """Fail fast with a clear error if applying a unique index on ``key_columns`` (scoped to
+    solution artefacts) would violate uniqueness, instead of letting index creation fail with an
+    opaque database error.
+
+    Postgres unique indexes treat NULL as distinct from any other value (including another NULL),
+    so columns listed in ``nullable_columns`` are excluded from the duplicate search whenever they
+    are NULL, matching the semantics of the index we're about to create.
+    """
+    nullable_columns = nullable_columns or []
+    columns_sql = ", ".join(key_columns)
+    not_null_clauses = " AND ".join(f"{column} IS NOT NULL" for column in nullable_columns)
+    where_clause = f"family = 'solution' AND {not_null_clauses}" if not_null_clauses else "family = 'solution'"
+
+    conn = op.get_bind()
+    duplicates = conn.execute(
+        sa.text(f"""
+            SELECT {columns_sql}, COUNT(*) AS duplicate_count
+            FROM artefact
+            WHERE {where_clause}
+            GROUP BY {columns_sql}
+            HAVING COUNT(*) > 1
+            LIMIT 5
+            """)  # noqa: S608 - key_columns/nullable_columns are fixed, developer-controlled constants
+    ).fetchall()
+
+    if duplicates:
+        raise RuntimeError(
+            f"Cannot create unique index on solutions ({columns_sql}): found existing duplicate rows "
+            f"(showing up to 5): {duplicates}. Resolve these duplicates manually before running this migration."
+        )
 
 
 def _remove_bundled_builds() -> None:

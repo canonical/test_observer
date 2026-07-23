@@ -41,6 +41,7 @@ def migration_context(db_url: str) -> Generator[tuple[Engine, Config], None, Non
 
     create_database(test_db_url)
 
+    engine: Engine | None = None
     try:
         engine = create_engine(test_db_url)
         alembic_config = Config("alembic.ini")
@@ -48,7 +49,8 @@ def migration_context(db_url: str) -> Generator[tuple[Engine, Config], None, Non
 
         yield engine, alembic_config
     finally:
-        engine.dispose()
+        if engine is not None:
+            engine.dispose()
         if database_exists(test_db_url):
             drop_database(test_db_url)
 
@@ -58,6 +60,10 @@ def _insert_artefact(
     name: str,
     bundled_builds_hash: str | None = None,
     attributes: str | None = None,
+    version: str = "1.0",
+    track: str = "latest",
+    source: str = "source",
+    stage: str = "stable",
 ) -> int:
     optional_column = ", attributes" if attributes is not None else ", bundled_builds_hash"
     optional_value = ", CAST(:attributes AS jsonb)" if attributes is not None else ", :bundled_builds_hash"
@@ -69,14 +75,18 @@ def _insert_artefact(
                 created_at, updated_at{optional_column}
             )
             VALUES (
-                :name, '1.0', 'stable', 'solution', 'UNDECIDED', false, '', '',
-                '', '', 'latest', '', '', 'source', '', '', '', '', '',
+                :name, :version, :stage, 'solution', 'UNDECIDED', false, '', '',
+                '', '', :track, '', '', :source, '', '', '', '', '',
                 NOW(), NOW(){optional_value}
             )
             RETURNING id
             """),
         {
             "name": name,
+            "version": version,
+            "stage": stage,
+            "track": track,
+            "source": source,
             "bundled_builds_hash": bundled_builds_hash,
             "attributes": attributes,
         },
@@ -272,6 +282,45 @@ def test_downgrade_restores_hash_and_associations(migration_context: tuple[Engin
         )
     assert bundled_hash == "restored-hash"
     assert association_ids == [first_build_id, second_build_id]
+
+
+def test_upgrade_fails_fast_on_duplicate_name_and_version(migration_context: tuple[Engine, Config]) -> None:
+    """Pre-migration schema allows several solutions sharing (name, version) as long as track/source
+    differ; the upgrade must refuse to create the tighter (name, version) unique index rather than
+    fail with an opaque database error."""
+    engine, alembic_config = migration_context
+    command.upgrade(alembic_config, PREVIOUS_REV)
+    with engine.begin() as conn:
+        _insert_artefact(conn, "dup-solution", version="1.0", track="track-a", source="source-a")
+        _insert_artefact(conn, "dup-solution", version="1.0", track="track-b", source="source-b")
+
+    with pytest.raises(RuntimeError, match="Cannot create unique index"):
+        command.upgrade(alembic_config, TARGET_REV)
+
+    # The failed migration must not have partially applied its schema changes.
+    with engine.connect() as conn:
+        attributes_column = conn.execute(
+            text("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'artefact' AND column_name = 'attributes'
+                """)
+        ).fetchone()
+    assert attributes_column is None
+
+
+def test_downgrade_fails_fast_on_duplicate_widened_key(migration_context: tuple[Engine, Config]) -> None:
+    """Defends the downgrade's wider unique index the same way, in case data ever ends up violating
+    it (e.g. the (name, version) index was bypassed or dropped out-of-band)."""
+    engine, alembic_config = migration_context
+    command.upgrade(alembic_config, TARGET_REV)
+    with engine.begin() as conn:
+        conn.execute(text("DROP INDEX unique_solution"))
+        _insert_artefact(conn, "dup-solution", attributes='{"bundled_builds_hash": "hash-x"}')
+        _insert_artefact(conn, "dup-solution", attributes='{"bundled_builds_hash": "hash-x"}')
+
+    with pytest.raises(RuntimeError, match="Cannot create unique index"):
+        command.downgrade(alembic_config, PREVIOUS_REV)
 
 
 def test_upgrade_schema_changes(migration_context: tuple[Engine, Config]) -> None:

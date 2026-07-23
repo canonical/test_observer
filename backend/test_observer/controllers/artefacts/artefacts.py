@@ -391,6 +391,7 @@ def get_artefact_versions(
     return db.scalars(
         select(Artefact)
         .where(Artefact.name == artefact.name)
+        .where(Artefact.family == artefact.family)
         .where(Artefact.track == artefact.track)
         .where(Artefact.branch == artefact.branch)
         .where(Artefact.series == artefact.series)

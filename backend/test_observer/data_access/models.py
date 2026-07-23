@@ -325,15 +325,13 @@ class Artefact(Base):
     owner: Mapped[str] = mapped_column(String(200), default="")
     image_url: Mapped[str] = mapped_column(String(200), default="")
 
-    # (for now) Solution specific field
-    attributes: Mapped[dict[str, Any]] = mapped_column(MutableDict.as_mutable(JSONB), default=dict, server_default="{}")
-
     # Relationships
     builds: Mapped[list["ArtefactBuild"]] = relationship(back_populates="artefact", cascade="all, delete")
     reviewers: Mapped[list[User]] = relationship(
         secondary=artefact_reviewers_association, back_populates="artefact_reviews"
     )
 
+    attributes: Mapped[dict[str, Any]] = mapped_column(MutableDict.as_mutable(JSONB), default=dict, server_default="{}")
     jira_issue: Mapped[str | None] = mapped_column(default=None)
 
     @property
