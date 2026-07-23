@@ -30,6 +30,7 @@ from test_observer.data_access.models_enums import (
     ArtefactStatus,
     FamilyName,
     NotificationType,
+    SolutionStage,
     StageName,
 )
 from test_observer.main import app
@@ -490,6 +491,35 @@ def test_artefact_promote_unknown_stage(
     )
 
     assert response.status_code == 422
+
+
+def test_artefact_promote_solution_valid_stage(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(stage=StageName.candidate, family=FamilyName.solution)
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"stage": SolutionStage.stable},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert artefact.stage == SolutionStage.stable
+
+
+def test_artefact_promote_solution_invalid_stage(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(stage=StageName.candidate, family=FamilyName.solution)
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"stage": StageName.current},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 400
 
 
 def test_update_artefact_comment(test_client: TestClient, generator: DataGenerator):
