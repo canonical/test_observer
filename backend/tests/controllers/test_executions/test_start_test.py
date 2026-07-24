@@ -228,6 +228,14 @@ def test_start_test_explicit_null_attributes_is_rejected(execute: Execute) -> No
     assert response.status_code == 422
 
 
+def test_start_test_legacy_source_over_max_length_is_rejected(execute: Execute) -> None:
+    """The legacy source field must keep the same 200-char limit as the underlying
+    artefact.source column, so oversized values fail validation (422) instead of a DB error."""
+    response = execute({**solution_test_request, "source": "x" * 201})
+
+    assert response.status_code == 422
+
+
 @pytest.mark.parametrize(
     "start_request",
     [snap_test_request, deb_test_request, charm_test_request, image_test_request],
