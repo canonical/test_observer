@@ -91,7 +91,7 @@ class ArtefactResponse(BaseModel):
         deprecated="bundled_builds is deprecated and always empty; solutions now use the generic "
         "attributes field instead.",
     )
-    def bundled_builds(self) -> list[Any]:
+    def bundled_builds(self) -> list["ArtefactBuildMinimalResponse"]:
         return []
 
 

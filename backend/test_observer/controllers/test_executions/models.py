@@ -294,6 +294,7 @@ class StartSolutionTestExecutionRequest(_StartTestExecutionRequest):
     )
     source: str | None = Field(
         default=None,
+        max_length=200,
         deprecated=True,
         description="Legacy field. Merged into attributes['source'] when attributes['source'] is not provided.",
     )

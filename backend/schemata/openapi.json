@@ -6561,7 +6561,9 @@
             "readOnly": true
           },
           "bundled_builds": {
-            "items": {},
+            "items": {
+              "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+            },
             "type": "array",
             "title": "Bundled Builds",
             "deprecated": true,
@@ -8512,7 +8514,8 @@
           "source": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 200
               },
               {
                 "type": "null"
