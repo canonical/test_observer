@@ -179,6 +179,8 @@ class _StartManualTestingDialogState
         break;
 
       case FamilyName.solution:
+        fields['track'] = artefact.track;
+        fields['source'] = artefact.source;
         fields['execution_stage'] = artefact.stage.name;
         break;
     }
