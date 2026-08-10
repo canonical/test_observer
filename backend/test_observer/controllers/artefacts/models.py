@@ -87,13 +87,6 @@ class ArtefactResponse(BaseModel):
     def assignee(self) -> ReviewerResponse | None:
         return self.reviewers[0] if self.reviewers else None
 
-    @computed_field(
-        deprecated="bundled_builds is deprecated and always empty; solutions now use the generic "
-        "attributes field instead.",
-    )
-    def bundled_builds(self) -> list["ArtefactBuildMinimalResponse"]:
-        return []
-
 
 class EnvironmentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
