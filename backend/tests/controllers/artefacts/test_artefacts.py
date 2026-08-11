@@ -1257,7 +1257,6 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "attributes": artefact.attributes,
         "assignee": assignee,
         "reviewers": [],
-        "bundled_builds": [],
         "due_date": (artefact.due_date.strftime("%Y-%m-%d") if artefact.due_date else None),
         "bug_link": artefact.bug_link,
         "jira_issue": artefact.jira_issue,
