@@ -13,7 +13,13 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-"""Tests for replacing bundled build fields with generic artefact attributes."""
+"""Tests for the expand half: adding artefact.attributes and backfilling it.
+
+This migration only adds the ``attributes`` column and copies existing bundled
+build data into it. The old ``bundled_builds_hash`` column and
+``artefact_bundled_builds_association`` table remain in place so old code keeps
+working during a rolling upgrade; they are removed by a later migration.
+"""
 
 from collections.abc import Generator
 from urllib.parse import urlparse, urlunparse
@@ -218,112 +224,8 @@ def test_upgrade_copies_multiple_bundled_builds_in_ascending_order(migration_con
     assert _bundled_build_ids(engine, artefact_id) == [first_build_id, second_build_id]
 
 
-def test_downgrade_restores_empty_attributes(migration_context: tuple[Engine, Config]) -> None:
-    engine, alembic_config = migration_context
-    command.upgrade(alembic_config, TARGET_REV)
-    with engine.begin() as conn:
-        artefact_id = _insert_artefact(conn, "solution-downgrade-empty", attributes="{}")
-
-    command.downgrade(alembic_config, PREVIOUS_REV)
-
-    with engine.connect() as conn:
-        bundled_hash = conn.execute(
-            text("SELECT bundled_builds_hash FROM artefact WHERE id = :id"),
-            {"id": artefact_id},
-        ).scalar_one()
-        association_count = conn.execute(
-            text("SELECT count(*) FROM artefact_bundled_builds_association WHERE artefact_id = :id"),
-            {"id": artefact_id},
-        ).scalar_one()
-    assert bundled_hash is None
-    assert association_count == 0
-
-
-def test_downgrade_restores_hash_and_associations(migration_context: tuple[Engine, Config]) -> None:
-    engine, alembic_config = migration_context
-    command.upgrade(alembic_config, TARGET_REV)
-    with engine.begin() as conn:
-        artefact_id = _insert_artefact(conn, "solution-downgrade-both", attributes="{}")
-        first_build_id = _insert_artefact_build(conn, artefact_id, architecture="amd64")
-        second_build_id = _insert_artefact_build(conn, artefact_id, architecture="arm64")
-        conn.execute(
-            text("""
-                UPDATE artefact
-                SET attributes = jsonb_build_object(
-                    'bundled_builds_hash', 'restored-hash',
-                    'bundled_builds', jsonb_build_array(CAST(:first_build_id AS int), CAST(:second_build_id AS int))
-                )
-                WHERE id = :artefact_id
-                """),
-            {
-                "artefact_id": artefact_id,
-                "first_build_id": first_build_id,
-                "second_build_id": second_build_id,
-            },
-        )
-
-    command.downgrade(alembic_config, PREVIOUS_REV)
-
-    with engine.connect() as conn:
-        bundled_hash = conn.execute(
-            text("SELECT bundled_builds_hash FROM artefact WHERE id = :id"),
-            {"id": artefact_id},
-        ).scalar_one()
-        association_ids = list(
-            conn.execute(
-                text("""
-                    SELECT artefact_build_id
-                    FROM artefact_bundled_builds_association
-                    WHERE artefact_id = :id
-                    ORDER BY artefact_build_id
-                    """),
-                {"id": artefact_id},
-            ).scalars()
-        )
-    assert bundled_hash == "restored-hash"
-    assert association_ids == [first_build_id, second_build_id]
-
-
-def test_upgrade_fails_fast_on_duplicate_name_and_version(migration_context: tuple[Engine, Config]) -> None:
-    """Pre-migration schema allows several solutions sharing (name, version) as long as track/source
-    differ; the upgrade must refuse to create the tighter (name, version) unique index rather than
-    fail with an opaque database error."""
-    engine, alembic_config = migration_context
-    command.upgrade(alembic_config, PREVIOUS_REV)
-    with engine.begin() as conn:
-        _insert_artefact(conn, "dup-solution", version="1.0", track="track-a", source="source-a")
-        _insert_artefact(conn, "dup-solution", version="1.0", track="track-b", source="source-b")
-
-    with pytest.raises(RuntimeError, match="Cannot create unique index"):
-        command.upgrade(alembic_config, TARGET_REV)
-
-    # The failed migration must not have partially applied its schema changes.
-    with engine.connect() as conn:
-        attributes_column = conn.execute(
-            text("""
-                SELECT column_name
-                FROM information_schema.columns
-                WHERE table_name = 'artefact' AND column_name = 'attributes'
-                """)
-        ).fetchone()
-    assert attributes_column is None
-
-
-def test_downgrade_fails_fast_on_duplicate_widened_key(migration_context: tuple[Engine, Config]) -> None:
-    """Defends the downgrade's wider unique index the same way, in case data ever ends up violating
-    it (e.g. the (name, version) index was bypassed or dropped out-of-band)."""
-    engine, alembic_config = migration_context
-    command.upgrade(alembic_config, TARGET_REV)
-    with engine.begin() as conn:
-        conn.execute(text("DROP INDEX unique_solution"))
-        _insert_artefact(conn, "dup-solution", attributes='{"bundled_builds_hash": "hash-x"}')
-        _insert_artefact(conn, "dup-solution", attributes='{"bundled_builds_hash": "hash-x"}')
-
-    with pytest.raises(RuntimeError, match="Cannot create unique index"):
-        command.downgrade(alembic_config, PREVIOUS_REV)
-
-
 def test_upgrade_schema_changes(migration_context: tuple[Engine, Config]) -> None:
+    """The expand migration adds attributes but must leave the old column/table in place."""
     engine, alembic_config = migration_context
     command.upgrade(alembic_config, TARGET_REV)
 
@@ -353,11 +255,13 @@ def test_upgrade_schema_changes(migration_context: tuple[Engine, Config]) -> Non
     assert attributes_column is not None
     assert attributes_column[0] == "NO"
     assert "'{}'" in attributes_column[1]
-    assert association_table is None
-    assert bundled_hash_column is None
+    # Old schema must still be present after the expand migration.
+    assert association_table is not None
+    assert bundled_hash_column is not None
 
 
 def test_downgrade_schema_changes(migration_context: tuple[Engine, Config]) -> None:
+    """Downgrading the expand migration only removes the attributes column."""
     engine, alembic_config = migration_context
     command.upgrade(alembic_config, TARGET_REV)
     command.downgrade(alembic_config, PREVIOUS_REV)

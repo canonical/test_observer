@@ -13,33 +13,46 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-"""Replace solution-specific fields with attributes
+"""Drop solution-specific bundled build fields
 
-Revision ID: 8202f7b5953e
-Revises: eba1d1c92dba
-Create Date: 2026-07-21 13:11:39.128081+00:00
+This is the destructive (contract) half of adding the ``attributes`` field
+to artefacts and removing the solution-specific fields.
+It swaps the ``unique_solution`` index to ``(name, version)`` and drops
+``artefact.bundled_builds_hash`` and ``artefact_bundled_builds_association``.
+
+For a safe rolling upgrade this migration must only be deployed *after* the
+expand migration (``8202f7b5953e``) and the code that stops using the old fields
+have been fully rolled out. It re-runs the backfill first so that any rows
+written by not-yet-upgraded units during that rollout (which populate the old
+columns but not ``attributes``) are copied over before the columns are dropped.
+
+Revision ID: 8bd1f5009f02
+Revises: 8202f7b5953e
+Create Date: 2026-08-10 17:16:00.000000+00:00
 
 """
 
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "8202f7b5953e"
-down_revision = "eba1d1c92dba"
+revision = "8bd1f5009f02"
+down_revision = "8202f7b5953e"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("artefact", sa.Column("attributes", postgresql.JSONB(), server_default="{}", nullable=False))
+    # Catch leftover data written by old code during the rollout of the expand
+    # migration before the source columns/table are removed.
+    _copy_bundled_builds_to_attributes()
     _assert_no_duplicate_solutions(["name", "version"])
     op.drop_index("unique_solution", table_name="artefact", postgresql_where="(family = 'solution'::familyname)")
     op.create_index(
         "unique_solution", "artefact", ["name", "version"], unique=True, postgresql_where=sa.text("family = 'solution'")
     )
-    _remove_bundled_builds()
+    op.drop_table("artefact_bundled_builds_association")
+    op.drop_column("artefact", "bundled_builds_hash")
 
 
 def downgrade() -> None:
@@ -56,7 +69,6 @@ def downgrade() -> None:
         unique=True,
         postgresql_where="(family = 'solution'::familyname)",
     )
-    op.drop_column("artefact", "attributes")
 
 
 def _assert_no_duplicate_solutions(key_columns: list[str], nullable_columns: list[str] | None = None) -> None:
@@ -90,12 +102,6 @@ def _assert_no_duplicate_solutions(key_columns: list[str], nullable_columns: lis
             f"Cannot create unique index on solutions ({columns_sql}): found existing duplicate rows "
             f"(showing up to 5): {duplicates}. Resolve these duplicates manually before running this migration."
         )
-
-
-def _remove_bundled_builds() -> None:
-    _copy_bundled_builds_to_attributes()
-    op.drop_table("artefact_bundled_builds_association")
-    op.drop_column("artefact", "bundled_builds_hash")
 
 
 def _add_bundled_builds() -> None:
