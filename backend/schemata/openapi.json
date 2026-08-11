@@ -6559,15 +6559,6 @@
             ],
             "description": "Backward-compatible assignee field. Populated from the first entry in reviewers when present.",
             "readOnly": true
-          },
-          "bundled_builds": {
-            "items": {
-              "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
-            },
-            "type": "array",
-            "title": "Bundled Builds",
-            "deprecated": true,
-            "readOnly": true
           }
         },
         "type": "object",
@@ -6599,8 +6590,7 @@
           "jira_issue",
           "all_environment_reviews_count",
           "completed_environment_reviews_count",
-          "assignee",
-          "bundled_builds"
+          "assignee"
         ],
         "title": "ArtefactResponse"
       },
