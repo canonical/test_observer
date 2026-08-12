@@ -30,14 +30,13 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
-# Note: transitional expand/contract exclusions
-# `alembic check` complains that the ORM models don't reference legacy solution-
-# specific fields that were replaced by the `attributes` field. This happens
-# because we are doing expand/contract migrations (for two separate releases);
-# the following release will remove these exceptions.
-_EXPAND_CONTRACT_IGNORED_TABLES = {"artefact_bundled_builds_association"}
-_EXPAND_CONTRACT_IGNORED_COLUMNS = {("artefact", "bundled_builds_hash")}
-_EXPAND_CONTRACT_IGNORED_INDEXES = {"unique_solution"}
+# Transitional expand/contract exclusions
+# In expand/contract migrations it could happen that the ORM models temporarily
+# don't reference all fields from the database (i.e. in an expand release).
+# `alembic check` will notice that and fail in CI, so we need these exceptions
+_EXPAND_CONTRACT_IGNORED_TABLES = {}
+_EXPAND_CONTRACT_IGNORED_COLUMNS = {}
+_EXPAND_CONTRACT_IGNORED_INDEXES = {}
 
 
 def include_object(object, name, type_, reflected, compare_to):  # noqa: ANN001, ANN201, ARG001
