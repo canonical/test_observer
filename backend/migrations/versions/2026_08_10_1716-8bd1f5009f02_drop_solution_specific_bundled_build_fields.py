@@ -185,7 +185,9 @@ def _restore_bundled_builds_from_attributes() -> None:
         ) AS elem(value)
         JOIN artefact_build ab
             ON ab.id = CASE
-                           WHEN elem.value ~ '^[0-9]+$' AND length(elem.value) <= 9
+                           WHEN elem.value ~ '^[0-9]+$'
+                                AND length(elem.value) <= 10
+                                AND elem.value::bigint <= 2147483647
                            THEN elem.value::int
                        END
         """
