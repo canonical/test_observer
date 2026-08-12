@@ -21,8 +21,6 @@ from sqlalchemy import engine_from_config, pool
 from test_observer.data_access import Base
 from test_observer.data_access.setup import DB_URL
 
-from typing import Tuple
-
 # for 'autogenerate' support
 target_metadata = Base.metadata
 
@@ -37,8 +35,8 @@ if config.config_file_name is not None:
 # specific fields that were replaced by the `attributes` field. This happens
 # because we are doing expand/contract migrations (for two separate releases);
 # the following release will remove these exceptions.
-_EXPAND_CONTRACT_IGNORED_TABLES: set[str]  = {"artefact_bundled_builds_association"}
-_EXPAND_CONTRACT_IGNORED_COLUMNS: set[Tuple[str, str]] = {("artefact", "bundled_builds_hash")}
+_EXPAND_CONTRACT_IGNORED_TABLES: set[str] = {"artefact_bundled_builds_association"}
+_EXPAND_CONTRACT_IGNORED_COLUMNS: set[tuple[str, str]] = {("artefact", "bundled_builds_hash")}
 _EXPAND_CONTRACT_IGNORED_INDEXES: set[str] = {"unique_solution"}
 
 
