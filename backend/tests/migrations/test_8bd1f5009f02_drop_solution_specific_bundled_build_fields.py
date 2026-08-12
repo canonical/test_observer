@@ -266,6 +266,73 @@ def test_downgrade_restores_hash_and_associations(migration_context: tuple[Engin
     assert association_ids == [first_build_id, second_build_id]
 
 
+def test_downgrade_tolerates_malformed_bundled_builds(migration_context: tuple[Engine, Config]) -> None:
+    """``attributes`` is writable via the API and is not schema-validated, so ``bundled_builds`` can
+    hold arbitrary JSON (a non-array value, non-numeric elements, or unknown build ids). The
+    downgrade must not blow up with a Postgres JSON/cast/FK error - it should skip invalid data and
+    still restore the valid parts, so rollback is always possible."""
+    engine, alembic_config = migration_context
+    command.upgrade(alembic_config, TARGET_REV)
+    with engine.begin() as conn:
+        # A real build so we can prove valid ids are still restored alongside the bad ones.
+        valid_artefact_id = _insert_artefact(conn, "solution-valid", attributes="{}")
+        valid_build_id = _insert_artefact_build(conn, valid_artefact_id)
+        conn.execute(
+            text("""
+                UPDATE artefact
+                SET attributes = jsonb_build_object(
+                    'bundled_builds_hash', 'keep-hash',
+                    'bundled_builds', jsonb_build_array(CAST(:valid_build_id AS int))
+                )
+                WHERE id = :artefact_id
+                """),
+            {"artefact_id": valid_artefact_id, "valid_build_id": valid_build_id},
+        )
+
+        # bundled_builds is a scalar string, not an array -> jsonb_array_elements_text fails.
+        non_array_id = _insert_artefact(
+            conn, "solution-non-array", attributes='{"bundled_builds": "not-an-array"}'
+        )
+        # bundled_builds contains a non-numeric element -> ::int cast fails.
+        non_numeric_id = _insert_artefact(
+            conn, "solution-non-numeric", attributes='{"bundled_builds": ["not-a-number"]}'
+        )
+        # bundled_builds references a build id that does not exist -> FK violation.
+        unknown_build_id = _insert_artefact(
+            conn, "solution-unknown-build", attributes='{"bundled_builds": [999999999]}'
+        )
+
+    # Raises a DatabaseError; after guarding the traversal it should complete cleanly.
+    command.downgrade(alembic_config, PREVIOUS_REV)
+
+    with engine.connect() as conn:
+        # Valid data is still restored.
+        assert (
+            conn.execute(
+                text("SELECT bundled_builds_hash FROM artefact WHERE id = :id"), {"id": valid_artefact_id}
+            ).scalar_one()
+            == "keep-hash"
+        )
+        assert list(
+            conn.execute(
+                text(
+                    "SELECT artefact_build_id FROM artefact_bundled_builds_association WHERE artefact_id = :id"
+                ),
+                {"id": valid_artefact_id},
+            ).scalars()
+        ) == [valid_build_id]
+
+        # Malformed entries produce no association rows rather than aborting the whole downgrade.
+        for bad_id in (non_array_id, non_numeric_id, unknown_build_id):
+            assert (
+                conn.execute(
+                    text("SELECT count(*) FROM artefact_bundled_builds_association WHERE artefact_id = :id"),
+                    {"id": bad_id},
+                ).scalar_one()
+                == 0
+            )
+
+
 def test_upgrade_fails_fast_on_duplicate_name_and_version(migration_context: tuple[Engine, Config]) -> None:
     """The expand-revision schema still allows several solutions sharing (name, version) as long as
     track/source differ; the contract upgrade must refuse to create the tighter (name, version)
