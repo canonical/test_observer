@@ -30,6 +30,26 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 
+# Note: transitional expand/contract exclusions
+# `alembic check` complains that the ORM models don't reference legacy solution-
+# specific fields that were replaced by the `attributes` field. This happens
+# because we are doing expand/contract migrations (for two separate releases);
+# the following release will remove these exceptions.
+_EXPAND_CONTRACT_IGNORED_TABLES = {"artefact_bundled_builds_association"}
+_EXPAND_CONTRACT_IGNORED_COLUMNS = {("artefact", "bundled_builds_hash")}
+_EXPAND_CONTRACT_IGNORED_INDEXES = {"unique_solution"}
+
+
+def include_object(object, name, type_, reflected, compare_to):  # noqa: ANN001, ANN201, ARG001
+    if type_ == "table" and name in _EXPAND_CONTRACT_IGNORED_TABLES:
+        return False
+    if type_ == "column":
+        table_name = object.table.name if object.table is not None else None
+        if (table_name, name) in _EXPAND_CONTRACT_IGNORED_COLUMNS:
+            return False
+    return not (type_ == "index" and name in _EXPAND_CONTRACT_IGNORED_INDEXES)
+
+
 # Don't overwrite value if set by tests
 if config.get_main_option("sqlalchemy.url") is None:
     config.set_main_option("sqlalchemy.url", DB_URL)
@@ -52,6 +72,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -76,6 +97,7 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             transaction_per_migration=True,
+            include_object=include_object,
         )
 
         with context.begin_transaction():
