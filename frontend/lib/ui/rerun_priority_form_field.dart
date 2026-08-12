@@ -37,7 +37,20 @@ class RerunPriorityFormField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
-      decoration: const InputDecoration(labelText: 'Priority'),
+      decoration: InputDecoration(
+        labelText: 'Rerun priority',
+        helperText: 'Optional, $rerunPriorityMin to $rerunPriorityMax '
+            '(default 0)',
+        suffixIcon: Tooltip(
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          triggerMode: TooltipTriggerMode.tap,
+          showDuration: const Duration(seconds: 10),
+          message: 'Higher-priority reruns are returned first in the rerun '
+              'queue. Priority is only an ordering hint: your test scheduler '
+              'may or may not honour it.',
+          child: const Icon(Icons.info_outline, size: 18),
+        ),
+      ),
       keyboardType: const TextInputType.numberWithOptions(signed: true),
       validator: validateRerunPriority,
     );
