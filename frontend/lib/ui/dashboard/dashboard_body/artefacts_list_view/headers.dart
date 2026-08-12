@@ -30,6 +30,9 @@ class _Headers extends StatelessWidget {
 
   const _Headers.images({super.key}) : columnsMetaData = _imageColumnsMetadata;
 
+  const _Headers.solutions({super.key})
+      : columnsMetaData = _solutionColumnsMetadata;
+
   @override
   Widget build(BuildContext context) {
     final uri = AppRoutes.uriFromContext(context);

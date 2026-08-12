@@ -38,6 +38,7 @@ from test_observer.controllers.test_executions.models import (
     StartDebTestExecutionRequest,
     StartImageTestExecutionRequest,
     StartSnapTestExecutionRequest,
+    StartSolutionTestExecutionRequest,
 )
 from test_observer.controllers.issues.models import (
     IssuePutRequest,
@@ -61,6 +62,7 @@ from test_observer.data_access.models_enums import (
     DebStage,
     CharmStage,
     ImageStage,
+    SolutionStage,
     IssueStatus,
 )
 from test_observer.data_access.setup import SessionLocal
@@ -454,6 +456,30 @@ START_TEST_EXECUTION_REQUESTS = [
         execution_stage=ImageStage.pending,
         test_plan="core image test plan",
         environment="rpi3",
+    ),
+    StartSolutionTestExecutionRequest(
+        family=FamilyName.solution,
+        name="canonical-kubernetes",
+        version="1.32.1",
+        track="1.32",
+        source="some-sha",
+        arch="amd64",
+        execution_stage=SolutionStage.candidate,
+        environment="juju:3/stable ubuntu:24.04 substrate:maas_physical",
+        ci_link="http://example-solution1",
+        test_plan="solutions/cos/maas_physical",
+    ),
+    StartSolutionTestExecutionRequest(
+        family=FamilyName.solution,
+        name="canonical-kubernetes",
+        version="1.32.1",
+        track="1.32",
+        source="different-sha",
+        arch="arm64",
+        execution_stage=SolutionStage.candidate,
+        environment="juju:3/stable ubuntu:24.04 substrate:openstack",
+        ci_link="http://example-solution2",
+        test_plan="solutions/k8s/openstack",
     ),
 ]
 

@@ -131,6 +131,20 @@ final appRouter = GoRouter(
           ),
         ),
         GoRoute(
+          path: AppRoutes.solutions,
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: Dashboard(),
+          ),
+        ),
+        GoRoute(
+          path: '${AppRoutes.solutions}/:artefactId',
+          pageBuilder: (context, state) => NoTransitionPage(
+            child: ArtefactPage(
+              artefactId: int.parse(state.pathParameters['artefactId']!),
+            ),
+          ),
+        ),
+        GoRoute(
           path: AppRoutes.testResults,
           pageBuilder: (_, __) => const NoTransitionPage(
             child: TestResultsPage(),
@@ -219,6 +233,7 @@ class AppRoutes {
   static const debs = '/debs';
   static const charms = '/charms';
   static const images = '/images';
+  static const solutions = '/solutions';
   static const testResults = '/test-results';
 
   static Uri uriFromContext(BuildContext context) =>
@@ -231,6 +246,7 @@ class AppRoutes {
     if (path.startsWith(debs)) return FamilyName.deb;
     if (path.startsWith(charms)) return FamilyName.charm;
     if (path.startsWith(images)) return FamilyName.image;
+    if (path.startsWith(solutions)) return FamilyName.solution;
 
     throw Exception('Unknown route: $path');
   }
@@ -242,7 +258,7 @@ class AppRoutes {
   }
 
   static bool isDashboardPage(Uri uri) =>
-      {snaps, debs, charms, images}.contains(uri.path);
+      {snaps, debs, charms, images, solutions}.contains(uri.path);
 
   static bool isTestResultsPage(Uri uri) => uri.path == testResults;
 
@@ -250,7 +266,8 @@ class AppRoutes {
       (uri.path.contains(AppRoutes.snaps) ||
           uri.path.contains(AppRoutes.debs) ||
           uri.path.contains(AppRoutes.charms) ||
-          uri.path.contains(AppRoutes.images)) &&
+          uri.path.contains(AppRoutes.images) ||
+          uri.path.contains(AppRoutes.solutions)) &&
       uri.pathSegments.length == 2;
 
   static bool isIssuePage(Uri uri) =>
@@ -284,6 +301,9 @@ String getArtefactPagePathForFamily(
       break;
     case FamilyName.image:
       path = AppRoutes.images + path;
+      break;
+    case FamilyName.solution:
+      path = AppRoutes.solutions + path;
       break;
   }
 
