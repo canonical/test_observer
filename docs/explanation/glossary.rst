@@ -45,7 +45,7 @@ Includes the name and status (PASSED, FAILED, or SKIPPED) of a test. Additionall
 Rerun request
 -------------
 
-A request to run a test group (a test plan on an artefact build under a particular environment) again. Test Observer does not run reruns itself; it stores the request in a queue that an external test scheduler polls to run the tests and submit new results. See :doc:`test-execution-lifecycle`.
+A request to run a test plan on an artefact build under a particular environment again. Test Observer does not run reruns itself; it stores the request in a queue that an external test scheduler polls to run the tests and submit new results. See :doc:`test-execution-lifecycle`.
 
 Priority
 --------

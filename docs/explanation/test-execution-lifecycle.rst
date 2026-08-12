@@ -110,9 +110,9 @@ A test execution is triaged when ``FAILED`` or ``SKIPPED`` results have been inv
 Rerun requests
 --------------
 
-A **rerun request** asks for a test group — the combination of a test plan, an artefact build and an environment — to be run again. Rerun requests are created manually from the dashboard or automatically as part of triaging (see the flowchart above).
+A **rerun request** asks for the combination of a test plan, an artefact build and an environment to be run again. Rerun requests are created manually from the dashboard or automatically as part of triaging (see the flowchart above).
 
-Test Observer **does not run tests**, and it does not run reruns either. Creating a rerun request only records that a rerun is wanted; it adds the request to a queue that Test Observer exposes via ``GET /v1/test-executions/reruns``. An **external test scheduler** (the same CI/CD pipeline, Jenkins, or other automation that submits results) is expected to poll this queue, run the requested test groups, and submit fresh results.
+Test Observer **does not run tests**, and it does not run reruns either. Creating a rerun request only records that a rerun is wanted; it adds the request to a queue that Test Observer exposes via ``GET /v1/test-executions/reruns``. An **external test scheduler** (the same CI/CD pipeline, Jenkins, or other automation that submits results) is expected to poll this queue, run the requested combinations of test plan, artefact build and environment, and submit fresh results.
 
 Priority
 ~~~~~~~~
