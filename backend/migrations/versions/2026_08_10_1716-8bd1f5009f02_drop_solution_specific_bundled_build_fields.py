@@ -164,12 +164,29 @@ def _restore_bundled_builds_from_attributes() -> None:
         WHERE a.attributes ? 'bundled_builds_hash'
         """
     )
+    # attributes is API-writable and not schema-validated, so bundled_builds may be a non-array,
+    # contain non-numeric elements, or reference unknown build ids. Guard every step so a malformed
+    # value can never abort the downgrade:
+    #   - the CASE feeding jsonb_array_elements_text ensures it only ever sees an array;
+    #   - the CASE around ::int only casts digit-only, in-range strings (NULL otherwise, which the
+    #     join drops), avoiding scalar-extraction and invalid-cast/overflow errors;
+    #   - the join to artefact_build drops ids that don't correspond to a real build (FK safety).
     op.execute(
         """
         INSERT INTO artefact_bundled_builds_association (artefact_id, artefact_build_id)
-        SELECT a.id, elem::int
-        FROM artefact a,
-             jsonb_array_elements_text(a.attributes -> 'bundled_builds') AS elem
-        WHERE a.attributes ? 'bundled_builds'
+        SELECT DISTINCT a.id, ab.id
+        FROM artefact a
+        CROSS JOIN LATERAL jsonb_array_elements_text(
+            CASE
+                WHEN jsonb_typeof(a.attributes -> 'bundled_builds') = 'array'
+                THEN a.attributes -> 'bundled_builds'
+                ELSE '[]'::jsonb
+            END
+        ) AS elem(value)
+        JOIN artefact_build ab
+            ON ab.id = CASE
+                           WHEN elem.value ~ '^[0-9]+$' AND length(elem.value) <= 9
+                           THEN elem.value::int
+                       END
         """
     )

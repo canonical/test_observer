@@ -290,9 +290,7 @@ def test_downgrade_tolerates_malformed_bundled_builds(migration_context: tuple[E
         )
 
         # bundled_builds is a scalar string, not an array -> jsonb_array_elements_text fails.
-        non_array_id = _insert_artefact(
-            conn, "solution-non-array", attributes='{"bundled_builds": "not-an-array"}'
-        )
+        non_array_id = _insert_artefact(conn, "solution-non-array", attributes='{"bundled_builds": "not-an-array"}')
         # bundled_builds contains a non-numeric element -> ::int cast fails.
         non_numeric_id = _insert_artefact(
             conn, "solution-non-numeric", attributes='{"bundled_builds": ["not-a-number"]}'
@@ -315,9 +313,7 @@ def test_downgrade_tolerates_malformed_bundled_builds(migration_context: tuple[E
         )
         assert list(
             conn.execute(
-                text(
-                    "SELECT artefact_build_id FROM artefact_bundled_builds_association WHERE artefact_id = :id"
-                ),
+                text("SELECT artefact_build_id FROM artefact_bundled_builds_association WHERE artefact_id = :id"),
                 {"id": valid_artefact_id},
             ).scalars()
         ) == [valid_build_id]
