@@ -14,9 +14,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Issue
-from test_observer.data_access.models_enums import FamilyName, IssueSource
+from test_observer.data_access.models_enums import FamilyName, IssueSource, StageName
 from tests.data_generator import DataGenerator
 
 
