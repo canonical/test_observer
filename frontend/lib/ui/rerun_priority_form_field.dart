@@ -19,11 +19,11 @@ const rerunPriorityMin = -1000000;
 const rerunPriorityMax = 1000000;
 
 String? validateRerunPriority(String? value) {
-  if (value == null || value.isEmpty) return 'Priority is required';
+  if (value == null || value.isEmpty) return 'Rerun priority is required';
   final n = int.tryParse(value);
   if (n == null) return 'Enter a valid integer';
   if (n < rerunPriorityMin || n > rerunPriorityMax) {
-    return 'Priority must be between $rerunPriorityMin and $rerunPriorityMax';
+    return 'Rerun priority must be between $rerunPriorityMin and $rerunPriorityMax';
   }
   return null;
 }
@@ -35,6 +35,7 @@ class RerunPriorityFormField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tooltipKey = GlobalKey<TooltipState>();
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
@@ -42,13 +43,18 @@ class RerunPriorityFormField extends StatelessWidget {
         helperText: 'Optional, $rerunPriorityMin to $rerunPriorityMax '
             '(default 0)',
         suffixIcon: Tooltip(
+          key: tooltipKey,
           margin: const EdgeInsets.symmetric(horizontal: 24),
-          triggerMode: TooltipTriggerMode.tap,
+          triggerMode: TooltipTriggerMode.manual,
           showDuration: const Duration(seconds: 10),
           message: 'Higher-priority reruns are returned first in the rerun '
               'queue. Priority is only an ordering hint: your test scheduler '
               'may or may not honour it.',
-          child: const Icon(Icons.info_outline, size: 18),
+          child: IconButton(
+            icon: const Icon(Icons.info_outline, size: 18),
+            tooltip: 'About rerun priority',
+            onPressed: () => tooltipKey.currentState?.ensureTooltipVisible(),
+          ),
         ),
       ),
       keyboardType: const TextInputType.numberWithOptions(signed: true),
