@@ -36,6 +36,9 @@ class _Row extends StatelessWidget {
   const _Row.image({super.key, required this.artefact})
       : columnsMetaData = _imageColumnsMetadata;
 
+  const _Row.solution({super.key, required this.artefact})
+      : columnsMetaData = _solutionColumnsMetadata;
+
   @override
   Widget build(BuildContext context) {
     return NavigableLink(

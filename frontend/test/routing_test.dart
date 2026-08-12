@@ -15,6 +15,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:testcase_dashboard/models/family_name.dart';
 import 'package:testcase_dashboard/routing.dart';
 
 void main() {
@@ -77,6 +78,45 @@ void main() {
       );
 
       expect(redirect, '/');
+    });
+  });
+
+  group('solutions routing', () {
+    test('familyFromUri returns solution for /solutions', () {
+      expect(
+        AppRoutes.familyFromUri(Uri.parse('/solutions')),
+        FamilyName.solution,
+      );
+    });
+
+    test('familyFromUri returns solution for /solutions/123', () {
+      expect(
+        AppRoutes.familyFromUri(Uri.parse('/solutions/123')),
+        FamilyName.solution,
+      );
+    });
+
+    test('isDashboardPage returns true for /solutions', () {
+      expect(AppRoutes.isDashboardPage(Uri.parse('/solutions')), isTrue);
+    });
+
+    test('isDashboardPage returns false for /solutions/123', () {
+      expect(AppRoutes.isDashboardPage(Uri.parse('/solutions/123')), isFalse);
+    });
+
+    test('isArtefactPage returns true for /solutions/123', () {
+      expect(AppRoutes.isArtefactPage(Uri.parse('/solutions/123')), isTrue);
+    });
+
+    test('isArtefactPage returns false for /solutions', () {
+      expect(AppRoutes.isArtefactPage(Uri.parse('/solutions')), isFalse);
+    });
+
+    test('artefactIdFromUri returns id for /solutions/123', () {
+      expect(
+        AppRoutes.artefactIdFromUri(Uri.parse('/solutions/123')),
+        123,
+      );
     });
   });
 }
