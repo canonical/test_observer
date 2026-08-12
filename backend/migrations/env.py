@@ -34,9 +34,9 @@ if config.config_file_name is not None:
 # In expand/contract migrations it could happen that the ORM models temporarily
 # don't reference all fields from the database (i.e. in an expand release).
 # `alembic check` will notice that and fail in CI, so we need these exceptions
-_EXPAND_CONTRACT_IGNORED_TABLES = {}
-_EXPAND_CONTRACT_IGNORED_COLUMNS = {}
-_EXPAND_CONTRACT_IGNORED_INDEXES = {}
+_EXPAND_CONTRACT_IGNORED_TABLES: set[str] = set()
+_EXPAND_CONTRACT_IGNORED_COLUMNS: set[tuple[str, str]] = set()
+_EXPAND_CONTRACT_IGNORED_INDEXES: set[str] = set()
 
 
 def include_object(object, name, type_, reflected, compare_to):  # noqa: ANN001, ANN201, ARG001
