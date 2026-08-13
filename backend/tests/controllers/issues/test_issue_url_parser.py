@@ -87,6 +87,8 @@ from test_observer.data_access.models_enums import IssueSource
         # Bad launchpad.net/bugs format
         ("https://launchpad.net/bugs/abc", None),
         ("https://launchpad.net/unknown/1951586", None),
+        # Accept http
+        (
             "http://github.com/canonical/test_observer/issues/71",
             (IssueSource.GITHUB, "canonical/test_observer", "71"),
         ),
