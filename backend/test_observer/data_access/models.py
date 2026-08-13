@@ -879,7 +879,9 @@ class Issue(Base):
         elif self.source == IssueSource.JIRA:
             return f"https://warthogs.atlassian.net/browse/{self.project}-{self.key}"
         elif self.source == IssueSource.LAUNCHPAD:
-            return f"https://bugs.launchpad.net/{self.project}/+bug/{self.key}"
+            if self.project:
+                return f"https://bugs.launchpad.net/{self.project}/+bug/{self.key}"
+            return f"https://launchpad.net/bugs/{self.key}"
         raise ValueError("Unrecognized issue source")
 
     @url.inplace.expression
@@ -906,11 +908,20 @@ class Issue(Base):
             ),
             (
                 cls.source == IssueSource.LAUNCHPAD,
-                func.concat(
-                    "https://bugs.launchpad.net/",
-                    cls.project,
-                    "/+bug/",
-                    cls.key,
+                case(
+                    (
+                        cls.project != "",
+                        func.concat(
+                            "https://bugs.launchpad.net/",
+                            cls.project,
+                            "/+bug/",
+                            cls.key,
+                        ),
+                    ),
+                    else_=func.concat(
+                        "https://launchpad.net/bugs/",
+                        cls.key,
+                    ),
                 ),
             ),
             else_="https://invalid",

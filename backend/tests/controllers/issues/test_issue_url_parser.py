@@ -79,8 +79,14 @@ from test_observer.data_access.models_enums import IssueSource
             "https://bugs.launchpad.net/ABC/+bug/123",
             (IssueSource.LAUNCHPAD, "abc", "123"),
         ),
-        # Accept http
+        # Good launchpad with launchpad.net/bugs/<number>
         (
+            "https://launchpad.net/bugs/1951586",
+            (IssueSource.LAUNCHPAD, "", "1951586"),
+        ),
+        # Bad launchpad.net/bugs format
+        ("https://launchpad.net/bugs/abc", None),
+        ("https://launchpad.net/unknown/1951586", None),
             "http://github.com/canonical/test_observer/issues/71",
             (IssueSource.GITHUB, "canonical/test_observer", "71"),
         ),

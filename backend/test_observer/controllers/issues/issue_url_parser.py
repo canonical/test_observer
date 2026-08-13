@@ -44,6 +44,11 @@ def issue_source_project_key_from_url(url: HttpUrl) -> tuple[IssueSource, str, s
         if match:
             return IssueSource.LAUNCHPAD, match.group(1).lower(), match.group(2)
 
+    elif host == "launchpad.net":
+        match = re.match(r"^/bugs/(\d+)$", path)
+        if match:
+            return IssueSource.LAUNCHPAD, "", match.group(1)
+
     raise ValueError(
         f"Unrecognized issue URL format:\n"
         f"  host = '{host}'\n"
@@ -51,5 +56,6 @@ def issue_source_project_key_from_url(url: HttpUrl) -> tuple[IssueSource, str, s
         f"Expected formats:\n"
         f"  GitHub:     https://github.com/<owner>/<repo>/issues/<number>\n"
         f"  JIRA:       https://warthogs.atlassian.net/browse/<PROJECT-123>\n"
-        f"  Launchpad:  https://bugs.launchpad.net/<project>/+bug/<number>"
+        f"  Launchpad:  https://bugs.launchpad.net/<project>/+bug/<number>\n"
+        f"  Launchpad:  https://launchpad.net/bugs/<number>"
     )
