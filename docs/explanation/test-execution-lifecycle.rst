@@ -105,3 +105,18 @@ A test execution is triaged when ``FAILED`` or ``SKIPPED`` results have been inv
       Auto -->|Yes| Rerun[Create rerun request]
       Auto -->|No| Done[Done]
 
+
+
+Rerun requests
+--------------
+
+A **rerun request** asks for the combination of a test plan, an artefact build and an environment to be run again. Rerun requests are created manually from the dashboard or automatically as part of triaging (see the flowchart above).
+
+Test Observer **does not run tests**, and it does not run reruns either. Creating a rerun request only records that a rerun is wanted; it adds the request to a queue that Test Observer exposes via ``GET /v1/test-executions/reruns``. An **external test scheduler** (the same CI/CD pipeline, Jenkins, or other automation that submits results) is expected to poll this queue, run the requested combinations of test plan, artefact build and environment, and submit fresh results.
+
+Priority
+~~~~~~~~
+
+**Priority is an attribute of a rerun request.** It is an integer between ``-1000000`` and ``1000000`` (default ``0``). The rerun queue returned by ``GET /v1/test-executions/reruns`` is ordered by priority descending, then by creation time ascending — so higher-priority requests appear first, and among equal priorities the oldest requests appear first.
+
+Priority is **advisory metadata**. Its only guaranteed effect is the order in which Test Observer returns pending reruns. Whether a rerun with a higher priority is actually run sooner depends entirely on the external test scheduler consuming the queue: a scheduler may respect the ordering, apply its own scheduling policy, or ignore priority altogether. Set a priority to express relative urgency to your scheduler, but do not rely on Test Observer to enforce it.
