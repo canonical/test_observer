@@ -14,6 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
+import requests_mock as req_mock
 from pydantic import HttpUrl
 
 from test_observer.controllers.issues.issue_url_parser import (
@@ -79,14 +80,6 @@ from test_observer.data_access.models_enums import IssueSource
             "https://bugs.launchpad.net/ABC/+bug/123",
             (IssueSource.LAUNCHPAD, "abc", "123"),
         ),
-        # Good launchpad with launchpad.net/bugs/<number>
-        (
-            "https://launchpad.net/bugs/1951586",
-            (IssueSource.LAUNCHPAD, "", "1951586"),
-        ),
-        # Bad launchpad.net/bugs format
-        ("https://launchpad.net/bugs/abc", None),
-        ("https://launchpad.net/unknown/1951586", None),
         # Accept http
         (
             "http://github.com/canonical/test_observer/issues/71",
@@ -106,3 +99,58 @@ def test_from_url(url: str, expected: tuple[IssueSource, str, str] | None):
         assert expected is None
     else:
         assert result == expected
+
+
+def test_launchpad_short_url_resolves_project():
+    """launchpad.net/bugs/<id> should follow the redirect and return the project."""
+    with req_mock.Mocker() as m:
+        m.head(
+            "https://launchpad.net/bugs/1951586",
+            url="https://bugs.launchpad.net/netplan/+bug/1951586",
+        )
+        result = issue_source_project_key_from_url(HttpUrl("https://launchpad.net/bugs/1951586"))
+    assert result == (IssueSource.LAUNCHPAD, "netplan", "1951586")
+
+
+def test_launchpad_short_url_with_source_package():
+    """+source/ paths in the resolved URL are handled correctly."""
+    with req_mock.Mocker() as m:
+        m.head(
+            "https://launchpad.net/bugs/2137746",
+            url="https://bugs.launchpad.net/ubuntu/+source/linux-meta/+bug/2137746",
+        )
+        result = issue_source_project_key_from_url(HttpUrl("https://launchpad.net/bugs/2137746"))
+    assert result == (IssueSource.LAUNCHPAD, "ubuntu", "2137746")
+
+
+def test_launchpad_short_url_bad_key():
+    """Non-numeric bug ID in launchpad.net/bugs/ path raises ValueError."""
+    with pytest.raises(ValueError):
+        issue_source_project_key_from_url(HttpUrl("https://launchpad.net/bugs/abc"))
+
+
+def test_launchpad_short_url_unknown_path():
+    """Unrecognised launchpad.net path raises ValueError."""
+    with pytest.raises(ValueError):
+        issue_source_project_key_from_url(HttpUrl("https://launchpad.net/unknown/1951586"))
+
+
+def test_launchpad_short_url_network_error():
+    """Network failure while resolving the redirect raises ValueError."""
+    import requests
+
+    with req_mock.Mocker() as m:
+        m.head("https://launchpad.net/bugs/1951586", exc=requests.ConnectionError("network down"))
+        with pytest.raises(ValueError, match="Could not resolve"):
+            issue_source_project_key_from_url(HttpUrl("https://launchpad.net/bugs/1951586"))
+
+
+def test_launchpad_short_url_unexpected_redirect_target():
+    """If the redirect resolves to an unexpected URL, ValueError is raised."""
+    with req_mock.Mocker() as m:
+        m.head(
+            "https://launchpad.net/bugs/1951586",
+            url="https://example.com/unexpected",
+        )
+        with pytest.raises(ValueError, match="unrecognised URL"):
+            issue_source_project_key_from_url(HttpUrl("https://launchpad.net/bugs/1951586"))
