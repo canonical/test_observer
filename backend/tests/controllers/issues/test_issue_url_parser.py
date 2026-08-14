@@ -106,7 +106,12 @@ def test_launchpad_short_url_resolves_project():
     with req_mock.Mocker() as m:
         m.head(
             "https://launchpad.net/bugs/1951586",
-            url="https://bugs.launchpad.net/netplan/+bug/1951586",
+            status_code=301,
+            headers={"Location": "https://bugs.launchpad.net/netplan/+bug/1951586"},
+        )
+        m.head(
+            "https://bugs.launchpad.net/netplan/+bug/1951586",
+            status_code=200,
         )
         result = issue_source_project_key_from_url(HttpUrl("https://launchpad.net/bugs/1951586"))
     assert result == (IssueSource.LAUNCHPAD, "netplan", "1951586")
@@ -117,7 +122,12 @@ def test_launchpad_short_url_with_source_package():
     with req_mock.Mocker() as m:
         m.head(
             "https://launchpad.net/bugs/2137746",
-            url="https://bugs.launchpad.net/ubuntu/+source/linux-meta/+bug/2137746",
+            status_code=301,
+            headers={"Location": "https://bugs.launchpad.net/ubuntu/+source/linux-meta/+bug/2137746"},
+        )
+        m.head(
+            "https://bugs.launchpad.net/ubuntu/+source/linux-meta/+bug/2137746",
+            status_code=200,
         )
         result = issue_source_project_key_from_url(HttpUrl("https://launchpad.net/bugs/2137746"))
     assert result == (IssueSource.LAUNCHPAD, "ubuntu", "2137746")
@@ -150,7 +160,9 @@ def test_launchpad_short_url_unexpected_redirect_target():
     with req_mock.Mocker() as m:
         m.head(
             "https://launchpad.net/bugs/1951586",
-            url="https://example.com/unexpected",
+            status_code=301,
+            headers={"Location": "https://example.com/unexpected"},
         )
+        m.head("https://example.com/unexpected", status_code=200)
         with pytest.raises(ValueError, match="unrecognised URL"):
             issue_source_project_key_from_url(HttpUrl("https://launchpad.net/bugs/1951586"))
