@@ -72,3 +72,41 @@ def test_artefact_attributes_persists_arbitrary_data(generator: DataGenerator, d
     db_session.refresh(artefact)
 
     assert artefact.attributes == {"track": "latest", "bundled_builds": [1, 2, 3]}
+
+
+def test_solutions_with_same_name_and_different_versions_are_allowed(generator: DataGenerator) -> None:
+    first = generator.gen_artefact(family=FamilyName.solution, name="solution", version="1.0")
+    second = generator.gen_artefact(family=FamilyName.solution, name="solution", version="2.0")
+
+    assert first.id != second.id
+
+
+def test_solutions_with_same_version_and_different_names_are_allowed(generator: DataGenerator) -> None:
+    first = generator.gen_artefact(family=FamilyName.solution, name="solution-a", version="1.0")
+    second = generator.gen_artefact(family=FamilyName.solution, name="solution-b", version="1.0")
+
+    assert first.id != second.id
+
+
+def test_solutions_with_different_name_and_version_are_allowed(generator: DataGenerator) -> None:
+    first = generator.gen_artefact(family=FamilyName.solution, name="solution-a", version="1.0")
+    second = generator.gen_artefact(family=FamilyName.solution, name="solution-b", version="2.0")
+
+    assert first.id != second.id
+
+
+def test_snap_name_and_version_duplicates_are_not_blocked_by_solution_constraint(generator: DataGenerator) -> None:
+    first = generator.gen_artefact(
+        family=FamilyName.snap,
+        name="core",
+        version="1.0",
+        track="latest",
+    )
+    second = generator.gen_artefact(
+        family=FamilyName.snap,
+        name="core",
+        version="1.0",
+        track="other-track",
+    )
+
+    assert first.id != second.id

@@ -39,7 +39,6 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     User,
-    calculate_bundled_builds_hash,
 )
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
@@ -88,7 +87,6 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
             db,
             family,
             load_environment_reviews=True,
-            load_bundled_builds=True,
             order_by_columns=order_by,
         )
     else:
@@ -97,7 +95,6 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
                 db,
                 family,
                 load_environment_reviews=True,
-                load_bundled_builds=True,
                 order_by_columns=order_by,
             )
 
@@ -195,7 +192,6 @@ def get_artefact_history(
         .offset(offset)
         .options(
             selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions),
-            selectinload(Artefact.bundled_builds),
         )
     )
 
@@ -228,7 +224,6 @@ def get_artefact(
     artefact: Artefact = Depends(
         ArtefactRetriever(
             selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
-            selectinload(Artefact.bundled_builds),
         )
     ),
 ):
@@ -248,7 +243,6 @@ def patch_artefact(
     artefact: Artefact = Depends(
         ArtefactRetriever(
             selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
-            selectinload(Artefact.bundled_builds),
         )
     ),
 ):
@@ -266,6 +260,9 @@ def patch_artefact(
         artefact.comment = request.comment
     if "jira_issue" in request.model_fields_set:
         artefact.jira_issue = request.jira_issue
+    if "attributes" in request.model_fields_set:
+        # attributes is non-nullable in the DB; an explicit null in the request clears it to {}.
+        artefact.attributes = request.attributes if request.attributes is not None else {}
 
     reviewer_ids_set = hasattr(request, "reviewer_ids") and "reviewer_ids" in request.model_fields_set
     reviewer_emails_set = hasattr(request, "reviewer_emails") and "reviewer_emails" in request.model_fields_set
@@ -342,41 +339,6 @@ def patch_artefact(
             artefact,
             NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
         )
-
-    # Handle bundled_builds
-    if "bundled_builds" in request.model_fields_set:
-        if request.bundled_builds is None:
-            artefact.bundled_builds = []
-        elif len(request.bundled_builds) != len(set(request.bundled_builds)):
-            raise HTTPException(
-                status_code=422,
-                detail="Duplicate build ids are not allowed in bundled_builds",
-            )
-        else:
-            builds = db.scalars(select(ArtefactBuild).where(ArtefactBuild.id.in_(request.bundled_builds))).all()
-            builds_by_id = {build.id: build for build in builds}
-            bundled_builds = []
-            for build_id in request.bundled_builds:
-                build = builds_by_id.get(build_id)
-                if build is None:
-                    raise HTTPException(
-                        status_code=422,
-                        detail=f"ArtefactBuild with id {build_id} not found",
-                    )
-                bundled_builds.append(build)
-            artefact.bundled_builds = bundled_builds
-
-        # Write-both (expand/contract): mirror bundled builds into the new
-        # ``attributes`` field alongside the legacy relationship/hash so a later
-        # release can read them from ``attributes`` exclusively.
-        build_ids = sorted(build.id for build in artefact.bundled_builds if build.id)
-        if build_ids:
-            artefact.attributes["bundled_builds"] = build_ids
-            artefact.attributes["bundled_builds_hash"] = calculate_bundled_builds_hash(build_ids)
-        else:
-            artefact.attributes.pop("bundled_builds", None)
-            artefact.attributes.pop("bundled_builds_hash", None)
-
     db.commit()
 
     if len(newly_assigned_reviewers) > 0 and artefact.jira_issue is not None:
@@ -427,12 +389,13 @@ def _validate_artefact_stage(artefact: Artefact, stage: StageName) -> None:
     dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
 )
 def get_artefact_versions(
-    artefact: Artefact = Depends(ArtefactRetriever(selectinload(Artefact.bundled_builds))),
+    artefact: Artefact = Depends(ArtefactRetriever()),
     db: Session = Depends(get_db),
 ):
     return db.scalars(
         select(Artefact)
         .where(Artefact.name == artefact.name)
+        .where(Artefact.family == artefact.family)
         .where(Artefact.track == artefact.track)
         .where(Artefact.branch == artefact.branch)
         .where(Artefact.series == artefact.series)
@@ -440,8 +403,6 @@ def get_artefact_versions(
         .where(Artefact.os == artefact.os)
         .where(Artefact.release == artefact.release)
         .where(Artefact.source == artefact.source)
-        .where(Artefact.bundled_builds_hash == artefact.bundled_builds_hash)
-        .options(selectinload(Artefact.bundled_builds))
         .order_by(Artefact.id.desc())
     )
 

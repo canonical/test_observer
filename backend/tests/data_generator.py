@@ -14,6 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from datetime import date, datetime
+from typing import Any
 
 from sqlalchemy.orm import Session
 
@@ -147,7 +148,7 @@ class DataGenerator:
         bug_link: str = "",
         due_date: date | None = None,
         reviewers: list[User] | None = None,
-        bundled_builds: list[ArtefactBuild] | None = None,
+        attributes: dict[str, Any] | None = None,
     ) -> Artefact:
         family = FamilyName(family)
 
@@ -163,7 +164,7 @@ class DataGenerator:
 
         created_at = created_at or datetime.utcnow()
         reviewers = reviewers or []
-        bundled_builds = bundled_builds or []
+        attributes = attributes or {}
 
         artefact = Artefact(
             name=name,
@@ -182,7 +183,7 @@ class DataGenerator:
             bug_link=bug_link,
             due_date=due_date,
             reviewers=reviewers,
-            bundled_builds=bundled_builds,
+            attributes=attributes,
         )
         self._add_object(artefact)
         return artefact
