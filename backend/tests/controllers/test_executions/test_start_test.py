@@ -1004,6 +1004,23 @@ def test_validates_stage_for_solutions(execute: Execute, invalid_stage: StageNam
     assert response.status_code == 422
 
 
+def test_solution_start_writes_both_legacy_fields_and_attributes(execute: Execute, db_session: Session):
+    response = execute(solution_test_request)
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+
+    assert test_execution
+    artefact = test_execution.artefact_build.artefact
+    # Legacy solution-specific columns are still populated (write-both).
+    assert artefact.track == solution_test_request["track"]
+    assert artefact.source == solution_test_request["source"]
+    assert artefact.stage == solution_test_request["execution_stage"]
+    # The new attributes field mirrors the same identity.
+    assert artefact.attributes == {
+        "track": solution_test_request["track"],
+        "source": solution_test_request["source"],
+    }
+
+
 def test_snap_branch_is_part_of_uniqueness(execute: Execute, db_session: Session):
     response = execute(snap_test_request)
     te1 = db_session.get(TestExecution, response.json()["id"])

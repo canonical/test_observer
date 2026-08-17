@@ -24,7 +24,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models import Artefact, Notification, TestExecution
+from test_observer.data_access.models import (
+    Artefact,
+    Notification,
+    TestExecution,
+    calculate_bundled_builds_hash,
+)
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
@@ -1610,6 +1615,50 @@ def test_patch_artefact_bundled_builds_set_valid_builds(generator: DataGenerator
     assert len(data["bundled_builds"]) == 2
     bundled_ids = {b["id"] for b in data["bundled_builds"]}
     assert bundled_ids == {build1.id, build2.id}
+    # AND the new attributes field mirrors the bundled builds (write-both).
+    expected_ids = sorted([build1.id, build2.id])
+    assert data["attributes"] == {
+        "bundled_builds": expected_ids,
+        "bundled_builds_hash": calculate_bundled_builds_hash(expected_ids),
+    }
+
+
+def test_patch_artefact_bundled_builds_mirror_cleared_from_attributes(
+    generator: DataGenerator, test_client: TestClient
+):
+    """Clearing bundled_builds also removes the mirrored attributes (write-both)."""
+    charm = generator.gen_artefact(family=FamilyName.charm, name="my-charm", version="1.0", track="latest")
+    build1 = generator.gen_artefact_build(charm, architecture="amd64")
+    solution = generator.gen_artefact(
+        family=FamilyName.solution,
+        name="my-solution",
+        version="1.0",
+        track="latest",
+        source="my-source",
+        bundled_builds=[build1],
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{solution.id}",
+            json={"bundled_builds": [build1.id]},
+        ),
+        Permission.change_artefact,
+    )
+    assert response.json()["attributes"] == {
+        "bundled_builds": [build1.id],
+        "bundled_builds_hash": calculate_bundled_builds_hash([build1.id]),
+    }
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{solution.id}",
+            json={"bundled_builds": None},
+        ),
+        Permission.change_artefact,
+    )
+    assert response.status_code == 200
+    assert response.json()["attributes"] == {}
 
 
 def test_patch_artefact_bundled_builds_clear_to_empty(generator: DataGenerator, test_client: TestClient):

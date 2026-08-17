@@ -356,7 +356,15 @@ class StartTestExecutionController:
                 filter_kwargs["source"] = self.request.source
                 filter_kwargs["stage"] = self.request.execution_stage
                 filter_kwargs["bundled_builds_hash"] = calculate_bundled_builds_hash([])
-                creation_kwargs = {}
+                # Write-both (expand/contract): keep populating the legacy solution
+                # fields above while also mirroring the identity into the new
+                # ``attributes`` field, so readers can switch to it in a later release.
+                creation_kwargs = {
+                    "attributes": {
+                        "track": self.request.track,
+                        "source": self.request.source,
+                    }
+                }
 
         self.artefact = get_or_create(self.db, Artefact, filter_kwargs=filter_kwargs, creation_kwargs=creation_kwargs)
 

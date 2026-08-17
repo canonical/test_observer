@@ -39,6 +39,7 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     User,
+    calculate_bundled_builds_hash,
 )
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
@@ -364,6 +365,17 @@ def patch_artefact(
                     )
                 bundled_builds.append(build)
             artefact.bundled_builds = bundled_builds
+
+        # Write-both (expand/contract): mirror bundled builds into the new
+        # ``attributes`` field alongside the legacy relationship/hash so a later
+        # release can read them from ``attributes`` exclusively.
+        build_ids = sorted(build.id for build in artefact.bundled_builds if build.id)
+        if build_ids:
+            artefact.attributes["bundled_builds"] = build_ids
+            artefact.attributes["bundled_builds_hash"] = calculate_bundled_builds_hash(build_ids)
+        else:
+            artefact.attributes.pop("bundled_builds", None)
+            artefact.attributes.pop("bundled_builds_hash", None)
 
     db.commit()
 
