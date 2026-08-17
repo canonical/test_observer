@@ -6530,6 +6530,11 @@
             "type": "string",
             "title": "Comment"
           },
+          "attributes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Attributes"
+          },
           "archived": {
             "type": "boolean",
             "title": "Archived"
@@ -6621,6 +6626,7 @@
           "family",
           "status",
           "comment",
+          "attributes",
           "archived",
           "reviewers",
           "due_date",

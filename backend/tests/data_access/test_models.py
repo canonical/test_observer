@@ -14,9 +14,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
+from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Issue
-from test_observer.data_access.models_enums import IssueSource
+from test_observer.data_access.models_enums import FamilyName, IssueSource
+from tests.data_generator import DataGenerator
 
 
 @pytest.mark.parametrize(
@@ -52,3 +54,21 @@ def test_issue_url(
         assert expected is None
     else:
         assert result == expected
+
+
+def test_artefact_attributes_defaults_to_empty_dict(generator: DataGenerator, db_session: Session) -> None:
+    artefact = generator.gen_artefact(family=FamilyName.snap)
+    db_session.refresh(artefact)
+
+    assert artefact.attributes == {}
+
+
+def test_artefact_attributes_persists_arbitrary_data(generator: DataGenerator, db_session: Session) -> None:
+    artefact = generator.gen_artefact(family=FamilyName.snap)
+
+    artefact.attributes["track"] = "latest"
+    artefact.attributes["bundled_builds"] = [1, 2, 3]
+    db_session.commit()
+    db_session.refresh(artefact)
+
+    assert artefact.attributes == {"track": "latest", "bundled_builds": [1, 2, 3]}
