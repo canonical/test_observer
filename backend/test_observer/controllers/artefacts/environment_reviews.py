@@ -19,12 +19,12 @@ from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
-from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     ArtefactBuildEnvironmentReview,
 )
+from test_observer.data_access.queries import latest_artefact_builds
 from test_observer.data_access.setup import get_db
 
 from .models import (
@@ -41,15 +41,20 @@ router = APIRouter(tags=["environment-reviews"])
     dependencies=[Security(permission_checker, scopes=[Permission.view_environment_review])],
 )
 def get_environment_reviews(
-    artefact: Artefact = Depends(
-        ArtefactRetriever(
-            selectinload(Artefact.builds)
-            .selectinload(ArtefactBuild.environment_reviews)
-            .selectinload(ArtefactBuildEnvironmentReview.reviewers)
-        )
-    ),
+    artefact_id: int,
+    db: Session = Depends(get_db),
 ):
-    return [review for build in artefact.latest_builds for review in build.environment_reviews]
+    artefact = db.get(Artefact, artefact_id)
+    if artefact is None:
+        raise HTTPException(status_code=404, detail=f"Artefact with id {artefact_id} not found")
+
+    latest_builds = db.scalars(
+        latest_artefact_builds.where(ArtefactBuild.artefact_id == artefact_id).options(
+            selectinload(ArtefactBuild.environment_reviews).selectinload(ArtefactBuildEnvironmentReview.reviewers)
+        )
+    ).all()
+
+    return [review for build in latest_builds for review in build.environment_reviews]
 
 
 @router.patch(

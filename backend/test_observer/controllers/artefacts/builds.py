@@ -13,19 +13,20 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Depends, Security
-from sqlalchemy.orm import selectinload
+from fastapi import APIRouter, Depends, HTTPException, Security
+from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
-from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
 from test_observer.controllers.test_executions.test_execution import (
-    TEST_EXECUTION_OPTIONS,
+    ARTEFACT_BUILD_TEST_EXECUTION_OPTIONS,
 )
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
 )
+from test_observer.data_access.queries import latest_artefact_builds
+from test_observer.data_access.setup import get_db
 
 from .models import (
     ArtefactBuildResponse,
@@ -40,15 +41,22 @@ router = APIRouter(tags=["artefact-builds"])
     dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
 )
 def get_artefact_builds(
-    artefact: Artefact = Depends(
-        ArtefactRetriever(
-            selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions).options(*TEST_EXECUTION_OPTIONS),
-            selectinload(Artefact.builds).selectinload(ArtefactBuild.bundled_in),
-        )
-    ),
+    artefact_id: int,
+    db: Session = Depends(get_db),
 ):
     """Get latest artefact builds of an artefact together with their test executions"""
-    for artefact_build in artefact.latest_builds:
+    artefact = db.get(Artefact, artefact_id)
+    if artefact is None:
+        raise HTTPException(status_code=404, detail=f"Artefact with id {artefact_id} not found")
+
+    latest_builds = db.scalars(
+        latest_artefact_builds.where(ArtefactBuild.artefact_id == artefact_id).options(
+            selectinload(ArtefactBuild.test_executions).options(*ARTEFACT_BUILD_TEST_EXECUTION_OPTIONS),
+            selectinload(ArtefactBuild.bundled_in),
+        )
+    ).all()
+
+    for artefact_build in latest_builds:
         artefact_build.test_executions.sort(key=lambda test_execution: test_execution.environment.name)
 
-    return artefact.latest_builds
+    return latest_builds
