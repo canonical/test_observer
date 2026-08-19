@@ -25,7 +25,7 @@ latest_artefact_builds = (
     .order_by(
         ArtefactBuild.artefact_id,
         ArtefactBuild.architecture,
-        func.coalesce(ArtefactBuild.revision, 0).desc(),
+        ArtefactBuild.revision.desc().nullslast(),
     )
 )
 

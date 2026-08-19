@@ -44,15 +44,14 @@ def get_environment_reviews(
     artefact_id: int,
     db: Session = Depends(get_db),
 ):
-    artefact = db.get(Artefact, artefact_id)
-    if artefact is None:
-        raise HTTPException(status_code=404, detail=f"Artefact with id {artefact_id} not found")
-
     latest_builds = db.scalars(
         latest_artefact_builds.where(ArtefactBuild.artefact_id == artefact_id).options(
             selectinload(ArtefactBuild.environment_reviews).selectinload(ArtefactBuildEnvironmentReview.reviewers)
         )
     ).all()
+
+    if not latest_builds and db.get(Artefact, artefact_id) is None:
+        raise HTTPException(status_code=404, detail=f"Artefact with id {artefact_id} not found")
 
     return [review for build in latest_builds for review in build.environment_reviews]
 

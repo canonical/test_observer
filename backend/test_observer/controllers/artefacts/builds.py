@@ -45,16 +45,15 @@ def get_artefact_builds(
     db: Session = Depends(get_db),
 ):
     """Get latest artefact builds of an artefact together with their test executions"""
-    artefact = db.get(Artefact, artefact_id)
-    if artefact is None:
-        raise HTTPException(status_code=404, detail=f"Artefact with id {artefact_id} not found")
-
     latest_builds = db.scalars(
         latest_artefact_builds.where(ArtefactBuild.artefact_id == artefact_id).options(
             selectinload(ArtefactBuild.test_executions).options(*ARTEFACT_BUILD_TEST_EXECUTION_OPTIONS),
             selectinload(ArtefactBuild.bundled_in),
         )
     ).all()
+
+    if not latest_builds and db.get(Artefact, artefact_id) is None:
+        raise HTTPException(status_code=404, detail=f"Artefact with id {artefact_id} not found")
 
     for artefact_build in latest_builds:
         artefact_build.test_executions.sort(key=lambda test_execution: test_execution.environment.name)
