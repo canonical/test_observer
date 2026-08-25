@@ -38,8 +38,9 @@ from sqlalchemy import (
     exists,
     select,
 )
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
@@ -353,6 +354,7 @@ class Artefact(Base):
         secondary=artefact_reviewers_association, back_populates="artefact_reviews"
     )
 
+    attributes: Mapped[dict[str, Any]] = mapped_column(MutableDict.as_mutable(JSONB), default=dict, server_default="{}")
     jira_issue: Mapped[str | None] = mapped_column(default=None)
 
     @property

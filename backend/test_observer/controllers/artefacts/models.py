@@ -71,6 +71,7 @@ class ArtefactResponse(BaseModel):
     family: str
     status: ArtefactStatus
     comment: str
+    attributes: dict[str, Any]
     archived: bool
     reviewers: list[ReviewerResponse]
     due_date: date | None
