@@ -18,3 +18,17 @@
 *.charm
 venv
 .venv
+
+# charmcraft build artifacts (e.g. from `charmcraft pack`)
+parts/
+stage/
+prime/
+
+# tox / test / lint artifacts
+.tox/
+__pycache__/
+*.py[cod]
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

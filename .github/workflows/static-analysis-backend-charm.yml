@@ -46,9 +46,21 @@ jobs:
       - run: pip install ruff
       - run: pip install mypy
       - run: pip install types-requests
+      - name: Install runtime dependencies (includes git+ validators packages)
+        run: pip install -r requirements.txt
       - if: ${{ !cancelled() }}
         run: ruff check src
       - if: ${{ !cancelled() }}
         run: ruff format --check src
       - if: ${{ !cancelled() }}
         run: mypy --ignore-missing-imports src
+        env:
+          PYTHONPATH: lib:src
+      - if: ${{ !cancelled() }}
+        run: ruff check tests
+      - if: ${{ !cancelled() }}
+        run: ruff format --check tests
+      - if: ${{ !cancelled() }}
+        run: mypy --ignore-missing-imports tests
+        env:
+          PYTHONPATH: lib:src
