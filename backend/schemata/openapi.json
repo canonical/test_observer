@@ -755,6 +755,27 @@
             "description": "Filter by environment names"
           },
           {
+            "name": "test_plans",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test plan names",
+              "title": "Test Plans"
+            },
+            "description": "Filter by test plan names"
+          },
+          {
             "name": "test_execution_statuses",
             "in": "query",
             "required": false,
@@ -2663,6 +2684,109 @@
         ]
       }
     },
+    "/v1/test-plans": {
+      "get": {
+        "tags": [
+          "test-plans"
+        ],
+        "summary": "Get Test Plans",
+        "description": "Returns list of distinct test plan names that have been used in test executions.\n\nSupports pagination and search filtering.",
+        "operationId": "get_test_plans_v1_test_plans_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search term for test plan names",
+              "title": "Q"
+            },
+            "description": "Search term for test plan names"
+          },
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyName"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact families",
+              "title": "Families"
+            },
+            "description": "Filter by artefact families"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results (defaults to 50 if not specified)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results (defaults to 50 if not specified)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestPlansResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
+      }
+    },
     "/v1/issues/{issue_id}/attach": {
       "post": {
         "tags": [
@@ -3439,6 +3563,27 @@
               "title": "Environments"
             },
             "description": "Filter by environment names"
+          },
+          {
+            "name": "test_plans",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test plan names",
+              "title": "Test Plans"
+            },
+            "description": "Filter by test plan names"
           },
           {
             "name": "test_cases",
@@ -7395,6 +7540,13 @@
             "type": "array",
             "title": "Environment Names"
           },
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
+          },
           "test_case_names": {
             "items": {
               "type": "string"
@@ -7592,6 +7744,13 @@
             "type": "array",
             "title": "Environment Names"
           },
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
+          },
           "test_case_names": {
             "items": {
               "type": "string"
@@ -7627,6 +7786,7 @@
           "artefact_stages",
           "artefact_tracks",
           "environment_names",
+          "test_plans",
           "test_case_names",
           "template_ids",
           "test_result_statuses",
@@ -8886,6 +9046,13 @@
             "type": "array",
             "title": "Environments"
           },
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
+          },
           "test_execution_statuses": {
             "items": {
               "$ref": "#/components/schemas/TestExecutionStatus"
@@ -9286,6 +9453,38 @@
         "type": "object",
         "title": "TestExecutionsPatchRequest"
       },
+      "TestPlansResponse": {
+        "properties": {
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_plans",
+          "count",
+          "limit",
+          "offset"
+        ],
+        "title": "TestPlansResponse",
+        "description": "Response model for test plans endpoint"
+      },
       "TestReportedIssueRequest": {
         "properties": {
           "template_id": {
@@ -9560,6 +9759,13 @@
             },
             "type": "array",
             "title": "Template Ids"
+          },
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
           },
           "execution_metadata": {
             "$ref": "#/components/schemas/ExecutionMetadata"

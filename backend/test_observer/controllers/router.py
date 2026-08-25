@@ -33,6 +33,7 @@ from . import (
     reports,
     test_cases,
     test_executions,
+    test_plans,
     test_results,
 )
 from .application import version
@@ -49,6 +50,7 @@ router.include_router(artefacts.router, prefix="/v1/artefacts")
 router.include_router(reports.router, prefix="/v1/reports")
 router.include_router(test_cases.router, prefix="/v1/test-cases")
 router.include_router(environments.router, prefix="/v1/environments")
+router.include_router(test_plans.router, prefix="/v1/test-plans")
 router.include_router(issues.router, prefix="/v1/issues")
 router.include_router(test_results.router, prefix="/v1/test-results")
 router.include_router(execution_metadata.router, prefix="/v1/execution-metadata")

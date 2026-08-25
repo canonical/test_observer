@@ -29,9 +29,16 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
   @JsonSerializable(explicitToJson: true)
   const factory AttachmentRuleFilters({
     @JsonKey(name: 'families') @Default([]) List<String> families,
+    @JsonKey(name: 'artefacts') @Default([]) List<String> artefacts,
+    @JsonKey(name: 'artefact_versions')
+    @Default([])
+    List<String> artefactVersions,
+    @JsonKey(name: 'artefact_stages') @Default([]) List<String> artefactStages,
+    @JsonKey(name: 'artefact_tracks') @Default([]) List<String> artefactTracks,
     @JsonKey(name: 'environment_names')
     @Default([])
     List<String> environmentNames,
+    @JsonKey(name: 'test_plans') @Default([]) List<String> testPlans,
     @JsonKey(name: 'test_case_names') @Default([]) List<String> testCaseNames,
     @JsonKey(name: 'template_ids') @Default([]) List<String> templateIds,
     @JsonKey(name: 'test_result_statuses')
@@ -50,7 +57,12 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
   ) {
     return AttachmentRuleFilters(
       families: filters.families,
+      artefacts: filters.artefacts,
+      artefactVersions: filters.artefactVersions,
+      artefactStages: filters.artefactStages,
+      artefactTracks: filters.artefactTracks,
       environmentNames: filters.environments,
+      testPlans: filters.testPlans,
       testCaseNames: filters.testCases,
       templateIds: filters.templateIds,
       testResultStatuses: filters.testResultStatuses,
@@ -61,7 +73,12 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
   TestResultsFilters toTestResultsFilters() {
     return TestResultsFilters(
       families: families,
+      artefacts: artefacts,
+      artefactVersions: artefactVersions,
+      artefactStages: artefactStages,
+      artefactTracks: artefactTracks,
       environments: environmentNames,
+      testPlans: testPlans,
       testCases: testCaseNames,
       templateIds: templateIds,
       testResultStatuses: testResultStatuses,
@@ -79,7 +96,12 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
   factory AttachmentRuleFilters.fromAttachmentRule(AttachmentRule rule) {
     return AttachmentRuleFilters(
       families: rule.families,
+      artefacts: rule.artefacts,
+      artefactVersions: rule.artefactVersions,
+      artefactStages: rule.artefactStages,
+      artefactTracks: rule.artefactTracks,
       environmentNames: rule.environmentNames,
+      testPlans: rule.testPlans,
       testCaseNames: rule.testCaseNames,
       templateIds: rule.templateIds,
       testResultStatuses: rule.testResultStatuses,
@@ -89,7 +111,12 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
 
   get hasFilters {
     return families.isNotEmpty ||
+        artefacts.isNotEmpty ||
+        artefactVersions.isNotEmpty ||
+        artefactStages.isNotEmpty ||
+        artefactTracks.isNotEmpty ||
         environmentNames.isNotEmpty ||
+        testPlans.isNotEmpty ||
         testCaseNames.isNotEmpty ||
         templateIds.isNotEmpty ||
         executionMetadata.isNotEmpty ||

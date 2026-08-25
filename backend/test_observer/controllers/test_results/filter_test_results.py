@@ -29,6 +29,7 @@ from test_observer.data_access.models import (
     TestExecution,
     TestExecutionMetadata,
     TestExecutionRerunRequest,
+    TestPlan,
     TestResult,
     User,
     test_execution_metadata_association_table,
@@ -91,6 +92,10 @@ def build_query_filters_and_joins(
     if len(filters.environments) > 0:
         query_filters.append(Environment.name.in_(filters.environments))
         joins_needed.update(["test_execution", "environment"])
+
+    if len(filters.test_plans) > 0:
+        query_filters.append(TestPlan.name.in_(filters.test_plans))
+        joins_needed.update(["test_execution", "test_plan"])
 
     if len(filters.test_cases) > 0:
         query_filters.append(TestCase.name.in_(filters.test_cases))
@@ -200,6 +205,9 @@ def apply_joins(query: Select, joins_needed: set[str]) -> Select:
 
     if "test_case" in joins_needed:
         query = query.join(TestResult.test_case)
+
+    if "test_plan" in joins_needed:
+        query = query.join(TestExecution.test_plan)
 
     return query
 

@@ -195,6 +195,10 @@ def search_test_results(
         list[str] | None,
         Query(description="Filter by environment names"),
     ] = None,
+    test_plans: Annotated[
+        list[str] | None,
+        Query(description="Filter by test plan names"),
+    ] = None,
     test_cases: Annotated[
         list[str] | None,
         Query(description="Filter by test case names"),
@@ -254,6 +258,7 @@ def search_test_results(
         environments=environments or [],
         test_cases=test_cases or [],
         template_ids=template_ids or [],
+        test_plans=test_plans or [],
         execution_metadata=execution_metadata or ExecutionMetadata(),
         issues=parse_list_or_query_value(issues),  # type: ignore[arg-type]
         test_result_statuses=test_result_statuses or [],

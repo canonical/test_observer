@@ -184,18 +184,21 @@ class _AttachIssueFormState extends ConsumerState<AttachIssueForm> {
                     // Create the attachment rule if requested.
                     AttachmentRule? attachmentRule;
                     if (_createAttachmentRule) {
-                      if (_attachmentRuleFilters
-                              .testResultStatuses.isNotEmpty &&
-                          context.mounted &&
+                      if (context.mounted &&
                           (_attachToNewerResults || _attachToOlderResults)) {
+                        final hasStatusFilter = _attachmentRuleFilters
+                            .testResultStatuses.isNotEmpty;
                         final confirmed = await showDialog<bool>(
                           context: context,
                           builder: (BuildContext dialogContext) {
                             return AlertDialog(
                               title: const Text('Confirm Attachment Rule'),
-                              content: const Text(
-                                'The attachment rule will apply to all test results with the selected status and filters.\n\n'
-                                'Do you want to continue?',
+                              content: Text(
+                                hasStatusFilter
+                                    ? 'The attachment rule will apply to all test results with the selected status and filters.\n\n'
+                                        'Do you want to continue?'
+                                    : 'The attachment rule will apply to all test results matching the selected filters, regardless of status.\n\n'
+                                        'Do you want to continue?',
                               ),
                               actions: [
                                 TextButton(
