@@ -68,11 +68,7 @@ def get_test_plans(
 
     Supports pagination and search filtering.
     """
-    query = (
-        select(distinct(TestPlan.name))
-        .join(TestExecution, TestExecution.test_plan_id == TestPlan.id)
-        .order_by(TestPlan.name)
-    )
+    query = select(distinct(TestPlan.name)).join(TestExecution, TestExecution.test_plan_id == TestPlan.id)
 
     # Filter by families if provided
     if families and len(families) > 0:
@@ -86,12 +82,12 @@ def get_test_plans(
         search_term = f"%{q.strip()}%"
         query = query.where(TestPlan.name.ilike(search_term))
 
-    # Count total before pagination
+    # Count total before pagination (ordering is irrelevant for a count)
     count_query = select(func.count()).select_from(query.subquery())
     total_count = db.execute(count_query).scalar() or 0
 
-    # Apply pagination
-    query = query.offset(offset).limit(limit)
+    # Apply ordering and pagination
+    query = query.order_by(TestPlan.name).offset(offset).limit(limit)
 
     test_plans = db.execute(query).scalars().all()
     return TestPlansResponse(
