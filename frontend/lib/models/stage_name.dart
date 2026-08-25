@@ -30,6 +30,10 @@ enum StageName {
   empty;
 
   bool get isEmpty => this == empty;
+
+  /// The value used when this stage is serialized to/from JSON and the API
+  /// (an empty string for [StageName.empty], the enum name otherwise).
+  String get apiValue => isEmpty ? '' : name;
 }
 
 List<StageName> familyStages(FamilyName family) {

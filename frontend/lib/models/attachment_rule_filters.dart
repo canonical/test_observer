@@ -109,7 +109,7 @@ abstract class AttachmentRuleFilters with _$AttachmentRuleFilters {
     );
   }
 
-  get hasFilters {
+  bool get hasFilters {
     return families.isNotEmpty ||
         artefacts.isNotEmpty ||
         artefactVersions.isNotEmpty ||
