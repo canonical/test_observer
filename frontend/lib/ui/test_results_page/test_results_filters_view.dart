@@ -240,10 +240,8 @@ class _TestResultsFiltersViewState
     final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
     final allTestResultStatusesOptions =
         TestResultStatus.values.map((s) => s.name).toList();
-    final allArtefactStageOptions = StageName.values
-        .where((s) => !s.isEmpty)
-        .map((s) => s.name)
-        .toList();
+    final allArtefactStageOptions =
+        StageName.values.map((s) => s.apiValue).toList();
     final executionMetadata = ref.watch(executionMetadataProvider).value ??
         ExecutionMetadata(data: {});
 
@@ -447,8 +445,7 @@ class _TestResultsFiltersViewState
                 setState(() {
                   _selectedFilters = _selectedFilters.copyWith(
                     artefactStages: [
-                      ..._selectedFilters.artefactStages
-                          .where((s) => s != val),
+                      ..._selectedFilters.artefactStages.where((s) => s != val),
                       if (isSelected) val,
                     ],
                   );
@@ -473,8 +470,7 @@ class _TestResultsFiltersViewState
                 setState(() {
                   _selectedFilters = _selectedFilters.copyWith(
                     artefactTracks: [
-                      ..._selectedFilters.artefactTracks
-                          .where((t) => t != val),
+                      ..._selectedFilters.artefactTracks.where((t) => t != val),
                       if (isSelected) val,
                     ],
                   );
