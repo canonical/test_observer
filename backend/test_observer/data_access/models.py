@@ -962,6 +962,7 @@ class IssueTestResultAttachmentRule(Base):
     artefact_stages: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     artefact_tracks: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     environment_names: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    test_plans: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     test_case_names: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     template_ids: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     execution_metadata: Mapped[list["IssueTestResultAttachmentRuleExecutionMetadata"]] = relationship(

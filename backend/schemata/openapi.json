@@ -7395,6 +7395,13 @@
             "type": "array",
             "title": "Environment Names"
           },
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
+          },
           "test_case_names": {
             "items": {
               "type": "string"
@@ -7592,6 +7599,13 @@
             "type": "array",
             "title": "Environment Names"
           },
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
+          },
           "test_case_names": {
             "items": {
               "type": "string"
@@ -7627,6 +7641,7 @@
           "artefact_stages",
           "artefact_tracks",
           "environment_names",
+          "test_plans",
           "test_case_names",
           "template_ids",
           "test_result_statuses",

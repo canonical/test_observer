@@ -61,6 +61,14 @@ params_query_matching_test_result_attachment_rules: list[dict] = [
         ],
     },
     {
+        "label": "match_test_plan",
+        "attachment_rules": [
+            (True, {"test_plans": ["Test plan"]}),
+            (True, {"test_plans": ["Test plan", "other-plan"]}),
+            (False, {"test_plans": ["other-plan"]}),
+        ],
+    },
+    {
         "label": "match_test_case_name",
         "attachment_rules": [
             (True, {"test_case_names": ["camera/detect"]}),
@@ -222,6 +230,7 @@ def test_query_matching_test_result_attachment_rules(
             artefact_stages=spec.get("artefact_stages", []),
             artefact_tracks=spec.get("artefact_tracks", []),
             environment_names=spec.get("environment_names", []),
+            test_plans=spec.get("test_plans", []),
             test_case_names=spec.get("test_case_names", []),
             template_ids=spec.get("template_ids", []),
             execution_metadata=[

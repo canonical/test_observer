@@ -269,6 +269,7 @@ def test_attachment_rule_listed_in_issue_attachment(
                 "artefact_stages": [],
                 "artefact_tracks": [],
                 "environment_names": [test_execution.environment.name],
+                "test_plans": [],
                 "test_case_names": ["test"],
                 "template_ids": ["test-template-id"],
                 "test_result_statuses": [],

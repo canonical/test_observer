@@ -153,6 +153,14 @@ def query_matching_test_result_attachment_rules(
         )
     )
 
+    # Filter test_plans
+    stmt = stmt.where(
+        _array_empty_or_contains(
+            IssueTestResultAttachmentRule.test_plans,
+            literal(test_result.test_execution.test_plan.name),
+        )
+    )
+
     # Filter test_case_names
     stmt = stmt.where(
         _array_empty_or_contains(
