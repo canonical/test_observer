@@ -16,7 +16,7 @@
 """Add test_plans to attachment rules
 
 Revision ID: a2cce585712b
-Revises: eba1d1c92dba
+Revises: 6e262c3c6c8f
 Create Date: 2026-08-25 16:53:14.299864+00:00
 
 """
