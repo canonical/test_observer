@@ -68,16 +68,18 @@ def get_test_plans(
 
     Supports pagination and search filtering.
     """
-    query = select(distinct(TestPlan.name)).order_by(TestPlan.name)
+    query = (
+        select(distinct(TestPlan.name))
+        .join(TestExecution, TestExecution.test_plan_id == TestPlan.id)
+        .order_by(TestPlan.name)
+    )
 
     # Filter by families if provided
     if families and len(families) > 0:
-        query = (
-            query.join(TestExecution, TestExecution.test_plan_id == TestPlan.id)
-            .join(ArtefactBuild, ArtefactBuild.id == TestExecution.artefact_build_id)
-            .join(Artefact, Artefact.id == ArtefactBuild.artefact_id)
-            .where(Artefact.family.in_(families))
+        query = query.join(ArtefactBuild, ArtefactBuild.id == TestExecution.artefact_build_id).join(
+            Artefact, Artefact.id == ArtefactBuild.artefact_id
         )
+        query = query.where(Artefact.family.in_(families))
 
     # Apply search filter if provided
     if q and q.strip():

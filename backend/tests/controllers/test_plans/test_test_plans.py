@@ -73,6 +73,21 @@ def test_create_test_plan_and_validate_returned(test_client: TestClient, generat
     assert unique_plan_name in data["test_plans"]
 
 
+def test_excludes_test_plans_without_test_executions(test_client: TestClient, generator: DataGenerator):
+    """Test plans with no associated test executions should not be returned."""
+    orphaned_plan_name = f"orphaned_plan_{uuid.uuid4().hex[:8]}"
+    generator.gen_test_plan(name=orphaned_plan_name)
+
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/test-plans"),
+        Permission.view_test,
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert orphaned_plan_name not in data["test_plans"]
+
+
 def test_search_filter_q_ilike(test_client: TestClient, generator: DataGenerator):
     """Search should filter by name (ILIKE)."""
     unique_marker = uuid.uuid4().hex[:8]
