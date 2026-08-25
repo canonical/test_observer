@@ -439,7 +439,7 @@ class _TestResultsFiltersViewState
               title: 'Artefact Stage',
               allOptions: allArtefactStageOptions,
               showAllOptionsWithoutSearch: true,
-              itemToString: (stage) => stage,
+              itemToString: (stage) => stage.isEmpty ? '(none)' : stage,
               initialSelected: _selectedFilters.artefactStages.toSet(),
               onChanged: (val, isSelected) {
                 setState(() {
@@ -613,11 +613,10 @@ class _TestResultsFiltersViewState
               onChanged: (val, isSelected) {
                 setState(() {
                   _selectedFilters = _selectedFilters.copyWith(
-                    testPlans: isSelected
-                        ? (_selectedFilters.testPlans + [val])
-                        : _selectedFilters.testPlans
-                            .where((tp) => tp != val)
-                            .toList(),
+                    testPlans: [
+                      ..._selectedFilters.testPlans.where((tp) => tp != val),
+                      if (isSelected) val,
+                    ],
                   );
                   _notifyChanged(_selectedFilters);
                 });
