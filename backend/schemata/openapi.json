@@ -755,6 +755,27 @@
             "description": "Filter by environment names"
           },
           {
+            "name": "test_plans",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test plan names",
+              "title": "Test Plans"
+            },
+            "description": "Filter by test plan names"
+          },
+          {
             "name": "test_execution_statuses",
             "in": "query",
             "required": false,
@@ -3439,6 +3460,27 @@
               "title": "Environments"
             },
             "description": "Filter by environment names"
+          },
+          {
+            "name": "test_plans",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test plan names",
+              "title": "Test Plans"
+            },
+            "description": "Filter by test plan names"
           },
           {
             "name": "test_cases",
@@ -8901,6 +8943,13 @@
             "type": "array",
             "title": "Environments"
           },
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
+          },
           "test_execution_statuses": {
             "items": {
               "$ref": "#/components/schemas/TestExecutionStatus"
@@ -9575,6 +9624,13 @@
             },
             "type": "array",
             "title": "Template Ids"
+          },
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
           },
           "execution_metadata": {
             "$ref": "#/components/schemas/ExecutionMetadata"

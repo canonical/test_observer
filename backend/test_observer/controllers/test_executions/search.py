@@ -246,6 +246,10 @@ def search_test_executions(
         list[str] | None,
         Query(description="Filter by environment names"),
     ] = None,
+    test_plans: Annotated[
+        list[str] | None,
+        Query(description="Filter by test plan names"),
+    ] = None,
     execution_metadata: Annotated[ExecutionMetadata | None, Depends(parse_execution_metadata)] = None,
     test_execution_statuses: Annotated[
         list[TestExecutionStatus] | None,
@@ -320,6 +324,7 @@ def search_test_executions(
         artefact_tracks=artefact_tracks or [],
         artefact_is_archived=artefact_is_archived,
         environments=environments or [],
+        test_plans=test_plans or [],
         execution_metadata=execution_metadata or ExecutionMetadata(),
         test_execution_statuses=test_execution_statuses or [],
         reviewer_ids=parse_list_or_query_value(reviewer_ids),  # type: ignore[arg-type]

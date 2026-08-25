@@ -245,6 +245,26 @@ class TestSearchTestExecutions:
         assert te_a.id in te_ids
         assert te_b.id not in te_ids
 
+    def test_filter_by_test_plan(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        env = generator.gen_environment(name=_uid("env"))
+        plan_a = _uid("plan_a")
+        plan_b = _uid("plan_b")
+
+        te_a = generator.gen_test_execution(build, env, test_plan=plan_a)
+        te_b = generator.gen_test_execution(build, env, test_plan=plan_b)
+
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-executions?test_result=none&test_plans={plan_a}"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_a.id in te_ids
+        assert te_b.id not in te_ids
+
     def test_filter_by_artefact_version(self, test_client: TestClient, generator: DataGenerator):
         artefact_a = generator.gen_artefact(name=_uid("artefact"), version="1.0")
         artefact_b = generator.gen_artefact(name=_uid("artefact"), version="2.0")

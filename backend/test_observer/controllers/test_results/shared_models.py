@@ -37,6 +37,7 @@ class TestResultSearchFilters(BaseModel):
     environments: list[str] = Field(default_factory=list)
     test_cases: list[str] = Field(default_factory=list)
     template_ids: list[str] = Field(default_factory=list)
+    test_plans: list[str] = Field(default_factory=list)
     execution_metadata: ExecutionMetadata = Field(default_factory=ExecutionMetadata)
     issues: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
     test_result_statuses: list[TestResultStatus] = Field(default_factory=list)

@@ -71,6 +71,7 @@ class TestExecutionFilterBase(BaseModel):
     artefact_tracks: list[str] = Field(default_factory=list)
     artefact_is_archived: bool | None = None
     environments: list[str] = Field(default_factory=list)
+    test_plans: list[str] = Field(default_factory=list)
     test_execution_statuses: list[TestExecutionStatus] = Field(default_factory=list)
     execution_metadata: ExecutionMetadata = Field(default_factory=ExecutionMetadata)
     reviewer_ids: list[int] | Literal[QueryValue.ANY, QueryValue.NONE] = Field(default_factory=list)
