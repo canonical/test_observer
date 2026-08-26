@@ -1,0 +1,21 @@
+{
+  "comment": "This file functions as a stopgap, providing some family definitions which can be interpreted by the UI at runtime.  It can also be customized/overridden by the Test Observer charm.",
+  "families": [
+    {
+      "name": "snaps",
+      "friendly_name": "Snap Testing"
+    },
+    {
+      "name": "debs",
+      "friendly_name": "Deb Testing"
+    },
+    {
+      "name": "charms",
+      "friendly_name": "Charm Testing"
+    },
+    {
+      "name": "images",
+      "friendly_name": "Image Testing"
+    }
+  ]
+}

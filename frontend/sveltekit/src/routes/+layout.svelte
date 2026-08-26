@@ -3,8 +3,9 @@
   SPDX-License-Identifier: Apache-2.0
 -->
 <script lang="ts">
+  import favicon from '$lib/assets/logo.png';
   import { page } from '$app/state';
-  import { base } from '$app/paths';
+  import { resolve } from '$app/paths';
   import { SideNavigation, Badge } from '@canonical/svelte-ds-app-launchpad';
   import {
     SearchIcon,
@@ -17,7 +18,7 @@
     HighlightOnIcon,
   } from '@canonical/svelte-icons';
   import ErrorPopup from '$lib/components/ErrorPopup.svelte';
-  import { configuredTabs, getApiRoot } from '$lib/config';
+  import { getApiRoot } from '$lib/config';
   import { userStore } from '$lib/stores/user.svelte';
   import { notificationsStore } from '$lib/stores/notifications.svelte';
   import { themeStore } from '$lib/stores/theme.svelte';
@@ -46,11 +47,17 @@
   const logoutUrl = $derived(`${getApiRoot()}/v1/auth/saml/logout?return_to=${encodeURIComponent(page.url.href)}`);
 </script>
 
+<svelte:head>
+  <title>Test Observer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href={favicon} />
+</svelte:head>
+
 <div class="app-shell">
   <SideNavigation {expanded}>
     {#snippet logo()}
-      <a href="{base}/" class="side-nav-logo" aria-label="Test Observer Home">
-        <img src="{base}/logo.png" alt="Test Observer Logo" class="logo-img" onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+      <a href="{resolve('/')}" class="side-nav-logo" aria-label="Test Observer Home">
+        <img src="{favicon}" alt="Test Observer Logo" class="logo-img" onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         <span class="logo-text">Test Observer</span>
       </a>
     {/snippet}
@@ -58,20 +65,20 @@
       <SideNavigation.ExpandToggle {...toggleProps} onclick={() => (expanded = !expanded)} />
     {/snippet}
 
-    {#each configuredTabs as tab}
-      <SideNavigation.NavigationItem href={tab.href} selected={pathname.startsWith(tab.href)}>
-        {tab.label}
+    {#each data.artefactFamilies as family}
+      <SideNavigation.NavigationItem href={resolve(`/${family.name}`)} selected={pathname.startsWith(resolve(`/${family.name}`))}>
+        {family.friendly_name}
       </SideNavigation.NavigationItem>
     {/each}
 
     <hr class="nav-divider" />
 
-    <SideNavigation.NavigationItem href="{base}/test-results" selected={pathname.startsWith(`${base}/test-results`)}>
+    <SideNavigation.NavigationItem href={resolve('/test-results')} selected={pathname.startsWith(resolve('/test-results'))}>
       {#snippet icon()}<SearchIcon />{/snippet}
       Search Results
     </SideNavigation.NavigationItem>
 
-    <SideNavigation.NavigationItem href="{base}/issues" selected={pathname.startsWith(`${base}/issues`)}>
+    <SideNavigation.NavigationItem href={resolve('/issues')} selected={pathname.startsWith(resolve('/issues'))}>
       {#snippet icon()}<BugIcon />{/snippet}
       Issues
     </SideNavigation.NavigationItem>
@@ -88,7 +95,7 @@
       </SideNavigation.NavigationItem>
 
       {#if userStore.isLoggedIn}
-        <SideNavigation.NavigationItem href="{base}/notifications" selected={pathname.startsWith(`${base}/notifications`)}>
+        <SideNavigation.NavigationItem href={resolve('/notifications')} selected={pathname.startsWith(resolve('/notifications'))}>
           {#snippet icon()}<NotificationsIcon />{/snippet}
           Notifications
           {#if notificationsStore.unreadCount > 0}

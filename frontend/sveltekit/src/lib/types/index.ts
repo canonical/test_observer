@@ -7,13 +7,3 @@ export interface User {
   name: string;
   launchpad_handle: string | null;
 }
-
-export const FAMILIES = ['snaps', 'debs', 'charms', 'images'] as const;
-export type Family = (typeof FAMILIES)[number];
-
-export const FAMILY_TITLES: Record<Family, string> = {
-  snaps: 'Snap Testing',
-  debs: 'Deb Testing',
-  charms: 'Charm Testing',
-  images: 'Image Testing',
-};

@@ -1,19 +1,19 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-export type Theme = 'light' | 'dark' | 'system';
+export type Theme = "light" | "dark" | "system";
 
-const THEMES: Theme[] = ['light', 'dark', 'system'];
-const STORAGE_KEY = 'test-observer-theme';
+const THEMES: Theme[] = ["light", "dark", "system"];
+const STORAGE_KEY = "test-observer-theme";
 
 export const THEME_LABELS: Record<Theme, string> = {
-  light: 'Theme: Light',
-  dark: 'Theme: Dark',
-  system: 'Theme: System',
+  light: "Theme: Light",
+  dark: "Theme: Dark",
+  system: "Theme: System",
 };
 
 class ThemeStore {
-  current = $state<Theme>('system');
+  current = $state<Theme>("system");
 
   get label(): string {
     return THEME_LABELS[this.current];
@@ -38,8 +38,8 @@ class ThemeStore {
 
   #applyClass() {
     const el = document.documentElement;
-    el.classList.remove('light', 'dark');
-    if (this.current !== 'system') {
+    el.classList.remove("light", "dark");
+    if (this.current !== "system") {
       el.classList.add(this.current);
     }
   }

@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 export type NotificationType =
-  | 'USER_ASSIGNED_ARTEFACT_REVIEW'
-  | 'USER_ASSIGNED_ENVIRONMENT_REVIEW';
+  "USER_ASSIGNED_ARTEFACT_REVIEW" | "USER_ASSIGNED_ENVIRONMENT_REVIEW";
 
 export interface UserNotification {
   id: number;
