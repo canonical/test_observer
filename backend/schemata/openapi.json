@@ -2690,7 +2690,7 @@
           "test-plans"
         ],
         "summary": "Get Test Plans",
-        "description": "Returns list of distinct test plan names that have been used in test executions.\n\nSupports pagination and search filtering.",
+        "description": "Returns list of distinct test plan names.\n\nSupports pagination and search filtering.",
         "operationId": "get_test_plans_v1_test_plans_get",
         "parameters": [
           {

@@ -64,14 +64,17 @@ def get_test_plans(
     db: Session = Depends(get_db),
 ) -> TestPlansResponse:
     """
-    Returns list of distinct test plan names that have been used in test executions.
+    Returns list of distinct test plan names.
 
     Supports pagination and search filtering.
     """
-    query = select(distinct(TestPlan.name)).join(TestExecution, TestExecution.test_plan_id == TestPlan.id)
+    query = select(distinct(TestPlan.name))
 
-    # Filter by families if provided
+    # Family filtering requires joining through TestExecution/ArtefactBuild/
+    # Artefact, so it inherently limits results to test plans that have been
+    # used in a test execution with a matching family.
     if families and len(families) > 0:
+        query = query.join(TestExecution, TestExecution.test_plan_id == TestPlan.id)
         query = query.join(ArtefactBuild, ArtefactBuild.id == TestExecution.artefact_build_id).join(
             Artefact, Artefact.id == ArtefactBuild.artefact_id
         )
