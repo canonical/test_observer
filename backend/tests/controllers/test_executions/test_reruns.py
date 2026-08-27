@@ -183,6 +183,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution, priority: int
             ),
             "family": test_execution.artefact_build.artefact.family,
             "created_at": (test_execution.artefact_build.artefact.created_at.isoformat()),
+            "attributes": test_execution.artefact_build.artefact.attributes,
         },
         "artefact_build": {
             "id": test_execution.artefact_build.id,

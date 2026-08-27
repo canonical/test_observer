@@ -49,6 +49,7 @@ def post_attachment_rule():
         "enabled": True,
         "families": ["charm"],
         "environment_names": ["environment-1"],
+        "test_plans": ["test-plan-1"],
         "test_case_names": ["test-case-1"],
         "template_ids": ["template-id-1"],
         "execution_metadata": {"category-1": ["value-1", "value-2"]},
@@ -69,6 +70,7 @@ def _assert_attachment_rule_response(
         "artefact_stages",
         "artefact_tracks",
         "environment_names",
+        "test_plans",
         "test_case_names",
         "template_ids",
         "test_result_statuses",
@@ -78,6 +80,7 @@ def _assert_attachment_rule_response(
     assert json["enabled"] == model.enabled
     assert sorted(json["families"]) == sorted(model.families)
     assert sorted(json["environment_names"]) == sorted(model.environment_names)
+    assert sorted(json["test_plans"]) == sorted(model.test_plans)
     assert sorted(json["test_case_names"]) == sorted(model.test_case_names)
     assert sorted(json["template_ids"]) == sorted(model.template_ids)
     assert [s.name for s in sorted(json["test_result_statuses"])] == [

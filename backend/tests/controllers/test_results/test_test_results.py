@@ -976,6 +976,32 @@ class TestSearchTestResults:
         assert test_result.id in result_ids
         assert other_result.id not in result_ids
 
+    def test_search_by_test_plan(self, test_client: TestClient, generator: DataGenerator):
+        """Test filtering by test plan name"""
+        unique_marker = uuid.uuid4().hex[:8]
+
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case(name=generate_unique_name("test_plan"))
+        artefact = generator.gen_artefact(name=generate_unique_name(f"artefact_{unique_marker}"))
+        artefact_build = generator.gen_artefact_build(artefact)
+        plan_name = f"plan_{unique_marker}"
+        test_execution = generator.gen_test_execution(artefact_build, environment, test_plan=plan_name)
+        test_result = generator.gen_test_result(test_case, test_execution)
+
+        # Create a result under a different test plan that should be excluded
+        other_execution = generator.gen_test_execution(artefact_build, environment, test_plan=f"other_{unique_marker}")
+        other_result = generator.gen_test_result(test_case, other_execution)
+
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-results?test_plans={plan_name}"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        result_ids = {tr["test_result"]["id"] for tr in response.json()["test_results"]}
+        assert test_result.id in result_ids
+        assert other_result.id not in result_ids
+
     def test_search_by_artefact_stage(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by artefact stage"""
         unique_marker = uuid.uuid4().hex[:8]

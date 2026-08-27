@@ -1187,6 +1187,7 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "image_url": artefact.image_url,
         "status": artefact.status,
         "comment": artefact.comment,
+        "attributes": artefact.attributes,
         "archived": artefact.archived,
         "family": artefact.family,
         "assignee": assignee,

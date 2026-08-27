@@ -376,6 +376,32 @@ class ApiRepository {
     return environments.cast<String>();
   }
 
+  Future<List<String>> searchTestPlans({
+    String? query,
+    List<String>? families,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'limit': limit,
+      'offset': offset,
+    };
+
+    if (query != null && query.trim().isNotEmpty) {
+      queryParams['q'] = query.trim();
+    }
+
+    if (families != null && families.isNotEmpty) {
+      queryParams['families'] = families;
+    }
+
+    final response =
+        await dio.get('/v1/test-plans', queryParameters: queryParams);
+    final Map<String, dynamic> data = response.data;
+    final List<dynamic> testPlans = data['test_plans'] ?? [];
+    return testPlans.cast<String>();
+  }
+
   Future<List<String>> searchTestCases({
     String? query,
     List<String>? families,

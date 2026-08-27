@@ -110,6 +110,57 @@ class AttachmentRuleFiltersWidget extends StatelessWidget {
               ),
               _buildFilterSection(
                 context: context,
+                label: 'Artefacts',
+                allValues: filters.artefacts,
+                selectedValues: selected.artefacts.toSet(),
+                onChanged: (newArtefacts) {
+                  final newFilters =
+                      selected.copyWith(artefacts: newArtefacts.toList());
+                  field.didChange(newFilters);
+                  onChanged?.call(newFilters);
+                },
+              ),
+              _buildFilterSection(
+                context: context,
+                label: 'Artefact Versions',
+                allValues: filters.artefactVersions,
+                selectedValues: selected.artefactVersions.toSet(),
+                onChanged: (newArtefactVersions) {
+                  final newFilters = selected.copyWith(
+                    artefactVersions: newArtefactVersions.toList(),
+                  );
+                  field.didChange(newFilters);
+                  onChanged?.call(newFilters);
+                },
+              ),
+              _buildFilterSection(
+                context: context,
+                label: 'Artefact Stages',
+                allValues: filters.artefactStages,
+                selectedValues: selected.artefactStages.toSet(),
+                onChanged: (newArtefactStages) {
+                  final newFilters = selected.copyWith(
+                    artefactStages: newArtefactStages.toList(),
+                  );
+                  field.didChange(newFilters);
+                  onChanged?.call(newFilters);
+                },
+              ),
+              _buildFilterSection(
+                context: context,
+                label: 'Artefact Tracks',
+                allValues: filters.artefactTracks,
+                selectedValues: selected.artefactTracks.toSet(),
+                onChanged: (newArtefactTracks) {
+                  final newFilters = selected.copyWith(
+                    artefactTracks: newArtefactTracks.toList(),
+                  );
+                  field.didChange(newFilters);
+                  onChanged?.call(newFilters);
+                },
+              ),
+              _buildFilterSection(
+                context: context,
                 label: 'Environments',
                 allValues: filters.environmentNames,
                 selectedValues: selected.environmentNames.toSet(),
@@ -117,6 +168,18 @@ class AttachmentRuleFiltersWidget extends StatelessWidget {
                   final newFilters = selected.copyWith(
                     environmentNames: newEnvironments.toList(),
                   );
+                  field.didChange(newFilters);
+                  onChanged?.call(newFilters);
+                },
+              ),
+              _buildFilterSection(
+                context: context,
+                label: 'Test Plans',
+                allValues: filters.testPlans,
+                selectedValues: selected.testPlans.toSet(),
+                onChanged: (newTestPlans) {
+                  final newFilters =
+                      selected.copyWith(testPlans: newTestPlans.toList());
                   field.didChange(newFilters);
                   onChanged?.call(newFilters);
                 },
