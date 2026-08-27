@@ -63,6 +63,7 @@ class MinimalIssueTestResultAttachmentRuleResponse(BaseModel):
     artefact_stages: list[str]
     artefact_tracks: list[str]
     environment_names: list[str]
+    test_plans: list[str]
     test_case_names: list[str]
     template_ids: list[str]
     test_result_statuses: list[TestResultStatus]

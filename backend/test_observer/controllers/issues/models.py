@@ -63,6 +63,7 @@ class IssueTestResultAttachmentRulePostRequest(BaseModel):
     artefact_stages: list[str] = Field(default_factory=list)
     artefact_tracks: list[str] = Field(default_factory=list)
     environment_names: list[str] = Field(default_factory=list)
+    test_plans: list[str] = Field(default_factory=list)
     test_case_names: list[str] = Field(default_factory=list)
     template_ids: list[str] = Field(default_factory=list)
     test_result_statuses: list[TestResultStatus] = Field(default_factory=list)

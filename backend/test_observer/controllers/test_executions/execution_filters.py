@@ -36,11 +36,12 @@ from test_observer.data_access.models import (
     TestExecution,
     TestExecutionMetadata,
     TestExecutionRerunRequest,
+    TestPlan,
     User,
     test_execution_metadata_association_table,
 )
 
-JoinName = Literal["artefact_build", "artefact", "environment"]
+JoinName = Literal["artefact_build", "artefact", "environment", "test_plan"]
 
 
 def filter_execution_metadata(
@@ -97,6 +98,10 @@ def build_execution_filters(
     if filters.environments:
         query_filters.append(Environment.name.in_(filters.environments))
         joins_needed.add("environment")
+
+    if filters.test_plans:
+        query_filters.append(TestPlan.name.in_(filters.test_plans))
+        joins_needed.add("test_plan")
 
     if filters.execution_metadata and len(filters.execution_metadata) > 0:
         query_filters.append(filter_execution_metadata(filters.execution_metadata))
@@ -174,4 +179,6 @@ def apply_te_joins(query: Select, joins_needed: set[JoinName]) -> Select:
         query = query.join(ArtefactBuild.artefact)
     if "environment" in joins_needed:
         query = query.join(TestExecution.environment)
+    if "test_plan" in joins_needed:
+        query = query.join(TestExecution.test_plan)
     return query
