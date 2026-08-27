@@ -20,6 +20,7 @@ import 'package:yaru/yaru.dart';
 
 import '../../models/family_name.dart';
 import '../../models/rerun_details.dart';
+import '../../providers/api.dart';
 import '../../providers/rerun_details.dart';
 import '../../routing.dart';
 import '../spacing.dart';
@@ -222,37 +223,78 @@ class _RerunsContent extends StatelessWidget {
   }
 }
 
-class _RerunsTable extends StatelessWidget {
+class _RerunsTable extends ConsumerWidget {
   const _RerunsTable({required this.reruns});
 
   final List<RerunDetail> reruns;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
-        columns: const [
-          DataColumn(label: Text('Test plan')),
-          DataColumn(label: Text('Created at')),
-          DataColumn(label: Text('Priority')),
-          DataColumn(label: Text('Architecture')),
-          DataColumn(label: Text('Environment')),
-        ],
-        rows: [
-          for (final r in reruns)
-            DataRow(
-              cells: [
-                DataCell(Text(r.testPlanName)),
-                DataCell(Text(_formatDate(r.createdAt))),
-                DataCell(Text('${r.priority}')),
-                DataCell(Text(r.architecture)),
-                DataCell(Text(r.environmentName)),
-              ],
-            ),
-        ],
+      // The app wraps pages in a SelectionArea; disable selection here so row
+      // taps aren't swallowed by text selection.
+      child: SelectionContainer.disabled(
+        child: DataTable(
+          showCheckboxColumn: false,
+          columns: const [
+            DataColumn(label: Text('Test plan')),
+            DataColumn(label: Text('Created at')),
+            DataColumn(label: Text('Priority')),
+            DataColumn(label: Text('Architecture')),
+            DataColumn(label: Text('Environment')),
+          ],
+          rows: [
+            for (final r in reruns)
+              DataRow(
+                onSelectChanged: (_) =>
+                    _openLatestExecution(context, ref, r.testPlanName),
+                cells: [
+                  DataCell(Text(r.testPlanName)),
+                  DataCell(Text(_formatDate(r.createdAt))),
+                  DataCell(Text('${r.priority}')),
+                  DataCell(Text(r.architecture)),
+                  DataCell(Text(r.environmentName)),
+                ],
+              ),
+          ],
+        ),
       ),
     );
+  }
+
+  // Query only runs on click: find the latest execution for the row's test plan.
+  Future<void> _openLatestExecution(
+    BuildContext context,
+    WidgetRef ref,
+    String testPlanName,
+  ) async {
+    final router = GoRouter.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final result = await ref
+          .read(apiProvider)
+          .getLatestTestExecutionForTestPlan(testPlanName);
+      if (result == null) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('No test execution found for this test plan.'),
+          ),
+        );
+        return;
+      }
+      router.go(
+        getArtefactPagePathForFamily(
+          result.family,
+          result.artefactId,
+          testExecutionId: result.testExecutionId,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Failed to open test execution: $e')),
+      );
+    }
   }
 
   static String _formatDate(DateTime dt) {

@@ -201,6 +201,27 @@ class ApiRepository {
     return RerunDetailsResponse.fromJson(response.data);
   }
 
+  Future<({FamilyName family, int artefactId, int testExecutionId})?>
+      getLatestTestExecutionForTestPlan(String testPlanName) async {
+    final response = await dio.get(
+      '/v1/test-executions',
+      queryParameters: {
+        'test_plans': testPlanName,
+        'limit': 1,
+      },
+    );
+    final List executions = response.data['test_executions'] ?? [];
+    if (executions.isEmpty) return null;
+
+    final te = executions.first as Map<String, dynamic>;
+    final artefact = te['artefact'] as Map<String, dynamic>;
+    return (
+      family: FamilyName.values.firstWhere((f) => f.name == artefact['family']),
+      artefactId: artefact['id'] as int,
+      testExecutionId: te['id'] as int,
+    );
+  }
+
   Future<List<TestIssue>> getTestIssues() async {
     final response = await dio.get('/v1/test-cases/reported-issues');
     final List issuesJson = response.data;
