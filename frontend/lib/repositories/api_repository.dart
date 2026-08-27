@@ -216,7 +216,10 @@ class ApiRepository {
     final te = executions.first as Map<String, dynamic>;
     final artefact = te['artefact'] as Map<String, dynamic>;
     return (
-      family: FamilyName.values.firstWhere((f) => f.name == artefact['family']),
+      family: FamilyName.values.firstWhere(
+        (f) => f.name == artefact['family'],
+        orElse: () => FamilyName.values.first,
+      ),
       artefactId: artefact['id'] as int,
       testExecutionId: te['id'] as int,
     );

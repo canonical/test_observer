@@ -387,7 +387,7 @@ def get_rerun_details(
 
     available_priorities = {s.priority for s in priority_summaries}
     # Default to the highest priority present when the caller doesn't request one.
-    selected_priority = priority if priority in available_priorities else max(available_priorities)
+    selected_priority = priority if priority is not None else max(available_priorities)
     selected_count = next(s.count for s in priority_summaries if s.priority == selected_priority)
 
     detail_rows = db.execute(

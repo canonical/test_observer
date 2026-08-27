@@ -2060,3 +2060,16 @@ def test_details_rejects_out_of_range_priority_and_limit(test_client: TestClient
     with override_permissions(Permission.view_rerun):
         assert test_client.get(details_url, params={"family": "charm", "priority": 1_000_001}).status_code == 422
         assert test_client.get(details_url, params={"family": "charm", "limit": 51}).status_code == 422
+
+
+def test_details_requires_view_rerun_permission(test_client: TestClient):
+    # Unauthenticated request is rejected.
+    assert test_client.get(details_url, params={"family": "charm"}).status_code == 403
+
+    # Authenticated without view_rerun is rejected.
+    with override_permissions(Permission.view_test):
+        assert test_client.get(details_url, params={"family": "charm"}).status_code == 403
+
+    # view_rerun grants access.
+    with override_permissions(Permission.view_rerun):
+        assert test_client.get(details_url, params={"family": "charm"}).status_code == 200

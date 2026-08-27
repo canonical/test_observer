@@ -275,6 +275,7 @@ class _RerunsTable extends ConsumerWidget {
       final result = await ref
           .read(apiProvider)
           .getLatestTestExecutionForTestPlan(testPlanName);
+      if (!context.mounted) return;
       if (result == null) {
         messenger.showSnackBar(
           const SnackBar(
@@ -291,8 +292,11 @@ class _RerunsTable extends ConsumerWidget {
         ),
       );
     } catch (e) {
+      debugPrint('Failed to open test execution: $e');
       messenger.showSnackBar(
-        SnackBar(content: Text('Failed to open test execution: $e')),
+        const SnackBar(
+          content: Text('Could not open the test execution. Please try again.'),
+        ),
       );
     }
   }
@@ -345,15 +349,16 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('Failed to load reruns: $error');
     return Padding(
       padding: const EdgeInsets.all(Spacing.level6),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: Spacing.level3),
-            Text('Failed to load reruns: $error'),
+          children: const [
+            Icon(Icons.error_outline, size: 48, color: Colors.red),
+            SizedBox(height: Spacing.level3),
+            Text('Could not load reruns. Please try again later.'),
           ],
         ),
       ),

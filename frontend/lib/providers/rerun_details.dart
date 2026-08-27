@@ -30,9 +30,10 @@ Future<RerunDetailsResponse> rerunDetails(
   int page = 1,
 }) async {
   final api = ref.watch(apiProvider);
+  final safePage = page < 1 ? 1 : page;
   return api.getRerunDetails(
     family: family,
     priority: priority,
-    offset: (page - 1) * 50,
+    offset: (safePage - 1) * 50,
   );
 }
