@@ -182,7 +182,8 @@ class _RerunsContent extends StatelessWidget {
     final selected = data.selectedPriority;
     final totalPages =
         data.count == 0 ? 1 : ((data.count + data.limit - 1) ~/ data.limit);
-    final currentPage = (data.offset ~/ data.limit) + 1;
+    final rawPage = (data.offset ~/ data.limit) + 1;
+    final currentPage = rawPage > totalPages ? totalPages : rawPage;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,6 +294,7 @@ class _RerunsTable extends ConsumerWidget {
       );
     } catch (e) {
       debugPrint('Failed to open test execution: $e');
+      if (!context.mounted) return;
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Could not open the test execution. Please try again.'),

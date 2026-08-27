@@ -22,6 +22,8 @@ import 'api.dart';
 
 part 'rerun_details.g.dart';
 
+const rerunsPageSize = 50;
+
 @riverpod
 Future<RerunDetailsResponse> rerunDetails(
   Ref ref, {
@@ -34,6 +36,7 @@ Future<RerunDetailsResponse> rerunDetails(
   return api.getRerunDetails(
     family: family,
     priority: priority,
-    offset: (safePage - 1) * 50,
+    limit: rerunsPageSize,
+    offset: (safePage - 1) * rerunsPageSize,
   );
 }
