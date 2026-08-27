@@ -503,6 +503,91 @@
         ]
       }
     },
+    "/v1/test-executions/reruns/details": {
+      "get": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Get Rerun Details",
+        "operationId": "get_rerun_details_v1_test_executions_reruns_details_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FamilyName"
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 1000000,
+                  "minimum": -1000000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Priority"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RerunDetailsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_rerun"
+        ]
+      }
+    },
     "/v1/test-executions/{id}": {
       "get": {
         "tags": [
@@ -8006,6 +8091,114 @@
           "test_result_id"
         ],
         "title": "PreviousTestResult"
+      },
+      "RerunDetail": {
+        "properties": {
+          "test_plan_name": {
+            "type": "string",
+            "title": "Test Plan Name"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          },
+          "environment_name": {
+            "type": "string",
+            "title": "Environment Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_plan_name",
+          "created_at",
+          "priority",
+          "architecture",
+          "environment_name"
+        ],
+        "title": "RerunDetail"
+      },
+      "RerunDetailsResponse": {
+        "properties": {
+          "priority_summaries": {
+            "items": {
+              "$ref": "#/components/schemas/RerunPrioritySummary"
+            },
+            "type": "array",
+            "title": "Priority Summaries"
+          },
+          "selected_priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Priority"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "Total Count"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "reruns": {
+            "items": {
+              "$ref": "#/components/schemas/RerunDetail"
+            },
+            "type": "array",
+            "title": "Reruns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "priority_summaries",
+          "selected_priority",
+          "total_count",
+          "count",
+          "limit",
+          "offset",
+          "reruns"
+        ],
+        "title": "RerunDetailsResponse"
+      },
+      "RerunPrioritySummary": {
+        "properties": {
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "priority",
+          "count"
+        ],
+        "title": "RerunPrioritySummary"
       },
       "RerunRequest": {
         "properties": {
