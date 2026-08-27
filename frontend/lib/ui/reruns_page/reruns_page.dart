@@ -248,8 +248,11 @@ class _RerunsTable extends ConsumerWidget {
           rows: [
             for (final r in reruns)
               DataRow(
-                onSelectChanged: (_) =>
-                    _openLatestExecution(context, ref, r.testPlanName),
+                onSelectChanged: (selected) {
+                  if (selected == true) {
+                    _openLatestExecution(context, ref, r.testPlanName);
+                  }
+                },
                 cells: [
                   DataCell(Text(r.testPlanName)),
                   DataCell(Text(_formatDate(r.createdAt))),
@@ -351,7 +354,6 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('Failed to load reruns: $error');
     return Padding(
       padding: const EdgeInsets.all(Spacing.level6),
       child: Center(
