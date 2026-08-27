@@ -18,7 +18,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query, Response, Security, status
 from fastapi.security import SecurityScopes
-from sqlalchemy import Select, and_, asc, delete, desc, literal, or_, select, tuple_
+from sqlalchemy import Select, and_, asc, delete, desc, func, literal, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
@@ -47,6 +47,7 @@ from test_observer.data_access.models import (
     FamilyName,
     TestExecution,
     TestExecutionRerunRequest,
+    TestPlan,
     TestResult,
     User,
 )
@@ -54,7 +55,16 @@ from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
-from .models import DeleteReruns, PendingRerun, RerunRequest
+from .models import (
+    RERUN_PRIORITY_MAX,
+    RERUN_PRIORITY_MIN,
+    DeleteReruns,
+    PendingRerun,
+    RerunDetail,
+    RerunDetailsResponse,
+    RerunPrioritySummary,
+    RerunRequest,
+)
 from .router import router
 
 
@@ -338,6 +348,92 @@ def get_rerun_requests(
         stmt = stmt.limit(limit)
 
     return db.scalars(stmt)
+
+
+@router.get(
+    "/reruns/details",
+    response_model=RerunDetailsResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_rerun])],
+)
+def get_rerun_details(
+    family: FamilyName,
+    priority: Annotated[int | None, Query(ge=RERUN_PRIORITY_MIN, le=RERUN_PRIORITY_MAX)] = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    db: Session = Depends(get_db),
+):
+    summary_rows = db.execute(
+        select(TestExecutionRerunRequest.priority, func.count())
+        .join(TestExecutionRerunRequest.artefact_build)
+        .join(ArtefactBuild.artefact)
+        .where(Artefact.family == family)
+        .group_by(TestExecutionRerunRequest.priority)
+        .order_by(TestExecutionRerunRequest.priority)
+    ).all()
+
+    priority_summaries = [RerunPrioritySummary(priority=p, count=c) for p, c in summary_rows]
+    total_count = sum(s.count for s in priority_summaries)
+
+    if not priority_summaries:
+        return RerunDetailsResponse(
+            priority_summaries=[],
+            selected_priority=None,
+            total_count=0,
+            count=0,
+            limit=limit,
+            offset=offset,
+            reruns=[],
+        )
+
+    available_priorities = {s.priority for s in priority_summaries}
+    # Default to the highest priority present when the caller doesn't request one.
+    selected_priority = priority if priority in available_priorities else max(available_priorities)
+    selected_count = next(s.count for s in priority_summaries if s.priority == selected_priority)
+
+    detail_rows = db.execute(
+        select(
+            TestPlan.name,
+            TestExecutionRerunRequest.created_at,
+            TestExecutionRerunRequest.priority,
+            Environment.architecture,
+            Environment.name,
+        )
+        .join(TestExecutionRerunRequest.artefact_build)
+        .join(ArtefactBuild.artefact)
+        .join(TestExecutionRerunRequest.environment)
+        .join(TestExecutionRerunRequest.test_plan)
+        .where(
+            Artefact.family == family,
+            TestExecutionRerunRequest.priority == selected_priority,
+        )
+        .order_by(
+            asc(TestExecutionRerunRequest.created_at),
+            asc(TestExecutionRerunRequest.id),
+        )
+        .offset(offset)
+        .limit(limit)
+    ).all()
+
+    reruns = [
+        RerunDetail(
+            test_plan_name=test_plan_name,
+            created_at=created_at,
+            priority=row_priority,
+            architecture=architecture,
+            environment_name=environment_name,
+        )
+        for test_plan_name, created_at, row_priority, architecture, environment_name in detail_rows
+    ]
+
+    return RerunDetailsResponse(
+        priority_summaries=priority_summaries,
+        selected_priority=selected_priority,
+        total_count=total_count,
+        count=selected_count,
+        limit=limit,
+        offset=offset,
+        reruns=reruns,
+    )
 
 
 @router.delete(

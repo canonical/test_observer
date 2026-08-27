@@ -27,6 +27,7 @@ import 'ui/issue_page/issue_page.dart';
 import 'ui/issues_page/issues_page.dart';
 import 'ui/login.dart';
 import 'ui/notifications_page/notifications_page.dart';
+import 'ui/reruns_page/reruns_page.dart';
 import 'ui/skeleton.dart';
 import 'ui/test_results_page/test_results_page.dart';
 import 'utils/dio.dart';
@@ -165,6 +166,12 @@ final appRouter = GoRouter(
           ),
         ),
         GoRoute(
+          path: AppRoutes.reruns,
+          pageBuilder: (_, __) => const NoTransitionPage(
+            child: RerunsPage(),
+          ),
+        ),
+        GoRoute(
           path: '/notifications',
           pageBuilder: (_, __) => const NoTransitionPage(
             child: NotificationsPage(),
@@ -235,6 +242,7 @@ class AppRoutes {
   static const images = '/images';
   static const solutions = '/solutions';
   static const testResults = '/test-results';
+  static const reruns = '/reruns';
 
   static Uri uriFromContext(BuildContext context) =>
       GoRouterState.of(context).uri;

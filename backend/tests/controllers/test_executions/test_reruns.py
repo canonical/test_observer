@@ -1963,3 +1963,99 @@ def test_post_priority_at_max_is_accepted(post: Post, get: Get, test_execution: 
 def test_post_priority_at_min_is_accepted(post: Post, get: Get, test_execution: TestExecution):
     post({"test_execution_ids": [test_execution.id], "priority": -1_000_000})
     assert get().json()[0]["priority"] == -1_000_000
+
+
+# ==============================================================================
+# GET /reruns/details
+# ==============================================================================
+
+details_url = "/v1/test-executions/reruns/details"
+
+
+def _get_details(test_client: TestClient, **params: Any) -> Response:  # noqa: ANN401
+    return make_authenticated_request(
+        lambda: test_client.get(details_url, params=params),
+        Permission.view_rerun,
+    )
+
+
+def test_details_groups_counts_by_priority_and_defaults_to_highest(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    ab = generator.gen_artefact_build(a)
+    # Distinct environments so each rerun is its own (test_plan, build, environment) group.
+    for i, priority in enumerate([5, 5, 0, -3]):
+        e = generator.gen_environment(f"charm-env-{i}")
+        te = generator.gen_test_execution(ab, e)
+        generator.gen_rerun_request(te, priority=priority)
+
+    body = _get_details(test_client, family="charm").json()
+
+    assert body["priority_summaries"] == [
+        {"priority": -3, "count": 1},
+        {"priority": 0, "count": 1},
+        {"priority": 5, "count": 2},
+    ]
+    assert body["total_count"] == 4
+    assert body["selected_priority"] == 5
+    assert body["count"] == 2
+    assert {r["priority"] for r in body["reruns"]} == {5}
+
+
+def test_details_selected_priority_returns_fields_and_paginates(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    ab = generator.gen_artefact_build(a)
+    total = 55
+    for i in range(total):
+        e = generator.gen_environment(f"page-env-{i}", architecture="arm64")
+        te = generator.gen_test_execution(ab, e, test_plan="page-plan")
+        generator.gen_rerun_request(te, priority=7)
+
+    first = _get_details(test_client, family="charm", priority=7).json()
+    assert first["selected_priority"] == 7
+    assert first["count"] == total
+    assert first["limit"] == 50
+    assert first["offset"] == 0
+    assert len(first["reruns"]) == 50
+
+    row = first["reruns"][0]
+    assert set(row.keys()) == {
+        "test_plan_name",
+        "created_at",
+        "priority",
+        "architecture",
+        "environment_name",
+    }
+    assert row["test_plan_name"] == "page-plan"
+    assert row["priority"] == 7
+    assert row["architecture"] == "arm64"
+    assert row["environment_name"].startswith("page-env-")
+
+    second = _get_details(test_client, family="charm", priority=7, offset=50).json()
+    assert second["offset"] == 50
+    assert len(second["reruns"]) == total - 50
+
+
+def test_details_filters_by_family_and_is_empty_when_none_exist(test_client: TestClient, generator: DataGenerator):
+    charm = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    snap = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    e = generator.gen_environment("family-env")
+    for artefact in (charm, snap):
+        ab = generator.gen_artefact_build(artefact)
+        te = generator.gen_test_execution(ab, e)
+        generator.gen_rerun_request(te, priority=1)
+
+    charm_body = _get_details(test_client, family="charm").json()
+    assert charm_body["total_count"] == 1
+    assert [s["priority"] for s in charm_body["priority_summaries"]] == [1]
+
+    deb_body = _get_details(test_client, family="deb").json()
+    assert deb_body["priority_summaries"] == []
+    assert deb_body["selected_priority"] is None
+    assert deb_body["total_count"] == 0
+    assert deb_body["reruns"] == []
+
+
+def test_details_rejects_out_of_range_priority_and_limit(test_client: TestClient):
+    with override_permissions(Permission.view_rerun):
+        assert test_client.get(details_url, params={"family": "charm", "priority": 1_000_001}).status_code == 422
+        assert test_client.get(details_url, params={"family": "charm", "limit": 51}).status_code == 422
