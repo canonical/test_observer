@@ -235,6 +235,7 @@ class AppRoutes {
   static const images = '/images';
   static const solutions = '/solutions';
   static const testResults = '/test-results';
+  static const reruns = '/reruns';
 
   static Uri uriFromContext(BuildContext context) =>
       GoRouterState.of(context).uri;

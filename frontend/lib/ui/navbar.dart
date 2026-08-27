@@ -50,6 +50,9 @@ class Navbar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider).valueOrNull;
+    final currentPath = GoRouterState.of(context).uri.path;
+    final isTrackingSelected = currentPath.startsWith('/issues') ||
+        currentPath.startsWith(AppRoutes.reruns);
 
     return Container(
       color: YaruColors.coolGrey,
@@ -96,9 +99,19 @@ class Navbar extends ConsumerWidget {
                     title: 'Search',
                     route: AppRoutes.testResults,
                   ),
-                  const _NavbarEntry(
-                    title: 'Issues',
-                    route: '/issues',
+                  _NavbarDropdownEntry(
+                    label: 'Tracking',
+                    isSelected: isTrackingSelected,
+                    dropdownChildren: [
+                      _NavbarDropdownItem(
+                        label: 'Issues',
+                        onPressed: () => context.go('/issues'),
+                      ),
+                      _NavbarDropdownItem(
+                        label: 'Reruns',
+                        onPressed: () => context.go(AppRoutes.reruns),
+                      ),
+                    ],
                   ),
                   _NavbarDropdownEntry(
                     label: 'Help',
@@ -176,10 +189,12 @@ class _NavbarDropdownEntry extends StatelessWidget {
   const _NavbarDropdownEntry({
     required this.dropdownChildren,
     required this.label,
+    this.isSelected = false,
   });
 
   final String label;
   final List<Widget> dropdownChildren;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -192,7 +207,14 @@ class _NavbarDropdownEntry extends StatelessWidget {
             backgroundColor: WidgetStatePropertyAll(YaruColors.coolGrey),
           ),
           menuChildren: dropdownChildren,
-          child: Padding(
+          child: Container(
+            decoration: isSelected
+                ? const BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.white, width: 2),
+                    ),
+                  )
+                : null,
             padding: const EdgeInsets.all(Spacing.level4),
             child: Text(
               label,
