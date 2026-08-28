@@ -204,6 +204,38 @@ def test_non_matching_pools_yield_no_missing(
 
 
 @pytest.mark.usefixtures("c3_configured")
+def test_partial_pool_metadata_does_not_match(
+    test_client: TestClient,
+    generator: DataGenerator,
+    requests_mock: Mocker,
+):
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.snap, name="core")
+    generator.gen_artefact_build(a, architecture="amd64")
+
+    requests_mock.get(
+        POOLS_URL,
+        json={
+            "results": [
+                # Only the snap name matches; track/channel/store are absent.
+                # A partial metadata overlap must not be treated as a match.
+                {
+                    "name": "core-partial",
+                    "family": "snap",
+                    "metadata": {"snap": "core"},
+                    "environments": [_env("queue-x")],
+                }
+            ],
+            "next": None,
+        },
+    )
+
+    response = _get(test_client, a.id)
+
+    assert response.status_code == 200
+    assert response.json()["missing_environments"] == []
+
+
+@pytest.mark.usefixtures("c3_configured")
 def test_missing_environments_for_deb_matched_by_metadata(
     test_client: TestClient,
     generator: DataGenerator,
@@ -285,7 +317,8 @@ def test_deb_metadata_mismatch_yields_no_missing(
                 {
                     "name": "noble-linux-raspi-arm64",
                     "family": "deb",
-                    "metadata": {"kernel": "linux-raspi", "series": "noble"},
+                    # Same kernel/repo/pocket but a different series (noble vs jammy).
+                    "metadata": {"kernel": "linux-raspi", "series": "noble", "repo": "main", "source": "proposed"},
                     "environments": [_env("cm3-arm64", "arm64")],
                 }
             ],
@@ -317,7 +350,7 @@ def test_missing_is_computed_per_name_and_arch(
                 {
                     "name": "jammy-linux-raspi",
                     "family": "deb",
-                    "metadata": {"kernel": "linux-raspi", "series": "jammy"},
+                    "metadata": {"kernel": "linux-raspi", "series": "jammy", "repo": "main", "source": "proposed"},
                     "environments": [
                         _env("rpi400", "arm64"),  # present: matched on name + arch
                         _env("rpi5b8g-server", "arm64"),  # missing
@@ -357,7 +390,7 @@ def test_same_name_on_two_arches_is_disambiguated(
                 {
                     "name": "jammy-linux-raspi",
                     "family": "deb",
-                    "metadata": {"kernel": "linux-raspi", "series": "jammy"},
+                    "metadata": {"kernel": "linux-raspi", "series": "jammy", "repo": "main", "source": "proposed"},
                     "environments": [
                         _env("rpi400", "arm64"),  # present
                         _env("rpi400", "amd64"),  # missing: same name, different arch
@@ -390,7 +423,7 @@ def test_multiple_environments_can_share_a_queue(
                 {
                     "name": "jammy-linux-raspi",
                     "family": "deb",
-                    "metadata": {"kernel": "linux-raspi", "series": "jammy"},
+                    "metadata": {"kernel": "linux-raspi", "series": "jammy", "repo": "main", "source": "proposed"},
                     # Distinct environments may share a queue + arch (e.g. flavors).
                     "environments": [
                         _env("rpi3b-server", "arm64", queue="rpi3b"),

@@ -133,9 +133,10 @@ def _pool_matches_artefact(artefact: Artefact, pool: TestingPool) -> bool:
     if field_map is None:
         return False
 
-    keys = field_map.keys() & pool.metadata.keys()
-    return bool(keys) and all(
-        pool.metadata[key] == getattr(artefact, attr) for key, attr in field_map.items() if key in keys
+    # Require every expected metadata key to be present and equal; partial
+    # metadata must not match (e.g. matching a snap by name while ignoring channel).
+    return all(
+        key in pool.metadata and pool.metadata[key] == getattr(artefact, attr) for key, attr in field_map.items()
     )
 
 
@@ -156,6 +157,7 @@ def _get_previous_artefact(db: Session, artefact: Artefact) -> Artefact | None:
     """The version immediately preceding the given artefact, or None."""
     return db.scalars(
         select(Artefact)
+        .where(Artefact.family == artefact.family)
         .where(Artefact.name == artefact.name)
         .where(Artefact.track == artefact.track)
         .where(Artefact.branch == artefact.branch)
