@@ -126,7 +126,7 @@ def test_missing_environments_reported_with_previous_link(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["missing_environments"] == ["queue-b"]
+    assert body["missing_environments"] == [{"name": "queue-b", "architecture": "amd64"}]
     assert body["previous_artefact_link"] == (f"http://localhost:30001/snaps/{previous.id}?Environment=queue-b")
 
 
@@ -232,7 +232,10 @@ def test_missing_environments_for_deb_matched_by_metadata(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["missing_environments"] == ["cm3-arm64", "rpi4b8g-arm64"]
+    assert body["missing_environments"] == [
+        {"name": "cm3-arm64", "architecture": "arm64"},
+        {"name": "rpi4b8g-arm64", "architecture": "arm64"},
+    ]
 
 
 @pytest.mark.usefixtures("c3_configured")
@@ -329,7 +332,46 @@ def test_missing_is_computed_per_name_and_arch(
     response = _get(test_client, a.id)
 
     assert response.status_code == 200
-    assert response.json()["missing_environments"] == ["nuc-amd64", "rpi5b8g-server"]
+    assert response.json()["missing_environments"] == [
+        {"name": "nuc-amd64", "architecture": "amd64"},
+        {"name": "rpi5b8g-server", "architecture": "arm64"},
+    ]
+
+
+@pytest.mark.usefixtures("c3_configured")
+def test_same_name_on_two_arches_is_disambiguated(
+    test_client: TestClient,
+    generator: DataGenerator,
+    requests_mock: Mocker,
+):
+    a = generator.gen_artefact(StageName.proposed, family=FamilyName.deb, name="linux-raspi", series="jammy")
+    build = generator.gen_artefact_build(a, architecture="arm64")
+    # Same environment name present on arm64 but not amd64.
+    env = generator.gen_environment("rpi400", architecture="arm64")
+    generator.gen_artefact_build_environment_review(build, env)
+
+    requests_mock.get(
+        POOLS_URL,
+        json={
+            "results": [
+                {
+                    "name": "jammy-linux-raspi",
+                    "family": "deb",
+                    "metadata": {"kernel": "linux-raspi", "series": "jammy"},
+                    "environments": [
+                        _env("rpi400", "arm64"),  # present
+                        _env("rpi400", "amd64"),  # missing: same name, different arch
+                    ],
+                }
+            ],
+            "next": None,
+        },
+    )
+
+    response = _get(test_client, a.id)
+
+    assert response.status_code == 200
+    assert response.json()["missing_environments"] == [{"name": "rpi400", "architecture": "amd64"}]
 
 
 @pytest.mark.usefixtures("c3_configured")
@@ -363,7 +405,10 @@ def test_multiple_environments_can_share_a_queue(
     response = _get(test_client, a.id)
 
     assert response.status_code == 200
-    assert response.json()["missing_environments"] == ["rpi3b-desktop", "rpi3b-server"]
+    assert response.json()["missing_environments"] == [
+        {"name": "rpi3b-desktop", "architecture": "arm64"},
+        {"name": "rpi3b-server", "architecture": "arm64"},
+    ]
 
 
 @pytest.mark.usefixtures("c3_configured")

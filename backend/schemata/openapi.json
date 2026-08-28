@@ -1940,7 +1940,6 @@
     "/v1/artefacts/{artefact_id}/missing-environments": {
       "get": {
         "tags": [
-          "artefacts",
           "artefacts"
         ],
         "summary": "Get Missing Environments",
@@ -7680,11 +7679,29 @@
         ],
         "title": "MinimalIssueTestResultAttachmentRuleResponse"
       },
+      "MissingEnvironment": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "architecture"
+        ],
+        "title": "MissingEnvironment"
+      },
       "MissingEnvironmentsResponse": {
         "properties": {
           "missing_environments": {
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/MissingEnvironment"
             },
             "type": "array",
             "title": "Missing Environments"

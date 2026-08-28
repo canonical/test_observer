@@ -28,10 +28,6 @@ ADDITIONAL_CORS_ORIGINS = [
     origin.strip() for origin in os.getenv("ADDITIONAL_CORS_ORIGINS", "").split(",") if origin.strip()
 ]
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:30001")
-# C3 (certification.canonical.com) is the source of truth for the set of
-# environments (Testflinger queues) an artefact is expected to be tested on.
-# Only used by the missing-environments feature. When C3_API_TOKEN is empty the
-# feature degrades gracefully (source of truth reported as unavailable).
 C3_API_BASE_URL = os.getenv("C3_API_BASE_URL", "https://certification.canonical.com")
 C3_API_TOKEN = os.getenv("C3_API_TOKEN", "")
 SESSIONS_SECRET = os.getenv("SESSIONS_SECRET", "secret")

@@ -41,11 +41,12 @@ from test_observer.data_access.setup import get_db
 from test_observer.external_apis import c3
 from test_observer.external_apis.c3_models import TestingPool
 
-from .models import MissingEnvironmentsResponse
+from .models import MissingEnvironment, MissingEnvironmentsResponse
 
 logger = logging.getLogger("test-observer-backend")
 
-router = APIRouter(tags=["artefacts"])
+# Tags come from the parent artefacts router; setting them here duplicates them.
+router = APIRouter()
 
 # Families for which C3 has a source of truth (testing pools).
 _C3_FAMILIES = {FamilyName.snap, FamilyName.deb}
@@ -84,7 +85,7 @@ def get_missing_environments(
 
     expected = resolve_expected_environments(artefact, pools)
     actual = _get_actual_environments(db, artefact_id)
-    missing = sorted({name for name, _arch in expected - actual})
+    missing = sorted(expected - actual)
 
     previous_artefact_link = None
     if missing:
@@ -93,7 +94,7 @@ def get_missing_environments(
             previous_artefact_link = _build_filtered_link(previous, missing)
 
     return MissingEnvironmentsResponse(
-        missing_environments=missing,
+        missing_environments=[MissingEnvironment(name=name, architecture=arch) for name, arch in missing],
         previous_artefact_link=previous_artefact_link,
     )
 
@@ -170,6 +171,9 @@ def _get_previous_artefact(db: Session, artefact: Artefact) -> Artefact | None:
     ).first()
 
 
-def _build_filtered_link(artefact: Artefact, environments: list[str]) -> str:
-    query = urlencode([("Environment", name) for name in environments])
+def _build_filtered_link(artefact: Artefact, environments: list[tuple[str, str]]) -> str:
+    # The frontend Environment filter is keyed on name, so dedupe names (an env
+    # missing on multiple arches only needs one filter entry) while preserving order.
+    names = list(dict.fromkeys(name for name, _arch in environments))
+    query = urlencode([("Environment", name) for name in names])
     return f"{get_artefact_url(artefact)}?{query}"
