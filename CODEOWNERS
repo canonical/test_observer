@@ -1,4 +1,4 @@
-# Copyright 2023 Canonical Ltd.
+# Copyright 2026 Canonical Ltd.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@
 # --- Narrow ownership by directory ---
 /backend/        @rpbritton @wctaylor @almeidaraul
 /docs/           @almeidaraul @wctaylor
-/frontend/       @rpbritton @wctaylor
+/frontend/       @rpbritton @wctaylor @almeidaraul
 /terraform/      @wctaylor @rpbritton
 
 # --- Meta ---
