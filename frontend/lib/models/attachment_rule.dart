@@ -29,9 +29,16 @@ abstract class AttachmentRule with _$AttachmentRule {
     required int id,
     required bool enabled,
     @JsonKey(name: 'families') @Default([]) List<String> families,
+    @JsonKey(name: 'artefacts') @Default([]) List<String> artefacts,
+    @JsonKey(name: 'artefact_versions')
+    @Default([])
+    List<String> artefactVersions,
+    @JsonKey(name: 'artefact_stages') @Default([]) List<String> artefactStages,
+    @JsonKey(name: 'artefact_tracks') @Default([]) List<String> artefactTracks,
     @JsonKey(name: 'environment_names')
     @Default([])
     List<String> environmentNames,
+    @JsonKey(name: 'test_plans') @Default([]) List<String> testPlans,
     @JsonKey(name: 'test_case_names') @Default([]) List<String> testCaseNames,
     @JsonKey(name: 'template_ids') @Default([]) List<String> templateIds,
     @JsonKey(name: 'execution_metadata')
@@ -48,7 +55,12 @@ abstract class AttachmentRule with _$AttachmentRule {
   AttachmentRuleFilters toFilters() {
     return AttachmentRuleFilters(
       families: families,
+      artefacts: artefacts,
+      artefactVersions: artefactVersions,
+      artefactStages: artefactStages,
+      artefactTracks: artefactTracks,
       environmentNames: environmentNames,
+      testPlans: testPlans,
       testCaseNames: testCaseNames,
       templateIds: templateIds,
       testResultStatuses: testResultStatuses,

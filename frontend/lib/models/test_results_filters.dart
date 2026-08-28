@@ -127,10 +127,16 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     @Default([])
     List<TestResultStatus> testResultStatuses,
     @Default([]) List<String> artefacts,
+    @JsonKey(name: 'artefact_versions')
+    @Default([])
+    List<String> artefactVersions,
+    @JsonKey(name: 'artefact_stages') @Default([]) List<String> artefactStages,
+    @JsonKey(name: 'artefact_tracks') @Default([]) List<String> artefactTracks,
     @JsonKey(name: 'artefact_is_archived') bool? artefactIsArchived,
     @JsonKey(name: 'rerun_is_requested') bool? rerunIsRequested,
     @JsonKey(name: 'execution_is_latest') bool? executionIsLatest,
     @Default([]) List<String> environments,
+    @JsonKey(name: 'test_plans') @Default([]) List<String> testPlans,
     @JsonKey(name: 'test_cases') @Default([]) List<String> testCases,
     @JsonKey(name: 'template_ids') @Default([]) List<String> templateIds,
     @JsonKey(name: 'execution_metadata')
@@ -174,6 +180,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
         .map((s) => TestResultStatus.fromString(s))
         .toList();
     final artefacts = parseParam(parameters['artefacts']);
+    final artefactVersions = parseParam(parameters['artefact_versions']);
+    final artefactStages = parseParam(parameters['artefact_stages']);
+    final artefactTracks = parseParam(parameters['artefact_tracks']);
     final artefactIsArchived = parseParam(parameters['artefact_is_archived'])
         .map((s) => s.toLowerCase() == 'true')
         .firstOrNull;
@@ -184,6 +193,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
         .map((s) => s.toLowerCase() == 'true')
         .firstOrNull;
     final environments = parseParam(parameters['environments']);
+    final testPlans = parseParam(parameters['test_plans']);
     final testCases = parseParam(parameters['test_cases']);
     final templateIds = parseParam(parameters['template_ids']);
     final executionMetadata = ExecutionMetadata.fromQueryParams(
@@ -212,10 +222,14 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       families: families,
       testResultStatuses: testResultStatuses,
       artefacts: artefacts,
+      artefactVersions: artefactVersions,
+      artefactStages: artefactStages,
+      artefactTracks: artefactTracks,
       artefactIsArchived: artefactIsArchived,
       rerunIsRequested: rerunIsRequested,
       executionIsLatest: executionIsLatest,
       environments: environments,
+      testPlans: testPlans,
       testCases: testCases,
       templateIds: templateIds,
       executionMetadata: executionMetadata,
@@ -240,6 +254,15 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     if (artefacts.isNotEmpty) {
       params['artefacts'] = artefacts;
     }
+    if (artefactVersions.isNotEmpty) {
+      params['artefact_versions'] = artefactVersions;
+    }
+    if (artefactStages.isNotEmpty) {
+      params['artefact_stages'] = artefactStages;
+    }
+    if (artefactTracks.isNotEmpty) {
+      params['artefact_tracks'] = artefactTracks;
+    }
     if (artefactIsArchived != null) {
       params['artefact_is_archived'] = [artefactIsArchived.toString()];
     }
@@ -251,6 +274,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     }
     if (environments.isNotEmpty) {
       params['environments'] = environments;
+    }
+    if (testPlans.isNotEmpty) {
+      params['test_plans'] = testPlans;
     }
     if (testCases.isNotEmpty) {
       params['test_cases'] = testCases;
@@ -288,10 +314,14 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       families.isNotEmpty ||
       testResultStatuses.isNotEmpty ||
       artefacts.isNotEmpty ||
+      artefactVersions.isNotEmpty ||
+      artefactStages.isNotEmpty ||
+      artefactTracks.isNotEmpty ||
       artefactIsArchived != null ||
       rerunIsRequested != null ||
       executionIsLatest != null ||
       environments.isNotEmpty ||
+      testPlans.isNotEmpty ||
       testCases.isNotEmpty ||
       templateIds.isNotEmpty ||
       executionMetadata.isNotEmpty ||

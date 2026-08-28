@@ -390,8 +390,12 @@ void main() {
           'families': ['family1,family2'],
           'test_result_statuses': ['PASSED,FAILED'],
           'artefacts': ['artefact1'],
+          'artefact_versions': ['1.0,2.0'],
+          'artefact_stages': ['beta,stable'],
+          'artefact_tracks': ['latest,22'],
           'environments': ['env1,env2'],
           'test_cases': ['test1'],
+          'test_plans': ['plan1,plan2'],
           'template_ids': ['template1,template2'],
           'execution_metadata': [
             '${base64Encode(utf8.encode('key'))}:${base64Encode(utf8.encode('value'))}',
@@ -412,8 +416,12 @@ void main() {
           equals([TestResultStatus.passed, TestResultStatus.failed]),
         );
         expect(filters.artefacts, equals(['artefact1']));
+        expect(filters.artefactVersions, equals(['1.0', '2.0']));
+        expect(filters.artefactStages, equals(['beta', 'stable']));
+        expect(filters.artefactTracks, equals(['latest', '22']));
         expect(filters.environments, equals(['env1', 'env2']));
         expect(filters.testCases, equals(['test1']));
+        expect(filters.testPlans, equals(['plan1', 'plan2']));
         expect(filters.templateIds, equals(['template1', 'template2']));
         expect(filters.issues.values, equals([1, 2, 3]));
         expect(filters.reviewers.isAny, isTrue);
@@ -463,8 +471,12 @@ void main() {
           families: ['family1', 'family2'],
           testResultStatuses: [TestResultStatus.passed],
           artefacts: ['artefact1'],
+          artefactVersions: ['1.0'],
+          artefactStages: ['beta'],
+          artefactTracks: ['latest'],
           environments: ['env1'],
           testCases: ['test1'],
+          testPlans: ['plan1'],
           templateIds: ['template1'],
           executionMetadata: ExecutionMetadata(
             data: {
@@ -484,8 +496,12 @@ void main() {
         expect(params['families'], equals(['family1', 'family2']));
         expect(params['test_result_statuses'], equals(['PASSED']));
         expect(params['artefacts'], equals(['artefact1']));
+        expect(params['artefact_versions'], equals(['1.0']));
+        expect(params['artefact_stages'], equals(['beta']));
+        expect(params['artefact_tracks'], equals(['latest']));
         expect(params['environments'], equals(['env1']));
         expect(params['test_cases'], equals(['test1']));
+        expect(params['test_plans'], equals(['plan1']));
         expect(params['template_ids'], equals(['template1']));
         expect(
           params['execution_metadata'],
@@ -509,6 +525,10 @@ void main() {
         expect(params.containsKey('test_result_statuses'), isFalse);
         expect(params.containsKey('issues'), isFalse);
         expect(params.containsKey('from_date'), isFalse);
+        expect(params.containsKey('artefact_versions'), isFalse);
+        expect(params.containsKey('artefact_stages'), isFalse);
+        expect(params.containsKey('artefact_tracks'), isFalse);
+        expect(params.containsKey('test_plans'), isFalse);
       });
 
       test('toQueryParams handles IntListFilter variants', () {
@@ -603,6 +623,26 @@ void main() {
 
       test('returns true when artefacts is not empty', () {
         const filters = TestResultsFilters(artefacts: ['artefact1']);
+        expect(filters.hasFilters, isTrue);
+      });
+
+      test('returns true when artefactVersions is not empty', () {
+        const filters = TestResultsFilters(artefactVersions: ['1.0']);
+        expect(filters.hasFilters, isTrue);
+      });
+
+      test('returns true when artefactStages is not empty', () {
+        const filters = TestResultsFilters(artefactStages: ['beta']);
+        expect(filters.hasFilters, isTrue);
+      });
+
+      test('returns true when artefactTracks is not empty', () {
+        const filters = TestResultsFilters(artefactTracks: ['latest']);
+        expect(filters.hasFilters, isTrue);
+      });
+
+      test('returns true when testPlans is not empty', () {
+        const filters = TestResultsFilters(testPlans: ['plan1']);
         expect(filters.hasFilters, isTrue);
       });
 

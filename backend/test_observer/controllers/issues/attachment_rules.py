@@ -59,6 +59,7 @@ def post_attachment_rule(
         artefact_stages=request.artefact_stages,
         artefact_tracks=request.artefact_tracks,
         environment_names=request.environment_names,
+        test_plans=request.test_plans,
         test_case_names=request.test_case_names,
         template_ids=request.template_ids,
         test_result_statuses=request.test_result_statuses,
