@@ -1937,6 +1937,52 @@
         ]
       }
     },
+    "/v1/artefacts/{artefact_id}/missing-environments": {
+      "get": {
+        "tags": [
+          "artefacts",
+          "artefacts"
+        ],
+        "summary": "Get Missing Environments",
+        "operationId": "get_missing_environments_v1_artefacts__artefact_id__missing_environments_get",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MissingEnvironmentsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_artefact"
+        ]
+      }
+    },
     "/v1/reports/test-results": {
       "get": {
         "tags": [
@@ -7633,6 +7679,34 @@
           "execution_metadata"
         ],
         "title": "MinimalIssueTestResultAttachmentRuleResponse"
+      },
+      "MissingEnvironmentsResponse": {
+        "properties": {
+          "missing_environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Missing Environments"
+          },
+          "previous_artefact_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous Artefact Link"
+          }
+        },
+        "type": "object",
+        "required": [
+          "missing_environments"
+        ],
+        "title": "MissingEnvironmentsResponse",
+        "description": "Environments an artefact is missing versus the C3 source of truth."
       },
       "NotificationResponse": {
         "properties": {

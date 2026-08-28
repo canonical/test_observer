@@ -55,7 +55,7 @@ from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
-from . import builds, environment_reviews
+from . import builds, environment_reviews, missing_environments
 from .logic import (
     are_all_environments_approved,
     is_there_a_rejected_environment,
@@ -436,3 +436,4 @@ def get_artefact_versions(
 
 router.include_router(environment_reviews.router)
 router.include_router(builds.router)
+router.include_router(missing_environments.router)
