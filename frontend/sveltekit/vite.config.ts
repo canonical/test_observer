@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: GPL-3.0-only
 
 import adapter from "@sveltejs/adapter-static";
 import { sveltekit } from "@sveltejs/kit/vite";

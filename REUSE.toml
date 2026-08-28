@@ -74,7 +74,13 @@ path = [
     "frontend/pubspec.yaml",
     "frontend/web/icons/*",
     "frontend/web/index.html",
-    "frontend/web/manifest.json"
+    "frontend/web/manifest.json",
+    "frontend/sveltekit/package-lock.json",
+    "frontend/sveltekit/package.json",
+    "frontend/sveltekit/static/families.json",
+    "frontend/sveltekit/static/robots.txt",
+    "frontend/sveltekit/tsconfig.json",
+    "frontend/sveltekit/src/lib/assets/*.png"
 ]
 SPDX-FileCopyrightText = "2023 Canonical Ltd."
 SPDX-License-Identifier = "GPL-3.0-only"
