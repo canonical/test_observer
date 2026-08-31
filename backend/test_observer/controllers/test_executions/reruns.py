@@ -389,8 +389,8 @@ def get_rerun_details(
 
     if priority is not None and priority not in available_priorities:
         raise HTTPException(
-            status_code=422,
-            detail=f"No reruns found for priority {priority} and family {family}",
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"No reruns found for priority {priority} and family {family}",
         )
 
     # Default to the highest priority present when the caller doesn't request one.

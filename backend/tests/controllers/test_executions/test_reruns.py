@@ -1967,7 +1967,7 @@ def test_post_priority_at_min_is_accepted(post: Post, get: Get, test_execution: 
 
 
 # ==============================================================================
-# GET /reruns/details
+# GET /v1/test-executions/reruns/details
 # ==============================================================================
 
 details_url = "/v1/test-executions/reruns/details"
