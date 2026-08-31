@@ -184,7 +184,13 @@ class _RerunsContent extends StatelessWidget {
         ? 1
         : ((data.selectedCount + data.limit - 1) ~/ data.limit);
     final rawPage = (data.offset ~/ data.limit) + 1;
-    final currentPage = rawPage > totalPages ? totalPages : rawPage;
+    final currentPage = rawPage.clamp(1, totalPages);
+
+    if (rawPage != currentPage) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        onPageChanged(currentPage);
+      });
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
