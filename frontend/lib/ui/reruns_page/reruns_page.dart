@@ -180,8 +180,9 @@ class _RerunsContent extends StatelessWidget {
     }
 
     final selected = data.selectedPriority;
-    final totalPages =
-        data.count == 0 ? 1 : ((data.count + data.limit - 1) ~/ data.limit);
+    final totalPages = data.selectedCount == 0
+        ? 1
+        : ((data.selectedCount + data.limit - 1) ~/ data.limit);
     final rawPage = (data.offset ~/ data.limit) + 1;
     final currentPage = rawPage > totalPages ? totalPages : rawPage;
 
@@ -189,7 +190,7 @@ class _RerunsContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${data.totalCount} pending rerun(s)',
+          '${data.count} pending rerun(s)',
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: Spacing.level4),
@@ -201,7 +202,7 @@ class _RerunsContent extends StatelessWidget {
         const SizedBox(height: Spacing.level5),
         if (selected != null) ...[
           Text(
-            'Priority $selected — ${data.count} rerun(s)',
+            'Priority $selected — ${data.selectedCount} rerun(s)',
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: Spacing.level3),
