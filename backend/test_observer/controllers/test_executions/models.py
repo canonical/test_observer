@@ -385,8 +385,8 @@ class RerunDetail(BaseModel):
 class RerunDetailsResponse(BaseModel):
     priority_summaries: list[RerunPrioritySummary]
     selected_priority: int | None
-    total_count: int
     count: int
+    selected_count: int
     limit: int
     offset: int
     reruns: list[RerunDetail]

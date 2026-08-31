@@ -1996,9 +1996,9 @@ def test_details_groups_counts_by_priority_and_defaults_to_highest(test_client: 
         {"priority": 0, "count": 1},
         {"priority": 5, "count": 2},
     ]
-    assert body["total_count"] == 4
+    assert body["count"] == 4
     assert body["selected_priority"] == 5
-    assert body["count"] == 2
+    assert body["selected_count"] == 2
     assert {r["priority"] for r in body["reruns"]} == {5}
 
 
@@ -2046,14 +2046,25 @@ def test_details_filters_by_family_and_is_empty_when_none_exist(test_client: Tes
         generator.gen_rerun_request(te, priority=1)
 
     charm_body = _get_details(test_client, family="charm").json()
-    assert charm_body["total_count"] == 1
+    assert charm_body["count"] == 1
     assert [s["priority"] for s in charm_body["priority_summaries"]] == [1]
 
     deb_body = _get_details(test_client, family="deb").json()
     assert deb_body["priority_summaries"] == []
     assert deb_body["selected_priority"] is None
-    assert deb_body["total_count"] == 0
+    assert deb_body["count"] == 0
     assert deb_body["reruns"] == []
+
+
+def test_details_rejects_priority_with_no_reruns(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("unavailable-priority-env")
+    te = generator.gen_test_execution(ab, e)
+    generator.gen_rerun_request(te, priority=5)
+
+    response = _get_details(test_client, family="charm", priority=1)
+    assert response.status_code == 422
 
 
 def test_details_rejects_out_of_range_priority_and_limit(test_client: TestClient):

@@ -378,17 +378,24 @@ def get_rerun_details(
         return RerunDetailsResponse(
             priority_summaries=[],
             selected_priority=None,
-            total_count=0,
             count=0,
+            selected_count=0,
             limit=limit,
             offset=offset,
             reruns=[],
         )
 
     available_priorities = {s.priority for s in priority_summaries}
+
+    if priority is not None and priority not in available_priorities:
+        raise HTTPException(
+            status_code=422,
+            detail=f"No reruns found for priority {priority} and family {family}",
+        )
+
     # Default to the highest priority present when the caller doesn't request one.
     selected_priority = priority if priority is not None else max(available_priorities)
-    selected_count = next((s.count for s in priority_summaries if s.priority == selected_priority), 0)
+    selected_count = next(s.count for s in priority_summaries if s.priority == selected_priority)
 
     detail_rows = db.execute(
         select(
@@ -428,8 +435,8 @@ def get_rerun_details(
     return RerunDetailsResponse(
         priority_summaries=priority_summaries,
         selected_priority=selected_priority,
-        total_count=total_count,
-        count=selected_count,
+        count=total_count,
+        selected_count=selected_count,
         limit=limit,
         offset=offset,
         reruns=reruns,
