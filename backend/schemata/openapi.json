@@ -8146,13 +8146,13 @@
             ],
             "title": "Selected Priority"
           },
-          "total_count": {
-            "type": "integer",
-            "title": "Total Count"
-          },
           "count": {
             "type": "integer",
             "title": "Count"
+          },
+          "selected_count": {
+            "type": "integer",
+            "title": "Selected Count"
           },
           "limit": {
             "type": "integer",
@@ -8174,8 +8174,8 @@
         "required": [
           "priority_summaries",
           "selected_priority",
-          "total_count",
           "count",
+          "selected_count",
           "limit",
           "offset",
           "reruns"
