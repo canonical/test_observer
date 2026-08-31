@@ -49,8 +49,8 @@ abstract class RerunDetailsResponse with _$RerunDetailsResponse {
     @JsonKey(name: 'priority_summaries')
     required List<RerunPrioritySummary> prioritySummaries,
     @JsonKey(name: 'selected_priority') int? selectedPriority,
-    @JsonKey(name: 'total_count') required int totalCount,
     required int count,
+    @JsonKey(name: 'selected_count') required int selectedCount,
     required int limit,
     required int offset,
     required List<RerunDetail> reruns,
