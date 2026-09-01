@@ -19,15 +19,11 @@ NOTE: This is a family-specific external integration (C3 only knows about deb/sn
 and is acknowledged technical debt per the project's generic-platform design principle.
 """
 
-import logging
-
 import requests
 
 from test_observer.common import config
 
 from .c3_models import TestingPool
-
-logger = logging.getLogger("test-observer-backend")
 
 _TIMEOUT_SECONDS = 30
 
