@@ -21,7 +21,9 @@ from .models import LaunchpadUser
 
 class LaunchpadAPI:
     def __init__(self):
-        self.launchpad = Launchpad.login_anonymously("test-observer", "production", version="devel")
+        self.launchpad = Launchpad.login_anonymously(
+            "test-observer", "production", version="devel", timeout=30
+        )
 
     def get_user_by_email(self, email: EmailStr) -> LaunchpadUser | None:
         user = self.launchpad.people.getByEmail(email=email)
