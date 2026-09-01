@@ -1156,13 +1156,19 @@ def test_get_artefact_versions_solution_ignores_legacy_family_fields(test_client
         {"version": "1", "artefact_id": legacy.id},
     ]
 
-    for artefact_id in (legacy.id, new.id):
-        response = make_authenticated_request(
-            lambda aid=artefact_id: test_client.get(f"/v1/artefacts/{aid}/versions"),
-            Permission.view_artefact,
-        )
-        assert response.status_code == 200
-        assert response.json() == expected_result
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{legacy.id}/versions"),
+        Permission.view_artefact,
+    )
+    assert response.status_code == 200
+    assert response.json() == expected_result
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{new.id}/versions"),
+        Permission.view_artefact,
+    )
+    assert response.status_code == 200
+    assert response.json() == expected_result
 
 
 def test_get_artefact_history_default_filters(test_client: TestClient, generator: DataGenerator):
