@@ -48,7 +48,6 @@ def get_artefact_builds(
     latest_builds = db.scalars(
         latest_artefact_builds.where(ArtefactBuild.artefact_id == artefact_id).options(
             selectinload(ArtefactBuild.test_executions).options(*ARTEFACT_BUILD_TEST_EXECUTION_OPTIONS),
-            selectinload(ArtefactBuild.bundled_in),
         )
     ).all()
 
