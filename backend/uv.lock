@@ -1249,6 +1249,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pysocks"
+version = "1.7.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bd/11/293dd436aea955d45fc4e8a35b6ae7270f5b8e00b53cf6c024c83b657a11/PySocks-1.7.1.tar.gz", hash = "sha256:3f8804571ebe159c380ac6de37643bb4685970655d3bba243530d6558b799aa0", size = 284429, upload-time = "2019-09-20T02:07:35.714Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8d/59/b4572118e098ac8e46e399a1dd0f2d85403ce8bbaad9ec79373ed6badaf9/PySocks-1.7.1-py3-none-any.whl", hash = "sha256:2725bd0a9925919b9b51739eea5f9e2bae91e83288108a9ad338b2e3a4435ee5", size = 16725, upload-time = "2019-09-20T02:06:22.938Z" },
+]
+
+[[package]]
 name = "pytest"
 version = "9.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1541,6 +1550,7 @@ dependencies = [
     { name = "pg8000" },
     { name = "prometheus-fastapi-instrumentator" },
     { name = "pygithub" },
+    { name = "pysocks" },
     { name = "python-multipart" },
     { name = "python3-saml" },
     { name = "requests" },
@@ -1576,6 +1586,7 @@ requires-dist = [
     { name = "pg8000", specifier = ">=1.29.4,<2.0.0" },
     { name = "prometheus-fastapi-instrumentator", specifier = ">=7.1.0" },
     { name = "pygithub", specifier = ">=2.0.0,<3.0.0" },
+    { name = "pysocks", specifier = ">=1.7.1,<2.0.0" },
     { name = "python-multipart", specifier = ">=0.0.20,<0.1.0" },
     { name = "python3-saml", specifier = ">=1.16.0" },
     { name = "requests", specifier = ">=2.33.0,<3.0.0" },
