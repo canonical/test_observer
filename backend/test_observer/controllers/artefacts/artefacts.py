@@ -392,19 +392,22 @@ def get_artefact_versions(
     artefact: Artefact = Depends(ArtefactRetriever()),
     db: Session = Depends(get_db),
 ):
-    return db.scalars(
-        select(Artefact)
-        .where(Artefact.name == artefact.name)
-        .where(Artefact.family == artefact.family)
-        .where(Artefact.track == artefact.track)
-        .where(Artefact.branch == artefact.branch)
-        .where(Artefact.series == artefact.series)
-        .where(Artefact.repo == artefact.repo)
-        .where(Artefact.os == artefact.os)
-        .where(Artefact.release == artefact.release)
-        .where(Artefact.source == artefact.source)
-        .order_by(Artefact.id.desc())
-    )
+    query = select(Artefact).where(Artefact.name == artefact.name).where(Artefact.family == artefact.family)
+
+    # A solution's identity is (name, version) within its family, so its version history is
+    # every artefact sharing that name; the family-specific columns are not part of its key.
+    if artefact.family != FamilyName.solution:
+        query = (
+            query.where(Artefact.track == artefact.track)
+            .where(Artefact.branch == artefact.branch)
+            .where(Artefact.series == artefact.series)
+            .where(Artefact.repo == artefact.repo)
+            .where(Artefact.os == artefact.os)
+            .where(Artefact.release == artefact.release)
+            .where(Artefact.source == artefact.source)
+        )
+
+    return db.scalars(query.order_by(Artefact.id.desc()))
 
 
 router.include_router(environment_reviews.router)

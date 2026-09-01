@@ -1143,6 +1143,28 @@ def test_get_artefact_versions_does_not_mix_families(test_client: TestClient, ge
     assert response.json() == [{"version": "2", "artefact_id": solution.id}]
 
 
+def test_get_artefact_versions_solution_ignores_legacy_family_fields(test_client: TestClient, generator: DataGenerator):
+    """A solution's version history is keyed on (name, family) only, so legacy solutions with
+    non-empty track/source are grouped with newer rows that leave those columns blank."""
+    legacy = generator.gen_artefact(
+        family=FamilyName.solution, name="my-solution", version="1", track="1.32", source="some-sha"
+    )
+    new = generator.gen_artefact(family=FamilyName.solution, name="my-solution", version="2")
+
+    expected_result = [
+        {"version": "2", "artefact_id": new.id},
+        {"version": "1", "artefact_id": legacy.id},
+    ]
+
+    for artefact_id in (legacy.id, new.id):
+        response = make_authenticated_request(
+            lambda aid=artefact_id: test_client.get(f"/v1/artefacts/{aid}/versions"),
+            Permission.view_artefact,
+        )
+        assert response.status_code == 200
+        assert response.json() == expected_result
+
+
 def test_get_artefact_history_default_filters(test_client: TestClient, generator: DataGenerator):
     charm_latest_1 = generator.gen_artefact(
         family=FamilyName.charm,
