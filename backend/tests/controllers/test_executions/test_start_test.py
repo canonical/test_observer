@@ -178,60 +178,10 @@ def test_start_test_on_existing_solution_does_not_change_attributes(
     assert te2.artefact_build.artefact.attributes == original
 
 
-def test_start_test_legacy_track_and_source_are_merged_into_attributes(
-    execute: Execute,
-    db_session: Session,
-) -> None:
-    """The legacy track/source fields are deprecated but still accepted for backward
-    compatibility, and are folded into attributes for existing clients that haven't
-    migrated to the attributes field yet."""
-    response = execute({**solution_test_request, "track": "22.04", "source": "ppa:ubuntu-pro/fips"})
-
-    assert response.status_code == 200
-    test_execution = db_session.get(TestExecution, response.json()["id"])
-    assert test_execution is not None
-    assert test_execution.artefact_build.artefact.attributes == {
-        "track": "22.04",
-        "source": "ppa:ubuntu-pro/fips",
-    }
-
-
-def test_start_test_legacy_track_and_source_do_not_override_attributes(
-    execute: Execute,
-    db_session: Session,
-) -> None:
-    """When attributes explicitly sets track/source, the legacy fields must not clobber them."""
-    response = execute(
-        {
-            **solution_test_request,
-            "track": "legacy-track",
-            "source": "legacy-source",
-            "attributes": {"track": "explicit-track", "other": "value"},
-        }
-    )
-
-    assert response.status_code == 200
-    test_execution = db_session.get(TestExecution, response.json()["id"])
-    assert test_execution is not None
-    assert test_execution.artefact_build.artefact.attributes == {
-        "track": "explicit-track",
-        "other": "value",
-        "source": "legacy-source",
-    }
-
-
 def test_start_test_explicit_null_attributes_is_rejected(execute: Execute) -> None:
     """attributes is non-nullable; an explicit null must fail validation rather than being
     silently treated as an empty dict."""
     response = execute({**solution_test_request, "attributes": None})
-
-    assert response.status_code == 422
-
-
-def test_start_test_legacy_source_over_max_length_is_rejected(execute: Execute) -> None:
-    """The legacy source field must keep the same 200-char limit as the underlying
-    artefact.source column, so oversized values fail validation (422) instead of a DB error."""
-    response = execute({**solution_test_request, "source": "x" * 201})
 
     assert response.status_code == 422
 

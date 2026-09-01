@@ -8840,33 +8840,6 @@
           "execution_stage": {
             "$ref": "#/components/schemas/SolutionStage",
             "description": "Promotion stage of the solution being tested."
-          },
-          "track": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Track",
-            "description": "Legacy field. Merged into attributes['track'] when attributes['track'] is not provided.",
-            "deprecated": true
-          },
-          "source": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 200
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source",
-            "description": "Legacy field. Merged into attributes['source'] when attributes['source'] is not provided.",
-            "deprecated": true
           }
         },
         "type": "object",
