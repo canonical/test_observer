@@ -369,6 +369,29 @@ class PendingRerun(BaseModel):
     created_at: datetime
 
 
+class RerunPrioritySummary(BaseModel):
+    priority: int
+    count: int
+
+
+class RerunDetail(BaseModel):
+    test_plan_name: str
+    created_at: datetime
+    priority: int
+    architecture: str
+    environment_name: str
+
+
+class RerunDetailsResponse(BaseModel):
+    priority_summaries: list[RerunPrioritySummary]
+    selected_priority: int | None
+    count: int
+    selected_count: int
+    limit: int
+    offset: int
+    reruns: list[RerunDetail]
+
+
 class DeleteReruns(BaseModel):
     test_execution_ids: set[int] = Field(default_factory=set)
     test_results_filters: TestResultSearchFilters | None = None
