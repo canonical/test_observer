@@ -155,27 +155,27 @@ def test_start_test_without_attributes_creates_new_solution_with_empty_attribute
     assert test_execution.artefact_build.artefact.attributes == {}
 
 
-def test_start_test_on_existing_solution_does_not_change_attributes(
+def test_start_test_on_existing_solution_updates_attributes(
     execute: Execute,
     db_session: Session,
 ) -> None:
-    """Attributes are applied only on creation; resubmitting for an existing solution
-    with different attributes leaves the stored attributes unchanged."""
-    original = {"foo": "bar"}
-    response = execute({**solution_test_request, "attributes": original})
+    """Resubmitting a test for an existing solution with different attributes updates the
+    stored attributes to the new value."""
+    response = execute({**solution_test_request, "attributes": {"foo": "bar"}})
     assert response.status_code == 200
     te1 = db_session.get(TestExecution, response.json()["id"])
     assert te1 is not None
     artefact_id = te1.artefact_build.artefact_id
 
-    response = execute({**solution_test_request, "attributes": {"foo": "changed"}, "ci_link": "http://localhost/other"})
+    updated = {"foo": "changed"}
+    response = execute({**solution_test_request, "attributes": updated, "ci_link": "http://localhost/other"})
     assert response.status_code == 200
     te2 = db_session.get(TestExecution, response.json()["id"])
     assert te2 is not None
     db_session.expire_all()
 
     assert te2.artefact_build.artefact_id == artefact_id
-    assert te2.artefact_build.artefact.attributes == original
+    assert te2.artefact_build.artefact.attributes == updated
 
 
 def test_start_test_explicit_null_attributes_is_rejected(execute: Execute) -> None:
