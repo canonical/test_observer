@@ -178,6 +178,29 @@ def test_start_test_on_existing_solution_updates_attributes(
     assert te2.artefact_build.artefact.attributes == updated
 
 
+def test_start_test_on_existing_solution_without_attributes_preserves_them(
+    execute: Execute,
+    db_session: Session,
+) -> None:
+    """Resubmitting a test for an existing solution without the attributes field leaves the
+    stored attributes untouched (an omitted field must not clear them)."""
+    original = {"foo": "bar"}
+    response = execute({**solution_test_request, "attributes": original})
+    assert response.status_code == 200
+    te1 = db_session.get(TestExecution, response.json()["id"])
+    assert te1 is not None
+    artefact_id = te1.artefact_build.artefact_id
+
+    response = execute({**solution_test_request, "ci_link": "http://localhost/other"})
+    assert response.status_code == 200
+    te2 = db_session.get(TestExecution, response.json()["id"])
+    assert te2 is not None
+    db_session.expire_all()
+
+    assert te2.artefact_build.artefact_id == artefact_id
+    assert te2.artefact_build.artefact.attributes == original
+
+
 def test_start_test_explicit_null_attributes_is_rejected(execute: Execute) -> None:
     """attributes is non-nullable; an explicit null must fail validation rather than being
     silently treated as an empty dict."""

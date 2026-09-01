@@ -352,8 +352,9 @@ class StartTestExecutionController:
 
         self.artefact = get_or_create(self.db, Artefact, filter_kwargs=filter_kwargs, creation_kwargs=creation_kwargs)
 
-        if isinstance(self.request, StartSolutionTestExecutionRequest):
-            self.artefact.attributes = self.request.attributes
+        request = self.request
+        if isinstance(request, StartSolutionTestExecutionRequest) and "attributes" in request.model_fields_set:
+            self.artefact.attributes = request.attributes
 
     def _resolve_arch(self) -> str:
         if self.request.arch is not None:
