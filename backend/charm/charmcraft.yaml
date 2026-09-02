@@ -46,7 +46,7 @@ parts:
     charm-entrypoint: src/charm.py
     charm-requirements:
       - requirements.txt
-    build-packages: [pkg-config, libffi-dev, libssl-dev, build-essential]
+    build-packages: [pkg-config, libffi-dev, libssl-dev, build-essential, libpq-dev, git]
     build-snaps: [rustup]
     override-build: |
       # pydantic requires a higher version of rustc than what is in the archive
@@ -202,3 +202,12 @@ actions:
         description: "An email address of the user to promote to admin"
         type: string
     required: [email]
+
+  validate:
+    description: Runs integration validators against this charm's relations and reports the results
+    params:
+      level:
+        description: "The depth of validation to run"
+        type: string
+        enum: [simple, deep, uat]
+        default: simple

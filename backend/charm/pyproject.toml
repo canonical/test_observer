@@ -15,6 +15,29 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
+[project]
+name = "test-observer-api-charm"
+version = "0.1.0"
+description = "Juju charm for the Test Observer API/backend"
+requires-python = ">=3.10"
+dependencies = [
+    "ops>=2.8.0",
+    "requests==2.34.2",
+    "pydantic==2.13.3",
+    "cosl",
+    "validators-update-status-check @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/update_status_check",
+    "validators-validate-action @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/validate_action",
+    "validators-base @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/base",
+    "validators-postgresql-client @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/postgresql_client",
+    "validators-ingress @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/ingress",
+    "validators-http-interface @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/http_interface",
+    "validators-prometheus-scrape @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/prometheus_scrape",
+    "validators-grafana-dashboard @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/grafana_dashboard",
+]
+
+[tool.uv]
+package = false
+
 # Testing tools configuration
 [tool.coverage.run]
 branch = true
@@ -47,6 +70,7 @@ lint.ignore = [
     "D409",
     "D413",
 ]
+lint.per-file-ignores = {"tests/*" = ["D101", "D103", "D104"]}
 extend-exclude = ["__pycache__", "*.egg_info", "lib"]
 
 [tool.ruff.lint.mccabe]
