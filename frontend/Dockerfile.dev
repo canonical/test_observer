@@ -1,0 +1,54 @@
+# Copyright 2025 Canonical Ltd.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3, as
+# published by the Free Software Foundation.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
+# SPDX-License-Identifier: GPL-3.0-only
+
+# Development image for the Test Observer frontend.
+#
+# Unlike the production Dockerfile, this image does NOT build a static release
+# bundle. Instead the source is bind-mounted at runtime (see docker-compose.yml)
+# and the container runs `flutter run` on a web server so that code changes are
+# picked up without rebuilding the image.
+
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && \
+    apt-get install -y \
+    curl git wget unzip gdb libstdc++6 libglu1-mesa fonts-droid-fallback \
+    python3 inotify-tools && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN git clone --depth 1 --branch '3.29.3' https://github.com/flutter/flutter.git /opt/flutter && \
+    /opt/flutter/bin/flutter doctor && \
+    /opt/flutter/bin/flutter config --enable-web
+
+ENV PATH="$PATH:/opt/flutter/bin:/root/.pub-cache/bin"
+
+WORKDIR /app
+
+# Warm the pub cache so the first `flutter run` is fast. The source itself is
+# bind-mounted at runtime, so only dependency manifests are copied here.
+COPY pubspec.* /app/
+RUN flutter pub get
+
+# Copy the entrypoint into the image so it works even without the runtime
+# bind-mount, and invoke it via `bash` so it doesn't depend on the executable
+# bit being preserved. In docker-compose the bind-mount overrides this copy
+# with the live host version.
+COPY dev_entrypoint.sh /app/dev_entrypoint.sh
+
+EXPOSE 80
+
+CMD ["bash", "/app/dev_entrypoint.sh"]
