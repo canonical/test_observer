@@ -692,7 +692,7 @@
           "test-executions"
         ],
         "summary": "Search Test Executions",
-        "description": "Search test executions with optional test result context.\n\nReturns one item per matching test execution with paginated results.\nThe test_results field contains all filtered test results for that execution.\n\nUse test_result=none to find executions without results,\ntest_result=any to find executions with results,\nor test_result={id} to filter by specific test result IDs.",
+        "description": "Search test executions with optional test result context.\n\nReturns one item per matching test execution with paginated results.\nThe test_results field contains all filtered test results for that execution.\n\nUse test_result=none to find executions without results,\ntest_result=any to find executions with results,\nor test_result={id} to filter by specific test result IDs.\nIf test_result is omitted, executions are not filtered by result\npresence at all.",
         "operationId": "search_test_executions_v1_test_executions_get",
         "parameters": [
           {
@@ -1019,10 +1019,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s)",
+              "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s). If omitted, executions are not filtered by result presence, so executions with zero results (e.g. NOT_STARTED, ENDED_PREMATURELY) are included.",
               "title": "Test Result"
             },
-            "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s)"
+            "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s). If omitted, executions are not filtered by result presence, so executions with zero results (e.g. NOT_STARTED, ENDED_PREMATURELY) are included."
           },
           {
             "name": "event_names",
