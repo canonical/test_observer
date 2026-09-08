@@ -166,10 +166,7 @@ def _search_executions(
                 )
             )
         )
-    else:
-        query_filters.append(
-            exists(select(1).select_from(TestResult).where(TestResult.test_execution_id == TestExecution.id))
-        )
+    # else: test_result omitted entirely, so don't filter by result presence.
 
     ids_query = select(TestExecution.id)
     ids_query = apply_te_joins(ids_query, joins_needed)
@@ -280,7 +277,9 @@ def search_test_executions(
         Query(
             description=(
                 "Filter by test result presence: 'any' (executions with results), "
-                "'none' (executions without results), or specific test result ID(s)"
+                "'none' (executions without results), or specific test result ID(s). "
+                "If omitted, executions are not filtered by result presence, so "
+                "executions with zero results (e.g. NOT_STARTED, ENDED_PREMATURELY) are included."
             )
         ),
     ] = None,
@@ -313,6 +312,8 @@ def search_test_executions(
     Use test_result=none to find executions without results,
     test_result=any to find executions with results,
     or test_result={id} to filter by specific test result IDs.
+    If test_result is omitted, executions are not filtered by result
+    presence at all.
     """
     parsed_test_result = parse_list_or_query_value(test_result)  # type: ignore[misc]
 

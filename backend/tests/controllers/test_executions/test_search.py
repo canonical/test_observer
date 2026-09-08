@@ -206,15 +206,18 @@ class TestSearchTestExecutions:
         assert data["offset"] == 0
         assert isinstance(data["count"], int)
 
-    def test_no_test_result_filter_defaults_to_any(self, test_client: TestClient, generator: DataGenerator):
-        """When test_result param is omitted, behaves like test_result=any."""
+    def test_no_test_result_filter_returns_executions_with_and_without_results(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """When test_result param is omitted, executions aren't filtered by result presence."""
         artefact = generator.gen_artefact(name=_uid("artefact"))
         build = generator.gen_artefact_build(artefact)
         env = generator.gen_environment()
         tc = generator.gen_test_case(name=_uid("tc"))
 
-        te = generator.gen_test_execution(build, env)
-        tr = generator.gen_test_result(tc, te)
+        te_with_result = generator.gen_test_execution(build, env)
+        tr = generator.gen_test_result(tc, te_with_result)
+        te_without_result = generator.gen_test_execution(build, env, status=TestExecutionStatus.ENDED_PREMATURELY)
 
         response = make_authenticated_request(
             lambda: test_client.get(f"/v1/test-executions?artefacts={artefact.name}"),
@@ -223,6 +226,14 @@ class TestSearchTestExecutions:
 
         assert response.status_code == 200
         data = response.json()
+
+        te_ids = {item["id"] for item in data["test_executions"]}
+        assert te_with_result.id in te_ids
+        # Regression test: executions with zero TestResult rows (e.g. crashed
+        # before writing any result) must not be silently excluded when
+        # test_result is omitted.
+        assert te_without_result.id in te_ids
+
         tr_ids = {result["id"] for item in data["test_executions"] for result in item["test_results"]}
         assert tr.id in tr_ids
 
