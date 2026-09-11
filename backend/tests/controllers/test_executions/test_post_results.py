@@ -79,6 +79,48 @@ def test_one_minimum_result(test_client: TestClient, test_execution: TestExecuti
     _assert_results([minimum_result], test_execution.test_results)
 
 
+def test_existing_test_case_category_and_template_id_are_updated(
+    test_client: TestClient,
+    test_execution: TestExecution,
+    generator: DataGenerator,
+):
+    # First submission creates the TestCase with a blank/stale category and template_id
+    stale_result = {**minimum_result, "template_id": "", "category": ""}
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{test_execution.id}/test-results",
+            json=[stale_result],
+        ),
+        Permission.change_test,
+    )
+    assert response.status_code == 200
+    _assert_results([stale_result], test_execution.test_results)
+
+    # A later submission for the same test case name with corrected values
+    # should update the existing TestCase rather than being silently discarded
+    other_execution = generator.gen_test_execution(
+        test_execution.artefact_build, generator.gen_environment(name="other-env")
+    )
+    updated_result = {
+        **minimum_result,
+        "template_id": "corrected.template.id",
+        "category": "corrected-category",
+    }
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            f"/v1/test-executions/{other_execution.id}/test-results",
+            json=[updated_result],
+        ),
+        Permission.change_test,
+    )
+    assert response.status_code == 200
+    _assert_results([updated_result], other_execution.test_results)
+
+    # And the previously created test result now reflects the updated TestCase too
+    assert test_execution.test_results[0].test_case.template_id == "corrected.template.id"
+    assert test_execution.test_results[0].test_case.category == "corrected-category"
+
+
 @pytest.mark.parametrize("field", ["name", "status"])
 def test_required_fields(test_client: TestClient, test_execution: TestExecution, field: str):
     result = minimum_result.copy()

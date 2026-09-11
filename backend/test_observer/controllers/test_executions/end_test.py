@@ -99,6 +99,8 @@ def _store_c3_test_results(
 
         if r.template_id:
             test_case.template_id = r.template_id
+        if r.category and test_case.category != r.category:
+            test_case.category = r.category
 
         test_result = TestResult(
             test_case=test_case,

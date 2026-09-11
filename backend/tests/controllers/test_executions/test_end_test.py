@@ -175,6 +175,48 @@ def test_end_test_updates_template_id(test_client: TestClient, generator: DataGe
     assert test_execution.relevant_links[0].url == "http://report.example.com"
 
 
+def test_end_test_updates_category(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(StageName.beta)
+    artefact_build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    test_execution = generator.gen_test_execution(
+        artefact_build,
+        environment,
+        ci_link="http://localhost",
+        relevant_links=[{"label": "Report", "url": "http://report.example.com"}],
+    )
+    generator.gen_artefact_build_environment_review(artefact_build, environment)
+    test_case = generator.gen_test_case(category="stale-category")
+
+    response = make_authenticated_request(
+        lambda: test_client.put(
+            "/v1/test-executions/end-test",
+            json={
+                "ci_link": test_execution.ci_link,
+                "c3_link": "",
+                "test_results": [
+                    {
+                        "name": test_case.name,
+                        "status": "pass",
+                        "category": "updated-category",
+                        "comment": "",
+                        "io_log": "",
+                    }
+                ],
+                "relevant_links": [{"label": link.label, "url": link.url} for link in test_execution.relevant_links],
+            },
+        ),
+        Permission.change_test,
+    )
+
+    assert response.status_code == 200
+    assert test_case.category == "updated-category"
+    assert test_execution.test_results[0].test_case.category == "updated-category"
+    assert len(test_execution.relevant_links) == 1
+    assert test_execution.relevant_links[0].label == "Report"
+    assert test_execution.relevant_links[0].url == "http://report.example.com"
+
+
 def test_apply_test_result_attachment_rules(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.beta)
     artefact_build = generator.gen_artefact_build(artefact)
