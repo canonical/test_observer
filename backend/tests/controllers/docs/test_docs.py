@@ -22,8 +22,8 @@ from test_observer.common.permissions import (
     authentication_checker_browser_friendly,
     requires_authentication,
 )
-from test_observer.main import app
 from test_observer.controllers.docs.docs import PUBLIC_OPERATIONS
+from test_observer.main import app
 from tests.conftest import authenticate_user
 from tests.data_generator import DataGenerator
 
