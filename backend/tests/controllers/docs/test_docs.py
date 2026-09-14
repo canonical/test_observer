@@ -23,6 +23,7 @@ from test_observer.common.permissions import (
     requires_authentication,
 )
 from test_observer.main import app
+from test_observer.controllers.docs.docs import PUBLIC_OPERATIONS
 from tests.conftest import authenticate_user
 from tests.data_generator import DataGenerator
 
@@ -225,3 +226,19 @@ def test_only_docs_browser_friendly(
     finally:
         app.dependency_overrides.pop(authentication_checker, None)
         app.dependency_overrides.pop(requires_authentication, None)
+
+
+def test_openapi_security_declarations(test_client: TestClient):
+    """Public operations must not require bearer auth; everything else must"""
+    response = test_client.get("/openapi.json")
+    schema = response.json()
+
+    for method, path in PUBLIC_OPERATIONS:
+        assert schema["paths"][path][method]["security"] == []
+
+    assert schema["security"] == [{"bearerAuth": []}]
+    assert schema["components"]["securitySchemes"]["bearerAuth"] == {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Application API key passed as an Authorization: Bearer header",
+    }

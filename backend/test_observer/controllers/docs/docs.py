@@ -30,12 +30,29 @@ SECURITY_SCHEMES: dict = {
     }
 }
 
+# Operations without authentication dependencies that must work before login
+# or without credentials (SAML flows and local health probes). They opt out of
+# the root-level bearer requirement.
+PUBLIC_OPERATIONS: tuple[tuple[str, str], ...] = (
+    ("get", "/v1/auth/saml/login"),
+    ("get", "/v1/auth/saml/logout"),
+    ("post", "/v1/auth/saml/acs"),
+    ("get", "/v1/auth/saml/sls"),
+    ("post", "/v1/auth/saml/sls"),
+    ("get", "/health/live"),
+    ("get", "/health/ready"),
+)
+
 
 def build_openapi_schema(app: FastAPI) -> dict:
     openapi_schema = app.openapi()
 
     openapi_schema.setdefault("components", {}).setdefault("securitySchemes", {}).update(SECURITY_SCHEMES)
     openapi_schema["security"] = [{"bearerAuth": []}]
+
+    for method, path in PUBLIC_OPERATIONS:
+        if path in openapi_schema["paths"] and method in openapi_schema["paths"][path]:
+            openapi_schema["paths"][path][method]["security"] = []
 
     # Iterate over all routes in the app to add permissions
     for route in app.routes:
