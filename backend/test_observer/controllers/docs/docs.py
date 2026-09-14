@@ -13,32 +13,37 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, FastAPI, Request
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.routing import APIRoute
 
-from test_observer.common.enums import Permission
 from test_observer.common.permissions import authentication_checker, authentication_checker_browser_friendly
 
 router: APIRouter = APIRouter()
 
+SECURITY_SCHEMES: dict = {
+    "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Application API key passed as an Authorization: Bearer header",
+    }
+}
 
-@router.get(
-    "/openapi.json",
-    include_in_schema=False,
-    dependencies=[Depends(authentication_checker)],
-)
-async def custom_openapi(request: Request):
-    app = request.app
+
+def build_openapi_schema(app: FastAPI) -> dict:
     openapi_schema = app.openapi()
+
+    openapi_schema.setdefault("components", {}).setdefault("securitySchemes", {}).update(SECURITY_SCHEMES)
+    openapi_schema["security"] = [{"bearerAuth": []}]
 
     # Iterate over all routes in the app to add permissions
     for route in app.routes:
-        if not hasattr(route, "dependant"):
+        if not isinstance(route, APIRoute):
             continue
 
         # Get security scopes for all dependencies
-        security_scopes: list[Permission] = []
+        security_scopes: list[str] = []
         for dep in route.dependant.dependencies:
             security_scopes.extend(dep.oauth_scopes)
 
@@ -50,6 +55,18 @@ async def custom_openapi(request: Request):
             method_lower = method.lower()
             if route.path in openapi_schema["paths"] and method_lower in openapi_schema["paths"][route.path]:
                 openapi_schema["paths"][route.path][method_lower]["x-permissions"] = security_scopes
+
+    return openapi_schema
+
+
+@router.get(
+    "/openapi.json",
+    include_in_schema=False,
+    dependencies=[Depends(authentication_checker)],
+)
+async def custom_openapi(request: Request):
+    app = request.app
+    openapi_schema = build_openapi_schema(app)
 
     return JSONResponse(openapi_schema)
 
