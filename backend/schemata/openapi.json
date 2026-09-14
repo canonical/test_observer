@@ -9,6 +9,11 @@
     },
     "version": "0.1.0"
   },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
   "paths": {
     "/v1/version": {
       "get": {
@@ -5714,6 +5719,12 @@
     }
   },
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
     "schemas": {
       "ApplicationPatch": {
         "properties": {
