@@ -18,3 +18,29 @@
 ops >= 2.8.0
 requests==2.34.2
 pydantic==2.13.3
+
+# Required by lib/charms/grafana_k8s/v0/grafana_dashboard.py (pre-existing
+# dependency of the vendored grafana_dashboard charm lib, not part of the
+# integration validators work below).
+cosl
+
+# canonical/charm-integration-testing's Interface Validators Framework, used
+# to run integration checks on update-status and via the `validate` action
+# (see src/charm.py). Pinned to a commit on the "charm-glue-modules" branch
+# (no tagged releases yet); update this commit deliberately to pick up
+# upstream changes.
+#
+# validators-update-status-check / validators-validate-action are small,
+# self-contained glue packages (they discover installed validators via
+# entry_points and don't depend on validators-runner - see their own
+# READMEs upstream). The rest are the specific interface validators this
+# charm's relations actually need; validators-base is a transitive
+# dependency of all of them.
+validators-update-status-check @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/update_status_check
+validators-validate-action @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/validate_action
+validators-base @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/base
+validators-postgresql-client @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/postgresql_client
+validators-ingress @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/ingress
+validators-http-interface @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/http_interface
+validators-prometheus-scrape @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/prometheus_scrape
+validators-grafana-dashboard @ git+https://github.com/canonical/charm-integration-testing.git@91c9405cd2ec410b19d8c2e4a03b4a58839f41a1#subdirectory=validators/grafana_dashboard
