@@ -27,12 +27,24 @@ SECURITY_SCHEMES: dict = {
         "type": "http",
         "scheme": "bearer",
         "description": "Application API key passed as an Authorization: Bearer header",
-    }
+    },
+    "sessionCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session",
+        "description": "Session cookie issued by the SAML login flow for browser users",
+    },
+    "csrfTokenAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "description": "CSRF protection header, required on all requests authenticated with the session cookie",
+    },
 }
 
 # Operations without authentication dependencies that must work before login
 # or without credentials (SAML flows and local health probes). They opt out of
-# the root-level bearer requirement.
+# the root-level security requirements.
 PUBLIC_OPERATIONS: tuple[tuple[str, str], ...] = (
     ("get", "/v1/auth/saml/login"),
     ("get", "/v1/auth/saml/logout"),
@@ -48,7 +60,10 @@ def build_openapi_schema(app: FastAPI) -> dict:
     openapi_schema = app.openapi()
 
     openapi_schema.setdefault("components", {}).setdefault("securitySchemes", {}).update(SECURITY_SCHEMES)
-    openapi_schema["security"] = [{"bearerAuth": []}]
+    openapi_schema["security"] = [
+        {"bearerAuth": []},
+        {"sessionCookieAuth": [], "csrfTokenAuth": []},
+    ]
 
     for method, path in PUBLIC_OPERATIONS:
         if path in openapi_schema["paths"] and method in openapi_schema["paths"][path]:
