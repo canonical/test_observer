@@ -13,16 +13,45 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
-import type { PageLoad } from "./$types";
 import { error } from "@sveltejs/kit";
+import { getApiRoot } from "$lib/config";
+import type { Artefact } from "$lib/types";
+import type { PageLoad } from "./$types";
 
-export const load: PageLoad = async ({ parent, params }) => {
-  const parentData = await parent();
-  const families = parentData.artefactFamilies;
-  const family = params.family;
-  const match = families.find((f) => f.name === family);
-  if (match) {
-    return { family, title: match.friendly_name };
+export const load: PageLoad = async ({ parent, params, fetch }) => {
+  const { artefactFamilies } = await parent();
+  const family = artefactFamilies.find((f) => f.name === params.family);
+
+  if (!family) {
+    error(404, `Unknown family: ${params.family}`);
   }
-  error(404, `Unknown family: ${family}`);
+
+  const res = await fetch(
+    `${getApiRoot()}/v1/artefacts?family=${family.api_name}`,
+    {
+      credentials: "include",
+      headers: { "X-CSRF-Token": "1" },
+    },
+  );
+
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      const returnTo =
+        typeof window !== "undefined" ? window.location.href : "";
+      const loginUrl = `${getApiRoot()}/v1/auth/saml/login?return_to=${encodeURIComponent(returnTo)}`;
+      if (typeof window !== "undefined") {
+        window.location.href = loginUrl;
+      }
+      return { family, artefacts: [] as Artefact[] };
+    }
+    error(res.status, "Failed to load artefacts");
+  }
+
+  const raw: Artefact[] = await res.json();
+  const artefacts = raw.map((a) => ({ ...a, reviewers: a.reviewers ?? [] }));
+
+  return {
+    family,
+    artefacts,
+  };
 };

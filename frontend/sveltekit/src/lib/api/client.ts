@@ -23,6 +23,8 @@ async function fetchApi<T>(
   options: RequestInit,
   reportErrors: boolean,
 ): Promise<T | null> {
+  // Strip leading slashes, else we'll accidentally double them up below on the fetch call.
+  path = path.replace(/^\/+/, "");
   try {
     const res = await fetch(`${getApiRoot()}/${API_VERSION}/${path}`, {
       ...options,

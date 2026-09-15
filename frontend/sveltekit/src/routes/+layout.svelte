@@ -152,7 +152,6 @@
     min-width: 0;
     padding: 1.5rem 2rem;
     overflow-y: auto;
-    max-width: 1600px;
   }
 
   .side-nav-logo {

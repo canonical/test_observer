@@ -1,21 +1,157 @@
 {
-  "comment": "This file functions as a stopgap, providing some family definitions which can be interpreted by the UI at runtime.  It can also be customized/overridden by the Test Observer charm.",
+  "comment": "This file functions as a stopgap, providing some family definitions which can be interpreted by the UI at runtime.  It can also be customized/overridden by the Test Observer charm.  'columns' and 'filters' reference generic value formatters/categorisers by name (see artefactMetadata.ts); 'field' names an artefact property to read.",
   "families": [
     {
       "name": "snaps",
-      "friendly_name": "Snap Testing"
+      "friendly_name": "Snap Testing",
+      "api_name": "snap",
+      "stages": ["edge", "beta", "candidate", "stable"],
+      "columns": [
+        { "label": "Name", "key": "name", "field": "name" },
+        { "label": "Version", "key": "version", "field": "version" },
+        { "label": "Track", "key": "track", "field": "track" },
+        { "label": "Risk", "key": "risk", "field": "stage" },
+        { "label": "Branch", "key": "branch", "field": "branch" },
+        {
+          "label": "Due date",
+          "key": "dueDate",
+          "field": "due_date",
+          "format": "date"
+        },
+        {
+          "label": "Reviews",
+          "key": "reviewsRemaining",
+          "format": "reviewsRemaining"
+        },
+        {
+          "label": "Status",
+          "key": "status",
+          "field": "status",
+          "format": "status"
+        },
+        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" }
+      ],
+      "filters": [
+        { "label": "Reviewers", "category": "reviewers" },
+        { "label": "Status", "field": "status" },
+        { "label": "Due date", "field": "due_date", "category": "dueDate" },
+        { "label": "Risk", "field": "stage" }
+      ]
     },
     {
       "name": "debs",
-      "friendly_name": "Deb Testing"
+      "friendly_name": "Deb Testing",
+      "api_name": "deb",
+      "stages": ["proposed", "updates", ""],
+      "columns": [
+        { "label": "Name", "key": "name", "field": "name" },
+        { "label": "Version", "key": "version", "field": "version" },
+        { "label": "Series", "key": "series", "field": "series" },
+        { "label": "Repo", "key": "repo", "field": "repo" },
+        { "label": "Pocket", "key": "pocket", "field": "stage" },
+        { "label": "Source", "key": "source", "field": "source" },
+        {
+          "label": "Due date",
+          "key": "dueDate",
+          "field": "due_date",
+          "format": "date"
+        },
+        {
+          "label": "Reviews",
+          "key": "reviewsRemaining",
+          "format": "reviewsRemaining"
+        },
+        {
+          "label": "Status",
+          "key": "status",
+          "field": "status",
+          "format": "status"
+        },
+        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" }
+      ],
+      "filters": [
+        { "label": "Reviewers", "category": "reviewers" },
+        { "label": "Status", "field": "status" },
+        { "label": "Due date", "field": "due_date", "category": "dueDate" },
+        { "label": "Series", "field": "series" },
+        { "label": "Pocket", "field": "stage" }
+      ]
     },
     {
       "name": "charms",
-      "friendly_name": "Charm Testing"
+      "friendly_name": "Charm Testing",
+      "api_name": "charm",
+      "stages": ["edge", "beta", "candidate", "stable"],
+      "columns": [
+        { "label": "Name", "key": "name", "field": "name" },
+        { "label": "Version", "key": "version", "field": "version" },
+        { "label": "Track", "key": "track", "field": "track" },
+        { "label": "Risk", "key": "risk", "field": "stage" },
+        { "label": "Branch", "key": "branch", "field": "branch" },
+        {
+          "label": "Due date",
+          "key": "dueDate",
+          "field": "due_date",
+          "format": "date"
+        },
+        {
+          "label": "Reviews",
+          "key": "reviewsRemaining",
+          "format": "reviewsRemaining"
+        },
+        {
+          "label": "Status",
+          "key": "status",
+          "field": "status",
+          "format": "status"
+        },
+        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" }
+      ],
+      "filters": [
+        { "label": "Reviewers", "category": "reviewers" },
+        { "label": "Status", "field": "status" },
+        { "label": "Due date", "field": "due_date", "category": "dueDate" },
+        { "label": "Risk", "field": "stage" }
+      ]
     },
     {
       "name": "images",
-      "friendly_name": "Image Testing"
+      "friendly_name": "Image Testing",
+      "api_name": "image",
+      "stages": ["pending", "current"],
+      "columns": [
+        { "label": "Name", "key": "name", "field": "name" },
+        { "label": "Version", "key": "version", "field": "version" },
+        { "label": "OS", "key": "os", "field": "os" },
+        { "label": "Release", "key": "release", "field": "release" },
+        { "label": "Owner", "key": "owner", "field": "owner" },
+        {
+          "label": "Due date",
+          "key": "dueDate",
+          "field": "due_date",
+          "format": "date"
+        },
+        {
+          "label": "Reviews",
+          "key": "reviewsRemaining",
+          "format": "reviewsRemaining"
+        },
+        {
+          "label": "Status",
+          "key": "status",
+          "field": "status",
+          "format": "status"
+        },
+        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" }
+      ],
+      "filters": [
+        { "label": "OS type", "field": "os" },
+        { "label": "Release", "field": "release" },
+        { "label": "Owner", "field": "owner" },
+        { "label": "Reviewers", "category": "reviewers" },
+        { "label": "Status", "field": "status" },
+        { "label": "Due date", "field": "due_date", "category": "dueDate" }
+      ]
     }
   ]
 }
