@@ -228,17 +228,61 @@ def test_only_docs_browser_friendly(
         app.dependency_overrides.pop(requires_authentication, None)
 
 
-def test_openapi_security_declarations(test_client: TestClient):
-    """Public operations must not require bearer auth; everything else must"""
-    response = test_client.get("/openapi.json")
-    schema = response.json()
+EXPECTED_PUBLIC_OPERATIONS: list[tuple[str, str]] = [
+    ("get", "/v1/auth/saml/login"),
+    ("get", "/v1/auth/saml/logout"),
+    ("post", "/v1/auth/saml/acs"),
+    ("get", "/v1/auth/saml/sls"),
+    ("post", "/v1/auth/saml/sls"),
+    ("get", "/health/live"),
+    ("get", "/health/ready"),
+]
 
-    for method, path in PUBLIC_OPERATIONS:
-        assert schema["paths"][path][method]["security"] == []
-
-    assert schema["security"] == [{"bearerAuth": []}]
-    assert schema["components"]["securitySchemes"]["bearerAuth"] == {
+EXPECTED_SECURITY_SCHEMES: dict = {
+    "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
         "description": "Application API key passed as an Authorization: Bearer header",
-    }
+    },
+    "sessionCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session",
+        "description": "Session cookie issued by the SAML login flow for browser users",
+    },
+    "csrfTokenAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "description": "CSRF protection header, required on all requests authenticated with the session cookie",
+    },
+}
+
+EXPECTED_SECURITY_REQUIREMENTS: list[dict] = [
+    {"bearerAuth": []},
+    {"sessionCookieAuth": [], "csrfTokenAuth": []},
+]
+
+
+def test_openapi_security_declarations(test_client: TestClient):
+    """
+    Public operations (SAML flows and health probes) must not require any
+    credentials, everything else must accept either an application API key
+    (bearer token) or a user session (session cookie + CSRF header).
+    """
+    response = test_client.get("/openapi.json")
+    schema = response.json()
+
+    # Keep this expectation independent from PUBLIC_OPERATIONS so that
+    # accidental additions or omissions in the allowlist are caught here
+    assert sorted(PUBLIC_OPERATIONS) == sorted(EXPECTED_PUBLIC_OPERATIONS)
+
+    for method, path in EXPECTED_PUBLIC_OPERATIONS:
+        assert schema["paths"][path][method]["security"] == []
+
+    assert schema["security"] == EXPECTED_SECURITY_REQUIREMENTS
+    assert schema["components"]["securitySchemes"] == EXPECTED_SECURITY_SCHEMES
+
+    # Protected operations must not opt out of the root-level requirements
+    assert "security" not in schema["paths"]["/v1/artefacts/{artefact_id}"]["get"]
+    assert "security" not in schema["paths"]["/v1/version"]["get"]

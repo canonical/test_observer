@@ -10282,12 +10282,28 @@
         "type": "http",
         "scheme": "bearer",
         "description": "Application API key passed as an Authorization: Bearer header"
+      },
+      "sessionCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session",
+        "description": "Session cookie issued by the SAML login flow for browser users"
+      },
+      "csrfTokenAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "description": "CSRF protection header, required on all requests authenticated with the session cookie"
       }
     }
   },
   "security": [
     {
       "bearerAuth": []
+    },
+    {
+      "sessionCookieAuth": [],
+      "csrfTokenAuth": []
     }
   ]
 }
