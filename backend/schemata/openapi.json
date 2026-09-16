@@ -4215,7 +4215,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
       }
     },
     "/v1/users": {
@@ -4820,7 +4826,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/v1/applications/{application_id}/rotate": {
@@ -4894,7 +4905,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/v1/applications/{application_id}": {
@@ -5101,7 +5117,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
       }
     },
     "/v1/users/me/notifications/count": {
@@ -5148,7 +5170,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
       }
     },
     "/v1/users/me/notifications/{notification_id}/dismiss": {
@@ -5191,7 +5219,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
       }
     },
     "/v1/users/{user_id}/notifications": {

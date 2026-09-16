@@ -55,6 +55,23 @@ PUBLIC_OPERATIONS: tuple[tuple[str, str], ...] = (
     ("get", "/health/ready"),
 )
 
+# Operations that only accept a user session (session cookie + CSRF token).
+# They reject an application bearer token, so they must not advertise the
+# root-level bearer alternative.
+USER_ONLY_OPERATIONS: tuple[tuple[str, str], ...] = (
+    ("get", "/v1/users/me"),
+    ("get", "/v1/users/me/notifications"),
+    ("get", "/v1/users/me/notifications/count"),
+    ("post", "/v1/users/me/notifications/{notification_id}/dismiss"),
+)
+
+# Operations that only accept an application API key. They reject a session,
+# so they must not advertise the root-level session alternative.
+APPLICATION_ONLY_OPERATIONS: tuple[tuple[str, str], ...] = (
+    ("get", "/v1/applications/me"),
+    ("post", "/v1/applications/me/rotate"),
+)
+
 
 def build_openapi_schema(app: FastAPI) -> dict:
     openapi_schema = app.openapi()
@@ -68,6 +85,20 @@ def build_openapi_schema(app: FastAPI) -> dict:
     for method, path in PUBLIC_OPERATIONS:
         if path in openapi_schema["paths"] and method in openapi_schema["paths"][path]:
             openapi_schema["paths"][path][method]["security"] = []
+
+    # Operations that only accept one credential type override the root-level
+    # requirements so that tooling doesn't try to authenticate with a
+    # credential type the endpoint cannot use.
+    session_only_security: list[dict] = [{"sessionCookieAuth": [], "csrfTokenAuth": []}]
+    bearer_only_security: list[dict] = [{"bearerAuth": []}]
+
+    for method, path in USER_ONLY_OPERATIONS:
+        if path in openapi_schema["paths"] and method in openapi_schema["paths"][path]:
+            openapi_schema["paths"][path][method]["security"] = session_only_security
+
+    for method, path in APPLICATION_ONLY_OPERATIONS:
+        if path in openapi_schema["paths"] and method in openapi_schema["paths"][path]:
+            openapi_schema["paths"][path][method]["security"] = bearer_only_security
 
     # Iterate over all routes in the app to add permissions
     for route in app.routes:

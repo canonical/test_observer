@@ -22,7 +22,11 @@ from test_observer.common.permissions import (
     authentication_checker_browser_friendly,
     requires_authentication,
 )
-from test_observer.controllers.docs.docs import PUBLIC_OPERATIONS
+from test_observer.controllers.docs.docs import (
+    APPLICATION_ONLY_OPERATIONS,
+    PUBLIC_OPERATIONS,
+    USER_ONLY_OPERATIONS,
+)
 from test_observer.main import app
 from tests.conftest import authenticate_user
 from tests.data_generator import DataGenerator
@@ -238,6 +242,21 @@ EXPECTED_PUBLIC_OPERATIONS: list[tuple[str, str]] = [
     ("get", "/health/ready"),
 ]
 
+EXPECTED_USER_ONLY_OPERATIONS: list[tuple[str, str]] = [
+    ("get", "/v1/users/me"),
+    ("get", "/v1/users/me/notifications"),
+    ("get", "/v1/users/me/notifications/count"),
+    ("post", "/v1/users/me/notifications/{notification_id}/dismiss"),
+]
+
+EXPECTED_APPLICATION_ONLY_OPERATIONS: list[tuple[str, str]] = [
+    ("get", "/v1/applications/me"),
+    ("post", "/v1/applications/me/rotate"),
+]
+
+SESSION_ONLY_SECURITY: list[dict] = [{"sessionCookieAuth": [], "csrfTokenAuth": []}]
+BEARER_ONLY_SECURITY: list[dict] = [{"bearerAuth": []}]
+
 EXPECTED_SECURITY_SCHEMES: dict = {
     "bearerAuth": {
         "type": "http",
@@ -269,20 +288,31 @@ def test_openapi_security_declarations(test_client: TestClient):
     Public operations (SAML flows and health probes) must not require any
     credentials, everything else must accept either an application API key
     (bearer token) or a user session (session cookie + CSRF header).
+    User-only and application-only operations must document only the
+    credential type they actually accept.
     """
     response = test_client.get("/openapi.json")
     schema = response.json()
 
-    # Keep this expectation independent from PUBLIC_OPERATIONS so that
-    # accidental additions or omissions in the allowlist are caught here
+    # Keep these expectations independent from the allowlists in docs.py so
+    # that accidental additions or omissions there are caught here
     assert sorted(PUBLIC_OPERATIONS) == sorted(EXPECTED_PUBLIC_OPERATIONS)
+    assert sorted(USER_ONLY_OPERATIONS) == sorted(EXPECTED_USER_ONLY_OPERATIONS)
+    assert sorted(APPLICATION_ONLY_OPERATIONS) == sorted(EXPECTED_APPLICATION_ONLY_OPERATIONS)
 
     for method, path in EXPECTED_PUBLIC_OPERATIONS:
         assert schema["paths"][path][method]["security"] == []
 
+    for method, path in EXPECTED_USER_ONLY_OPERATIONS:
+        assert schema["paths"][path][method]["security"] == SESSION_ONLY_SECURITY
+
+    for method, path in EXPECTED_APPLICATION_ONLY_OPERATIONS:
+        assert schema["paths"][path][method]["security"] == BEARER_ONLY_SECURITY
+
     assert schema["security"] == EXPECTED_SECURITY_REQUIREMENTS
     assert schema["components"]["securitySchemes"] == EXPECTED_SECURITY_SCHEMES
 
-    # Protected operations must not opt out of the root-level requirements
+    # Operations in none of the groups must inherit the root-level
+    # requirements and must not opt out of them
     assert "security" not in schema["paths"]["/v1/artefacts/{artefact_id}"]["get"]
     assert "security" not in schema["paths"]["/v1/version"]["get"]
