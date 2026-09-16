@@ -33,6 +33,7 @@ plantuml
 pytest
 rceil
 schemas
+sequenceDiagram
 SRU
 SRUs
 SSO
