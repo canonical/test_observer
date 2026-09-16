@@ -106,7 +106,13 @@ app = FastAPI(
     # To be a standard all paths should not end with a trailing slash.
     redirect_slashes=False,
     title="Test Observer",
-    description="Test Observer API (see https://github.com/canonical/test_observer)",
+    description=(
+        "Test Observer API (see https://github.com/canonical/test_observer)\n\n"
+        "Note: authentication is only enforced when the REQUIRE_AUTHENTICATION configuration "
+        "option is enabled. It is disabled by default in development deployments, where "
+        "endpoints accept unauthenticated requests even though this specification declares "
+        "security requirements."
+    ),
     license_info={
         "name": "GNU Affero General Public License v3",
         "url": "https://raw.githubusercontent.com/canonical/test_observer/refs/heads/main/backend/LICENSE",
