@@ -60,11 +60,12 @@ NO_SECURITY: list[dict] = []
 # without credentials (SAML flows and local health probes). They opt out of the
 # root-level security requirements.
 #
-# This is an explicit allowlist, not the source of truth: build_openapi_schema
-# classifies every operation from its route dependencies. An operation without
-# authentication dependencies is only documented as public if it is listed
-# here; tests in tests/controllers/docs/test_docs.py enforce that this list
-# matches the actual routes.
+# This list is NOT consulted at runtime: build_openapi_schema documents every
+# dependency-free route as public regardless of it. The list exists as a
+# documentation/test anchor — tests in tests/controllers/docs/test_docs.py
+# compare it against the generated schema, so adding a dependency-free route
+# without an entry here (or removing a route without updating the list) fails
+# the test suite.
 PUBLIC_OPERATIONS: tuple[tuple[str, str], ...] = (
     ("get", "/v1/auth/saml/login"),
     ("get", "/v1/auth/saml/logout"),
@@ -103,6 +104,12 @@ def classify_route_auth(route: APIRoute) -> str:
     - "application": accepts an application API key (bearer token) only
     - "both": accepts either credential type
     - "public": has no authentication dependencies at all
+
+    Classification recognises authentication dependencies by function identity,
+    so any new authentication dependency MUST be added to the sets below.
+    Otherwise routes using it are classified as "public" and documented as
+    requiring no credentials; test_openapi_security_declarations fails in that
+    case, catching it in CI.
     """
     calls = set(_iter_dependency_calls(route.dependant))
     accepts_user = bool({get_current_user, get_current_user_browser_friendly} & calls)
