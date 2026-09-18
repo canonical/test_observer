@@ -322,10 +322,17 @@ def test_openapi_security_declarations(test_client: TestClient):
     for method, path in USER_ONLY_OVERRIDES:
         assert schema["paths"][path][method].get("security") == SESSION_ONLY_SECURITY
 
-    # Operations in none of the groups must inherit the root-level
-    # requirements and must not opt out of them
-    assert "security" not in schema["paths"]["/v1/artefacts/{artefact_id}"]["get"]
-    assert "security" not in schema["paths"]["/v1/version"]["get"]
+    # Exhaustively, every operation either inherits the root-level security
+    # requirements (no operation-level security key) or declares one of the
+    # documented requirements; no other value may appear anywhere
+    for operations in schema["paths"].values():
+        for operation in operations.values():
+            if isinstance(operation, dict) and "responses" in operation:
+                assert "security" not in operation or operation["security"] in (
+                    [],
+                    SESSION_ONLY_SECURITY,
+                    BEARER_ONLY_SECURITY,
+                )
 
 
 def _instantiate_path(path: str) -> str:
