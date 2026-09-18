@@ -13,32 +13,162 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from fastapi import APIRouter, Depends, Request
+from collections.abc import Iterator
+
+from fastapi import APIRouter, Depends, FastAPI, Request
+from fastapi.dependencies.models import Dependant
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.routing import APIRoute
 
-from test_observer.common.enums import Permission
 from test_observer.common.permissions import authentication_checker, authentication_checker_browser_friendly
+from test_observer.controllers.applications.application_injection import get_current_application
+from test_observer.users.user_injection import get_current_user, get_current_user_browser_friendly
 
 router: APIRouter = APIRouter()
 
+SECURITY_SCHEMES: dict = {
+    "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Application API key passed as an Authorization: Bearer header",
+    },
+    "sessionCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session",
+        "description": "Session cookie issued by the SAML login flow for browser users",
+    },
+    "csrfTokenAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "description": "CSRF protection header, required on all requests authenticated with the session cookie",
+    },
+}
 
-@router.get(
-    "/openapi.json",
-    include_in_schema=False,
-    dependencies=[Depends(authentication_checker)],
+ROOT_SECURITY_REQUIREMENTS: list[dict] = [
+    {"bearerAuth": []},
+    {"sessionCookieAuth": [], "csrfTokenAuth": []},
+]
+
+SESSION_ONLY_SECURITY: list[dict] = [{"sessionCookieAuth": [], "csrfTokenAuth": []}]
+BEARER_ONLY_SECURITY: list[dict] = [{"bearerAuth": []}]
+NO_SECURITY: list[dict] = []
+
+# Operations without authentication dependencies that must work before login or
+# without credentials (SAML flows and local health probes). They opt out of the
+# root-level security requirements.
+#
+# This list is NOT consulted at runtime: build_openapi_schema documents every
+# dependency-free route as public regardless of it. The list exists as a
+# documentation/test anchor — tests in tests/controllers/docs/test_docs.py
+# compare it against the generated schema, so adding a dependency-free route
+# without an entry here (or removing a route without updating the list) fails
+# the test suite.
+PUBLIC_OPERATIONS: tuple[tuple[str, str], ...] = (
+    ("get", "/v1/auth/saml/login"),
+    ("get", "/v1/auth/saml/logout"),
+    ("post", "/v1/auth/saml/acs"),
+    ("get", "/v1/auth/saml/sls"),
+    ("post", "/v1/auth/saml/sls"),
+    ("get", "/health/live"),
+    ("get", "/health/ready"),
 )
-async def custom_openapi(request: Request):
-    app = request.app
+
+# Operations whose route dependencies accept both credential types, but whose
+# handlers explicitly reject applications with a 403, so they effectively only
+# accept a user session and must be documented as such. A handler that starts
+# accepting applications for real makes an entry here stale; tests in
+# tests/controllers/docs/test_docs.py detect that.
+USER_ONLY_OVERRIDES: tuple[tuple[str, str], ...] = (
+    ("get", "/v1/users/me/notifications"),
+    ("get", "/v1/users/me/notifications/count"),
+    ("post", "/v1/users/me/notifications/{notification_id}/dismiss"),
+)
+
+
+def _iter_dependency_calls(dependant: Dependant) -> Iterator:
+    """Yield the callables of the dependant and all its (transitive) sub-dependencies."""
+    yield dependant.call
+    for sub_dependency in dependant.dependencies:
+        yield from _iter_dependency_calls(sub_dependency)
+
+
+def classify_route_auth(route: APIRoute) -> str:
+    """
+    Classify which credential types a route accepts, based on its dependencies.
+
+    Returns one of:
+    - "user": accepts a user session only (session cookie + CSRF header)
+    - "application": accepts an application API key (bearer token) only
+    - "both": accepts either credential type
+    - "public": has no authentication dependencies at all
+
+    Classification recognises authentication dependencies by function identity,
+    so any new authentication dependency MUST be added to the sets below.
+    Otherwise routes using it are classified as "public" and documented as
+    requiring no credentials; test_openapi_security_declarations fails in that
+    case, catching it in CI.
+    """
+    calls = set(_iter_dependency_calls(route.dependant))
+    accepts_user = bool({get_current_user, get_current_user_browser_friendly} & calls)
+    accepts_application = get_current_application in calls
+    if accepts_user and accepts_application:
+        return "both"
+    if accepts_user:
+        return "user"
+    if accepts_application:
+        return "application"
+    return "public"
+
+
+def _apply_operation_security(openapi_schema: dict, route: APIRoute, auth: str) -> None:
+    """Set the operation-level security requirements for a route's operations."""
+    for method in route.methods:
+        method_lower = method.lower()
+        if route.path not in openapi_schema["paths"] or method_lower not in openapi_schema["paths"][route.path]:
+            # Route is not part of the published schema (e.g. include_in_schema=False)
+            continue
+
+        operation = openapi_schema["paths"][route.path][method_lower]
+
+        if (method_lower, route.path) in USER_ONLY_OVERRIDES:
+            operation["security"] = SESSION_ONLY_SECURITY
+        elif auth == "public":
+            operation["security"] = NO_SECURITY
+        elif auth == "user":
+            # Session-only operations must not advertise the root-level bearer
+            # alternative, which they reject
+            operation["security"] = SESSION_ONLY_SECURITY
+        elif auth == "application":
+            # Bearer-only operations must not advertise the root-level session
+            # alternative, which they reject
+            operation["security"] = BEARER_ONLY_SECURITY
+        # auth == "both": inherit the root-level requirements
+
+
+def build_openapi_schema(app: FastAPI) -> dict:
     openapi_schema = app.openapi()
+
+    openapi_schema.setdefault("components", {}).setdefault("securitySchemes", {}).update(SECURITY_SCHEMES)
+    openapi_schema["security"] = ROOT_SECURITY_REQUIREMENTS
+
+    # Classify every route by the credential types it accepts and set the
+    # operation-level security requirements accordingly. Operations that accept
+    # either credential type inherit the root-level requirements.
+    for route in app.routes:
+        if not isinstance(route, APIRoute):
+            continue
+        _apply_operation_security(openapi_schema, route, classify_route_auth(route))
 
     # Iterate over all routes in the app to add permissions
     for route in app.routes:
-        if not hasattr(route, "dependant"):
+        if not isinstance(route, APIRoute):
             continue
 
         # Get security scopes for all dependencies
-        security_scopes: list[Permission] = []
+        security_scopes: list[str] = []
         for dep in route.dependant.dependencies:
             security_scopes.extend(dep.oauth_scopes)
 
@@ -50,6 +180,18 @@ async def custom_openapi(request: Request):
             method_lower = method.lower()
             if route.path in openapi_schema["paths"] and method_lower in openapi_schema["paths"][route.path]:
                 openapi_schema["paths"][route.path][method_lower]["x-permissions"] = security_scopes
+
+    return openapi_schema
+
+
+@router.get(
+    "/openapi.json",
+    include_in_schema=False,
+    dependencies=[Depends(authentication_checker)],
+)
+async def custom_openapi(request: Request):
+    app = request.app
+    openapi_schema = build_openapi_schema(app)
 
     return JSONResponse(openapi_schema)
 

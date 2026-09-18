@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Test Observer",
-    "description": "Test Observer API (see https://github.com/canonical/test_observer)",
+    "description": "Test Observer API (see https://github.com/canonical/test_observer)\n\nNote: authentication is only enforced when the REQUIRE_AUTHENTICATION configuration option is enabled. It is disabled by default in development deployments, where endpoints accept unauthenticated requests even though this specification declares security requirements.",
     "license": {
       "name": "GNU Affero General Public License v3",
       "url": "https://raw.githubusercontent.com/canonical/test_observer/refs/heads/main/backend/LICENSE"
@@ -4079,7 +4079,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/v1/auth/saml/logout": {
@@ -4126,7 +4127,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/v1/auth/saml/acs": {
@@ -4145,7 +4147,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/v1/auth/saml/sls": {
@@ -4164,7 +4167,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       },
       "post": {
         "tags": [
@@ -4181,7 +4185,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/v1/users/me": {
@@ -4210,7 +4215,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
       }
     },
     "/v1/users": {
@@ -4815,7 +4826,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/v1/applications/{application_id}/rotate": {
@@ -4889,7 +4905,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/v1/applications/{application_id}": {
@@ -5096,7 +5117,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
       }
     },
     "/v1/users/me/notifications/count": {
@@ -5143,7 +5170,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
       }
     },
     "/v1/users/me/notifications/{notification_id}/dismiss": {
@@ -5186,7 +5219,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
       }
     },
     "/v1/users/{user_id}/notifications": {
@@ -5651,7 +5690,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/health/ready": {
@@ -5674,7 +5714,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/": {
@@ -10269,6 +10310,34 @@
         ],
         "title": "ValidationError"
       }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Application API key passed as an Authorization: Bearer header"
+      },
+      "sessionCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session",
+        "description": "Session cookie issued by the SAML login flow for browser users"
+      },
+      "csrfTokenAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "description": "CSRF protection header, required on all requests authenticated with the session cookie"
+      }
     }
-  }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {
+      "sessionCookieAuth": [],
+      "csrfTokenAuth": []
+    }
+  ]
 }
