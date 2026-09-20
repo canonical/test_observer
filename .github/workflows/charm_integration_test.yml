@@ -32,8 +32,8 @@ on:
   pull_request:
     paths:
       - .github/workflows/charm_integration_test.yml
-      - backend/charm/**
-      - frontend/charm/**
+      - charms/backend/**
+      - charms/frontend/**
       - spread/**
       - spread.yaml
 
@@ -64,7 +64,7 @@ jobs:
           # Ignoring until we set up environments
           credentials: "${{ secrets.CHARMHUB_TOKEN }}" # zizmor: ignore[secrets-outside-env]
           github-token: "${{ secrets.GITHUB_TOKEN }}" # zizmor: ignore[secrets-outside-env]
-          charm-path: "${{ matrix.charm }}/charm"
+          charm-path: "charms/${{ matrix.charm }}/charm"
 
   pack-charm:
     name: Build charm
@@ -99,7 +99,7 @@ jobs:
 
       - name: Pack charm
         run: charmcraft pack -v
-        working-directory: "${{ matrix.charm }}/charm"
+        working-directory: "charms/${{ matrix.charm }}/charm"
       
       - name: Upload charm artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -130,13 +130,13 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: backend-charm
-          path: ${{ github.workspace }}/backend/charm
+          path: ${{ github.workspace }}/charms/backend/charm
       
       - name: Download frontend charm artifact
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: frontend-charm
-          path: ${{ github.workspace }}/frontend/charm
+          path: ${{ github.workspace }}/charms/frontend/charm
   
       - name: Setup LXD
         uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee # v1
