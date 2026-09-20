@@ -25,7 +25,7 @@ on:
     tags: ["v*.*.*"]
     paths:
       - 'backend/**'
-      - '.github/workflows/publish_api.yml'
+      - 'charms/backend/**'
 
 env:
   REGISTRY: ghcr.io
