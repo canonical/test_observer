@@ -151,8 +151,8 @@ prepare: |
   snap install --classic concierge
   concierge prepare --trace --preset microk8s
 
-  chown $(id -u):$(id -g) "${SPREAD_PATH}"/backend/charm/*.charm
-  chown $(id -u):$(id -g) "${SPREAD_PATH}"/frontend/charm/*.charm
+  chown $(id -u):$(id -g) "${SPREAD_PATH}"/charms/backend/*.charm
+  chown $(id -u):$(id -g) "${SPREAD_PATH}"/charms/frontend/*.charm
 
 suites:
   spread/:
