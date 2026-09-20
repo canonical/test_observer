@@ -64,7 +64,7 @@ jobs:
           # Ignoring until we set up environments
           credentials: "${{ secrets.CHARMHUB_TOKEN }}" # zizmor: ignore[secrets-outside-env]
           github-token: "${{ secrets.GITHUB_TOKEN }}" # zizmor: ignore[secrets-outside-env]
-          charm-path: "charms/${{ matrix.charm }}/charm"
+          charm-path: "charms/${{ matrix.charm }}"
 
   pack-charm:
     name: Build charm
@@ -99,13 +99,13 @@ jobs:
 
       - name: Pack charm
         run: charmcraft pack -v
-        working-directory: "charms/${{ matrix.charm }}/charm"
+        working-directory: "charms/${{ matrix.charm }}"
       
       - name: Upload charm artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ${{ matrix.charm }}-charm
-          path: "${{ matrix.charm }}/charm/*.charm"
+          path: "charms/${{ matrix.charm }}/*.charm"
 
       - name: Upload charmcraft logs
         if: failure()
