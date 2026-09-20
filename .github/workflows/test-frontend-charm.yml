@@ -20,7 +20,7 @@ name: Run charm tests
 on:
   pull_request:
     paths:
-      - 'frontend/charm/**'
+      - 'charms/frontend/**'
       - '.github/workflows/test-frontend-charm.yml'
   push:
     branches:
@@ -28,7 +28,7 @@ on:
     tags: 
       - 'v*.*.*'
     paths:
-      - 'frontend/charm/**'
+      - 'charms/frontend/**'
       - '.github/workflows/test-frontend-charm.yml'
 
 concurrency:
@@ -51,4 +51,4 @@ jobs:
         run: tox -e unit
     defaults:
       run:
-        working-directory: ./frontend/charm
+        working-directory: ./charms/frontend
