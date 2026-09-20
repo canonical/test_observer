@@ -29,3 +29,6 @@ artifacts/
 
 # Temp files
 .DS_Store
+
+# Workshop project lock file (not the definition; that stays committed)
+.workshop.lock
