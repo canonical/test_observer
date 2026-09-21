@@ -156,20 +156,6 @@ tox -e integration
 
 Charms are released through GitHub actions on push to main. If however you need to release charms on your branch before merging with main you could always just add your branch as a trigger to those same GitHub actions.
 
-## VS Code & charm libraries
-
-VS Code fails to find (for autocompletions and code navigation purposes) the charm libraries under `lib` in each of `backend/charm` and `frontend/charm`. There is a .vscode-settings-default.json found under each of these directories which you can copy to the `.gitignore`d path `.vscode/settings.json` to make them fly. Taking the backend charm as an example:
-
-```bash
-mkdir -p backend/charm/.vscode
-cp backend/charm/.vscode-settings-default.json backend/charm/.vscode/settings.json
-
-mkdir -p frontend/charm/.vscode
-cp frontend/charm/.vscode-settings-default.json frontend/charm/.vscode/settings.json
-```
-
-Now if you use as your project the directory `backend/charm` and `frontend/charm` respectively (which you'll want to do also for them to keep their own virtual environments), VS Code should be happy.
-
 ## Handy documentation pointers about charming
 
 - [Integrations (how to provide and require relations)](https://juju.is/docs/sdk/integration)
