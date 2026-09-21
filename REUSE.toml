@@ -6,7 +6,11 @@ SPDX-FileCopyrightText = "2026 Canonical Ltd."
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
-path = "backend/.vscode/settings.json"
+path = [
+    "backend/.vscode/settings.json",
+    "charms/backend/.vscode/settings.json",
+    "charms/frontend/.vscode/settings.json"
+]
 SPDX-FileCopyrightText = "2026 Canonical Ltd."
 SPDX-License-Identifier = "Apache-2.0"
 
