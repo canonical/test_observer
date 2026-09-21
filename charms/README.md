@@ -113,7 +113,7 @@ To develop and test updates to the backend and frontend charms, you would typica
 You can make edits to the backend charm and refresh it in the running system on the fly with:
 
 ```bash
-cd backend/charm
+cd backend
 charmcraft pack
 juju refresh api --path ./test-observer-api_ubuntu-22.04-amd64.charm
 
@@ -126,7 +126,7 @@ juju attach-resource api api-image=ghcr.io/canonical/test_observer/backend:[tag 
 Same thing with the frontend:
 
 ```bash
-cd frontend/charm
+cd frontend
 charmcraft pack
 
 juju refresh frontend ./test-observer-frontend_ubuntu-22.04-amd64.charm
@@ -147,7 +147,7 @@ These in turn can be set using the terraform plan (`terraform/test-observer.tf` 
 To run the unit and integration tests for the frontend charms, do the following:
 
 ```bash
-cd frontend/charm
+cd frontend
 tox -e unit
 tox -e integration
 ```
