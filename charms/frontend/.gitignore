@@ -15,6 +15,12 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
+venv/
+.venv/
+build/
 *.charm
-venv
-.venv
+.tox/
+.coverage
+__pycache__/
+*.py[cod]
+.idea

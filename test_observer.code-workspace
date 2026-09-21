@@ -7,14 +7,14 @@
 			"path": "backend"
 		},
 		{
-			"path": "backend/charm",
+			"path": "charms/backend",
 			"name": "backend-charm"
 		},
 		{
 			"path": "frontend"
 		},
 		{
-			"path": "frontend/charm",
+			"path": "charms/frontend",
 			"name": "frontend-charm"
 		},
 		{
@@ -25,8 +25,8 @@
   		"yaml.schemas": {
     		"https://json.schemastore.org/yamllint.json": ".github/**/*.{yaml, yml}",
     		"https://raw.githubusercontent.com/canonical/charmcraft/main/schema/charmcraft.json": [
-      			"backend/charm/charmcraft.yaml",
-				"frontend/charm/charmcraft.yaml"
+      			"charms/backend/charmcraft.yaml",
+				"charms/frontend/charmcraft.yaml"
     		]
 		}
 	},

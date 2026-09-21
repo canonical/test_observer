@@ -36,6 +36,7 @@
 
 # --- Narrow ownership by directory ---
 /backend/        @rpbritton @wctaylor @almeidaraul
+/charms/         @almeidaraul @wctaylor
 /docs/           @almeidaraul @wctaylor
 /frontend/       @rpbritton @wctaylor @almeidaraul
 /terraform/      @wctaylor @rpbritton
