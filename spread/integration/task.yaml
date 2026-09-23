@@ -58,6 +58,12 @@ execute: |
 
   juju run backend/leader add-user launchpad-email=solutions-qa@lists.canonical.com
 
+  # Exercise the endpoint validators integration: the `validate` action runs
+  # the postgresql_client validator against the `database` relation, and the
+  # update-status health check surfaces failures as a blocked unit status.
+  juju run backend/leader validate --wait=5m | grep -q 'pass=1 fail=0 error=0'
+  juju run backend/leader validate level=deep --wait=5m | grep -q 'summary:'
+
   PGPASSWORD=$(juju run db/leader get-password | grep password | awk '{print $2;}')
   PGHOST=$(juju show-unit db/0 | grep address | tail -n 1 | awk '{print $2;}')
   PGUSER=operator

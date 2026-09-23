@@ -29,6 +29,9 @@ log_cli_level = "INFO"
 # Linting tools configuration
 [tool.ruff]
 line-length = 99
+# `charm` is the charm's own module (src/charm.py); declare it first-party so
+# import sorting is deterministic regardless of how ruff infers the src layout.
+src = ["src", "tests"]
 lint.select = ["E", "W", "F", "C", "N", "D", "I001"]
 lint.ignore = [
     "D100",
@@ -47,6 +50,7 @@ lint.ignore = [
     "D409",
     "D413",
 ]
+lint.per-file-ignores = {"tests/*" = ["D101", "D103", "D104"]}
 extend-exclude = ["__pycache__", "*.egg_info", "lib"]
 
 [tool.ruff.lint.mccabe]

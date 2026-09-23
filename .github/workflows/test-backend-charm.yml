@@ -15,13 +15,21 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
 
-name: Static Analysis - Backend Charm
+name: Run backend charm tests
 
 on:
   pull_request:
     paths:
       - 'charms/backend/**'
-      - '.github/workflows/static-analysis-backend-charm.yml'
+      - '.github/workflows/test-backend-charm.yml'
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+    paths:
+      - 'charms/backend/**'
+      - '.github/workflows/test-backend-charm.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -30,8 +38,8 @@ concurrency:
 permissions: {}
 
 jobs:
-  analyze-backend-charm:
-    name: Analyze Backend Charm
+  unit-tests-with-coverage:
+    name: Unit tests
     runs-on: ubuntu-22.04
     defaults:
       run:
@@ -43,24 +51,7 @@ jobs:
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.10"
-      - run: pip install ruff
-      - run: pip install mypy
-      - run: pip install types-requests
-      - name: Install runtime dependencies (includes git+ validators packages)
-        run: pip install -r requirements.txt
-      - if: ${{ !cancelled() }}
-        run: ruff check src
-      - if: ${{ !cancelled() }}
-        run: ruff format --check src
-      - if: ${{ !cancelled() }}
-        run: mypy --ignore-missing-imports src
-        env:
-          PYTHONPATH: lib:src
-      - if: ${{ !cancelled() }}
-        run: ruff check tests
-      - if: ${{ !cancelled() }}
-        run: ruff format --check tests
-      - if: ${{ !cancelled() }}
-        run: mypy --ignore-missing-imports tests
-        env:
-          PYTHONPATH: lib:src
+      - name: Install tox
+        run: pip install tox
+      - name: Run tests using tox
+        run: tox -e unit
