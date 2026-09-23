@@ -47,6 +47,7 @@ parts:
     charm-requirements:
       - requirements.txt
     build-packages: [pkg-config, libffi-dev, libssl-dev, build-essential, libpq-dev, git]
+    stage-packages: [libpq5]
     build-snaps: [rustup]
     override-build: |
       # pydantic requires a higher version of rustc than what is in the archive
