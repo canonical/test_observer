@@ -15,49 +15,34 @@
 
 import type { LayoutLoad } from "./$types";
 import { resolve } from "$app/paths";
+import { userStore } from "$lib/stores/user.svelte";
 import type { Family } from "$lib/types";
 
 export const ssr = false;
 export const prerender = false;
 
 export const load: LayoutLoad = async ({ fetch }) => {
-  let user = null;
-  let artefactFamilies: Family[] = [];
-  try {
-    const userPromise = getUser(fetch);
-    const familiesPromise = getFamilies(fetch);
-
-    user = await userPromise;
-    artefactFamilies = await familiesPromise;
-  } catch (error) {
-    console.error("Error on LayoutLoad:", error);
-  }
-  console.log("Users:", user);
-  console.log("Artefact Families:", artefactFamilies);
-  return { user, artefactFamilies };
-};
-
-const getUser = async (fetch: Parameters<LayoutLoad>[0]["fetch"]) => {
-  const { getApiRoot } = await import("$lib/config");
-  const response = await fetch(`${getApiRoot()}/v1/users/me`, {
-    credentials: "include",
-    headers: { "X-CSRF-Token": "1" },
-  });
-  if (response.ok) {
-    return response.json();
-  }
-  return null;
+  // Load the user and families independently: a failure fetching one (e.g. /me
+  // erroring out when the session is invalid) must not prevent the other from
+  // loading. Both helpers swallow their own errors, so this never rejects.
+  // userStore.refresh updates the shared user state, which the layout reads
+  // directly, so there's no user value to thread through the returned data.
+  const [, artefactFamilies] = await Promise.all([
+    userStore.refresh(fetch),
+    getFamilies(fetch),
+  ]);
+  return { artefactFamilies };
 };
 
 const getFamilies = async (fetch: Parameters<LayoutLoad>[0]["fetch"]) => {
-  const resp = await fetch(resolve("/families.json"));
-  if (!resp.ok) {
-    throw new Error(
-      `Failed to fetch families.json: ${resp.status} ${resp.statusText}`,
-    );
-  }
   let artefactFamilies: Family[] = [];
   try {
+    const resp = await fetch(resolve("/families.json"));
+    if (!resp.ok) {
+      throw new Error(
+        `Failed to fetch families.json: ${resp.status} ${resp.statusText}`,
+      );
+    }
     artefactFamilies = (await resp.json()).families;
   } catch (error) {
     console.error("Error fetching families.json:", error);

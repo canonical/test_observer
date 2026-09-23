@@ -24,6 +24,8 @@
       url.searchParams.set('sortBy', key);
       url.searchParams.set('direction', 'asc');
     }
+    // Re-sorting reorders every row, so return to the first page.
+    url.searchParams.delete('page');
     goto(url.toString(), { replaceState: true, noScroll: true });
   }
 

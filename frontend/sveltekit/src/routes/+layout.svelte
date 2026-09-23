@@ -17,9 +17,10 @@
 
 <script lang="ts">
   import favicon from '$lib/assets/logo.png';
-  import { page } from '$app/state';
+  import { page, navigating } from '$app/state';
+  import { onMount } from 'svelte';
   import { resolve } from '$app/paths';
-  import { SideNavigation, Badge } from '@canonical/svelte-ds-app-launchpad';
+  import { SideNavigation, Badge, Spinner } from '@canonical/svelte-ds-app-launchpad';
   import {
     SearchIcon,
     BugIcon,
@@ -46,8 +47,10 @@
     themeStore.init();
   });
 
-  $effect(() => {
-    userStore.set(data.user);
+  // The initial-load spinner lives in app.html and blocks the blank grey flash
+  // until SvelteKit finishes the first load chain and mounts this layout.
+  onMount(() => {
+    document.getElementById('app-loading')?.remove();
   });
 
   $effect(() => {
@@ -138,6 +141,15 @@
     {@render children()}
   </main>
 
+  {#if navigating.to}
+    <div class="loading-overlay" role="status" aria-live="polite">
+      <div class="loading-box">
+        <Spinner class="loading-spinner" />
+        <span class="loading-text">Loading…</span>
+      </div>
+    </div>
+  {/if}
+
   <ErrorPopup />
 </div>
 
@@ -178,5 +190,40 @@
     border: none;
     border-top: 1px solid rgba(0, 0, 0, 0.1);
     margin: 0.5rem 0;
+  }
+
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* The overlay background color's opacity seems a bit strong, especially in light mode.
+       Toning it down a bit. */
+    background: rgb(from var(--lp-color-background-overlay) r g b / 0.25);
+    backdrop-filter: blur(1px);
+  }
+
+  .loading-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.5rem 2rem;
+    border-radius: 0.5rem;
+    background: var(--lp-color-background-default);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  .loading-box :global(.loading-spinner) {
+    width: 2rem;
+    height: 2rem;
+    color: var(--lp-color-brand-default);
+  }
+
+  .loading-text {
+    font-size: 0.875rem;
+    color: var(--lp-color-text-muted);
   }
 </style>

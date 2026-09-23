@@ -17,16 +17,28 @@
 
 <script lang="ts">
   import { page } from '$app/state';
+  import { invalidateAll } from '$app/navigation';
   import type { Artefact } from '$lib/types';
   import { columnSortValue, filterValue } from '$lib/artefactMetadata';
+  import { getApiRoot } from '$lib/config';
   import { FilterIcon } from '@canonical/svelte-icons';
   import DashboardHeader from '$lib/components/dashboard/DashboardHeader.svelte';
   import FilterSidebar from '$lib/components/dashboard/FilterSidebar.svelte';
   import ArtefactTable from '$lib/components/dashboard/ArtefactTable.svelte';
+  import Pagination from '$lib/components/dashboard/Pagination.svelte';
 
   let { data } = $props();
 
   let sidebarVisible = $state(false);
+
+  const loginUrl = $derived(
+    `${getApiRoot()}/v1/auth/saml/login?return_to=${encodeURIComponent(page.url.href)}`
+  );
+
+  // Client-side page size for the list view. The backend does not yet paginate
+  // /v1/artefacts, so we slice locally to keep large families (thousands of rows)
+  // responsive.
+  const PAGE_SIZE = 100;
 
   // --- Read URL state ---
   const searchQuery = $derived(page.url.searchParams.get('q') ?? '');
@@ -89,6 +101,17 @@
     return arr;
   });
 
+  // --- List-view pagination (client-side) ---
+  const totalPages = $derived(Math.max(1, Math.ceil(sortedArtefacts.length / PAGE_SIZE)));
+  const currentPage = $derived.by(() => {
+    const raw = Number(page.url.searchParams.get('page') ?? '1');
+    if (!Number.isFinite(raw) || raw < 1) return 1;
+    return Math.min(Math.trunc(raw), totalPages);
+  });
+  const pagedArtefacts = $derived(
+    sortedArtefacts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  );
+
   // --- Kanban grouping ---
   const artefactsByStage = $derived.by(() => {
     const stages = data.family.stages;
@@ -109,35 +132,103 @@
     totalCount={data.artefacts.length}
   />
 
-  <div class="content-row">
-    <div class="filter-toggle-area">
-      <button
-        class="filter-toggle"
-        title="Toggle filters"
-        onclick={() => (sidebarVisible = !sidebarVisible)}
-      >
-        <FilterIcon class="filter-icon" />
-        {#if hasActiveFilters}
-          <span class="badge"></span>
-        {/if}
-      </button>
+  {#if data.requiresLogin}
+    <div class="login-required" role="status">
+      <p class="login-message">You need to be logged in to view these test results.</p>
+      <a class="login-button" href={loginUrl}>Log in</a>
     </div>
-
-    <FilterSidebar artefacts={data.artefacts} family={data.family} visible={sidebarVisible} />
-
-    {#if sidebarVisible}
-      <div class="gap"></div>
-    {/if}
-
-    <div class="body">
-      <ArtefactTable artefacts={sortedArtefacts} family={data.family} />
+  {:else if data.forbidden}
+    <div class="access-denied" role="alert">
+      <p class="login-message">
+        You don't have permission to view these test results. Contact an administrator if
+        you believe this is a mistake.
+      </p>
     </div>
-  </div>
+  {:else if data.sessionCheckFailed}
+    <div class="session-check-failed" role="alert">
+      <p class="login-message">
+        We couldn't verify your session just now. Please check your connection and try
+        again.
+      </p>
+      <button class="login-button" onclick={() => invalidateAll()}>Retry</button>
+    </div>
+  {:else}
+    <div class="content-row">
+      <div class="filter-toggle-area">
+        <button
+          class="filter-toggle"
+          title="Toggle filters"
+          onclick={() => (sidebarVisible = !sidebarVisible)}
+        >
+          <FilterIcon class="filter-icon" />
+          {#if hasActiveFilters}
+            <span class="badge"></span>
+          {/if}
+        </button>
+      </div>
+
+      <FilterSidebar artefacts={data.artefacts} family={data.family} visible={sidebarVisible} />
+
+      {#if sidebarVisible}
+        <div class="gap"></div>
+      {/if}
+
+      <div class="body">
+        <ArtefactTable artefacts={pagedArtefacts} family={data.family} />
+        <Pagination
+          {currentPage}
+          {totalPages}
+          totalItems={sortedArtefacts.length}
+          pageSize={PAGE_SIZE}
+        />
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
   .dashboard {
     padding-left: 0;
+  }
+
+  .login-required {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 2rem 0;
+  }
+
+  .access-denied,
+  .session-check-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 2rem 0;
+  }
+
+  .login-message {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--lp-color-text-default);
+  }
+
+  .login-button {
+    display: inline-block;
+    padding: 0.5rem 1.25rem;
+    background: var(--lp-color-brand-default);
+    color: var(--lp-color-text-on-brand, #fff);
+    border: none;
+    border-radius: 4px;
+    text-decoration: none;
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .login-button:hover {
+    background: var(--lp-color-brand-hover, var(--lp-color-brand-default));
   }
 
   .content-row {

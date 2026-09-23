@@ -15,6 +15,7 @@
 
 import { error } from "@sveltejs/kit";
 import { getApiRoot } from "$lib/config";
+import { userStore } from "$lib/stores/user.svelte";
 import type { Artefact } from "$lib/types";
 import type { PageLoad } from "./$types";
 
@@ -36,13 +37,29 @@ export const load: PageLoad = async ({ parent, params, fetch }) => {
 
   if (!res.ok) {
     if (res.status === 401 || res.status === 403) {
-      const returnTo =
-        typeof window !== "undefined" ? window.location.href : "";
-      const loginUrl = `${getApiRoot()}/v1/auth/saml/login?return_to=${encodeURIComponent(returnTo)}`;
-      if (typeof window !== "undefined") {
-        window.location.href = loginUrl;
+      // The cached user may be stale (e.g. the session expired after the
+      // initial layout load), so re-check the session directly rather than
+      // trusting it. refresh() also updates the shared store, keeping the
+      // sidebar in sync on this client-side navigation (the layout load isn't
+      // rerun).
+      const authStatus = await userStore.refresh(fetch);
+      // Only show the forbidden state when we've *confirmed* the user is still
+      // authenticated (so a 403 means they lack permission).
+      if (res.status === 403 && authStatus === "authenticated") {
+        return { family, artefacts: [] as Artefact[], forbidden: true };
       }
-      return { family, artefacts: [] as Artefact[] };
+      // If the session check itself was inconclusive, don't claim the user is
+      // logged out (that would contradict the cached user the sidebar still
+      // shows). Surface a distinct "couldn't verify" state they can retry.
+      if (authStatus === "unknown") {
+        return {
+          family,
+          artefacts: [] as Artefact[],
+          sessionCheckFailed: true,
+        };
+      }
+      // Confirmed unauthenticated: prompt for login.
+      return { family, artefacts: [] as Artefact[], requiresLogin: true };
     }
     error(res.status, "Failed to load artefacts");
   }
@@ -50,8 +67,5 @@ export const load: PageLoad = async ({ parent, params, fetch }) => {
   const raw: Artefact[] = await res.json();
   const artefacts = raw.map((a) => ({ ...a, reviewers: a.reviewers ?? [] }));
 
-  return {
-    family,
-    artefacts,
-  };
+  return { family, artefacts };
 };

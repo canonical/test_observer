@@ -67,6 +67,8 @@
       url.searchParams.delete(def.label);
     }
     url.searchParams.delete('q');
+    // Changing filters/search alters the result set, so return to the first page.
+    url.searchParams.delete('page');
     if (searchInput.trim()) {
       url.searchParams.set('q', searchInput.trim());
     }
