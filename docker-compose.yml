@@ -50,7 +50,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "30001:80" # Adjust the port mapping as needed
+    - "127.0.0.1:30001:80" # Adjust the port mapping as needed
+    environment:
+      # When set, nginx serves the SvelteKit app against a remote backend via a
+      # same-origin /api/ proxy, attaching the API key server side. Use
+      # `docker compose up --no-deps test-observer-frontend` to skip the local stack.
+      TEST_OBSERVER_API_URL: "${TEST_OBSERVER_API_URL:-}"
+      TEST_OBSERVER_API_KEY: "${TEST_OBSERVER_API_KEY:-}"
     depends_on:
       test-observer-api:
         condition: service_healthy

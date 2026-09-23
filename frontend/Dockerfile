@@ -78,13 +78,18 @@ RUN npm run build
 
 FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y nginx
+RUN apt-get update && apt-get install -y nginx gettext-base ca-certificates
 RUN rm /etc/nginx/sites-enabled/default
 
 COPY --from=builder /app/build/web /usr/share/nginx/html
 COPY --from=sveltekit-builder /app/sveltekit/build /usr/share/nginx/html/wip
 COPY nginx.conf /etc/nginx/sites-available/test-observer-frontend
-RUN ln -s /etc/nginx/sites-available/test-observer-frontend /etc/nginx/sites-enabled/
+COPY nginx-remote-api.conf.template /etc/nginx/nginx-remote-api.conf.template
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN ln -s /etc/nginx/sites-available/test-observer-frontend /etc/nginx/sites-enabled/ \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 80
+# The charm overrides this command, so it renders its own config instead.
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]

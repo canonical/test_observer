@@ -17,6 +17,17 @@ SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 SPDX-License-Identifier: Apache-2.0
 -->
 
+**For dev purposes on the UI rewrite: use the [justfile](./justfile).**
+
+```bash
+export TEST_OBSERVER_API_URL=https://test-observer-api-staging.canonical.com
+export TEST_OBSERVER_API_KEY=<read-only-key>
+
+just          # list available recipes
+just up       # start the frontend container
+just down     # stop the frontend container
+```
+
 # Test Observer
 
 Test Observer (TO) is a dashboard for viewing the results of tests run on different environments for a particular artefact. A user interested in testing an artefact (a deb, snap, charm or image) under different environments (particular machines or cloud setups) can use TO as means for storing, viewing and comparing results with previous runs or versions of an artefact. The last use case is particularly useful for catching regressions. Additionally, TO provides a mechanism to assign reviewers that can look at results and mark artefacts as approved or failed to gate updates. It is important to note that TO does not run the tests itself, but provides an API with which users can report the results to.

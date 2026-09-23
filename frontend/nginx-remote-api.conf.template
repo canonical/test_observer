@@ -1,0 +1,64 @@
+# Copyright 2026 Canonical Ltd.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3, as
+# published by the Free Software Foundation.
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: GPL-3.0-only
+
+# Rendered by docker-entrypoint.sh when TEST_OBSERVER_API_URL is set, replacing
+# nginx.conf. The SvelteKit app is rewritten to call the same-origin /api/ path,
+# which is proxied to a remote backend with the API key attached server side so
+# the key is never exposed to the browser.
+server {
+    listen       80;
+    server_name  localhost;
+
+    location /api/ {
+        proxy_pass ${TEST_OBSERVER_API_URL};
+        proxy_set_header Host ${TEST_OBSERVER_API_HOST};
+        proxy_set_header Authorization "${TEST_OBSERVER_API_AUTHORIZATION}";
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # The bearer key is attached above, so the upstream identity must be
+        # verified against the system CA bundle before anything is forwarded.
+        proxy_ssl_server_name on;
+        proxy_ssl_verify on;
+        proxy_ssl_verify_depth 3;
+        proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
+        proxy_ssl_protocols TLSv1.2 TLSv1.3;
+
+        # The browser must never be able to supply its own credentials here.
+        proxy_set_header Cookie "";
+        proxy_hide_header Access-Control-Allow-Origin;
+        proxy_hide_header Access-Control-Allow-Credentials;
+    }
+
+    location /wip/ {
+        root   /usr/share/nginx/html;
+        index  200.html;
+        try_files $uri $uri/ /wip/200.html =404;
+
+        sub_filter 'http://localhost:30000/' '/api/';
+        sub_filter_once off;
+        sub_filter_types application/javascript text/javascript;
+    }
+
+    location / {
+        root   /usr/share/nginx/html;
+        index  index.html index.htm;
+        try_files $uri $uri/ /index.html =404;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   /usr/share/nginx/html;
+    }
+}
