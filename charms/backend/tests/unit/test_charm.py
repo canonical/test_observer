@@ -78,7 +78,18 @@ class TestIntegrationValidation(unittest.TestCase):
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
 
+    def _add_ready_database_relation(self):
+        """Add a database relation with endpoint data so the check is not skipped."""
+        relation_id = self.harness.add_relation("database", "postgresql")
+        self.harness.update_relation_data(
+            relation_id,
+            "postgresql",
+            {"endpoints": "postgresql:5432", "database": "test_observer_db"},
+        )
+        return relation_id
+
     def test_update_status_sets_blocked_on_failing_check(self):
+        self._add_ready_database_relation()
         with patch("charm.run_simple_check", return_value=_results("FAIL")):
             self.harness.charm.on.update_status.emit()
 
@@ -87,6 +98,7 @@ class TestIntegrationValidation(unittest.TestCase):
         self.assertIn("database", self.harness.model.unit.status.message)
 
     def test_update_status_sets_blocked_on_erroring_check(self):
+        self._add_ready_database_relation()
         with patch("charm.run_simple_check", return_value=_results("ERROR")):
             self.harness.charm.on.update_status.emit()
 
@@ -94,12 +106,25 @@ class TestIntegrationValidation(unittest.TestCase):
         self.assertIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
 
     def test_update_status_clears_previous_failure_once_passing(self):
+        self._add_ready_database_relation()
         with patch("charm.run_simple_check", return_value=_results("FAIL")):
             self.harness.charm.on.update_status.emit()
 
         with patch("charm.run_simple_check", return_value=_results("PASS")):
             self.harness.charm.on.update_status.emit()
 
+        self.harness.evaluate_status()
+        self.assertNotIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
+
+    def test_update_status_skips_check_until_database_relation_ready(self):
+        # GIVEN no database relation at all
+        # WHEN update-status runs
+        with patch("charm.run_simple_check", return_value=_results("ERROR")) as run_check:
+            self.harness.charm.on.update_status.emit()
+
+        # THEN the validator engine is never invoked, so the missing relation
+        # cannot mask the "Waiting for database relation" status with Blocked
+        run_check.assert_not_called()
         self.harness.evaluate_status()
         self.assertNotIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
 

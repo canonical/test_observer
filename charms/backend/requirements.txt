@@ -31,6 +31,11 @@ cosl
 # branch (no tagged releases yet); update this commit deliberately to pick up
 # upstream changes.
 #
+# This PR must not merge before canonical/charm-integration-testing#858 lands:
+# the pin below is a commit on that still-open PR's branch, so merging this
+# first would ship a dependency on an unmerged branch. Once #858 is merged and
+# released, repin these to the released tag.
+#
 # validators-update-status-check / validators-validate-action are small,
 # self-contained glue packages (they discover installed validators via
 # entry_points and don't depend on validators-runner - see their own

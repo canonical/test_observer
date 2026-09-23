@@ -306,7 +306,16 @@ class TestObserverBackendCharm(CharmBase):
         Called on every update-status. Results are stored so
         _on_collect_unit_status can surface a Blocked status without
         re-running the (potentially expensive) validators on every hook.
+
+        Skipped until the database relation is ready: the engine reports a
+        missing relation as ERROR, which would otherwise mask the
+        "Waiting for database relation" status with a spurious Blocked.
         """
+        if not self._database_relation_ready():
+            self._stored.validation_status_kind = None
+            self._stored.validation_message = ""
+            return
+
         results = run_simple_check(self)
         failing = [r for r in results.results if r.status in ("FAIL", "ERROR")]
         if not failing:

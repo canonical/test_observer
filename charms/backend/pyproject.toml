@@ -59,5 +59,11 @@ max-complexity = 10
 [tool.mypy]
 exclude = ["lib"]
 
+# The validators-* packages are installed from git and the vendored charm libs
+# under lib/ are not type-annotated, so mypy cannot analyse either namespace.
+[[tool.mypy.overrides]]
+module = ["validators.*", "charms.*"]
+ignore_missing_imports = true
+
 [tool.codespell]
 skip = "build,lib,venv,icon.svg,.tox,.git,.mypy_cache,.ruff_cache,.coverage"
