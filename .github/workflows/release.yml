@@ -81,12 +81,17 @@ jobs:
         run: |
           if git show-ref --verify --quiet "refs/tags/$TAG"; then
             echo "Using existing tag $TAG"
+            REF=$(git rev-parse "$TAG^{commit}")
+            if [ "$REF" != "$SOURCE_SHA" ]; then
+              echo "::error::Tag $TAG points to $REF, but the current workflow ref is $SOURCE_SHA"
+              exit 1
+            fi
           else
             git tag "$TAG" "$SOURCE_SHA"
             git push origin "$TAG"
+            REF="$SOURCE_SHA"
           fi
 
-          REF=$(git rev-parse "$TAG^{commit}")
           IMAGE_TAG="${TAG#v}"
           {
             echo "tag=$TAG"
