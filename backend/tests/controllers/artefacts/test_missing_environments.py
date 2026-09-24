@@ -13,20 +13,24 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from collections.abc import Callable, Generator
+
 import pytest
 import requests
 from fastapi.testclient import TestClient
 from httpx import Response
 from requests_mock import Mocker
 
-from test_observer.common import config
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import FamilyName, StageName
+from test_observer.external_apis.c3 import C3Api, get_c3_api
+from test_observer.main import app
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 C3_BASE_URL = "https://c3.test"
 POOLS_URL = f"{C3_BASE_URL}/api/v2/testing-pools/"
+TOKEN_URL = f"{C3_BASE_URL}/oauth2/token/"
 
 
 def _env(name: str, arch: str = "amd64", *, queue: str | None = None, metadata: dict | None = None) -> dict:
@@ -38,9 +42,18 @@ def _snap_metadata(snap: str = "core", track: str = "latest", channel: str = "be
 
 
 @pytest.fixture
-def c3_configured(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(config, "C3_API_TOKEN", "test-token")
-    monkeypatch.setattr(config, "C3_API_BASE_URL", C3_BASE_URL)
+def c3_api_override() -> Generator[Callable[[C3Api], None]]:
+    def override(c3_api: C3Api) -> None:
+        app.dependency_overrides[get_c3_api] = lambda: c3_api
+
+    yield override
+    app.dependency_overrides.pop(get_c3_api, None)
+
+
+@pytest.fixture
+def c3_configured(c3_api_override: Callable[[C3Api], None], requests_mock: Mocker) -> None:
+    c3_api_override(C3Api(C3_BASE_URL, "test-client-id", "test-client-secret"))
+    requests_mock.post(TOKEN_URL, json={"access_token": "test-token", "expires_in": 3600})
 
 
 def _get(test_client: TestClient, artefact_id: int) -> Response:
@@ -56,9 +69,9 @@ def test_get_404_when_artefact_not_found(test_client: TestClient):
 
 
 def test_no_missing_when_c3_not_configured(
-    test_client: TestClient, generator: DataGenerator, monkeypatch: pytest.MonkeyPatch
+    test_client: TestClient, generator: DataGenerator, c3_api_override: Callable[[C3Api], None]
 ):
-    monkeypatch.setattr(config, "C3_API_TOKEN", "")
+    c3_api_override(C3Api(C3_BASE_URL, "", ""))
     a = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
 
     response = _get(test_client, a.id)
@@ -92,6 +105,26 @@ def test_c3_outage_returns_502(
     response = _get(test_client, a.id)
 
     assert response.status_code == 502
+
+
+@pytest.mark.usefixtures("c3_configured")
+def test_access_token_is_resolved_on_every_request(
+    test_client: TestClient,
+    generator: DataGenerator,
+    requests_mock: Mocker,
+):
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    requests_mock.get(POOLS_URL, json={"results": [], "next": None})
+
+    _get(test_client, a.id)
+    _get(test_client, a.id)
+
+    token_requests = [r for r in requests_mock.request_history if r.url == TOKEN_URL]
+    assert len(token_requests) == 2
+    assert token_requests[0].text is not None
+    assert "grant_type=client_credentials" in token_requests[0].text
+    pools_requests = [r for r in requests_mock.request_history if r.url.startswith(POOLS_URL)]
+    assert all(r.headers["Authorization"] == "Bearer test-token" for r in pools_requests)
 
 
 @pytest.mark.usefixtures("c3_configured")

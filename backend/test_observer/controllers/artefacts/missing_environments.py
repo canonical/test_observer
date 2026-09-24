@@ -39,6 +39,7 @@ from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.queries import latest_artefact_builds
 from test_observer.data_access.setup import get_db
 from test_observer.external_apis import c3
+from test_observer.external_apis.c3 import C3Api, get_c3_api
 from test_observer.external_apis.c3_models import TestingPool
 
 from .models import MissingEnvironment, MissingEnvironmentsResponse
@@ -66,6 +67,7 @@ _METADATA_FIELDS = {FamilyName.deb: _DEB_METADATA_FIELDS, FamilyName.snap: _SNAP
 def get_missing_environments(
     artefact_id: int,
     db: Session = Depends(get_db),
+    c3_api: C3Api = Depends(get_c3_api),
 ) -> MissingEnvironmentsResponse:
     artefact = db.get(Artefact, artefact_id)
     if artefact is None:
@@ -76,7 +78,7 @@ def get_missing_environments(
         return MissingEnvironmentsResponse(missing_environments=[])
 
     try:
-        pools = c3.get_testing_pools(artefact.family)
+        pools = c3_api.get_testing_pools(artefact.family)
     except c3.C3NotConfiguredError:
         return MissingEnvironmentsResponse(missing_environments=[])
     except requests.RequestException as e:
