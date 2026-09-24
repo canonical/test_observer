@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: release
     permissions:
-      contents: write
+      contents: write  # Needed to create and push tags
     outputs:
       tag: ${{ steps.compute.outputs.tag }}
       ref: ${{ steps.compute.outputs.ref }}
@@ -100,7 +100,7 @@ jobs:
     uses: ./.github/workflows/release-image.yml
     permissions:
       contents: read
-      packages: write
+      packages: write # Needed to publish container image
     with:
       component: backend
       image-tag: ${{ needs.prepare-release.outputs.image-tag }}
@@ -112,7 +112,7 @@ jobs:
     uses: ./.github/workflows/release-image.yml
     permissions:
       contents: read
-      packages: write
+      packages: write # Needed to publish container image
     with:
       component: frontend
       image-tag: ${{ needs.prepare-release.outputs.image-tag }}
@@ -123,7 +123,7 @@ jobs:
     needs: [prepare-release, release-backend-image]
     uses: ./.github/workflows/release-charm.yml
     permissions:
-      contents: write
+      contents: write  # Needed to tag charm revisions
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
     with:
@@ -137,7 +137,7 @@ jobs:
     needs: [prepare-release, release-frontend-image]
     uses: ./.github/workflows/release-charm.yml
     permissions:
-      contents: write
+      contents: write  # Needed to tag charm revisions
     secrets:
       CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
     with:

@@ -34,6 +34,10 @@ on:
           - backend
           - frontend
 
+concurrency:
+  group: promote-charm-${{ inputs.charm }}-${{ inputs.channel-to }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -47,7 +51,9 @@ jobs:
         with:
           persist-credentials: false
       - name: Release charm to channel
-        uses: canonical/charming-actions/promote-charm@9180b22741d2349858e35e1dcc2fe4e11c3ebf2d # Commit updating to Node 24 canonical/charming-actions/promote-charm
+        # This is the commit that updates to Node 24 based actions
+        # TODO: Remove the zizmor ignore once there is a version tag
+        uses: canonical/charming-actions/promote-charm@9180b22741d2349858e35e1dcc2fe4e11c3ebf2d # zizmor: ignore[stale-action-refs]
         with:
           credentials: ${{ secrets.CHARMHUB_TOKEN }}
           destination-channel: ${{ github.event.inputs.channel-to }}

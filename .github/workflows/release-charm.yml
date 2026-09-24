@@ -95,7 +95,9 @@ jobs:
           grep "upstream-source" "${CHARM_PATH}/charmcraft.yaml"
 
       - name: Upload charm to charmhub
-        uses: canonical/charming-actions/upload-charm@9180b22741d2349858e35e1dcc2fe4e11c3ebf2d # Commit updating to Node 24
+        # This is the commit that updates to Node 24 based actions
+        # TODO: Remove the zizmor ignore once there is a version tag
+        uses: canonical/charming-actions/upload-charm@9180b22741d2349858e35e1dcc2fe4e11c3ebf2d # zizmor: ignore[stale-action-refs]
         with:
           charm-path: "${{ steps.vars.outputs.charm-path }}"
           # Ignoring until we set up environments
