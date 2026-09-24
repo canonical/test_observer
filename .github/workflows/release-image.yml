@@ -51,7 +51,7 @@ jobs:
       contents: read
       packages: write # Needed to publish container image
     outputs:
-      image-ref: ${{ steps.vars.outputs.image-name }}@${{ steps.build.outputs.digest }}
+      image-ref: ${{ env.REGISTRY }}/${{ steps.vars.outputs.image-name }}@${{ steps.build.outputs.digest }}
     steps:
       - name: Set component-specific variables
         id: vars
@@ -80,7 +80,6 @@ jobs:
             echo "image-name=$IMAGE_NAME"
             echo "context=$CONTEXT"
             echo "dockerfile=$DOCKERFILE"
-            echo "image-ref=$REGISTRY/$IMAGE_NAME:$TAG"
           } >> "$GITHUB_OUTPUT"
 
       - name: Setup Docker Buildx
