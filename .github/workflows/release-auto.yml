@@ -24,9 +24,6 @@ on:
         description: 'Component to release ("backend" or "frontend")'
         required: true
         type: string
-    secrets:
-      CHARMHUB_TOKEN:
-        required: true
 
 concurrency:
   group: ${{ github.workflow }}-${{ inputs.component }}-${{ github.ref }}
@@ -78,9 +75,8 @@ jobs:
     uses: ./.github/workflows/release-charm.yml
     permissions:
       contents: write  # Needed to create the charm revision tag
-    secrets:
-      CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
     with:
       component: ${{ inputs.component }}
       resource: ${{ needs.release-image.outputs.image-ref }}
       channel: ${{ needs.determine-tag.outputs.channel }}
+      environment: release-auto

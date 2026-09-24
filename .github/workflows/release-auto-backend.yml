@@ -37,7 +37,5 @@ jobs:
     permissions:
       contents: write  # Needed to create charm tags
       packages: write  # Needed to push images to the repository
-    secrets:
-      CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
     with:
       component: backend

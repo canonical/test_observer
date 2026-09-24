@@ -37,9 +37,10 @@ on:
         required: false
         type: string
         default: ''
-    secrets:
-      CHARMHUB_TOKEN:
+      environment:
+        description: 'GitHub Environment containing CHARMHUB_TOKEN'
         required: true
+        type: string
 
 permissions: {}
 
@@ -47,6 +48,7 @@ jobs:
   release-charm:
     name: Build and Release ${{ inputs.component }} Charm
     runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
     permissions:
       contents: write # Needed to create a release
     steps:
@@ -106,9 +108,8 @@ jobs:
         uses: canonical/charming-actions/upload-charm@9180b22741d2349858e35e1dcc2fe4e11c3ebf2d # zizmor: ignore[stale-action-refs]
         with:
           charm-path: "${{ steps.vars.outputs.charm-path }}"
-          # Ignoring until we set up environments
-          credentials: "${{ secrets.CHARMHUB_TOKEN }}" # zizmor: ignore[secrets-outside-env]
-          github-token: "${{ secrets.GITHUB_TOKEN }}" # zizmor: ignore[secrets-outside-env]
+          credentials: "${{ secrets.CHARMHUB_TOKEN }}"
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
           tag-prefix: "${{ steps.vars.outputs.tag-prefix }}"
           channel: "${{ inputs.channel }}"
 
