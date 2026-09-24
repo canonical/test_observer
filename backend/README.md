@@ -108,12 +108,9 @@ Two Dockerfiles are provided for the backend application:
 
 ## Versioning
 
-The application is versioned for release purposes using source control tag and commit metadata, using [uv-dynamic-versioning](https://pypi.org/project/uv-dynamic-versioning/).
+The application version is derived from repository-wide `vX.Y.Z` Git tags by [uv-dynamic-versioning](https://pypi.org/project/uv-dynamic-versioning/).
 
-The version "0.0.0" stated in the `pyproject.toml` is a "fallback version" which is returned by the `/version` endpoint when the application is either run:
-
-1. ... directly from source, i.e. not built and launched as wheel.
-2. ... using a wheel built with `uv build` when dynamic versioning is not configured.
+The release workflow uses the same tag to build both component images. For backend images, CI runs `uv-dynamic-versioning` before the Docker build and passes the resulting package version through `UV_DYNAMIC_VERSIONING_BYPASS`, because the production image does not contain the Git repository. The `/v1/version` endpoint reports the installed package version.
 
 ## Charm Observability
 

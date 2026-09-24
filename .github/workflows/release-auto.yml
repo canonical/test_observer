@@ -1,0 +1,82 @@
+# Copyright 2026 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+name: Automatic Release
+
+on:
+  workflow_call:
+    inputs:
+      component:
+        description: 'Component to release ("backend" or "frontend")'
+        required: true
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.component }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  determine-tag:
+    name: Determine Tag
+    runs-on: ubuntu-latest
+    outputs:
+      name: ${{ steps.tag.outputs.name }}
+      channel: ${{ steps.tag.outputs.channel }}
+    steps:
+      - name: Determine tag
+        id: tag
+        run: |
+          # Sanitize branch name (replace / with -)
+          BRANCH="${GITHUB_REF#refs/heads/}"
+          SANITIZED="$(echo "$BRANCH" | tr '/' '-' | tr '[:upper:]' '[:lower:]')"
+
+          if [ "$BRANCH" = "main" ]; then
+            {
+              echo "name=latest"
+              echo "channel=latest/edge"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "name=$SANITIZED"
+              echo "channel=latest/edge/$SANITIZED"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+  release-image:
+    name: Build and Push Image
+    needs: determine-tag
+    uses: ./.github/workflows/release-image.yml
+    permissions:
+      contents: read
+      packages: write  # Needed to push the image to the package registry
+    with:
+      component: ${{ inputs.component }}
+      image-tag: ${{ needs.determine-tag.outputs.name }}
+
+  release-charm:
+    name: Release Charm
+    needs: [determine-tag, release-image]
+    uses: ./.github/workflows/release-charm.yml
+    permissions:
+      contents: write  # Needed to create the charm revision tag
+    with:
+      component: ${{ inputs.component }}
+      resource: ${{ needs.release-image.outputs.image-ref }}
+      channel: ${{ needs.determine-tag.outputs.channel }}
+      environment: release-auto

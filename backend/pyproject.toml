@@ -93,7 +93,7 @@ module = ["onelogin.*"]
 follow_untyped_imports = true
 
 [build-system]
-requires = ["hatchling", "uv-dynamic-versioning"]
+requires = ["hatchling", "uv-dynamic-versioning==0.14.1"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
