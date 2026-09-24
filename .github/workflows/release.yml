@@ -1,0 +1,145 @@
+# Copyright 2026 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+# This workflow creates image and charm releases for the provided tag
+# If the provided tag doesn't exist, it will be created.
+# Charms are released alongside the corresponding images
+# so that each charm revision has a single associated image,
+# and so that updating the charm is sufficient to update the associated image as well.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to release, e.g. v1.4.0'
+        required: true
+        type: string
+      channel:
+        description: 'Charmhub channel to release the charm to'
+        required: true
+        type: choice
+        options:
+          - latest/edge
+          - latest/candidate
+          - latest/beta
+          - latest/stable
+        default: latest/edge
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  prepare-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.compute.outputs.tag }}
+      ref: ${{ steps.compute.outputs.ref }}
+      image-tag: ${{ steps.compute.outputs.image-tag }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: true  # Needed to push tags
+          fetch-depth: 0
+
+      - name: Validate version format
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$TAG' is not a valid release tag (expected e.g. v1.4.0)"
+            exit 1
+          fi
+
+      - name: Create or resolve release tag
+        id: compute
+        env:
+          TAG: ${{ inputs.tag }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          if git show-ref --verify --quiet "refs/tags/$TAG"; then
+            echo "Using existing tag $TAG"
+          else
+            git tag "$TAG" "$SOURCE_SHA"
+            git push origin "$TAG"
+          fi
+
+          REF=$(git rev-parse "$TAG^{commit}")
+          IMAGE_TAG="${TAG#v}"
+          {
+            echo "tag=$TAG"
+            echo "ref=$REF"
+            echo "image-tag=$IMAGE_TAG"
+          } >> "$GITHUB_OUTPUT"
+
+  release-backend-image:
+    name: Build and Push Backend Image
+    needs: prepare-release
+    uses: ./.github/workflows/release-image.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      component: backend
+      image-tag: ${{ needs.prepare-release.outputs.image-tag }}
+      ref: ${{ needs.prepare-release.outputs.ref }}
+
+  release-frontend-image:
+    name: Build and Push Frontend Image
+    needs: prepare-release
+    uses: ./.github/workflows/release-image.yml
+    permissions:
+      contents: read
+      packages: write
+    with:
+      component: frontend
+      image-tag: ${{ needs.prepare-release.outputs.image-tag }}
+      ref: ${{ needs.prepare-release.outputs.ref }}
+
+  release-backend-charm:
+    name: Release Backend Charm
+    needs: [prepare-release, release-backend-image]
+    uses: ./.github/workflows/release-charm.yml
+    permissions:
+      contents: write
+    secrets: inherit
+    with:
+      component: backend
+      resource: ${{ needs.release-backend-image.outputs.image-ref }}
+      channel: ${{ inputs.channel }}
+      ref: ${{ needs.prepare-release.outputs.ref }}
+
+  release-frontend-charm:
+    name: Release Frontend Charm
+    needs: [prepare-release, release-frontend-image]
+    uses: ./.github/workflows/release-charm.yml
+    permissions:
+      contents: write
+    secrets: inherit
+    with:
+      component: frontend
+      resource: ${{ needs.release-frontend-image.outputs.image-ref }}
+      channel: ${{ inputs.channel }}
+      ref: ${{ needs.prepare-release.outputs.ref }}

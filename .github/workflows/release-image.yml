@@ -1,0 +1,143 @@
+# Copyright 2026 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+name: Build Image
+
+on:
+  workflow_call:
+    inputs:
+      component:
+        description: 'Which component to build ("backend" or "frontend")'
+        required: true
+        type: string
+      image-tag:
+        description: 'The Docker tag to publish the image under (e.g. "latest", "1.4.0")'
+        required: true
+        type: string
+      ref:
+        description: 'Git ref or commit to build'
+        required: false
+        type: string
+        default: ''
+    outputs:
+      image-ref:
+        description: 'Fully qualified reference of the pushed image'
+        value: ${{ jobs.build.outputs.image-ref }}
+
+env:
+  REGISTRY: ghcr.io
+
+permissions: {}
+
+jobs:
+  build:
+    name: Build and Push ${{ inputs.component }} Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # Needed to publish container image
+    outputs:
+      image-ref: ${{ steps.vars.outputs.image-ref }}
+    steps:
+      - name: Set component-specific variables
+        id: vars
+        env:
+          COMPONENT: ${{ inputs.component }}
+          TAG: ${{ inputs.image-tag }}
+        run: |
+          case "$COMPONENT" in
+            backend)
+              IMAGE_NAME="${{ github.repository }}/api"
+              CONTEXT="./backend"
+              DOCKERFILE="./backend/Dockerfile.production"
+              ;;
+            frontend)
+              IMAGE_NAME="${{ github.repository }}/frontend"
+              CONTEXT="./frontend"
+              DOCKERFILE="./frontend/Dockerfile"
+              ;;
+            *)
+              echo "::error::Unknown component: $COMPONENT (expected 'backend' or 'frontend')"
+              exit 1
+              ;;
+          esac
+          {
+            echo "image-name=$IMAGE_NAME"
+            echo "context=$CONTEXT"
+            echo "dockerfile=$DOCKERFILE"
+            echo "image-ref=$REGISTRY/$IMAGE_NAME:$TAG"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
+
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+          fetch-depth: 0 # Needed so the backend package version can be derived from git tags
+
+      - name: Compute backend package version
+        id: package-version
+        if: inputs.component == 'backend'
+        run: |
+          VERSION=$(cd backend && uvx --from uv-dynamic-versioning==0.14.1 uv-dynamic-versioning)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Determined package version: $VERSION"
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          # Ignoring until we set up environments
+          password: ${{ secrets.GITHUB_TOKEN }} # zizmor: ignore[secrets-outside-env]
+
+      - name: Compute Docker tags
+        id: docker-tags
+        env:
+          TAG: ${{ inputs.image-tag }}
+        run: |
+          {
+            echo "tags<<EOF"
+            echo "type=raw,value=$TAG"
+            # Also tag with major.minor and major aliases for semver-style releases
+            if [[ "$TAG" =~ ^([0-9]+)\.([0-9]+)\.[0-9]+$ ]]; then
+              echo "type=raw,value=${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
+              echo "type=raw,value=${BASH_REMATCH[1]}"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ steps.vars.outputs.image-name }}
+          tags: ${{ steps.docker-tags.outputs.tags }}
+
+      - name: Build and push ${{ inputs.component }} Docker image
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
+        with:
+          context: ${{ steps.vars.outputs.context }}
+          file: ${{ steps.vars.outputs.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            UV_DYNAMIC_VERSIONING_BYPASS=${{ steps.package-version.outputs.version }}

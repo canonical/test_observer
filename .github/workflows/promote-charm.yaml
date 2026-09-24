@@ -1,0 +1,54 @@
+# Copyright 2026 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+name: Promote charm from a specific track and channel
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel-from:
+        description: 'Origin Channel'
+        required: true
+      channel-to:
+        description: 'Destination Channel'
+        required: true
+      charm:
+        description: 'Charm to promote'
+        required: true
+        type: choice
+        options:
+          - backend
+          - frontend
+
+jobs:
+  promote-charm:
+    name: Promote charm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Release charm to channel
+        uses: canonical/charming-actions/promote-charm@9180b22741d2349858e35e1dcc2fe4e11c3ebf2d # Commit updating to Node 24 canonical/charming-actions/promote-charm
+        with:
+          credentials: ${{ secrets.CHARMHUB_TOKEN }}
+          destination-channel: ${{ github.event.inputs.channel-to }}
+          origin-channel: ${{ github.event.inputs.channel-from }}
+
+          # for multi charm repo
+          charm-path: charms/${{ github.event.inputs.charm }}
