@@ -124,7 +124,8 @@ jobs:
     uses: ./.github/workflows/release-charm.yml
     permissions:
       contents: write
-    secrets: inherit
+    secrets:
+      CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
     with:
       component: backend
       resource: ${{ needs.release-backend-image.outputs.image-ref }}
@@ -137,7 +138,8 @@ jobs:
     uses: ./.github/workflows/release-charm.yml
     permissions:
       contents: write
-    secrets: inherit
+    secrets:
+      CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
     with:
       component: frontend
       resource: ${{ needs.release-frontend-image.outputs.image-ref }}

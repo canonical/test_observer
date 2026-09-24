@@ -35,8 +35,9 @@ jobs:
     name: Release Frontend
     uses: ./.github/workflows/release-auto.yml
     permissions:
-      contents: write
-      packages: write
-    secrets: inherit
+      contents: write  # Needed to create charm tags
+      packages: write  # Needed to push images to the repository
+    secrets:
+      CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
     with:
       component: frontend

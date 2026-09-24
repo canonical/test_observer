@@ -34,6 +34,9 @@ on:
           - backend
           - frontend
 
+permissions:
+  contents: read
+
 jobs:
   promote-charm:
     name: Promote charm
