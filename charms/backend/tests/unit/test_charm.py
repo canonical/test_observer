@@ -129,7 +129,7 @@ class TestIntegrationValidation(unittest.TestCase):
         self.assertNotIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
 
     def test_validate_action_returns_results_and_defaults_to_simple(self):
-        self.harness.add_relation("database", "postgresql")
+        self._add_ready_database_relation()
 
         with patch(
             "validators.engine.engine.load_validators",
@@ -138,10 +138,11 @@ class TestIntegrationValidation(unittest.TestCase):
             output = self.harness.run_action("validate")
 
         self.assertIn("results", output.results)
+        self.assertIn('"status": "PASS"', output.results["results"])
         self.assertIn('"level": "simple"', output.results["results"])
 
     def test_validate_action_respects_level_param(self):
-        self.harness.add_relation("database", "postgresql")
+        self._add_ready_database_relation()
 
         with patch(
             "validators.engine.engine.load_validators",
@@ -152,7 +153,7 @@ class TestIntegrationValidation(unittest.TestCase):
         self.assertIn('"level": "deep"', output.results["results"])
 
     def test_validate_action_fails_on_error_result(self):
-        self.harness.add_relation("database", "postgresql")
+        self._add_ready_database_relation()
 
         with patch(
             "validators.engine.engine.load_validators",
@@ -163,3 +164,19 @@ class TestIntegrationValidation(unittest.TestCase):
 
         self.assertIn("boom", ctx.exception.message)
         self.assertIn("results", ctx.exception.output.results)
+
+    def test_validate_action_reports_skipped_when_relation_not_ready(self):
+        # GIVEN a database relation with no data published yet (e.g. right
+        # after `juju integrate`, before the two ends negotiate)
+        self.harness.add_relation("database", "postgresql")
+
+        # WHEN the validate action runs
+        with patch(
+            "validators.engine.engine.load_validators",
+            return_value={"postgresql_client": [_make_stub_validator("PASS")]},
+        ):
+            output = self.harness.run_action("validate")
+
+        # THEN the engine reports SKIPPED rather than running (and failing)
+        # the validator against an incomplete databag
+        self.assertIn('"status": "SKIPPED"', output.results["results"])
