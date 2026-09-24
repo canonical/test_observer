@@ -168,7 +168,6 @@ def _get_previous_artefact(db: Session, artefact: Artefact) -> Artefact | None:
         .where(Artefact.os == artefact.os)
         .where(Artefact.release == artefact.release)
         .where(Artefact.source == artefact.source)
-        .where(Artefact.bundled_builds_hash == artefact.bundled_builds_hash)
         .where(Artefact.id < artefact.id)
         .order_by(Artefact.id.desc())
         .limit(1)
