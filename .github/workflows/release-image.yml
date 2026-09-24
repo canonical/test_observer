@@ -51,7 +51,7 @@ jobs:
       contents: read
       packages: write # Needed to publish container image
     outputs:
-      image-ref: ${{ steps.vars.outputs.image-ref }}
+      image-ref: ${{ steps.vars.outputs.image-name }}@${{ steps.build.outputs.digest }}
     steps:
       - name: Set component-specific variables
         id: vars
@@ -141,6 +141,7 @@ jobs:
           tags: ${{ steps.docker-tags.outputs.tags }}
 
       - name: Build and push ${{ inputs.component }} Docker image
+        id: build
         uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7.1.0
         with:
           context: ${{ steps.vars.outputs.context }}

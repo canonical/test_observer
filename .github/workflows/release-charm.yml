@@ -91,6 +91,12 @@ jobs:
           CHARM_PATH: ${{ steps.vars.outputs.charm-path }}
         run: |
           sed -i "s|ghcr.io/canonical/test_observer/${IMAGE_NAME}:latest|${RESOURCE}|g" "${CHARM_PATH}/charmcraft.yaml"
+          # TODO: Remove the replacement of 'main' once a tag has been created with `latest` in charmcraft.yaml
+          sed -i "s|ghcr.io/canonical/test_observer/${IMAGE_NAME}:main|${RESOURCE}|g" "${CHARM_PATH}/charmcraft.yaml"
+          if ! grep -q "${RESOURCE}" "${CHARM_PATH}/charmcraft.yaml"; then
+            echo "::error::Failed to update ${CHARM_PATH}/charmcraft.yaml to use ${RESOURCE}"
+            exit 1
+          fi
           echo "Updated charmcraft.yaml to use image reference: ${RESOURCE}"
           grep "upstream-source" "${CHARM_PATH}/charmcraft.yaml"
 
