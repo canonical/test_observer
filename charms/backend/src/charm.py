@@ -303,16 +303,10 @@ class TestObserverBackendCharm(CharmBase):
     def _run_integration_check(self) -> None:
         """Run the simple-level integration check and record the outcome.
 
-        Called on every update-status. Results are recorded in
-        `self._validation_status` so `_on_collect_unit_status` can surface a
-        Blocked status without re-running the (potentially expensive)
-        validators on every hook.
-
-        Skipped until the database relation is ready: `run_simple_check`
-        already skips individual endpoints with no data yet, but this specific
-        readiness check (via the data_interfaces library, deeper than "any
-        data at all") is kept as an extra guard so a Blocked status is never
-        shown while the relation is still being negotiated.
+        Results are stored so `_on_collect_unit_status` can surface a Blocked
+        status without re-running the validators on every hook. Gated on the
+        data_interfaces readiness check, which is stricter than the engine's
+        own "any data published" gate.
         """
         if not self._database_relation_ready():
             self._validation_status.clear()
