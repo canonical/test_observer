@@ -43,8 +43,8 @@ cosl
 # they both use, and validators-base is a transitive dependency of all of
 # them. validators-postgresql-client is the specific interface validator this
 # charm's `database` relation needs.
-validators-update-status-check @ git+https://github.com/canonical/charm-integration-testing.git@2695f5b5#subdirectory=validators/update_status_check
-validators-validate-action @ git+https://github.com/canonical/charm-integration-testing.git@2695f5b5#subdirectory=validators/validate_action
-validators-engine @ git+https://github.com/canonical/charm-integration-testing.git@2695f5b5#subdirectory=validators/engine
-validators-base @ git+https://github.com/canonical/charm-integration-testing.git@2695f5b5#subdirectory=validators/base
-validators-postgresql-client @ git+https://github.com/canonical/charm-integration-testing.git@2695f5b5#subdirectory=validators/postgresql_client
+validators-update-status-check @ git+https://github.com/canonical/charm-integration-testing.git@0671734d#subdirectory=validators/update_status_check
+validators-validate-action @ git+https://github.com/canonical/charm-integration-testing.git@0671734d#subdirectory=validators/validate_action
+validators-engine @ git+https://github.com/canonical/charm-integration-testing.git@0671734d#subdirectory=validators/engine
+validators-base @ git+https://github.com/canonical/charm-integration-testing.git@0671734d#subdirectory=validators/base
+validators-postgresql-client @ git+https://github.com/canonical/charm-integration-testing.git@0671734d#subdirectory=validators/postgresql_client
