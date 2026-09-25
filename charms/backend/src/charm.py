@@ -39,6 +39,8 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import APIError, ExecError, Layer
 from requests import get
+from validators.update_status_check import ValidationStatusStore, run_simple_check
+from validators.validate_action import observe_validate_action
 
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
@@ -137,12 +139,15 @@ class TestObserverBackendCharm(CharmBase):
 
         self._setup_redis()
 
+        self._validation_status = ValidationStatusStore(self)
+
         self.framework.observe(self.on.delete_artefact_action, self._on_delete_artefact_action)
         self.framework.observe(self.on.add_user_action, self._on_add_user_action)
         self.framework.observe(self.on.change_assignee_action, self._on_change_assignee_action)
         self.framework.observe(
             self.on.promote_user_to_admin_action, self._on_promote_user_to_admin_action
         )
+        observe_validate_action(self)
 
         # The ops framework triggers a CollectStatusEvent at the end of each hook
         self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
@@ -292,6 +297,22 @@ class TestObserverBackendCharm(CharmBase):
         if (migrated or waiting_for_migration) and self._migrations_ready():
             self._update_api_layer()
             self._update_celery_layer()
+
+        self._run_integration_check()
+
+    def _run_integration_check(self) -> None:
+        """Run the simple-level integration check and record the outcome.
+
+        Results are stored so `_on_collect_unit_status` can surface a Blocked
+        status without re-running the validators on every hook. Gated on the
+        data_interfaces readiness check, which is stricter than the engine's
+        own "any data published" gate.
+        """
+        if not self._database_relation_ready():
+            self._validation_status.clear()
+            return
+
+        self._validation_status.record(run_simple_check(self).results)
 
     def _on_peer_relation_changed(self, event) -> None:
         # The published migration revision may have changed; reconcile the
@@ -783,6 +804,11 @@ class TestObserverBackendCharm(CharmBase):
             if not has_ingress_conflict:
                 event.add_status(ActiveStatus())
             return
+
+        # Surface the last integration check (see _run_integration_check) as a
+        # Blocked status, unless a more specific status was already added above.
+        if (status := self._validation_status.status()) is not None:
+            event.add_status(status)
 
     def _get_url(self) -> str:
         """Get the URL to use for this charm's service."""

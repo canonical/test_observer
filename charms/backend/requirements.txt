@@ -18,3 +18,14 @@
 ops >= 2.8.0
 requests==2.34.2
 pydantic==2.13.3
+
+# Vendored charm lib dependency.
+cosl
+
+# Validator glue from charm-integration-testing; keep pinned to the same
+# upstream commit so the charm tracks the reviewed glue packages together.
+validators-update-status-check @ git+https://github.com/canonical/charm-integration-testing.git@5cac8fb6#subdirectory=validators/update_status_check
+validators-validate-action @ git+https://github.com/canonical/charm-integration-testing.git@5cac8fb6#subdirectory=validators/validate_action
+validators-engine @ git+https://github.com/canonical/charm-integration-testing.git@5cac8fb6#subdirectory=validators/engine
+validators-base @ git+https://github.com/canonical/charm-integration-testing.git@5cac8fb6#subdirectory=validators/base
+validators-postgresql-client @ git+https://github.com/canonical/charm-integration-testing.git@5cac8fb6#subdirectory=validators/postgresql_client
