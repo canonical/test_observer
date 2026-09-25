@@ -27,6 +27,9 @@ ADDITIONAL_CORS_ORIGINS = [
     origin.strip() for origin in os.getenv("ADDITIONAL_CORS_ORIGINS", "").split(",") if origin.strip()
 ]
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:30001")
+C3_API_BASE_URL = os.getenv("C3_API_BASE_URL", "https://certification.canonical.com")
+C3_CLIENT_ID = os.getenv("C3_CLIENT_ID", "")
+C3_CLIENT_SECRET = os.getenv("C3_CLIENT_SECRET", "")
 SESSIONS_SECRET = os.getenv("SESSIONS_SECRET", "secret")
 SESSIONS_HTTPS_ONLY = os.getenv("SESSIONS_HTTPS_ONLY", "true").lower() == "true"
 IGNORE_PERMISSIONS = {
