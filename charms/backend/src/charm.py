@@ -23,6 +23,8 @@ import sys
 import urllib.parse
 from collections import ChainMap
 
+import ops
+
 from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
@@ -65,6 +67,11 @@ MIGRATION_STATUS_FAILED = "failed"
 # backstop can reliably detect this state.
 WAITING_FOR_MIGRATION_MSG = "Waiting for database migration"
 
+INVALID_SAML_CONFIG_MESSAGE = (
+    "SAML config incomplete: if any SAML setting is provided, "
+    "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key or saml_sp_key_secret must be set"
+)
+SAML_SP_KEY_SECRET_LABEL = "saml-sp-key"
 
 class TestObserverBackendCharm(CharmBase):
     """Charm the service."""
@@ -146,6 +153,8 @@ class TestObserverBackendCharm(CharmBase):
 
         # The ops framework triggers a CollectStatusEvent at the end of each hook
         self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
+
+        self.framework.observe(self.on.secret_changed, self._on_secret_changed)
 
     def _on_ingress_ready(self, event: IngressPerAppReadyEvent) -> None:
         """Process the ingress URL and provide the hostname where needed."""
@@ -458,10 +467,13 @@ class TestObserverBackendCharm(CharmBase):
         """
         saml_idp_metadata_url = self.config.get("saml_idp_metadata_url", "")
         saml_sp_cert = self.config.get("saml_sp_cert", "")
-        saml_sp_key = self.config.get("saml_sp_key", "")
+        saml_sp_key_secret = self.config.get("saml_sp_key_secret", "")
+        saml_sp_key = self._get_saml_sp_key()
 
         # Check if any SAML config is provided
-        has_any_saml = bool(saml_idp_metadata_url or saml_sp_cert or saml_sp_key)
+        has_any_saml = bool(
+            saml_idp_metadata_url or saml_sp_cert or saml_sp_key_secret or saml_sp_key
+        )
 
         # If any is provided, all must be provided
         if has_any_saml:
@@ -471,12 +483,27 @@ class TestObserverBackendCharm(CharmBase):
         # If none are provided, that's valid
         return True
 
+    def _get_saml_sp_key(self) -> str:
+        """Retrieve the SAML SP key from the secret or fallback to the config."""
+        secret_uri = self.config.get("saml_sp_key_secret", "")
+        saml_sp_key = str(self.config.get("saml_sp_key", "") or "")
+        if not secret_uri:
+            return saml_sp_key
+        try:
+            secret = self.model.get_secret(
+                id=str(secret_uri), label=SAML_SP_KEY_SECRET_LABEL
+            )
+        except (ops.SecretNotFoundError, ops.ModelError):
+            return saml_sp_key
+        try:
+            secret_key = secret.get_content(refresh=True).get("private-key")
+            return secret_key or saml_sp_key
+        except (ops.SecretNotFoundError, ops.ModelError):
+            return saml_sp_key
+
     def _on_config_changed(self, event):
         if not self._validate_saml_config():
-            self.unit.status = BlockedStatus(
-                "SAML config incomplete: if any SAML setting is provided, "
-                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
-            )
+            self.unit.status = BlockedStatus(INVALID_SAML_CONFIG_MESSAGE)
             return
 
         self.ingress.provide_ingress_requirements(port=int(self.config["port"]))
@@ -484,12 +511,17 @@ class TestObserverBackendCharm(CharmBase):
         self._update_api_layer(event)
         self._update_celery_layer(event)
 
+    def _on_secret_changed(self, event: ops.SecretChangedEvent):
+        if event.secret.label == SAML_SP_KEY_SECRET_LABEL:
+            if not self._validate_saml_config():
+                self.unit.status = BlockedStatus(INVALID_SAML_CONFIG_MESSAGE)
+                return
+            self._update_api_layer()
+            self._update_celery_layer()
+
     def _update_api_layer(self, _=None):
         if not self._validate_saml_config():
-            self.unit.status = BlockedStatus(
-                "SAML config incomplete: if any SAML setting is provided, "
-                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
-            )
+            self.unit.status = BlockedStatus(INVALID_SAML_CONFIG_MESSAGE)
             return
 
         if not self.api_container.can_connect():
@@ -598,7 +630,7 @@ class TestObserverBackendCharm(CharmBase):
         if self.config.get("saml_idp_metadata_url"):
             env["SAML_IDP_METADATA_URL"] = str(self.config["saml_idp_metadata_url"])
             env["SAML_SP_X509_CERT"] = str(self.config.get("saml_sp_cert", ""))
-            env["SAML_SP_KEY"] = str(self.config.get("saml_sp_key", ""))
+            env["SAML_SP_KEY"] = self._get_saml_sp_key()
         env.update(self._postgres_relation_data())
 
         # The os.environ variables correspond to the values in the Juju model-config,

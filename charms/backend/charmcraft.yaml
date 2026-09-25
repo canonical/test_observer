@@ -70,8 +70,11 @@ config:
       description: SAML service provider X.509 certificate
       type: string
     saml_sp_key:
-      description: SAML service provider certificate private key
+      description: "(Deprecated: Use saml_sp_key_secret instead) SAML service provider certificate private key"
       type: string
+    saml_sp_key_secret:
+      description: Juju secret with a 'private-key' key containing the SAML service provider certificate private key
+      type: secret
     port:
       default: 30000
       description: The port to listen on for incoming HTTP requests.
