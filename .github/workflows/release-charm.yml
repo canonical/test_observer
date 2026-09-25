@@ -80,6 +80,11 @@ jobs:
           ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
 
+      - name: Setup LXD
+        uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee # v1
+        with:
+          channel: 5.21/stable
+
       - name: Install Charmcraft
         run: |
           if ! command -v charmcraft >/dev/null 2>&1; then
