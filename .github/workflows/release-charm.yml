@@ -1,0 +1,130 @@
+# Copyright 2026 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+name: Release Charm
+
+on:
+  workflow_call:
+    inputs:
+      component:
+        description: 'Which component charm to release ("backend" or "frontend")'
+        required: true
+        type: string
+      resource:
+        description: 'Fully qualified OCI image reference to use as the charm resource'
+        required: true
+        type: string
+      channel:
+        description: 'Charmhub channel to release to (e.g. "latest/edge")'
+        required: true
+        type: string
+      ref:
+        description: 'Git ref or commit to release'
+        required: false
+        type: string
+        default: ''
+      environment:
+        description: 'GitHub Environment containing CHARMHUB_TOKEN'
+        required: true
+        type: string
+
+permissions: {}
+
+jobs:
+  release-charm:
+    name: Build and Release ${{ inputs.component }} Charm
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      contents: write # Needed to create a release
+    steps:
+      - name: Set component-specific variables
+        id: vars
+        env:
+          COMPONENT: ${{ inputs.component }}
+        run: |
+          case "$COMPONENT" in
+            backend)
+              echo "charm-path=charms/backend" >> "$GITHUB_OUTPUT"
+              echo "image-name=api" >> "$GITHUB_OUTPUT"
+              echo "tag-prefix=api" >> "$GITHUB_OUTPUT"
+              ;;
+            frontend)
+              echo "charm-path=charms/frontend" >> "$GITHUB_OUTPUT"
+              echo "image-name=frontend" >> "$GITHUB_OUTPUT"
+              echo "tag-prefix=frontend" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "::error::Unknown component: $COMPONENT (expected 'backend' or 'frontend')"
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+
+      - name: Setup LXD
+        uses: canonical/setup-lxd@8c6a87bfb56aa48f3fb9b830baa18562d8bfd4ee # v1
+        with:
+          channel: 5.21/stable
+
+      - name: Install Charmcraft
+        run: |
+          if ! command -v charmcraft >/dev/null 2>&1; then
+            sudo snap install charmcraft --classic
+          fi
+
+      - name: Update OCI image reference in charmcraft.yaml
+        env:
+          RESOURCE: ${{ inputs.resource }}
+          IMAGE_NAME: ${{ steps.vars.outputs.image-name }}
+          CHARM_PATH: ${{ steps.vars.outputs.charm-path }}
+        run: |
+          sed -i "s|ghcr.io/canonical/test_observer/${IMAGE_NAME}:latest|${RESOURCE}|g" "${CHARM_PATH}/charmcraft.yaml"
+          # TODO: Remove the replacement of 'main' once a tag has been created with `latest` in charmcraft.yaml
+          sed -i "s|ghcr.io/canonical/test_observer/${IMAGE_NAME}:main|${RESOURCE}|g" "${CHARM_PATH}/charmcraft.yaml"
+          if ! grep -q "${RESOURCE}" "${CHARM_PATH}/charmcraft.yaml"; then
+            echo "::error::Failed to update ${CHARM_PATH}/charmcraft.yaml to use ${RESOURCE}"
+            exit 1
+          fi
+          echo "Updated charmcraft.yaml to use image reference: ${RESOURCE}"
+          grep "upstream-source" "${CHARM_PATH}/charmcraft.yaml"
+
+      - name: Upload charm to charmhub
+        # This is the commit that updates to Node 24 based actions
+        # TODO: Remove the zizmor ignore once there is a version tag
+        uses: canonical/charming-actions/upload-charm@9180b22741d2349858e35e1dcc2fe4e11c3ebf2d # zizmor: ignore[stale-action-refs]
+        with:
+          charm-path: "${{ steps.vars.outputs.charm-path }}"
+          credentials: "${{ secrets.CHARMHUB_TOKEN }}"
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          tag-prefix: "${{ steps.vars.outputs.tag-prefix }}"
+          channel: "${{ inputs.channel }}"
+
+      - name: Check logs for failure
+        if: failure()
+        shell: bash
+        run: |
+          LOG_FILE=$(sudo find /root "${HOME}" /tmp /var/tmp -name "charmcraft-*.log" 2>/dev/null | head -1)
+          if [ -n "$LOG_FILE" ]; then
+            sudo cat "$LOG_FILE"
+          else
+            echo "No charmcraft log file found in /root, ${HOME}, /tmp, or /var/tmp"
+          fi
