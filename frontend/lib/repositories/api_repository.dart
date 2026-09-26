@@ -163,6 +163,19 @@ class ApiRepository {
     );
   }
 
+  /// Unlike [createReruns] this is not silent, so the response lists what was
+  /// queued. Returns the ids of the artefact builds that got a rerun request.
+  Future<Set<int>> requestReruns(List<int> testExecutionIds) async {
+    final response = await dio.post(
+      '/v1/test-executions/reruns',
+      data: {'test_execution_ids': testExecutionIds},
+    );
+    return {
+      for (final rerun in response.data as List)
+        (rerun['artefact_build'] as Map)['id'] as int,
+    };
+  }
+
   Future<void> deleteReruns({
     List<int>? testExecutionIds,
     TestResultsFilters? filters,
