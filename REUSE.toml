@@ -15,7 +15,7 @@ SPDX-FileCopyrightText = "2026 Canonical Ltd."
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
-path = "backend/charm/uv.lock"
+path = "charms/backend/uv.lock"
 SPDX-FileCopyrightText = "2026 Canonical Ltd."
 SPDX-License-Identifier = "Apache-2.0"
 
