@@ -17,7 +17,7 @@
 
 import json
 from base64 import b64encode
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from os import environ
 
@@ -34,6 +34,7 @@ from sqlalchemy_utils import (  # type: ignore
     drop_database,
 )
 
+from test_observer.common import config
 from test_observer.common.config import SESSIONS_SECRET
 from test_observer.common.enums import Permission
 from test_observer.controllers.applications.application_injection import (
@@ -44,6 +45,23 @@ from test_observer.data_access.models_enums import StageName
 from test_observer.data_access.setup import get_db
 from test_observer.main import app
 from tests.data_generator import DataGenerator
+
+
+@pytest.fixture(autouse=True)
+def _clear_ignore_permissions() -> Iterator[None]:
+    """
+    Ensure permission checks are enforced during tests.
+
+    The local development Docker environment sets IGNORE_PERMISSIONS to bypass
+    permission checks for convenience, but tests run inside that same container
+    and must exercise the real authorization logic. Clear the set in place (both
+    config and permissions modules reference the same object) and restore it
+    afterwards.
+    """
+    original = set(config.IGNORE_PERMISSIONS)
+    config.IGNORE_PERMISSIONS.clear()
+    yield
+    config.IGNORE_PERMISSIONS.update(original)
 
 
 def _check_postgres_connection(host: str, port: int, user: str, password: str) -> bool:

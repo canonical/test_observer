@@ -69,7 +69,10 @@ jobs:
       - name: Test Frontend
         run: |
           echo "Testing frontend HTTP response..."
-          curl -f -I http://localhost:30001 || (echo "Frontend test failed" && exit 1)
+          # Use a GET (not HEAD/-I): the Flutter dev web-server used by
+          # docker-compose responds 404 to HEAD but 200 to GET. -o /dev/null
+          # discards the body so this stays a lightweight smoke test.
+          curl -f -s -o /dev/null http://localhost:30001 || (echo "Frontend test failed" && exit 1)
 
       - name: Test Database connectivity
         run: |
