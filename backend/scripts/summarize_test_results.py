@@ -37,7 +37,10 @@ def relevant_rows(test_glob, row):
 
 
 def add_row_data(row):
-    row["created_at_month"] = row["TestResult.created_at"].rsplit("-", 1)[0]
+    row["created_at_month"] = (
+        row["TestResult.created_at"].rsplit("-", 1)[0]
+        + f" week {int(row["TestResult.created_at"].split()[0].rsplit("-", 1)[1]) // 7 + 1}"
+    )
     row["CID"] = row["TestExecution.c3_link"].split("/")[4]
     return row
 
@@ -74,16 +77,19 @@ def main():
 
     sorted_months = sorted(months)
 
-    def print_table(name, tbl):
-        header = ["CID"] + sorted_months
-        print(f"\n{name}")
-        print(",".join(header))
+    def print_table(tbl, f):
+        fieldnames = ["CID"] + sorted_months
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
         for cid in sorted(tbl):
-            values = [str(tbl[cid].get(m, "")) for m in sorted_months]
-            print(",".join([cid] + values))
+            row = {"CID": cid}
+            row.update({m: tbl[cid].get(m, 0) for m in sorted_months})
+            writer.writerow(row)
 
-    print_table("Relative Table", relative_table)
-    print_table("Absolute Table", absolute_table)
+    with open("relative.csv", "w+") as f:
+        print_table(relative_table, f)
+    with open("absolute.csv", "w+") as f:
+        print_table(absolute_table, f)
 
 
 if __name__ == "__main__":

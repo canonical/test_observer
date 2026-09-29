@@ -79,7 +79,11 @@ def get_filter(filter_name, filter_param):
 
     def both(f):
         def _f(x: dict) -> bool:
-            return x["Artefact.family"] in ["snap", "deb"] and f(x)
+            return (
+                x["Artefact.family"] in ["snap", "deb"]
+                and x["Artefact.name"] != "intel-npu-driver"
+                and f(x)
+            )
 
         return _f
 
