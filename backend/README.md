@@ -99,6 +99,19 @@ Testing is handled using pytest package and can be run using the command:
 docker compose exec test-observer-api pytest
 ```
 
+## Performance testing
+
+`scripts/seed_performance_data.py` bulk-inserts a large, deterministic synthetic data set: reviewers, several versions of each artefact, reruns, undecided environment reviews, and many results per execution with io logs of realistic sizes. Choose a size with `--profile small|medium|large` and override any field of the profile, for example `--results-per-execution 200`. Pass `--truncate` to empty every table first, so never point it at a database you want to keep.
+
+`scripts/benchmark_endpoints.py` then calls the read endpoints in process and reports, for each, the median and maximum time, the response size, the SQL statements and the time spent in them, and the peak Python memory of one request:
+
+```bash
+DB_URL=postgresql+pg8000://user:pass@localhost:5432/perf uv run python scripts/seed_performance_data.py --profile medium --truncate
+DB_URL=postgresql+pg8000://user:pass@localhost:5432/perf uv run python scripts/benchmark_endpoints.py --runs 3
+```
+
+Use `--scenario NAME` to run one scenario and `--json PATH` to keep the numbers for a before and after comparison.
+
 ## OCI images
 
 Two Dockerfiles are provided for the backend application:
