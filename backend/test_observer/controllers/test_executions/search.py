@@ -38,6 +38,7 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     IssueTestResultAttachment,
+    IssueTestResultAttachmentRule,
     TestExecution,
     TestExecutionMetadata,
     TestResult,
@@ -59,7 +60,9 @@ _TEST_RESULT_QUERY_OPTIONS = [
     selectinload(TestResult.test_case),
     selectinload(TestResult.issue_attachments).options(
         selectinload(IssueTestResultAttachment.issue),
-        selectinload(IssueTestResultAttachment.attachment_rule),
+        selectinload(IssueTestResultAttachment.attachment_rule).selectinload(
+            IssueTestResultAttachmentRule.execution_metadata
+        ),
     ),
 ]
 
