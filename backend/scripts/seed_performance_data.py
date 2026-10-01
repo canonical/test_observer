@@ -70,11 +70,13 @@ from test_observer.data_access.models import (
     IssueTestResultAttachmentRuleExecutionMetadata,
     TestCase,
     TestExecution,
+    TestExecutionMetadata,
     TestPlan,
     TestResult,
     User,
     artefact_reviewers_association,
     environment_review_reviewers_association,
+    test_execution_metadata_association_table,
 )
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
@@ -419,7 +421,7 @@ def seed_performance_data(connection: Connection, profile: PerformanceProfile, *
 
     _insert(connection, TestResult, result_rows())
 
-    attachments = _attach_issues(connection, profile, rng)
+    attachments = _attach_issues(connection, profile, rng, execution_ids)
 
     return SeedSummary(
         reviewers=len(reviewer_ids),
@@ -434,10 +436,19 @@ def seed_performance_data(connection: Connection, profile: PerformanceProfile, *
     )
 
 
-def _attach_issues(connection: Connection, profile: PerformanceProfile, rng: random.Random) -> int:
-    """Attach issues to a share of the failed results, each through a rule."""
-    if not profile.issues:
+def _attach_issues(
+    connection: Connection, profile: PerformanceProfile, rng: random.Random, execution_ids: Sequence[int]
+) -> int:
+    """Attach issues to a share of this seed's failed results, each through a rule.
+
+    Each issue has a rule that matches on one execution metadata value, and
+    every seeded execution carries one of those values. A failed result is
+    only ever attached through the rule its execution matches, and only the
+    executions in `execution_ids` are considered.
+    """
+    if not profile.issues or not execution_ids:
         return 0
+    values = [f"{NAME_PREFIX}-rule-{index}" for index in range(profile.issues)]
     issue_ids = _insert_returning_ids(
         connection,
         Issue,
@@ -462,25 +473,45 @@ def _attach_issues(connection: Connection, profile: PerformanceProfile, rng: ran
         connection,
         IssueTestResultAttachmentRuleExecutionMetadata,
         [
-            {"attachment_rule_id": rule_id, "category": "synthetic", "value": f"rule-{index}", **_timestamps(ANCHOR)}
-            for index, rule_id in enumerate(rule_ids)
+            {"attachment_rule_id": rule_id, "category": NAME_PREFIX, "value": value, **_timestamps(ANCHOR)}
+            for rule_id, value in zip(rule_ids, values, strict=True)
         ],
     )
-    failed_ids = connection.scalars(
-        select(TestResult.id).where(TestResult.status == TestResultStatus.FAILED).order_by(TestResult.id)
-    ).all()
-    attached = [result_id for result_id in failed_ids if rng.random() < profile.attached_failure_rate]
-    rows = []
-    for result_id in attached:
-        position = rng.randrange(len(issue_ids))
-        rows.append(
-            {
-                "issue_id": issue_ids[position],
-                "attachment_rule_id": rule_ids[position],
-                "test_result_id": result_id,
-                **_timestamps(ANCHOR),
-            }
+    metadata_ids = _insert_returning_ids(
+        connection,
+        TestExecutionMetadata,
+        [{"category": NAME_PREFIX, "value": value, **_timestamps(ANCHOR)} for value in values],
+    )
+    rule_of_execution = {execution_id: rng.randrange(profile.issues) for execution_id in execution_ids}
+    _insert(
+        connection,
+        test_execution_metadata_association_table,
+        [
+            {"test_execution_id": execution_id, "test_execution_metadata_id": metadata_ids[rule]}
+            for execution_id, rule in rule_of_execution.items()
+        ],
+    )
+
+    # The range narrows the scan; the membership check keeps only this seed's
+    # executions even if another writer interleaved IDs.
+    failed = connection.execute(
+        select(TestResult.id, TestResult.test_execution_id)
+        .where(
+            TestResult.status == TestResultStatus.FAILED,
+            TestResult.test_execution_id.between(min(execution_ids), max(execution_ids)),
         )
+        .order_by(TestResult.id)
+    ).all()
+    rows = [
+        {
+            "issue_id": issue_ids[rule_of_execution[execution_id]],
+            "attachment_rule_id": rule_ids[rule_of_execution[execution_id]],
+            "test_result_id": result_id,
+            **_timestamps(ANCHOR),
+        }
+        for result_id, execution_id in failed
+        if execution_id in rule_of_execution and rng.random() < profile.attached_failure_rate
+    ]
     _insert(connection, IssueTestResultAttachment, rows)
     return len(rows)
 

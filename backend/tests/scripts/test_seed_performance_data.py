@@ -28,7 +28,8 @@ from test_observer.data_access.models import (
     TestExecution,
     TestResult,
 )
-from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
+from test_observer.data_access.models_enums import StageName, TestExecutionStatus, TestResultStatus
+from tests.data_generator import DataGenerator
 
 
 def _seed(db_session: Session, seed: int = 0) -> SeedSummary:
@@ -116,5 +117,21 @@ def test_attaches_issues_to_failed_results_through_rules_with_metadata(db_sessio
     assert summary.attachments == len(attachments) > 0
     assert len(rules) == PROFILES["small"].issues
     assert all(rule.execution_metadata for rule in rules)
-    assert all(attachment.attachment_rule_id is not None for attachment in attachments)
-    assert all(attachment.test_result.status == TestResultStatus.FAILED for attachment in attachments)
+    for attachment in attachments:
+        assert attachment.test_result.status == TestResultStatus.FAILED
+        # The rule that attached the issue matches its execution's metadata.
+        rule_metadata = {(m.category, m.value) for m in attachment.attachment_rule.execution_metadata}
+        execution_metadata = {(m.category, m.value) for m in attachment.test_result.test_execution.execution_metadata}
+        assert rule_metadata and rule_metadata <= execution_metadata
+
+
+def test_leaves_failed_results_it_did_not_create_alone(db_session: Session, generator: DataGenerator):
+    build = generator.gen_artefact_build(generator.gen_artefact(StageName.beta))
+    execution = generator.gen_test_execution(build, generator.gen_environment())
+    existing = generator.gen_test_result(generator.gen_test_case(), execution, status=TestResultStatus.FAILED)
+
+    _seed(db_session)
+
+    attached = db_session.scalars(select(IssueTestResultAttachment.test_result_id)).all()
+    assert attached
+    assert existing.id not in attached
