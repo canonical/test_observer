@@ -38,6 +38,7 @@ LISTING_PATHS = {
     "/v1/environments",
     "/v1/issues",
     "/v1/test-cases",
+    "/v1/test-executions/reruns",
     "/v1/test-plans",
     "/v1/users",
     "/v1/users/me/notifications",
@@ -53,7 +54,9 @@ def _limit_maximums(schema: dict) -> dict[str, int | None]:
         for operation in operations.values():
             for parameter in operation.get("parameters", []):
                 if parameter["name"] == "limit" and parameter["in"] == "query":
-                    maximums[path] = parameter["schema"].get("maximum")
+                    # An optional limit is published as "integer or null".
+                    schemas = parameter["schema"].get("anyOf", [parameter["schema"]])
+                    maximums[path] = next((x["maximum"] for x in schemas if "maximum" in x), None)
     return maximums
 
 
@@ -120,3 +123,12 @@ def test_the_environment_variables_set_each_maximum():
     expected = _expected_maximums(100, 300, 400)
 
     assert {path: maximums[path] for path in expected} == expected
+
+
+def test_the_rerun_queue_caps_an_explicit_limit_but_still_returns_everything_without_one(test_client: TestClient):
+    with override_permissions(*Permission):
+        above_maximum = test_client.get("/v1/test-executions/reruns", params={"limit": MAX_LISTING_PAGE_LIMIT + 1})
+        without_limit = test_client.get("/v1/test-executions/reruns")
+
+    assert above_maximum.status_code == 422
+    assert without_limit.status_code == 200

@@ -133,9 +133,10 @@ config:
     max_listing_page_limit:
       description: >-
         The largest page size the listing endpoints accept: artefact search and
-        history, environments, issues, test cases, test plans, users and
-        notifications. Larger requests are rejected with HTTP 422. It must be at
-        least 50, the default page size of most of them.
+        history, environments, issues, test cases, test plans, users,
+        notifications, and an explicit limit on the pending reruns. Larger
+        requests are rejected with HTTP 422. It must be at least 50, the default
+        page size of most of them.
       type: int
       default: 1000
 
