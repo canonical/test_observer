@@ -279,6 +279,8 @@ def run_benchmark(
     The application's sessions must use the engine behind `connection`, so
     their statements can be counted.
     """
+    if runs < 1:
+        raise ValueError("runs must be at least 1")
     targets = pick_targets(connection)
     scenarios = [s for s in build_scenarios(targets) if not selected or s.name in selected]
     unknown = set(selected) - {s.name for s in scenarios}
@@ -288,9 +290,16 @@ def run_benchmark(
     return targets, [measure(client, counter, scenario, runs) for scenario in scenarios]
 
 
+def _positive_int(value: str) -> int:
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("must be at least 1")
+    return number
+
+
 def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--runs", type=int, default=3, help="timed requests per scenario")
+    parser.add_argument("--runs", type=_positive_int, default=3, help="timed requests per scenario")
     parser.add_argument("--scenario", action="append", default=[], help="run only this scenario, repeatable")
     parser.add_argument("--json", help="also write the measurements to this file")
     args = parser.parse_args(argv)

@@ -23,6 +23,8 @@ from scripts.seed_performance_data import PROFILES, AlreadySeededError, SeedSumm
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuildEnvironmentReview,
+    IssueTestResultAttachment,
+    IssueTestResultAttachmentRule,
     TestExecution,
     TestResult,
 )
@@ -103,3 +105,16 @@ def test_refuses_to_seed_a_database_it_has_already_seeded(db_session: Session):
 
     with pytest.raises(AlreadySeededError, match="--truncate"):
         _seed(db_session)
+
+
+def test_attaches_issues_to_failed_results_through_rules_with_metadata(db_session: Session):
+    summary = _seed(db_session)
+
+    attachments = db_session.scalars(select(IssueTestResultAttachment)).all()
+    rules = db_session.scalars(select(IssueTestResultAttachmentRule)).all()
+
+    assert summary.attachments == len(attachments) > 0
+    assert len(rules) == PROFILES["small"].issues
+    assert all(rule.execution_metadata for rule in rules)
+    assert all(attachment.attachment_rule_id is not None for attachment in attachments)
+    assert all(attachment.test_result.status == TestResultStatus.FAILED for attachment in attachments)

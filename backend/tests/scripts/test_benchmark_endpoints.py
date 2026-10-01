@@ -17,7 +17,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from scripts.benchmark_endpoints import format_table, run_benchmark
+from scripts.benchmark_endpoints import format_table, main, run_benchmark
 from scripts.seed_performance_data import PROFILES, seed_performance_data
 from test_observer.common.enums import Permission
 from tests.conftest import override_permissions
@@ -53,3 +53,11 @@ def test_runs_only_the_selected_scenarios(seeded: Session, test_client: TestClie
 def test_rejects_an_unknown_scenario(seeded: Session, test_client: TestClient):
     with pytest.raises(ValueError, match="no-such-scenario"):
         run_benchmark(test_client, seeded.connection(), 1, ["no-such-scenario"])
+
+
+@pytest.mark.parametrize("runs", [0, -1])
+def test_rejects_fewer_than_one_run(seeded: Session, test_client: TestClient, runs: int):
+    with pytest.raises(ValueError, match="at least 1"):
+        run_benchmark(test_client, seeded.connection(), runs)
+    with pytest.raises(SystemExit):
+        main(["--runs", str(runs)])

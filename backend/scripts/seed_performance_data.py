@@ -29,7 +29,9 @@ at a realistic scale. It creates:
 - several executions per environment, so reruns and "latest execution"
   filters have something to exclude,
 - many results per execution with io logs whose sizes follow a long tail,
-  because the size of the io logs dominates the size of result payloads.
+  because the size of the io logs dominates the size of result payloads,
+- issues attached to some of the failed results through attachment rules
+  that match on execution metadata, which result responses also include.
 
 Every artefact gets the same identity fields and a unique name, which satisfies
 each family's uniqueness constraint without any family-specific logic.
@@ -62,6 +64,10 @@ from test_observer.data_access.models import (
     ArtefactBuildEnvironmentReview,
     Base,
     Environment,
+    Issue,
+    IssueTestResultAttachment,
+    IssueTestResultAttachmentRule,
+    IssueTestResultAttachmentRuleExecutionMetadata,
     TestCase,
     TestExecution,
     TestPlan,
@@ -74,6 +80,8 @@ from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
     FamilyName,
+    IssueSource,
+    IssueStatus,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -102,6 +110,10 @@ class PerformanceProfile:
     large_log_bytes: int
     large_log_rate: float
     reviewers_per_artefact: int
+    # Issues, each with an attachment rule, and the share of failed results
+    # attached to one of them.
+    issues: int
+    attached_failure_rate: float
     undecided_rate: float
     archived_rate: float
 
@@ -133,6 +145,8 @@ PROFILES = {
         large_log_bytes=5_000,
         large_log_rate=0.05,
         reviewers_per_artefact=1,
+        issues=3,
+        attached_failure_rate=0.5,
         undecided_rate=0.5,
         archived_rate=0.1,
     ),
@@ -150,6 +164,8 @@ PROFILES = {
         large_log_bytes=64_000,
         large_log_rate=0.02,
         reviewers_per_artefact=2,
+        issues=20,
+        attached_failure_rate=0.3,
         undecided_rate=0.3,
         archived_rate=0.1,
     ),
@@ -168,6 +184,7 @@ class SeedSummary:
     environments: int
     executions: int
     results: int
+    attachments: int
     io_log_bytes: int
     seconds: float
 
@@ -402,6 +419,8 @@ def seed_performance_data(connection: Connection, profile: PerformanceProfile, *
 
     _insert(connection, TestResult, result_rows())
 
+    attachments = _attach_issues(connection, profile, rng)
+
     return SeedSummary(
         reviewers=len(reviewer_ids),
         artefacts=len(artefact_ids),
@@ -409,9 +428,61 @@ def seed_performance_data(connection: Connection, profile: PerformanceProfile, *
         environments=len(environment_ids),
         executions=len(execution_ids),
         results=len(execution_ids) * len(case_ids),
+        attachments=attachments,
         io_log_bytes=log_bytes,
         seconds=round(time.monotonic() - started, 1),
     )
+
+
+def _attach_issues(connection: Connection, profile: PerformanceProfile, rng: random.Random) -> int:
+    """Attach issues to a share of the failed results, each through a rule."""
+    if not profile.issues:
+        return 0
+    issue_ids = _insert_returning_ids(
+        connection,
+        Issue,
+        [
+            {
+                "source": IssueSource.JIRA,
+                "project": NAME_PREFIX.upper(),
+                "key": f"{NAME_PREFIX.upper()}-{index + 1}",
+                "title": f"Synthetic failure {index + 1}",
+                "status": IssueStatus.OPEN,
+                **_timestamps(ANCHOR),
+            }
+            for index in range(profile.issues)
+        ],
+    )
+    rule_ids = _insert_returning_ids(
+        connection,
+        IssueTestResultAttachmentRule,
+        [{"issue_id": issue_id, "enabled": True, **_timestamps(ANCHOR)} for issue_id in issue_ids],
+    )
+    _insert(
+        connection,
+        IssueTestResultAttachmentRuleExecutionMetadata,
+        [
+            {"attachment_rule_id": rule_id, "category": "synthetic", "value": f"rule-{index}", **_timestamps(ANCHOR)}
+            for index, rule_id in enumerate(rule_ids)
+        ],
+    )
+    failed_ids = connection.scalars(
+        select(TestResult.id).where(TestResult.status == TestResultStatus.FAILED).order_by(TestResult.id)
+    ).all()
+    attached = [result_id for result_id in failed_ids if rng.random() < profile.attached_failure_rate]
+    rows = []
+    for result_id in attached:
+        position = rng.randrange(len(issue_ids))
+        rows.append(
+            {
+                "issue_id": issue_ids[position],
+                "attachment_rule_id": rule_ids[position],
+                "test_result_id": result_id,
+                **_timestamps(ANCHOR),
+            }
+        )
+    _insert(connection, IssueTestResultAttachment, rows)
+    return len(rows)
 
 
 def truncate_all(connection: Connection) -> None:
