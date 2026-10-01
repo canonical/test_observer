@@ -21,6 +21,7 @@ on:
   pull_request:
     paths:
       - 'frontend/sveltekit/**'
+      - 'justfile'
       - '.github/workflows/static-analysis-sveltekit.yml'
 
 concurrency:
@@ -35,9 +36,6 @@ jobs:
   analyze-sveltekit:
     name: Analyze SvelteKit
     runs-on: ubuntu-24.04
-    defaults:
-      run:
-        working-directory: frontend/sveltekit
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -47,8 +45,8 @@ jobs:
           node-version: 'lts/*'
           cache: 'npm'
           cache-dependency-path: frontend/sveltekit/package-lock.json
-      - run: npm ci
+      - name: Install just
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends just
+      - run: just sveltekit-install
       - if: ${{ !cancelled() }}
-        run: npm run lint
-      - if: ${{ !cancelled() }}
-        run: npm run check
+        run: just sveltekit-lint

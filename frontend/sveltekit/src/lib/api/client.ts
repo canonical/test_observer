@@ -26,26 +26,30 @@ async function fetchApi<T>(
   // Strip leading slashes, else we'll accidentally double them up below on the fetch call.
   path = path.replace(/^\/+/, "");
   try {
+    const headers = new Headers({
+      "Content-Type": "application/json",
+      "X-CSRF-Token": "1",
+    });
+    // Caller-supplied headers win over the defaults above.
+    new Headers(options.headers).forEach((value, key) => {
+      headers.set(key, value);
+    });
+
     const res = await fetch(`${getApiRoot()}/${API_VERSION}/${path}`, {
       ...options,
       credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRF-Token": "1",
-        ...((options.headers as Record<string, string>) ?? {}),
-      },
+      headers,
     });
 
     if (!res.ok) {
       if (reportErrors && res.status !== 401) {
         let message = `Request failed: ${res.status}`;
         try {
-          const body = await res.json();
-          if (body.detail !== undefined) {
+          const body: unknown = await res.json();
+          if (typeof body === "object" && body !== null && "detail" in body) {
+            const detail: unknown = body.detail;
             message =
-              typeof body.detail === "string"
-                ? body.detail
-                : JSON.stringify(body.detail);
+              typeof detail === "string" ? detail : JSON.stringify(detail);
           }
         } catch {
           /* non-JSON error body */

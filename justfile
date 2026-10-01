@@ -12,3 +12,16 @@ up:
 # Stop the frontend container
 down:
     @./scripts/down.sh
+
+# Install SvelteKit frontend dependencies
+sveltekit-install:
+    cd frontend/sveltekit && npm ci
+
+# Lint and type check the SvelteKit frontend
+sveltekit-lint:
+    cd frontend/sveltekit && npm run lint
+    cd frontend/sveltekit && npm run check
+
+# Auto-fix SvelteKit frontend formatting and lint issues
+sveltekit-lint-fix:
+    cd frontend/sveltekit && npm run lint:fix

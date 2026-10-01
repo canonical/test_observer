@@ -43,7 +43,8 @@ const getFamilies = async (fetch: Parameters<LayoutLoad>[0]["fetch"]) => {
         `Failed to fetch families.json: ${resp.status} ${resp.statusText}`,
       );
     }
-    artefactFamilies = (await resp.json()).families;
+    artefactFamilies =
+      ((await resp.json()) as { families?: Family[] }).families ?? [];
   } catch (error) {
     console.error("Error fetching families.json:", error);
   }

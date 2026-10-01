@@ -26,7 +26,9 @@
     }
     // Re-sorting reorders every row, so return to the first page.
     url.searchParams.delete('page');
-    goto(url.toString(), { replaceState: true, noScroll: true });
+    // Derived from page.url, so the base path is already applied.
+    // eslint-disable-next-line svelte/no-navigation-without-resolve
+    goto(url, { replaceState: true, noScroll: true });
   }
 
   function getSortState(key: string): 'ascending' | 'descending' | 'none' {
@@ -39,7 +41,7 @@
   <Table>
     <thead>
       <tr>
-        {#each columns as col}
+        {#each columns as col (col.key)}
           <Table.TH aria-sort={getSortState(col.key)} scope="col">
             {col.label}
             {#snippet action()}<Table.TH.SortButton
@@ -52,8 +54,10 @@
     </thead>
     <tbody>
       {#each artefacts as artefact (artefact.id)}
+        <!-- The artefact detail route isn't implemented yet, so resolve() can't type it. -->
+        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
         <tr class="clickable-row" onclick={() => goto(`${base}/${family.name}/${artefact.id}`)}>
-          {#each columns as col}
+          {#each columns as col (col.key)}
             <td style={columnColor(artefact, col) ? `color: ${columnColor(artefact, col)}` : ''}>
               {columnValue(artefact, col)}
             </td>

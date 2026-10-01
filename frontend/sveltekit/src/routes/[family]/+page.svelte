@@ -111,18 +111,6 @@
   const pagedArtefacts = $derived(
     sortedArtefacts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
   );
-
-  // --- Kanban grouping ---
-  const artefactsByStage = $derived.by(() => {
-    const stages = data.family.stages;
-    const map = new Map<string, Artefact[]>();
-    for (const stage of stages) map.set(stage, []);
-    for (const a of sortedArtefacts) {
-      const bucket = map.get(a.stage);
-      if (bucket) bucket.push(a);
-    }
-    return map;
-  });
 </script>
 
 <div class="dashboard">
@@ -135,6 +123,8 @@
   {#if data.requiresLogin}
     <div class="login-required" role="status">
       <p class="login-message">You need to be logged in to view these test results.</p>
+      <!-- Absolute URL to the backend SAML endpoint, not an app route. -->
+      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
       <a class="login-button" href={loginUrl}>Log in</a>
     </div>
   {:else if data.forbidden}
@@ -160,7 +150,7 @@
           title="Toggle filters"
           onclick={() => (sidebarVisible = !sidebarVisible)}
         >
-          <FilterIcon class="filter-icon" />
+          <FilterIcon />
           {#if hasActiveFilters}
             <span class="badge"></span>
           {/if}
@@ -266,7 +256,7 @@
     border-radius: 50%;
   }
 
-  .filter-icon {
+  .filter-toggle :global(svg) {
     display: block;
   }
 
@@ -279,13 +269,6 @@
     flex: 1;
     min-width: 0;
     overflow-x: auto;
-  }
-
-  .kanban {
-    display: flex;
-    gap: 24px;
-    overflow-x: auto;
-    padding-bottom: 16px;
   }
 </style>
 

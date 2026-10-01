@@ -71,7 +71,9 @@ export interface Artefact {
   status: ArtefactStatus;
   comment: string;
   archived: boolean;
-  reviewers: User[];
+  // The API omits reviewers (null) when none are assigned; loaders normalise
+  // this to an empty array.
+  reviewers: User[] | null;
   due_date: string | null;
   created_at: string;
   bug_link: string;

@@ -25,10 +25,7 @@
 
   // Mirror the active page so the number input's up/down spinners step from it,
   // and re-sync whenever navigation changes the current page.
-  let jumpValue = $state<number | null>(null);
-  $effect(() => {
-    jumpValue = currentPage;
-  });
+  let jumpValue = $derived<number | null>(currentPage);
 
   function goToPage(target: number) {
     const url = new URL(page.url);
@@ -37,7 +34,9 @@
     } else {
       url.searchParams.set('page', String(target));
     }
-    goto(url.toString(), { replaceState: true, noScroll: true });
+    // Derived from page.url, so the base path is already applied.
+    // eslint-disable-next-line svelte/no-navigation-without-resolve
+    goto(url, { replaceState: true, noScroll: true });
   }
 
   function submitJump(event: SubmitEvent) {
@@ -80,7 +79,7 @@
       </Button>
 
       <ul class="pages">
-        {#each pageItems as item}
+        {#each pageItems as item, i (i)}
           {#if item === 'gap'}
             <li class="gap" aria-hidden="true">…</li>
           {:else}

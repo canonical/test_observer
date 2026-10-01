@@ -23,8 +23,10 @@ import { STATUS_COLORS, STATUS_LABELS } from "$lib/types";
 
 function fieldValue(a: Artefact, field?: string): string {
   if (!field) return "";
-  const v = (a as unknown as Record<string, unknown>)[field];
-  return v == null ? "" : String(v);
+  const v: unknown = (a as unknown as Record<string, unknown>)[field];
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  return "";
 }
 
 function reviewsRemaining(a: Artefact): number {
@@ -94,7 +96,7 @@ export function columnSortValue(
     case "reviewsRemaining":
       return reviewsRemaining(a);
     case "reviewers":
-      return (a.reviewers?.length ?? 0) > 0 ? a.reviewers[0].name : null;
+      return a.reviewers?.[0]?.name ?? null;
     default:
       return fieldValue(a, col.field);
   }

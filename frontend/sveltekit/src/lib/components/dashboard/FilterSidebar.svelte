@@ -8,6 +8,7 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { fly } from 'svelte/transition';
+  import { SvelteSet } from 'svelte/reactivity';
   import { SearchBox, Checkbox, Button } from '@canonical/svelte-ds-app-launchpad';
 
   let {
@@ -25,7 +26,7 @@
   const availableOptions = $derived.by(() => {
     const result: Record<string, string[]> = {};
     for (const def of filterDefs) {
-      const values = new Set<string>();
+      const values = new SvelteSet<string>();
       for (const a of artefacts) {
         values.add(filterValue(a, def));
       }
@@ -35,20 +36,20 @@
   });
 
   let searchInput = $state(page.url.searchParams.get('q') ?? '');
-  let pendingFilters = $state<Record<string, Set<string>>>({});
+  let pendingFilters = $state<Record<string, SvelteSet<string>>>({});
 
   $effect(() => {
-    const filters: Record<string, Set<string>> = {};
+    const filters: Record<string, SvelteSet<string>> = {};
     for (const def of filterDefs) {
       const vals = page.url.searchParams.getAll(def.label);
-      filters[def.label] = new Set(vals);
+      filters[def.label] = new SvelteSet(vals);
     }
     pendingFilters = filters;
     searchInput = page.url.searchParams.get('q') ?? '';
   });
 
   function toggleOption(key: string, value: string) {
-    const set = pendingFilters[key] ?? new Set();
+    const set = pendingFilters[key] ?? new SvelteSet<string>();
     if (set.has(value)) {
       set.delete(value);
     } else {
@@ -77,15 +78,21 @@
         url.searchParams.append(key, v);
       }
     }
-    goto(url.toString(), { replaceState: true, noScroll: true });
+    // Derived from page.url, so the base path is already applied.
+    // eslint-disable-next-line svelte/no-navigation-without-resolve
+    goto(url, { replaceState: true, noScroll: true });
   }
 
-  let expanded = $state<Record<string, boolean>>(
-    Object.fromEntries(filterDefs.map((d) => [d.label, true]))
-  );
+  // Tracked as the collapsed set so groups default to expanded, including any
+  // filter definitions that appear after the component is created.
+  const collapsed = new SvelteSet<string>();
 
   function toggleExpand(key: string) {
-    expanded = { ...expanded, [key]: !expanded[key] };
+    if (collapsed.has(key)) {
+      collapsed.delete(key);
+    } else {
+      collapsed.add(key);
+    }
   }
 
   function optionLabel(value: string): string {
@@ -106,13 +113,13 @@
       <fieldset class="filter-group">
         <legend>
           <button class="expand-toggle" onclick={() => toggleExpand(def.label)}>
-            <span class="arrow" class:collapsed={!expanded[def.label]}>▾</span>
+            <span class="arrow" class:collapsed={collapsed.has(def.label)}>▾</span>
             {def.label}
           </button>
         </legend>
-        {#if expanded[def.label]}
+        {#if !collapsed.has(def.label)}
           <div class="options">
-            {#each availableOptions[def.label] ?? [] as option}
+            {#each availableOptions[def.label] ?? [] as option (option)}
               <label class="filter-option">
                 <Checkbox
                   checked={isChecked(def.label, option)}

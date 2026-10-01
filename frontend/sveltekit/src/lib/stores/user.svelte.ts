@@ -64,7 +64,7 @@ const fetchMe = async (fetch: typeof globalThis.fetch): Promise<MeResult> => {
     if (response.ok) {
       // With REQUIRE_AUTHENTICATION=false the backend returns 200 with a null
       // body for anonymous requests, so a 2xx alone doesn't mean logged in.
-      const user: User | null = await response.json();
+      const user = (await response.json()) as User | null;
       return user
         ? { status: "authenticated", user }
         : { status: "unauthenticated" };
