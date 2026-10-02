@@ -47,7 +47,7 @@ permissions: {}
 jobs:
   release-charm:
     name: Build and Release ${{ inputs.component }} Charm
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     environment: ${{ inputs.environment }}
     permissions:
       contents: write # Needed to create a release
