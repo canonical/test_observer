@@ -34,6 +34,8 @@ jobs:
   release:
     name: Release Backend
     uses: ./.github/workflows/release-auto.yml
+    secrets:
+      CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
     permissions:
       contents: write  # Needed to create charm tags
       packages: write  # Needed to push images to the repository

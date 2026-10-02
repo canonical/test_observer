@@ -41,13 +41,17 @@ on:
         description: 'GitHub Environment containing CHARMHUB_TOKEN'
         required: true
         type: string
+    secrets:
+      CHARMHUB_TOKEN:
+        description: 'Charmhub credentials used to upload the charm and its resources'
+        required: true
 
 permissions: {}
 
 jobs:
   release-charm:
     name: Build and Release ${{ inputs.component }} Charm
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     environment: ${{ inputs.environment }}
     permissions:
       contents: write # Needed to create a release
