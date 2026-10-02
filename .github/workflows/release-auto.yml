@@ -73,6 +73,7 @@ jobs:
     name: Release Charm
     needs: [determine-tag, release-image]
     uses: ./.github/workflows/release-charm.yml
+    secrets: inherit
     permissions:
       contents: write  # Needed to create the charm revision tag
     with:
