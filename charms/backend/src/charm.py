@@ -470,9 +470,7 @@ class TestObserverBackendCharm(CharmBase):
         the unit with a clear message instead of letting it crash-loop.
         """
         too_low = [
-            option
-            for option in PAGE_LIMIT_OPTIONS
-            if int(self.config[option]) < MIN_PAGE_LIMIT
+            option for option in PAGE_LIMIT_OPTIONS if int(self.config[option]) < MIN_PAGE_LIMIT
         ]
         if too_low:
             return f"{', '.join(too_low)} must be at least {MIN_PAGE_LIMIT}"

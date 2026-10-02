@@ -60,7 +60,7 @@ def int_from_env(name: str, default: int, *, minimum: int = 1) -> int:
 # None may go below the largest default page size, 50, or a request that
 # leaves out `limit` would get more than the cap.
 MIN_PAGE_LIMIT = 50
-MAX_EXECUTION_PAGE_LIMIT = int_from_env("MAX_EXECUTION_PAGE_LIMIT", 100, minimum=MIN_PAGE_LIMIT)
+MAX_EXECUTION_PAGE_LIMIT = int_from_env("MAX_EXECUTION_PAGE_LIMIT", 50, minimum=MIN_PAGE_LIMIT)
 MAX_RESULT_PAGE_LIMIT = int_from_env("MAX_RESULT_PAGE_LIMIT", 1000, minimum=MIN_PAGE_LIMIT)
 MAX_LISTING_PAGE_LIMIT = int_from_env("MAX_LISTING_PAGE_LIMIT", 1000, minimum=MIN_PAGE_LIMIT)
 
