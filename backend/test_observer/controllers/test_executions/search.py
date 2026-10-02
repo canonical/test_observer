@@ -22,6 +22,7 @@ from fastapi import Depends, HTTPException, Query, Security
 from sqlalchemy import and_, desc, exists, func, select
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.config import MAX_EXECUTION_PAGE_LIMIT
 from test_observer.common.constants import QueryValue
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
@@ -300,7 +301,9 @@ def search_test_executions(
         datetime | None,
         Query(description="Filter executions updated on or before this datetime"),
     ] = None,
-    limit: Annotated[int, Query(ge=0, le=1000, description="Maximum number of results to return")] = 50,
+    limit: Annotated[
+        int, Query(ge=0, le=MAX_EXECUTION_PAGE_LIMIT, description="Maximum number of results to return")
+    ] = 50,
     offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination")] = 0,
     db: Session = Depends(get_db),
 ) -> TestExecutionSearchResponse:

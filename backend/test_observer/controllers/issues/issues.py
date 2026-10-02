@@ -20,6 +20,7 @@ from fastapi.security import SecurityScopes
 from sqlalchemy import String, func, select
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
 from test_observer.controllers.applications.application_injection import (
@@ -83,7 +84,7 @@ def get_issues(
         int,
         Query(
             ge=1,
-            le=1000,
+            le=MAX_LISTING_PAGE_LIMIT,
             description="Maximum number of results to return (default: 50)",
         ),
     ] = 50,

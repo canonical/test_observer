@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, Query, Security
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
 from test_observer.data_access.models import (
@@ -56,7 +57,7 @@ def get_test_cases(
         int,
         Query(
             ge=1,
-            le=1000,
+            le=MAX_LISTING_PAGE_LIMIT,
             description="Maximum number of results (defaults to 50 if not specified)",
         ),
     ] = 50,

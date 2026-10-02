@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import ColumnElement, and_, func, or_, select
 from sqlalchemy.orm import Session
 
+from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker, requires_authentication
 from test_observer.controllers.users.models import (
@@ -53,7 +54,7 @@ def get_users(
         int,
         Query(
             ge=1,
-            le=1000,
+            le=MAX_LISTING_PAGE_LIMIT,
             description="Maximum number of results to return (default: 50)",
         ),
     ] = 50,
