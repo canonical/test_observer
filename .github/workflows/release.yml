@@ -127,7 +127,8 @@ jobs:
     name: Release Backend Charm
     needs: [prepare-release, release-backend-image]
     uses: ./.github/workflows/release-charm.yml
-    secrets: inherit
+    secrets:
+      CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
     permissions:
       contents: write  # Needed to tag charm revisions
     with:
@@ -141,7 +142,8 @@ jobs:
     name: Release Frontend Charm
     needs: [prepare-release, release-frontend-image]
     uses: ./.github/workflows/release-charm.yml
-    secrets: inherit
+    secrets:
+      CHARMHUB_TOKEN: ${{ secrets.CHARMHUB_TOKEN }}
     permissions:
       contents: write  # Needed to tag charm revisions
     with:
