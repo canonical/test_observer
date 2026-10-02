@@ -41,6 +41,10 @@ on:
         description: 'GitHub Environment containing CHARMHUB_TOKEN'
         required: true
         type: string
+    secrets:
+      CHARMHUB_TOKEN:
+        description: 'Charmhub credentials used to upload the charm and its resources'
+        required: true
 
 permissions: {}
 
