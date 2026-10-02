@@ -1107,7 +1107,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 1000,
+              "maximum": 100,
               "minimum": 0,
               "description": "Maximum number of results to return",
               "default": 50,

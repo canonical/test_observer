@@ -472,7 +472,7 @@ class TestObserverBackendCharm(CharmBase):
         too_low = [
             option
             for option in PAGE_LIMIT_OPTIONS
-            if int(self.config.get(option, 1000)) < MIN_PAGE_LIMIT
+            if int(self.config[option]) < MIN_PAGE_LIMIT
         ]
         if too_low:
             return f"{', '.join(too_low)} must be at least {MIN_PAGE_LIMIT}"
@@ -635,7 +635,7 @@ class TestObserverBackendCharm(CharmBase):
             ).lower(),
         }
         for option, variable in PAGE_LIMIT_OPTIONS.items():
-            env[variable] = str(self.config.get(option, 1000))
+            env[variable] = str(self.config[option])
         # Only set SAML environment variables if IDP metadata URL is provided
         if self.config.get("saml_idp_metadata_url"):
             env["SAML_IDP_METADATA_URL"] = str(self.config["saml_idp_metadata_url"])
