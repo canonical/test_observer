@@ -30,7 +30,7 @@ EXPOSE 9090
 WORKDIR /home/app
 
 RUN apt-get update && \
-    apt-get install -y python3.12 curl && \
+    apt-get install -y python3.12 curl nginx ca-certificates && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 

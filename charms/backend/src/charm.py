@@ -19,6 +19,8 @@
 
 import logging
 import os
+import re
+import secrets
 import sys
 import urllib.parse
 from collections import ChainMap
@@ -33,18 +35,22 @@ from charms.traefik_k8s.v2.ingress import (
     IngressPerAppRequirer,
     IngressPerAppRevokedEvent,
 )
-from ops import CollectStatusEvent, StoredState, UpdateStatusEvent
+from ops import CollectStatusEvent, SecretNotFoundError, StoredState, UpdateStatusEvent
 from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import APIError, ExecError, Layer
 from requests import get
+from swift_proxy_nginx import render_nginx_config
 
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
 
 INGRESS_RELATION_NAME = "ingress"
 INGRESS_CONFLICT_MESSAGE = "Cannot have both ingress and nginx-route relations at the same time"
+API_INTERNAL_PORT = 30001
+NGINX_SERVICE_NAME = "nginx"
+NGINX_CONFIG_PATH = "/etc/nginx/nginx.conf"
 
 PEER_RELATION_NAME = "test-observer-peers"
 # Key in the peer application databag holding the Alembic revision the database
@@ -75,6 +81,7 @@ class TestObserverBackendCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.api_pebble_service_name = "test-observer-api"
+        self.nginx_pebble_service_name = NGINX_SERVICE_NAME
         self.api_container = self.unit.get_container("api")
 
         self.celery_pebble_service_name = "celery-worker"
@@ -83,6 +90,7 @@ class TestObserverBackendCharm(CharmBase):
         self.framework.observe(self.on.api_pebble_ready, self._update_api_layer)
         self.framework.observe(self.on.celery_pebble_ready, self._update_celery_layer)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(self.on.secret_changed, self._on_secret_changed)
 
         self.database = DatabaseRequires(
             self, relation_name="database", database_name="test_observer_db"
@@ -169,7 +177,10 @@ class TestObserverBackendCharm(CharmBase):
         )
 
     def _setup_redis(self):
-        self._stored.set_default(redis_relation={})
+        self._stored.set_default(
+            redis_relation={},
+            swift_proxy_auth_secret=secrets.token_urlsafe(32),
+        )
         self.redis = RedisRequires(self)
         self.framework.observe(
             self.on.redis_relation_updated,
@@ -471,6 +482,156 @@ class TestObserverBackendCharm(CharmBase):
         # If none are provided, that's valid
         return True
 
+    def _swift_proxy_enabled(self) -> bool:
+        """Return True when any Swift proxy option is configured."""
+        keys = (
+            "swift_os_auth_url",
+            "swift_os_username",
+            "swift_os_project_name",
+            "swift_os_password_secret",
+            "swift_base_url",
+            "swift_containers",
+        )
+        return any(self.config.get(key) and str(self.config.get(key)).strip() for key in keys)
+
+    def _validate_swift_proxy_config(self) -> str | None:
+        """Validate optional Swift proxy configuration."""
+        if not self._swift_proxy_enabled():
+            return None
+
+        required = {
+            "swift_os_auth_url": "OpenStack Keystone URL",
+            "swift_os_username": "OpenStack service username",
+            "swift_os_project_name": "OpenStack project name",
+            "swift_os_password_secret": "OpenStack password secret",
+            "swift_base_url": "Swift base URL",
+            "swift_containers": "Swift container list",
+        }
+        for key, description in required.items():
+            value = self.config.get(key)
+            if not value or not str(value).strip():
+                return f"Missing required Swift proxy configuration: {description}"
+
+        if not str(self.config.get("swift_proxy_team", "swift")).strip():
+            return "swift_proxy_team must be a non-empty Launchpad team name"
+
+        if not self.config.get("saml_idp_metadata_url") or not self._validate_saml_config():
+            return "Swift proxy requires complete Test Observer SAML configuration"
+
+        try:
+            auth_url = urllib.parse.urlsplit(str(self.config["swift_os_auth_url"]))
+            swift_url = urllib.parse.urlsplit(str(self.config["swift_base_url"]).rstrip("/"))
+            auth_port = auth_url.port
+            swift_port = swift_url.port
+        except ValueError:
+            return "Swift proxy URLs are invalid"
+
+        if (
+            auth_url.scheme != "https"
+            or not auth_url.hostname
+            or auth_url.username
+            or auth_url.password
+            or auth_url.query
+            or auth_url.fragment
+            or not re.fullmatch(r"[A-Za-z0-9._~/-]*", auth_url.path)
+            or not re.fullmatch(
+                r"(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?",
+                auth_url.netloc,
+            )
+            or (auth_port is not None and not 1 <= auth_port <= 65535)
+        ):
+            return "swift_os_auth_url must be an HTTPS URL without credentials, query, or fragment"
+
+        if (
+            swift_url.scheme != "https"
+            or not swift_url.netloc
+            or swift_url.username
+            or swift_url.password
+            or swift_url.query
+            or swift_url.fragment
+            or not re.fullmatch(r"[A-Za-z0-9._~/-]*", swift_url.path)
+            or any(segment in {".", ".."} for segment in swift_url.path.split("/"))
+        ):
+            return "swift_base_url must be an HTTPS URL with a plain path and no credentials, query, or fragment"
+
+        if not re.fullmatch(r"(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?", swift_url.netloc):
+            return "swift_base_url contains an invalid host or port"
+        if swift_port is not None and not 1 <= swift_port <= 65535:
+            return "swift_base_url contains an invalid port"
+
+        containers = self._swift_containers()
+        if not containers:
+            return "At least one Swift container must be configured"
+        if len(containers) != len(set(containers)) or any(
+            not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", container)
+            for container in containers
+        ):
+            return "swift_containers must contain unique, valid container names"
+
+        try:
+            verify_depth = int(self.config.get("swift_proxy_ssl_verify_depth", 1))
+        except (TypeError, ValueError):
+            return "swift_proxy_ssl_verify_depth must be a positive integer"
+        if verify_depth < 1:
+            return "swift_proxy_ssl_verify_depth must be a positive integer"
+
+        return None
+
+    def _swift_containers(self) -> list[str]:
+        """Return the configured Swift container names."""
+        return [
+            container.strip()
+            for container in str(self.config.get("swift_containers", "")).split(",")
+            if container.strip()
+        ]
+
+    def _swift_proxy_environment(self) -> dict[str, str] | None:
+        """Return Swift settings for the API service, excluding them from Celery."""
+        if not self._swift_proxy_enabled():
+            return {"SWIFT_PROXY_ENABLED": "false"}
+
+        secret_id = str(self.config.get("swift_os_password_secret", ""))
+        try:
+            secret = self.model.get_secret(id=secret_id)
+            content = secret.get_content(refresh=True)
+        except SecretNotFoundError:
+            logger.error("Juju secret %s was not found", secret_id)
+            return None
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Could not read Swift proxy password secret %s", secret_id)
+            return None
+
+        password = content.get("password")
+        if not password:
+            logger.error("Swift proxy password secret %s has no 'password' field", secret_id)
+            return None
+
+        return {
+            "SWIFT_PROXY_ENABLED": "true",
+            "OS_AUTH_URL": str(self.config["swift_os_auth_url"]),
+            "OS_USERNAME": str(self.config["swift_os_username"]),
+            "OS_PROJECT_NAME": str(self.config["swift_os_project_name"]),
+            "OS_USER_DOMAIN_NAME": str(self.config.get("swift_os_user_domain_name", "Default")),
+            "OS_PROJECT_DOMAIN_NAME": str(self.config.get("swift_os_project_domain_name", "Default")),
+            "OS_PASSWORD": password,
+            "SWIFT_PROXY_AUTH_SECRET": self._stored.swift_proxy_auth_secret,
+            "SWIFT_PROXY_TEAM": str(self.config.get("swift_proxy_team", "swift")).strip(),
+        }
+
+    def _build_nginx_config(self) -> str:
+        """Render nginx with one restricted object location per configured container."""
+        template_path = self.charm_dir / "src" / "templates" / "nginx.conf"
+        swift_proxy_enabled = self._swift_proxy_enabled()
+        return render_nginx_config(
+            template_path.read_text(encoding="utf-8"),
+            port=int(self.config["port"]),
+            swift_proxy_enabled=swift_proxy_enabled,
+            auth_secret=self._stored.swift_proxy_auth_secret if swift_proxy_enabled else "",
+            swift_base_url=str(self.config.get("swift_base_url", "")),
+            containers=self._swift_containers(),
+            verify_depth=int(self.config.get("swift_proxy_ssl_verify_depth", 1)),
+        )
+
     def _on_config_changed(self, event):
         if not self._validate_saml_config():
             self.unit.status = BlockedStatus(
@@ -479,10 +640,20 @@ class TestObserverBackendCharm(CharmBase):
             )
             return
 
+        swift_config_error = self._validate_swift_proxy_config()
+        if swift_config_error:
+            self.unit.status = BlockedStatus(swift_config_error)
+            return
+
         self.ingress.provide_ingress_requirements(port=int(self.config["port"]))
         self._update_frontend_relation_data()
         self._update_api_layer(event)
         self._update_celery_layer(event)
+
+    def _on_secret_changed(self, _event: object) -> None:
+        """Reload the API workload when its Swift password secret changes."""
+        if self._swift_proxy_enabled():
+            self._update_api_layer()
 
     def _update_api_layer(self, _=None):
         if not self._validate_saml_config():
@@ -490,6 +661,11 @@ class TestObserverBackendCharm(CharmBase):
                 "SAML config incomplete: if any SAML setting is provided, "
                 "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
             )
+            return
+
+        swift_config_error = self._validate_swift_proxy_config()
+        if swift_config_error:
+            self.unit.status = BlockedStatus(swift_config_error)
             return
 
         if not self.api_container.can_connect():
@@ -508,18 +684,47 @@ class TestObserverBackendCharm(CharmBase):
             self.unit.status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
             return
 
+        swift_environment = self._swift_proxy_environment()
+        if swift_environment is None:
+            self.unit.status = BlockedStatus(
+                "Cannot read password from swift_os_password_secret; check the secret grant"
+            )
+            return
+
+        nginx_config = self._build_nginx_config()
+        self.api_container.push(
+            NGINX_CONFIG_PATH,
+            nginx_config,
+            make_dirs=True,
+            permissions=0o644,
+        )
+        try:
+            self.api_container.exec(["nginx", "-t"]).wait_output()
+        except (APIError, ExecError) as e:
+            logger.error("Nginx configuration test failed: %s", e)
+            if isinstance(e, ExecError):
+                logger.error(e.stderr)
+            self.unit.status = BlockedStatus("Invalid nginx configuration; check debug-log")
+            return
+
         self.unit.status = MaintenanceStatus(f"Updating {self.api_pebble_service_name} layer")
 
         self.api_container.add_layer(
-            self.api_pebble_service_name, self._api_pebble_layer, combine=True
+            self.api_pebble_service_name,
+            self._api_pebble_layer(swift_environment),
+            combine=True,
         )
         self.api_container.restart(self.api_pebble_service_name)
+        self.api_container.restart(self.nginx_pebble_service_name)
         version = self.version
         if version:
             self.unit.set_workload_version(self.version)
         self.unit.status = ActiveStatus()
 
     def _update_celery_layer(self, _=None):
+        if self._swift_proxy_enabled() and isinstance(self.unit.status, BlockedStatus):
+            return
+
         if not self._validate_saml_config():
             self.unit.status = BlockedStatus(
                 "SAML config incomplete: if any SAML setting is provided, "
@@ -633,18 +838,17 @@ class TestObserverBackendCharm(CharmBase):
             # 0.0.0.0 instead of config['hostname'] intentional:
             # request made from pebble's container to api in the same unit (same pod).
             try:
-                return get(f"http://0.0.0.0:{self.config['port']}/v1/version").json()["version"]
+                return get(f"http://127.0.0.1:{API_INTERNAL_PORT}/v1/version").json()["version"]
             except Exception as e:
                 logger.warning(f"Failed to get version: {e}")
                 logger.exception(e)
         return None
 
-    @property
-    def _api_pebble_layer(self) -> Layer:
+    def _api_pebble_layer(self, swift_environment: dict[str, str]) -> Layer:
         return Layer(
             {
                 "summary": "test observer",
-                "description": "pebble config layer for Test Observer",
+                "description": "pebble config layer for Test Observer and nginx",
                 "services": {
                     self.api_pebble_service_name: {
                         "override": "replace",
@@ -654,13 +858,25 @@ class TestObserverBackendCharm(CharmBase):
                                 "uvicorn",
                                 "test_observer.main:app",
                                 "--host",
-                                "0.0.0.0",
-                                f"--port={self.config['port']}",
+                                "127.0.0.1",
+                                f"--port={API_INTERNAL_PORT}",
+                                "--proxy-headers",
+                                "--forwarded-allow-ips=127.0.0.1",
                             ]
                         ),
                         "startup": "enabled",
-                        "environment": self._app_environment,
-                    }
+                        "environment": {
+                            **self._app_environment,
+                            **swift_environment,
+                        },
+                    },
+                    self.nginx_pebble_service_name: {
+                        "override": "replace",
+                        "summary": "nginx API and Swift reverse proxy",
+                        "command": "nginx -g 'daemon off;'",
+                        "startup": "enabled",
+                        "after": [self.api_pebble_service_name],
+                    },
                 },
             }
         )

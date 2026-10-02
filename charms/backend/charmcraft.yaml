@@ -58,7 +58,7 @@ parts:
       craftctl default
 
 assumes:
-  - juju >= 2.9
+  - juju >= 3.3
   - k8s-api
 
 config:
@@ -114,6 +114,45 @@ config:
       description: Whether to require authentication for all API endpoints.
       type: boolean
       default: false
+    swift_os_auth_url:
+      description: OpenStack Keystone v3 authentication URL for the Swift read-only proxy.
+      type: string
+      default: ""
+    swift_os_username:
+      description: OpenStack service account username for the Swift read-only proxy.
+      type: string
+      default: ""
+    swift_os_project_name:
+      description: OpenStack project name for the Swift read-only proxy.
+      type: string
+      default: ""
+    swift_os_user_domain_name:
+      description: OpenStack user domain name.
+      type: string
+      default: "Default"
+    swift_os_project_domain_name:
+      description: OpenStack project domain name.
+      type: string
+      default: "Default"
+    swift_os_password_secret:
+      description: Juju secret containing the OpenStack password in a "password" field.
+      type: secret
+    swift_base_url:
+      description: HTTPS Swift base URL including the AUTH segment and trailing slash.
+      type: string
+      default: ""
+    swift_containers:
+      description: Comma-separated Swift containers to expose under /v1/swift/.
+      type: string
+      default: ""
+    swift_proxy_team:
+      description: Launchpad team required to access the Swift read-only proxy.
+      type: string
+      default: "swift"
+    swift_proxy_ssl_verify_depth:
+      description: Maximum TLS certificate chain depth for the Swift backend.
+      type: int
+      default: 1
 
 resources:
   api-image:

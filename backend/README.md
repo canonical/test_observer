@@ -121,6 +121,75 @@ The Test Observer charm includes built-in observability features for production 
 
 These relations are defined in `charms/backend/charmcraft.yaml` and can be integrated with Prometheus and Grafana charms in a Juju deployment.
 
+## Temporary Swift read-only proxy
+
+The backend charm can optionally expose configured Swift containers at
+`/v1/swift/<container>/...`. Leave all `swift_*` options empty to disable the
+proxy. When enabled, the charm runs nginx in front of the API: nginx
+streams object responses directly from Swift (without buffering large files to
+disk), while the API authorizes each GET/HEAD request using the Test Observer
+session and requires membership in a configured Launchpad team. The team is
+selected with `swift_proxy_team` and defaults to `swift`.
+
+Configure the required `swift_*` charm options in `charms/backend/charmcraft.yaml`.
+Set `swift_os_password_secret` to a Juju secret containing a `password` field,
+and grant that secret to the backend application. Configure
+`swift_containers` as a comma-separated list of allowed container names.
+The URL uses the API hostname so the host-scoped Test Observer session cookie
+is sent with object requests. SAML must be configured, and the SAML return URL
+allowlist includes the API hostname so a successful login can return to the
+requested object URL.
+
+This is a temporary, Swift-specific feature in the backend charm. The
+team check uses Test Observer's existing Launchpad team records: membership
+is refreshed on SAML login and additions can take effect on a subsequent
+login, but team removals are not synchronized automatically.
+Treat this as an interim access control rather than a replacement for a
+dedicated, independently managed authorization system.
+
+The nginx data plane connects directly to Swift. Corporate HTTP CONNECT proxy
+tunneling, which is supported by the standalone Swift proxy charm, is not
+implemented in this integration; confirm that the backend workload can reach
+the configured Swift endpoint directly before enabling it.
+
+For local Compose testing, `USE_LOCAL_LOGIN=true` skips the Launchpad lookup.
+The local SimpleSAMLphp IdP's `lp_teams` attribute is then added to the user's
+existing team memberships; it does not remove teams when a claim is removed.
+The `certbot` test account currently claims `canonical-hw-cert`, so set
+`SWIFT_PROXY_TEAM` to that value when testing its access to Swift. The local
+Compose stack can run the same nginx proxy configuration as the charm. It is
+disabled by default, leaving the regular direct-to-Uvicorn development setup
+unchanged.
+
+To test against a Swift service, export the settings below before starting the
+stack. The OpenStack values must be credentials for a project that can read the
+configured containers. `SWIFT_BASE_URL` is the Swift account URL; the proxy
+appends each container name. Do not commit or share real credentials.
+
+```bash
+export SWIFT_PROXY_ENABLED=true
+export SWIFT_PROXY_AUTH_SECRET="$(openssl rand -hex 32)"
+export SWIFT_PROXY_TEAM=canonical-hw-cert
+export SWIFT_BASE_URL="https://swift.example/v1/AUTH_project"
+export SWIFT_CONTAINERS="artifacts"
+export SWIFT_PROXY_SSL_VERIFY_DEPTH=1
+export OS_AUTH_URL="https://keystone.example/v3"
+export OS_USERNAME="swift-reader"
+export OS_PASSWORD="replace-with-password"
+export OS_PROJECT_NAME="project"
+export OS_USER_DOMAIN_NAME="Default"
+export OS_PROJECT_DOMAIN_NAME="Default"
+
+docker compose up --build
+```
+
+After logging in through the local SAML IdP as `certbot` / `password`, open
+`http://localhost:30000/v1/swift/artifacts/<object-path>` to fetch an object.
+Use the configured container name in the URL. nginx listens on port 30000 and
+streams the Swift response; Uvicorn is bound privately to port 30001. To return
+to the normal development mode, stop the stack and unset `SWIFT_PROXY_ENABLED`
+or set it to `false`.
+
 ## Building Docker images
 
 There are two Docker images in the repo:
