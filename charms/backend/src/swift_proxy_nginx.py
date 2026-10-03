@@ -110,9 +110,8 @@ def render_nginx_config(
     for marker in replacements:
         if marker not in template:
             raise ValueError(f"nginx template is missing required marker {marker}")
-    for marker, value in replacements.items():
-        template = template.replace(marker, value)
-    return template
+    marker_pattern = re.compile("|".join(re.escape(marker) for marker in replacements))
+    return marker_pattern.sub(lambda match: replacements[match.group(0)], template)
 
 
 def _validate_swift_config(

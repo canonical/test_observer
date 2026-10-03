@@ -135,6 +135,9 @@ Configure the required `swift_*` charm options in `charms/backend/charmcraft.yam
 Set `swift_os_password_secret` to a Juju secret containing a `password` field,
 and grant that secret to the backend application. Configure
 `swift_containers` as a comma-separated list of allowed container names.
+If the secret becomes unreadable or the Swift/SAML configuration becomes
+invalid after activation, the charm removes the Swift routes from nginx; if it
+cannot validate or reload that disabled config, it stops nginx to fail closed.
 The URL uses the API hostname so the host-scoped Test Observer session cookie
 is sent with object requests. SAML must be configured, and the SAML return URL
 allowlist includes the API hostname so a successful login can return to the

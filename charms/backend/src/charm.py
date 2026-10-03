@@ -180,6 +180,7 @@ class TestObserverBackendCharm(CharmBase):
         self._stored.set_default(
             redis_relation={},
             swift_proxy_auth_secret=secrets.token_urlsafe(32),
+            swift_proxy_active=self._swift_proxy_enabled(),
         )
         self.redis = RedisRequires(self)
         self.framework.observe(
@@ -588,7 +589,17 @@ class TestObserverBackendCharm(CharmBase):
     def _swift_proxy_environment(self) -> dict[str, str] | None:
         """Return Swift settings for the API service, excluding them from Celery."""
         if not self._swift_proxy_enabled():
-            return {"SWIFT_PROXY_ENABLED": "false"}
+            return {
+                "SWIFT_PROXY_ENABLED": "false",
+                "SWIFT_PROXY_AUTH_SECRET": "",
+                "SWIFT_PROXY_TEAM": str(self.config.get("swift_proxy_team", "swift")).strip(),
+                "OS_AUTH_URL": "",
+                "OS_USERNAME": "",
+                "OS_PASSWORD": "",
+                "OS_PROJECT_NAME": "",
+                "OS_USER_DOMAIN_NAME": "",
+                "OS_PROJECT_DOMAIN_NAME": "",
+            }
 
         secret_id = str(self.config.get("swift_os_password_secret", ""))
         try:
@@ -618,10 +629,11 @@ class TestObserverBackendCharm(CharmBase):
             "SWIFT_PROXY_TEAM": str(self.config.get("swift_proxy_team", "swift")).strip(),
         }
 
-    def _build_nginx_config(self) -> str:
+    def _build_nginx_config(self, *, swift_proxy_enabled: bool | None = None) -> str:
         """Render nginx with one restricted object location per configured container."""
         template_path = self.charm_dir / "src" / "templates" / "nginx.conf"
-        swift_proxy_enabled = self._swift_proxy_enabled()
+        if swift_proxy_enabled is None:
+            swift_proxy_enabled = self._swift_proxy_enabled()
         return render_nginx_config(
             template_path.read_text(encoding="utf-8"),
             port=int(self.config["port"]),
@@ -629,11 +641,42 @@ class TestObserverBackendCharm(CharmBase):
             auth_secret=self._stored.swift_proxy_auth_secret if swift_proxy_enabled else "",
             swift_base_url=str(self.config.get("swift_base_url", "")),
             containers=self._swift_containers(),
-            verify_depth=int(self.config.get("swift_proxy_ssl_verify_depth", 1)),
+            verify_depth=int(self.config.get("swift_proxy_ssl_verify_depth", 1))
+            if swift_proxy_enabled
+            else 1,
         )
+
+    def _disable_active_swift_proxy(self) -> bool:
+        """Remove Swift routes from nginx if a previously active proxy must fail closed."""
+        if not self._stored.swift_proxy_active:
+            return True
+        if not self.api_container.can_connect():
+            logger.error("Cannot disable the active Swift proxy because Pebble is unavailable")
+            return False
+
+        try:
+            self.api_container.push(
+                NGINX_CONFIG_PATH,
+                self._build_nginx_config(swift_proxy_enabled=False),
+                make_dirs=True,
+                permissions=0o600,
+            )
+            self.api_container.exec(["nginx", "-t"]).wait_output()
+            self.api_container.restart(self.nginx_pebble_service_name)
+        except (APIError, ExecError, OSError, ValueError):
+            logger.exception("Failed to disable the active Swift proxy")
+            try:
+                self.api_container.stop(self.nginx_pebble_service_name)
+            except (APIError, ExecError):
+                logger.exception("Could not stop nginx after failing to disable Swift proxy routes")
+            return False
+
+        self._stored.swift_proxy_active = False
+        return True
 
     def _on_config_changed(self, event):
         if not self._validate_saml_config():
+            self._disable_active_swift_proxy()
             self.unit.status = BlockedStatus(
                 "SAML config incomplete: if any SAML setting is provided, "
                 "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
@@ -642,6 +685,7 @@ class TestObserverBackendCharm(CharmBase):
 
         swift_config_error = self._validate_swift_proxy_config()
         if swift_config_error:
+            self._disable_active_swift_proxy()
             self.unit.status = BlockedStatus(swift_config_error)
             return
 
@@ -657,6 +701,7 @@ class TestObserverBackendCharm(CharmBase):
 
     def _update_api_layer(self, _=None):
         if not self._validate_saml_config():
+            self._disable_active_swift_proxy()
             self.unit.status = BlockedStatus(
                 "SAML config incomplete: if any SAML setting is provided, "
                 "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
@@ -665,6 +710,7 @@ class TestObserverBackendCharm(CharmBase):
 
         swift_config_error = self._validate_swift_proxy_config()
         if swift_config_error:
+            self._disable_active_swift_proxy()
             self.unit.status = BlockedStatus(swift_config_error)
             return
 
@@ -677,15 +723,18 @@ class TestObserverBackendCharm(CharmBase):
         # and aborts the hook if the relation has not provided endpoints yet.
         # Gate on relation readiness first so we report the real blocker.
         if not self._database_relation_ready():
+            self._disable_active_swift_proxy()
             self.unit.status = WaitingStatus("Waiting for database relation")
             return
 
         if not self._migrations_ready():
+            self._disable_active_swift_proxy()
             self.unit.status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
             return
 
         swift_environment = self._swift_proxy_environment()
         if swift_environment is None:
+            self._disable_active_swift_proxy()
             self.unit.status = BlockedStatus(
                 "Cannot read password from swift_os_password_secret; check the secret grant"
             )
@@ -696,7 +745,7 @@ class TestObserverBackendCharm(CharmBase):
             NGINX_CONFIG_PATH,
             nginx_config,
             make_dirs=True,
-            permissions=0o644,
+            permissions=0o600,
         )
         try:
             self.api_container.exec(["nginx", "-t"]).wait_output()
@@ -704,18 +753,23 @@ class TestObserverBackendCharm(CharmBase):
             logger.error("Nginx configuration test failed: %s", e)
             if isinstance(e, ExecError):
                 logger.error(e.stderr)
+            self._disable_active_swift_proxy()
             self.unit.status = BlockedStatus("Invalid nginx configuration; check debug-log")
             return
 
         self.unit.status = MaintenanceStatus(f"Updating {self.api_pebble_service_name} layer")
 
+        if self._swift_proxy_enabled():
+            self._stored.swift_proxy_active = True
         self.api_container.add_layer(
             self.api_pebble_service_name,
             self._api_pebble_layer(swift_environment),
             combine=True,
         )
+        self.api_container.replan()
         self.api_container.restart(self.api_pebble_service_name)
         self.api_container.restart(self.nginx_pebble_service_name)
+        self._stored.swift_proxy_active = self._swift_proxy_enabled()
         version = self.version
         if version:
             self.unit.set_workload_version(self.version)
