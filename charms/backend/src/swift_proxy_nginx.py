@@ -30,6 +30,8 @@ _CONTAINER_NAME = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 _AUTH_SECRET = re.compile(r"[A-Za-z0-9_-]+\Z")
 _URL_NETLOC = re.compile(r"(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?\Z")
 _URL_PATH = re.compile(r"[A-Za-z0-9._~/-]*\Z")
+API_INTERNAL_PORT = 30001
+API_METRICS_PORT = 9090
 logger = logging.getLogger(__name__)
 
 
@@ -44,8 +46,7 @@ def render_nginx_config(
     verify_depth: int = 1,
 ) -> str:
     """Render nginx config and reject values that could alter its syntax."""
-    if not 1 <= port <= 65535:
-        raise ValueError("nginx listen port must be between 1 and 65535")
+    validate_nginx_listen_port(port)
 
     swift_locations = ""
     swift_login_location = ""
@@ -114,6 +115,40 @@ def render_nginx_config(
     return marker_pattern.sub(lambda match: replacements[match.group(0)], template)
 
 
+def validate_nginx_listen_port(port: int) -> None:
+    """Reject ports reserved by the API and its metrics server."""
+    if not 1 <= port <= 65535:
+        raise ValueError("nginx listen port must be between 1 and 65535")
+    if port == API_INTERNAL_PORT:
+        raise ValueError(f"nginx listen port must not overlap the API port {API_INTERNAL_PORT}")
+    if port == API_METRICS_PORT:
+        raise ValueError(f"nginx listen port must not overlap the metrics port {API_METRICS_PORT}")
+
+
+def validate_keystone_auth_url(auth_url: str, *, setting_name: str = "OS_AUTH_URL") -> None:
+    """Require Keystone authentication to use HTTPS and a valid host/port."""
+    try:
+        url = urllib.parse.urlsplit(auth_url)
+        port = url.port
+    except ValueError as exc:
+        raise ValueError(f"{setting_name} is invalid") from exc
+
+    if (
+        url.scheme != "https"
+        or not url.hostname
+        or url.username
+        or url.password
+        or url.query
+        or url.fragment
+        or not _URL_NETLOC.fullmatch(url.netloc)
+        or not _URL_PATH.fullmatch(url.path)
+        or (port is not None and not 1 <= port <= 65535)
+    ):
+        raise ValueError(
+            f"{setting_name} must be an HTTPS URL without credentials, query, or fragment"
+        )
+
+
 def _validate_swift_config(
     auth_secret: str,
     swift_base_url: str,
@@ -160,6 +195,8 @@ def main() -> None:
     config_path = Path(os.getenv("SWIFT_PROXY_NGINX_CONFIG", "/etc/nginx/nginx.conf"))
 
     try:
+        if enabled:
+            validate_keystone_auth_url(os.getenv("OS_AUTH_URL", ""))
         rendered = render_nginx_config(
             template_path.read_text(encoding="utf-8"),
             port=int(os.getenv("SWIFT_PROXY_PORT", "30000")),

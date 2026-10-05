@@ -41,14 +41,18 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import APIError, ExecError, Layer
 from requests import get
-from swift_proxy_nginx import render_nginx_config
+from swift_proxy_nginx import (
+    API_INTERNAL_PORT,
+    render_nginx_config,
+    validate_keystone_auth_url,
+    validate_nginx_listen_port,
+)
 
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
 
 INGRESS_RELATION_NAME = "ingress"
 INGRESS_CONFLICT_MESSAGE = "Cannot have both ingress and nginx-route relations at the same time"
-API_INTERNAL_PORT = 30001
 NGINX_SERVICE_NAME = "nginx"
 NGINX_CONFIG_PATH = "/etc/nginx/nginx.conf"
 
@@ -517,28 +521,18 @@ class TestObserverBackendCharm(CharmBase):
             return "Swift proxy requires complete Test Observer SAML configuration"
 
         try:
-            auth_url = urllib.parse.urlsplit(str(self.config["swift_os_auth_url"]))
             swift_url = urllib.parse.urlsplit(str(self.config["swift_base_url"]).rstrip("/"))
-            auth_port = auth_url.port
             swift_port = swift_url.port
         except ValueError:
             return "Swift proxy URLs are invalid"
 
-        if (
-            auth_url.scheme != "https"
-            or not auth_url.hostname
-            or auth_url.username
-            or auth_url.password
-            or auth_url.query
-            or auth_url.fragment
-            or not re.fullmatch(r"[A-Za-z0-9._~/-]*", auth_url.path)
-            or not re.fullmatch(
-                r"(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?",
-                auth_url.netloc,
+        try:
+            validate_keystone_auth_url(
+                str(self.config["swift_os_auth_url"]),
+                setting_name="swift_os_auth_url",
             )
-            or (auth_port is not None and not 1 <= auth_port <= 65535)
-        ):
-            return "swift_os_auth_url must be an HTTPS URL without credentials, query, or fragment"
+        except ValueError as exc:
+            return str(exc)
 
         if (
             swift_url.scheme != "https"
@@ -577,6 +571,11 @@ class TestObserverBackendCharm(CharmBase):
 
     def _api_configuration_error(self) -> str | None:
         """Return the first SAML or Swift configuration error."""
+        try:
+            validate_nginx_listen_port(int(self.config["port"]))
+        except (TypeError, ValueError) as exc:
+            return str(exc)
+
         if not self._validate_saml_config():
             return (
                 "SAML config incomplete: if any SAML setting is provided, "

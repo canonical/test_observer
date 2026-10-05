@@ -20,7 +20,10 @@
 from pathlib import Path
 
 import pytest
-from swift_proxy_nginx import render_nginx_config
+from swift_proxy_nginx import (
+    render_nginx_config,
+    validate_keystone_auth_url,
+)
 
 TEMPLATE_PATH = Path(__file__).parents[1] / "src" / "templates" / "nginx.conf"
 
@@ -105,7 +108,34 @@ def test_render_rejects_invalid_swift_settings(
         )
 
 
-def test_render_rejects_invalid_port(template: str) -> None:
-    """Reject invalid listener ports."""
-    with pytest.raises(ValueError, match="listen port"):
-        render_nginx_config(template, port=70000, swift_proxy_enabled=False)
+@pytest.mark.parametrize(
+    ("port", "message"),
+    [
+        (70000, "listen port must be between"),
+        (30001, "API port"),
+        (9090, "metrics port"),
+    ],
+)
+def test_render_rejects_invalid_or_reserved_port(template: str, port: int, message: str) -> None:
+    """Reject listener ports that are invalid or already used by backend services."""
+    with pytest.raises(ValueError, match=message):
+        render_nginx_config(template, port=port, swift_proxy_enabled=False)
+
+
+@pytest.mark.parametrize(
+    "auth_url",
+    [
+        "http://keystone.example/v3",
+        "https://user:password@keystone.example/v3",
+        "https://keystone.example:70000/v3",
+    ],
+)
+def test_validate_keystone_auth_url_rejects_unsafe_urls(auth_url: str) -> None:
+    """Reject insecure or malformed Keystone endpoints."""
+    with pytest.raises(ValueError, match="OS_AUTH_URL"):
+        validate_keystone_auth_url(auth_url)
+
+
+def test_validate_keystone_auth_url_accepts_https_url() -> None:
+    """Accept normal HTTPS Keystone endpoints."""
+    validate_keystone_auth_url("https://keystone.example:5000/v3")

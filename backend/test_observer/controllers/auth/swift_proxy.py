@@ -35,6 +35,8 @@ from test_observer.data_access.models import User, UserSession
 from test_observer.data_access.setup import get_db
 
 logger = logging.getLogger("test-observer-backend")
+KEYSTONE_REQUEST_TIMEOUT_SECONDS = 10
+KEYSTONE_CONNECT_RETRIES = 1
 
 router = APIRouter()
 
@@ -64,7 +66,12 @@ def get_keystone_token() -> str:
                 user_domain_name=os.getenv("OS_USER_DOMAIN_NAME", "Default"),
                 project_domain_name=os.getenv("OS_PROJECT_DOMAIN_NAME", "Default"),
             )
-            _keystone_session = keystone_session.Session(auth=auth)
+            _keystone_session = keystone_session.Session(
+                auth=auth,
+                timeout=KEYSTONE_REQUEST_TIMEOUT_SECONDS,
+                connect_retries=KEYSTONE_CONNECT_RETRIES,
+                status_code_retries=0,
+            )
 
         token = _keystone_session.get_token()
         if not token:

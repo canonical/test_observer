@@ -153,7 +153,10 @@ dedicated, independently managed authorization system.
 The nginx data plane connects directly to Swift. Corporate HTTP CONNECT proxy
 tunneling, which is supported by the standalone Swift proxy charm, is not
 implemented in this integration; confirm that the backend workload can reach
-the configured Swift endpoint directly before enabling it.
+the configured Swift endpoint directly before enabling it. Keystone auth URLs
+must use HTTPS. Token requests use a 10-second timeout with one connection retry.
+The charm's public `port` must not overlap the API's internal port 30001 or the
+metrics server port 9090.
 
 For local Compose testing, `USE_LOCAL_LOGIN=true` skips the Launchpad lookup.
 The local SimpleSAMLphp IdP's `lp_teams` attribute is then added to the user's

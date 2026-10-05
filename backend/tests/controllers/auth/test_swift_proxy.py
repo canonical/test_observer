@@ -31,6 +31,32 @@ from test_observer.data_access.setup import get_db
 from test_observer.main import app
 
 
+def test_keystone_session_uses_bounded_timeout_and_retries(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    captured: dict[str, object] = {}
+
+    class FakeKeystoneSession:
+        def __init__(self, **kwargs: object):
+            captured.update(kwargs)
+
+        def get_token(self) -> str:
+            return "test-token"
+
+    monkeypatch.setattr(swift_proxy, "_keystone_session", None)
+    monkeypatch.setattr(swift_proxy.keystone_session, "Session", FakeKeystoneSession)
+    monkeypatch.setattr(swift_proxy.v3, "Password", lambda **kwargs: kwargs)
+    monkeypatch.setenv("OS_AUTH_URL", "https://keystone.example/v3")
+    monkeypatch.setenv("OS_USERNAME", "reader")
+    monkeypatch.setenv("OS_PASSWORD", "password")
+    monkeypatch.setenv("OS_PROJECT_NAME", "project")
+
+    assert swift_proxy.get_keystone_token() == "test-token"
+    assert captured["timeout"] == swift_proxy.KEYSTONE_REQUEST_TIMEOUT_SECONDS
+    assert captured["connect_retries"] == swift_proxy.KEYSTONE_CONNECT_RETRIES
+    assert captured["status_code_retries"] == 0
+
+
 @pytest.fixture
 def local_test_client(db_session: Session, monkeypatch: pytest.MonkeyPatch):
     """Test the auth-request route as a loopback nginx subrequest."""
@@ -131,6 +157,31 @@ def test_configured_team_gets_keystone_token_without_csrf_header(
 
     assert response.status_code == status.HTTP_204_NO_CONTENT
     assert response.headers["X-Keystone-Token"] == "keystone-token"
+
+
+def test_keystone_timeout_returns_bad_gateway(
+    local_test_client: TestClient,
+    db_session: Session,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(swift_proxy, "SWIFT_PROXY_ENABLED", True)
+    monkeypatch.setattr(swift_proxy, "SWIFT_PROXY_TEAM", "swift")
+
+    def raise_timeout() -> str:
+        raise TimeoutError
+
+    monkeypatch.setattr(swift_proxy, "get_keystone_token", raise_timeout)
+    session = _make_user_session(db_session, team_name="swift")
+
+    response = local_test_client.get(
+        "/_internal/swift-proxy/authorize",
+        headers={
+            "Cookie": f"session={_session_cookie(session.id)}",
+            "X-Original-URI": "/v1/swift/charm-qa/artifact.tar",
+        },
+    )
+
+    assert response.status_code == status.HTTP_502_BAD_GATEWAY
 
 
 def test_user_outside_configured_team_is_forbidden(
