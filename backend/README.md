@@ -140,11 +140,12 @@ These relations are defined in `charms/backend/charmcraft.yaml` and can be integ
 
 The backend charm can optionally expose configured Swift containers at
 `/v1/swift/<container>/...`. Leave all `swift_*` options empty to disable the
-proxy. When enabled, the charm runs nginx in front of the API: nginx
-streams object responses directly from Swift (without buffering large files to
-disk), while the API authorizes each GET/HEAD request using the Test Observer
-session and requires membership in a configured Launchpad team. The team is
-selected with `swift_proxy_team` and defaults to `swift`.
+proxy. The backend charm always runs nginx in front of the API; enabling the
+Swift proxy adds the configured Swift routes. Nginx streams object responses
+directly from Swift (without buffering large files to disk), while the API
+authorizes each GET/HEAD request using the Test Observer session and requires
+membership in a configured Launchpad team. The team is selected with
+`swift_proxy_team` and defaults to `swift`.
 The shared nginx configuration limits API request bodies to 10 MiB rather than
 accepting unbounded bodies.
 

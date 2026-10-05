@@ -66,7 +66,7 @@ def render_nginx_config(
                 f"""
         location = {public_path} {{
             if ($request_method !~ ^(GET|HEAD)$) {{ return 405; }}
-            return 301 {public_path}/;
+                return 301 {public_path}/$is_args$args;
         }}
 
         location ^~ {public_path}/ {{

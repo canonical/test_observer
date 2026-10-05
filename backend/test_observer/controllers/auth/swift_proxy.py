@@ -87,7 +87,10 @@ def _login_url(original_uri: str) -> str:
     if (
         parsed.scheme
         or parsed.netloc
-        or not decoded_path.startswith("/v1/swift/")
+        or not (
+            decoded_path == "/v1/swift"
+            or decoded_path.startswith("/v1/swift/")
+        )
         or "\\" in decoded_path
         or "\x00" in decoded_path
         or any(ord(character) < 32 or ord(character) == 127 for character in decoded_path)

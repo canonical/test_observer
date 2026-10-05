@@ -36,10 +36,15 @@ from charms.traefik_k8s.v2.ingress import (
     IngressPerAppRevokedEvent,
 )
 from ops import CollectStatusEvent, SecretNotFoundError, StoredState, UpdateStatusEvent
-from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
+from ops.charm import (
+    CharmBase,
+    RelationChangedEvent,
+    RelationCreatedEvent,
+    SecretChangedEvent,
+)
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import APIError, ExecError, Layer
+from ops.pebble import APIError, ExecError, Layer, PathError
 from requests import get
 from swift_proxy_nginx import (
     API_INTERNAL_PORT,
@@ -733,14 +738,18 @@ class TestObserverBackendCharm(CharmBase):
             return
         self._update_celery_layer(event)
 
-    def _on_secret_changed(self, _event: object) -> None:
+    def _on_secret_changed(self, event: SecretChangedEvent) -> None:
         """Reload the API workload when its Swift password secret changes."""
-        if self._swift_proxy_enabled():
-            self._update_api_layer()
+        secret_id = str(self.config.get("swift_os_password_secret", "")).strip()
+        if not self._swift_proxy_enabled() or event.secret.id != secret_id:
+            return
+        self._update_api_layer()
 
     def _update_api_layer(self, _=None):
         failure_status: BlockedStatus | WaitingStatus | None = None
         swift_environment: dict[str, str] | None = None
+        nginx_config_changed = True
+        nginx_was_running = False
 
         if configuration_error := self._api_configuration_error():
             failure_status = BlockedStatus(configuration_error)
@@ -764,15 +773,28 @@ class TestObserverBackendCharm(CharmBase):
         if failure_status is None:
             try:
                 nginx_config = self._build_nginx_config()
-                self.api_container.push(
-                    NGINX_CONFIG_PATH,
-                    nginx_config,
-                    make_dirs=True,
-                    permissions=0o600,
+                try:
+                    with self.api_container.pull(NGINX_CONFIG_PATH) as current_config:
+                        nginx_config_changed = current_config.read() != nginx_config
+                except PathError as exc:
+                    if exc.kind != "not-found":
+                        raise
+                nginx_was_running = any(
+                    service.is_running()
+                    for service in self.api_container.get_services(
+                        [self.nginx_pebble_service_name]
+                    )
                 )
+                if nginx_config_changed:
+                    self.api_container.push(
+                        NGINX_CONFIG_PATH,
+                        nginx_config,
+                        make_dirs=True,
+                        permissions=0o600,
+                    )
                 self.api_container.exec(["nginx", "-t"]).wait_output()
-            except (APIError, ExecError, OSError, ValueError) as e:
-                logger.error("Nginx configuration test failed: %s", e)
+            except (APIError, ExecError, OSError, PathError, ValueError) as e:
+                logger.error("Nginx configuration update failed: %s", e)
                 if isinstance(e, ExecError):
                     logger.error(e.stderr)
                 failure_status = BlockedStatus("Invalid nginx configuration; check debug-log")
@@ -796,8 +818,8 @@ class TestObserverBackendCharm(CharmBase):
             combine=True,
         )
         self.api_container.replan()
-        self.api_container.restart(self.api_pebble_service_name)
-        self.api_container.restart(self.nginx_pebble_service_name)
+        if nginx_config_changed and nginx_was_running:
+            self.api_container.restart(self.nginx_pebble_service_name)
         self._stored.swift_proxy_active = self._swift_proxy_enabled()
         self._stored.swift_proxy_disable_pending = False
         version = self.version

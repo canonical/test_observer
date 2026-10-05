@@ -63,6 +63,7 @@ def test_render_swift_locations_and_preserve_marker_text_in_secret(template: str
         "proxy_pass https://swift.example/v1/AUTH_project/artifacts/;"
         in rendered
     )
+    assert "return 301 /v1/swift/artifacts/$is_args$args;" in rendered
     assert "return 302 $swift_login_url;" in rendered
     assert "__SWIFT_PROXY_PORT__" not in rendered
 

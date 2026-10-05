@@ -112,6 +112,16 @@ def test_unauthenticated_subrequest_provides_same_origin_login_url(
     )
 
 
+def test_login_url_accepts_exact_swift_root(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(swift_proxy, "SAML_SP_BASE_URL", "https://test-observer-api.example.com")
+
+    login_url = urlsplit(swift_proxy._login_url("/v1/swift"))
+
+    assert parse_qs(login_url.query)["return_to"] == [
+        "https://test-observer-api.example.com/v1/swift"
+    ]
+
+
 @pytest.mark.parametrize(
     "original_uri",
     [
