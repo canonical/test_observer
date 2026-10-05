@@ -444,11 +444,8 @@ class TestObserverBackendCharm(CharmBase):
         return self._get_published_migration_revision() == expected
 
     def _on_database_changed(self, event):
-        if not self._validate_saml_config():
-            self.unit.status = BlockedStatus(
-                "SAML config incomplete: if any SAML setting is provided, "
-                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
-            )
+        if self._api_configuration_error():
+            self._update_api_layer()
             return
 
         # Don't reconcile layers if the migration set a blocking/waiting status,
@@ -578,6 +575,15 @@ class TestObserverBackendCharm(CharmBase):
 
         return None
 
+    def _api_configuration_error(self) -> str | None:
+        """Return the first SAML or Swift configuration error."""
+        if not self._validate_saml_config():
+            return (
+                "SAML config incomplete: if any SAML setting is provided, "
+                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
+            )
+        return self._validate_swift_proxy_config()
+
     def _swift_containers(self) -> list[str]:
         """Return the configured Swift container names."""
         return [
@@ -675,23 +681,15 @@ class TestObserverBackendCharm(CharmBase):
         return True
 
     def _on_config_changed(self, event):
-        if not self._validate_saml_config():
-            self._disable_active_swift_proxy()
-            self.unit.status = BlockedStatus(
-                "SAML config incomplete: if any SAML setting is provided, "
-                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
-            )
-            return
-
-        swift_config_error = self._validate_swift_proxy_config()
-        if swift_config_error:
-            self._disable_active_swift_proxy()
-            self.unit.status = BlockedStatus(swift_config_error)
+        if self._api_configuration_error():
+            self._update_api_layer(event)
             return
 
         self.ingress.provide_ingress_requirements(port=int(self.config["port"]))
         self._update_frontend_relation_data()
         self._update_api_layer(event)
+        if isinstance(self.unit.status, BlockedStatus):
+            return
         self._update_celery_layer(event)
 
     def _on_secret_changed(self, _event: object) -> None:
@@ -700,62 +698,50 @@ class TestObserverBackendCharm(CharmBase):
             self._update_api_layer()
 
     def _update_api_layer(self, _=None):
-        if not self._validate_saml_config():
-            self._disable_active_swift_proxy()
-            self.unit.status = BlockedStatus(
-                "SAML config incomplete: if any SAML setting is provided, "
-                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
-            )
-            return
+        failure_status: BlockedStatus | WaitingStatus | None = None
+        swift_environment: dict[str, str] | None = None
 
-        swift_config_error = self._validate_swift_proxy_config()
-        if swift_config_error:
-            self._disable_active_swift_proxy()
-            self.unit.status = BlockedStatus(swift_config_error)
-            return
-
-        if not self.api_container.can_connect():
-            self.unit.status = WaitingStatus("Waiting for Pebble for API")
-            return
-
+        if configuration_error := self._api_configuration_error():
+            failure_status = BlockedStatus(configuration_error)
+        elif not self.api_container.can_connect():
+            failure_status = WaitingStatus("Waiting for Pebble for API")
         # Building the Pebble layer reads the database connection details via
         # _app_environment -> _postgres_relation_data(), which raises SystemExit
         # and aborts the hook if the relation has not provided endpoints yet.
         # Gate on relation readiness first so we report the real blocker.
-        if not self._database_relation_ready():
+        elif not self._database_relation_ready():
+            failure_status = WaitingStatus("Waiting for database relation")
+        elif not self._migrations_ready():
+            failure_status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
+        else:
+            swift_environment = self._swift_proxy_environment()
+            if swift_environment is None:
+                failure_status = BlockedStatus(
+                    "Cannot read password from swift_os_password_secret; check the secret grant"
+                )
+
+        if failure_status is None:
+            try:
+                nginx_config = self._build_nginx_config()
+                self.api_container.push(
+                    NGINX_CONFIG_PATH,
+                    nginx_config,
+                    make_dirs=True,
+                    permissions=0o600,
+                )
+                self.api_container.exec(["nginx", "-t"]).wait_output()
+            except (APIError, ExecError, OSError, ValueError) as e:
+                logger.error("Nginx configuration test failed: %s", e)
+                if isinstance(e, ExecError):
+                    logger.error(e.stderr)
+                failure_status = BlockedStatus("Invalid nginx configuration; check debug-log")
+
+        if failure_status is not None:
             self._disable_active_swift_proxy()
-            self.unit.status = WaitingStatus("Waiting for database relation")
+            self.unit.status = failure_status
             return
 
-        if not self._migrations_ready():
-            self._disable_active_swift_proxy()
-            self.unit.status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
-            return
-
-        swift_environment = self._swift_proxy_environment()
-        if swift_environment is None:
-            self._disable_active_swift_proxy()
-            self.unit.status = BlockedStatus(
-                "Cannot read password from swift_os_password_secret; check the secret grant"
-            )
-            return
-
-        nginx_config = self._build_nginx_config()
-        self.api_container.push(
-            NGINX_CONFIG_PATH,
-            nginx_config,
-            make_dirs=True,
-            permissions=0o600,
-        )
-        try:
-            self.api_container.exec(["nginx", "-t"]).wait_output()
-        except (APIError, ExecError) as e:
-            logger.error("Nginx configuration test failed: %s", e)
-            if isinstance(e, ExecError):
-                logger.error(e.stderr)
-            self._disable_active_swift_proxy()
-            self.unit.status = BlockedStatus("Invalid nginx configuration; check debug-log")
-            return
+        assert swift_environment is not None
 
         self.unit.status = MaintenanceStatus(f"Updating {self.api_pebble_service_name} layer")
 
