@@ -197,7 +197,7 @@ class TestObserverBackendCharm(CharmBase):
         self._stored.set_default(
             redis_relation={},
             swift_proxy_auth_secret=secrets.token_urlsafe(32),
-            swift_proxy_active=self._swift_proxy_enabled(),
+            swift_proxy_active=False,
             swift_proxy_disable_pending=False,
         )
         self.redis = RedisRequires(self)

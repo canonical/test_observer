@@ -38,6 +38,7 @@ def test_render_without_swift_proxy_removes_all_markers(template: str) -> None:
     rendered = render_nginx_config(template, port=30000, swift_proxy_enabled=False)
 
     assert "listen 30000;" in rendered
+    assert "client_max_body_size 10m;" in rendered
     assert "/v1/swift/" not in rendered
     assert "__SWIFT_PROXY_" not in rendered
 

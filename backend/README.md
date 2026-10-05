@@ -145,6 +145,8 @@ streams object responses directly from Swift (without buffering large files to
 disk), while the API authorizes each GET/HEAD request using the Test Observer
 session and requires membership in a configured Launchpad team. The team is
 selected with `swift_proxy_team` and defaults to `swift`.
+The shared nginx configuration limits API request bodies to 10 MiB rather than
+accepting unbounded bodies.
 
 Configure the required `swift_*` charm options in `charms/backend/charmcraft.yaml`.
 Set `swift_os_password_secret` to a Juju secret containing a `password` field,
