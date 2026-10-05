@@ -115,6 +115,31 @@ config:
       description: Whether to require authentication for all API endpoints.
       type: boolean
       default: false
+    max_execution_page_limit:
+      description: >-
+        The largest page size (the limit query parameter) the test execution search,
+        GET /v1/test-executions, accepts. Each execution on a page carries all of its
+        results and their io logs, so this is the cap to lower first to bound the
+        memory a single request can use. Larger requests are rejected with HTTP 422.
+        It must be at least 50, the default page size.
+      type: int
+      default: 50
+    max_result_page_limit:
+      description: >-
+        The largest page size the test result search, GET /v1/test-results, accepts.
+        Each result on a page carries its own io log. Larger requests are rejected
+        with HTTP 422. It must be at least 50, the default page size.
+      type: int
+      default: 1000
+    max_listing_page_limit:
+      description: >-
+        The largest page size the listing endpoints accept: artefact search and
+        history, environments, issues, test cases, test plans, users,
+        notifications, and an explicit limit on the pending reruns. Larger
+        requests are rejected with HTTP 422. It must be at least 50, the default
+        page size of most of them.
+      type: int
+      default: 1000
 
 resources:
   api-image:

@@ -92,7 +92,7 @@ jobs:
         # but we may want to revisit this to actually address the zizmor complaint
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # zizmor: ignore[cache-poisoning] # v5.0.5
         with:
-          path: /home/runner/snap/charmcraft/common/cache/charmcraft
+          path: ~/snap/charmcraft/common/cache/charmcraft
           key: ${{ runner.os }}-wheel-cache-${{ hashFiles('./uv.lock') }}
           restore-keys: |
             ${{ runner.os }}-wheel-cache-
@@ -111,8 +111,9 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: charmcraft-logs-spread-integration
-          path: /home/ubuntu/.local/state/charmcraft/log/*
+          name: charmcraft-logs-${{ matrix.charm }}
+          path: ~/.local/state/charmcraft/log/*.log
+          include-hidden-files: true
 
   integration-test:
     name: Spread Integration Test
