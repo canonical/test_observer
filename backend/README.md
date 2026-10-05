@@ -153,6 +153,9 @@ and grant that secret to the backend application. Configure
 If the secret becomes unreadable or the Swift/SAML configuration becomes
 invalid after activation, the charm removes the Swift routes from nginx; if it
 cannot validate or reload that disabled config, it stops nginx to fail closed.
+If Pebble is unavailable and the charm cannot confirm that nginx was disabled
+or stopped, it marks the unit blocked, warns that Swift routes may remain
+accessible, and retries the disable operation on update-status.
 The URL uses the API hostname so the host-scoped Test Observer session cookie
 is sent with object requests. SAML must be configured, and the SAML return URL
 allowlist includes the API hostname so a successful login can return to the

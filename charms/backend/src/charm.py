@@ -55,6 +55,10 @@ INGRESS_RELATION_NAME = "ingress"
 INGRESS_CONFLICT_MESSAGE = "Cannot have both ingress and nginx-route relations at the same time"
 NGINX_SERVICE_NAME = "nginx"
 NGINX_CONFIG_PATH = "/etc/nginx/nginx.conf"
+SWIFT_PROXY_DISABLE_FAILED_MESSAGE = (
+    "Swift proxy may still be accessible: unable to disable or stop nginx; "
+    "the charm will retry when Pebble is available"
+)
 
 # Charm options for the largest page each kind of paginated endpoint accepts,
 # and the API settings they become. The API refuses values below MIN_PAGE_LIMIT.
@@ -194,6 +198,7 @@ class TestObserverBackendCharm(CharmBase):
             redis_relation={},
             swift_proxy_auth_secret=secrets.token_urlsafe(32),
             swift_proxy_active=self._swift_proxy_enabled(),
+            swift_proxy_disable_pending=False,
         )
         self.redis = RedisRequires(self)
         self.framework.observe(
@@ -284,6 +289,12 @@ class TestObserverBackendCharm(CharmBase):
         return True
 
     def _on_update_status(self, event: UpdateStatusEvent) -> None:
+        if self._stored.swift_proxy_disable_pending:
+            self._update_api_layer()
+            if isinstance(self.unit.status, ActiveStatus):
+                self._update_celery_layer()
+            return
+
         # On the leader, (re)run migrations when the last attempt failed, or
         # when the published revision no longer matches the Alembic heads this
         # unit's image expects. The latter happens after a leadership change
@@ -678,9 +689,14 @@ class TestObserverBackendCharm(CharmBase):
     def _disable_active_swift_proxy(self) -> bool:
         """Remove Swift routes from nginx if a previously active proxy must fail closed."""
         if not self._stored.swift_proxy_active:
+            self._stored.swift_proxy_disable_pending = False
             return True
         if not self.api_container.can_connect():
-            logger.error("Cannot disable the active Swift proxy because Pebble is unavailable")
+            self._stored.swift_proxy_disable_pending = True
+            logger.error(
+                "The Swift proxy may remain accessible because Pebble is unavailable; "
+                "the charm will retry disabling nginx"
+            )
             return False
 
         try:
@@ -698,9 +714,11 @@ class TestObserverBackendCharm(CharmBase):
                 self.api_container.stop(self.nginx_pebble_service_name)
             except (APIError, ExecError):
                 logger.exception("Could not stop nginx after failing to disable Swift proxy routes")
-            return False
+                self._stored.swift_proxy_disable_pending = True
+                return False
 
         self._stored.swift_proxy_active = False
+        self._stored.swift_proxy_disable_pending = False
         return True
 
     def _on_config_changed(self, event):
@@ -760,8 +778,10 @@ class TestObserverBackendCharm(CharmBase):
                 failure_status = BlockedStatus("Invalid nginx configuration; check debug-log")
 
         if failure_status is not None:
-            self._disable_active_swift_proxy()
-            self.unit.status = failure_status
+            if self._disable_active_swift_proxy():
+                self.unit.status = failure_status
+            else:
+                self.unit.status = BlockedStatus(SWIFT_PROXY_DISABLE_FAILED_MESSAGE)
             return
 
         assert swift_environment is not None
@@ -779,6 +799,7 @@ class TestObserverBackendCharm(CharmBase):
         self.api_container.restart(self.api_pebble_service_name)
         self.api_container.restart(self.nginx_pebble_service_name)
         self._stored.swift_proxy_active = self._swift_proxy_enabled()
+        self._stored.swift_proxy_disable_pending = False
         version = self.version
         if version:
             self.unit.set_workload_version(self.version)
