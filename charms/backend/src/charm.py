@@ -810,17 +810,15 @@ class TestObserverBackendCharm(CharmBase):
 
         self.unit.status = MaintenanceStatus(f"Updating {self.api_pebble_service_name} layer")
 
-        if self._swift_proxy_enabled():
-            self._stored.swift_proxy_active = True
         self.api_container.add_layer(
             self.api_pebble_service_name,
             self._api_pebble_layer(swift_environment),
             combine=True,
         )
         self.api_container.replan()
+        self._stored.swift_proxy_active = self._swift_proxy_enabled()
         if nginx_config_changed and nginx_was_running:
             self.api_container.restart(self.nginx_pebble_service_name)
-        self._stored.swift_proxy_active = self._swift_proxy_enabled()
         self._stored.swift_proxy_disable_pending = False
         version = self.version
         if version:
