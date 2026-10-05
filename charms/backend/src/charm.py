@@ -56,6 +56,15 @@ INGRESS_CONFLICT_MESSAGE = "Cannot have both ingress and nginx-route relations a
 NGINX_SERVICE_NAME = "nginx"
 NGINX_CONFIG_PATH = "/etc/nginx/nginx.conf"
 
+# Charm options for the largest page each kind of paginated endpoint accepts,
+# and the API settings they become. The API refuses values below MIN_PAGE_LIMIT.
+PAGE_LIMIT_OPTIONS = {
+    "max_execution_page_limit": "MAX_EXECUTION_PAGE_LIMIT",
+    "max_result_page_limit": "MAX_RESULT_PAGE_LIMIT",
+    "max_listing_page_limit": "MAX_LISTING_PAGE_LIMIT",
+}
+MIN_PAGE_LIMIT = 50
+
 PEER_RELATION_NAME = "test-observer-peers"
 # Key in the peer application databag holding the Alembic revision the database
 # has been migrated to by the leader unit.
@@ -463,6 +472,19 @@ class TestObserverBackendCharm(CharmBase):
         self.unit.status = WaitingStatus("Waiting for database relation")
         raise SystemExit(0)
 
+    def _page_limit_config_error(self) -> str | None:
+        """Return why the page limit options are invalid, or None if they are valid.
+
+        The API refuses to start with a page limit below MIN_PAGE_LIMIT, so block
+        the unit with a clear message instead of letting it crash-loop.
+        """
+        too_low = [
+            option for option in PAGE_LIMIT_OPTIONS if int(self.config[option]) < MIN_PAGE_LIMIT
+        ]
+        if too_low:
+            return f"{', '.join(too_low)} must be at least {MIN_PAGE_LIMIT}"
+        return None
+
     def _validate_saml_config(self) -> bool:
         """Validate SAML configuration.
 
@@ -570,7 +592,7 @@ class TestObserverBackendCharm(CharmBase):
         return None
 
     def _api_configuration_error(self) -> str | None:
-        """Return the first SAML or Swift configuration error."""
+        """Return the first API, page-limit, or Swift configuration error."""
         try:
             validate_nginx_listen_port(int(self.config["port"]))
         except (TypeError, ValueError) as exc:
@@ -581,6 +603,8 @@ class TestObserverBackendCharm(CharmBase):
                 "SAML config incomplete: if any SAML setting is provided, "
                 "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
             )
+        if page_limit_error := self._page_limit_config_error():
+            return page_limit_error
         return self._validate_swift_proxy_config()
 
     def _swift_containers(self) -> list[str]:
@@ -771,6 +795,10 @@ class TestObserverBackendCharm(CharmBase):
             )
             return
 
+        if page_limit_error := self._page_limit_config_error():
+            self.unit.status = BlockedStatus(page_limit_error)
+            return
+
         if not self.celery_container.can_connect():
             self.unit.status = WaitingStatus("Waiting for Pebble for Celery")
             return
@@ -838,6 +866,8 @@ class TestObserverBackendCharm(CharmBase):
                 self.config.get("require_authentication", False)
             ).lower(),
         }
+        for option, variable in PAGE_LIMIT_OPTIONS.items():
+            env[variable] = str(self.config[option])
         # Only set SAML environment variables if IDP metadata URL is provided
         if self.config.get("saml_idp_metadata_url"):
             env["SAML_IDP_METADATA_URL"] = str(self.config["saml_idp_metadata_url"])

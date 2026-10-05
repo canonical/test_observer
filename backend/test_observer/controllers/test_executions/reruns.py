@@ -22,6 +22,7 @@ from sqlalchemy import Select, and_, asc, delete, desc, func, literal, or_, sele
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import (
     has_amr_permissions,
@@ -306,7 +307,13 @@ def create_rerun_requests(
 )
 def get_rerun_requests(
     family: FamilyName | None = None,
-    limit: int | None = None,
+    # This is a work queue without an offset, so leaving out `limit` still
+    # returns every pending rerun: capping the default would hide queued
+    # reruns from callers that cannot page. An explicit `limit` is capped.
+    limit: Annotated[
+        int | None,
+        Query(ge=0, le=MAX_LISTING_PAGE_LIMIT, description="Maximum number of rerun requests to return"),
+    ] = None,
     environment: str | None = None,
     environment_architecture: str | None = None,
     build_architecture: str | None = None,

@@ -373,14 +373,18 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "integer",
+                  "maximum": 1000,
+                  "minimum": 0
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "Maximum number of rerun requests to return",
               "title": "Limit"
-            }
+            },
+            "description": "Maximum number of rerun requests to return"
           },
           {
             "name": "environment",
@@ -1103,7 +1107,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 1000,
+              "maximum": 50,
               "minimum": 0,
               "description": "Maximum number of results to return",
               "default": 50,

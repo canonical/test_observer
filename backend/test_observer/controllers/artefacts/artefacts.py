@@ -19,6 +19,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import (
     check_artefact_permission,
@@ -119,7 +120,7 @@ def search_artefacts(
         int,
         Query(
             ge=1,
-            le=1000,
+            le=MAX_LISTING_PAGE_LIMIT,
             description="Maximum number of results (defaults to 50 if not specified)",
         ),
     ] = 50,
@@ -171,7 +172,12 @@ def get_artefact_history(
     track: Annotated[str, Query(description="Artefact track")] = "latest",
     stage: Annotated[StageName | None, Query(description="Filter by stage")] = None,
     limit: Annotated[
-        int, Query(ge=1, le=500, description="Maximum number of results (defaults to 10 if not specified)")
+        int,
+        Query(
+            ge=1,
+            le=min(500, MAX_LISTING_PAGE_LIMIT),
+            description="Maximum number of results (defaults to 10 if not specified)",
+        ),
     ] = 10,
     offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination")] = 0,
     db: Session = Depends(get_db),
