@@ -70,7 +70,6 @@ def get_keystone_token() -> str:
                 auth=auth,
                 timeout=KEYSTONE_REQUEST_TIMEOUT_SECONDS,
                 connect_retries=KEYSTONE_CONNECT_RETRIES,
-                status_code_retries=0,
             )
 
         token = _keystone_session.get_token()

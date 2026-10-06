@@ -31,30 +31,24 @@ from test_observer.data_access.setup import get_db
 from test_observer.main import app
 
 
-def test_keystone_session_uses_bounded_timeout_and_retries(
+def test_keystone_session_uses_bounded_timeout_and_connect_retries(
     monkeypatch: pytest.MonkeyPatch,
 ):
-    captured: dict[str, object] = {}
-
-    class FakeKeystoneSession:
-        def __init__(self, **kwargs: object):
-            captured.update(kwargs)
-
-        def get_token(self) -> str:
-            return "test-token"
-
     monkeypatch.setattr(swift_proxy, "_keystone_session", None)
-    monkeypatch.setattr(swift_proxy.keystone_session, "Session", FakeKeystoneSession)
-    monkeypatch.setattr(swift_proxy.v3, "Password", lambda **kwargs: kwargs)
+    monkeypatch.setattr(
+        swift_proxy.keystone_session.Session,
+        "get_token",
+        lambda _session: "test-token",
+    )
     monkeypatch.setenv("OS_AUTH_URL", "https://keystone.example/v3")
     monkeypatch.setenv("OS_USERNAME", "reader")
     monkeypatch.setenv("OS_PASSWORD", "password")
     monkeypatch.setenv("OS_PROJECT_NAME", "project")
 
     assert swift_proxy.get_keystone_token() == "test-token"
-    assert captured["timeout"] == swift_proxy.KEYSTONE_REQUEST_TIMEOUT_SECONDS
-    assert captured["connect_retries"] == swift_proxy.KEYSTONE_CONNECT_RETRIES
-    assert captured["status_code_retries"] == 0
+    assert swift_proxy._keystone_session is not None
+    assert swift_proxy._keystone_session.timeout == swift_proxy.KEYSTONE_REQUEST_TIMEOUT_SECONDS
+    assert swift_proxy._keystone_session._connect_retries == swift_proxy.KEYSTONE_CONNECT_RETRIES
 
 
 @pytest.fixture
