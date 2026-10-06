@@ -47,6 +47,11 @@ SPDX-FileCopyrightText = "2026 Canonical Ltd."
 SPDX-License-Identifier = "Apache-2.0"
 
 [[annotations]]
+path = "charms/backend/src/templates/nginx.conf"
+SPDX-FileCopyrightText = "2026 Canonical Ltd."
+SPDX-License-Identifier = "Apache-2.0"
+
+[[annotations]]
 path = "backend/schemata/openapi.json"
 SPDX-FileCopyrightText = "2026 Canonical Ltd."
 SPDX-License-Identifier = "AGPL-3.0-only"

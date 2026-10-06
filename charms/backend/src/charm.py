@@ -43,7 +43,8 @@ from ops.charm import (
 )
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import APIError, Error as PebbleError, ExecError, Layer, PathError
+from ops.pebble import APIError, ExecError, Layer, PathError
+from ops.pebble import Error as PebbleError
 from requests import get
 from swift_proxy_nginx import (
     API_INTERNAL_PORT,
@@ -648,7 +649,9 @@ class TestObserverBackendCharm(CharmBase):
             "OS_USERNAME": str(self.config["swift_os_username"]),
             "OS_PROJECT_NAME": str(self.config["swift_os_project_name"]),
             "OS_USER_DOMAIN_NAME": str(self.config.get("swift_os_user_domain_name", "Default")),
-            "OS_PROJECT_DOMAIN_NAME": str(self.config.get("swift_os_project_domain_name", "Default")),
+            "OS_PROJECT_DOMAIN_NAME": str(
+                self.config.get("swift_os_project_domain_name", "Default")
+            ),
             "OS_PASSWORD": password,
             "SWIFT_PROXY_AUTH_SECRET": self._stored.swift_proxy_auth_secret,
             "SWIFT_PROXY_TEAM": str(self.config.get("swift_proxy_team", "swift")).strip(),
@@ -684,9 +687,7 @@ class TestObserverBackendCharm(CharmBase):
         try:
             nginx_is_running = any(
                 service.is_running()
-                for service in self.api_container.get_services(
-                    [self.nginx_pebble_service_name]
-                )
+                for service in self.api_container.get_services(self.nginx_pebble_service_name)
             )
         except (PebbleError, OSError):
             logger.exception("Could not determine whether nginx is serving Swift routes")
@@ -715,7 +716,9 @@ class TestObserverBackendCharm(CharmBase):
             try:
                 self.api_container.stop(self.nginx_pebble_service_name)
             except (PebbleError, OSError):
-                logger.exception("Could not stop nginx after failing to disable Swift proxy routes")
+                logger.exception(
+                    "Could not stop nginx after failing to disable Swift proxy routes"
+                )
                 self._stored.swift_proxy_disable_pending = True
                 return False
 
@@ -756,61 +759,68 @@ class TestObserverBackendCharm(CharmBase):
             return
         self._update_api_layer()
 
-    def _update_api_layer(self, _=None):
-        failure_status: BlockedStatus | WaitingStatus | None = None
-        swift_environment: dict[str, str] | None = None
-        nginx_config_changed = True
-        nginx_was_running = False
-
+    def _api_layer_blocker(
+        self,
+    ) -> tuple[BlockedStatus | WaitingStatus | None, dict[str, str] | None]:
         if configuration_error := self._api_configuration_error():
-            failure_status = BlockedStatus(configuration_error)
-        elif not self.api_container.can_connect():
-            failure_status = WaitingStatus("Waiting for Pebble for API")
+            return BlockedStatus(configuration_error), None
+        if not self.api_container.can_connect():
+            return WaitingStatus("Waiting for Pebble for API"), None
         # Building the Pebble layer reads the database connection details via
         # _app_environment -> _postgres_relation_data(), which raises SystemExit
         # and aborts the hook if the relation has not provided endpoints yet.
         # Gate on relation readiness first so we report the real blocker.
-        elif not self._database_relation_ready():
-            failure_status = WaitingStatus("Waiting for database relation")
-        elif not self._migrations_ready():
-            failure_status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
-        else:
-            swift_environment = self._swift_proxy_environment()
-            if swift_environment is None:
-                failure_status = BlockedStatus(
+        if not self._database_relation_ready():
+            return WaitingStatus("Waiting for database relation"), None
+        if not self._migrations_ready():
+            return WaitingStatus(WAITING_FOR_MIGRATION_MSG), None
+        swift_environment = self._swift_proxy_environment()
+        if swift_environment is None:
+            return (
+                BlockedStatus(
                     "Cannot read password from swift_os_password_secret; check the secret grant"
-                )
+                ),
+                None,
+            )
+        return None, swift_environment
 
-        if failure_status is None:
+    def _sync_nginx_config(self) -> bool:
+        """Write and validate the nginx config; return False if it is invalid."""
+        nginx_config_changed = True
+        try:
+            nginx_config = self._build_nginx_config()
             try:
-                nginx_config = self._build_nginx_config()
-                try:
-                    with self.api_container.pull(NGINX_CONFIG_PATH) as current_config:
-                        nginx_config_changed = current_config.read() != nginx_config
-                except PathError as exc:
-                    if exc.kind != "not-found":
-                        raise
-                nginx_was_running = any(
-                    service.is_running()
-                    for service in self.api_container.get_services(
-                        [self.nginx_pebble_service_name]
-                    )
+                with self.api_container.pull(NGINX_CONFIG_PATH) as current_config:
+                    nginx_config_changed = current_config.read() != nginx_config
+            except PathError as exc:
+                if exc.kind != "not-found":
+                    raise
+            nginx_was_running = any(
+                service.is_running()
+                for service in self.api_container.get_services(self.nginx_pebble_service_name)
+            )
+            if nginx_config_changed and nginx_was_running:
+                self._stored.nginx_restart_pending = True
+            if nginx_config_changed:
+                self.api_container.push(
+                    NGINX_CONFIG_PATH,
+                    nginx_config,
+                    make_dirs=True,
+                    permissions=0o600,
                 )
-                if nginx_config_changed and nginx_was_running:
-                    self._stored.nginx_restart_pending = True
-                if nginx_config_changed:
-                    self.api_container.push(
-                        NGINX_CONFIG_PATH,
-                        nginx_config,
-                        make_dirs=True,
-                        permissions=0o600,
-                    )
-                self.api_container.exec(["nginx", "-t"]).wait_output()
-            except (APIError, ExecError, OSError, PathError, ValueError) as e:
-                logger.error("Nginx configuration update failed: %s", e)
-                if isinstance(e, ExecError):
-                    logger.error(e.stderr)
-                failure_status = BlockedStatus("Invalid nginx configuration; check debug-log")
+            self.api_container.exec(["nginx", "-t"]).wait_output()
+        except (APIError, ExecError, OSError, PathError, ValueError) as e:
+            logger.error("Nginx configuration update failed: %s", e)
+            if isinstance(e, ExecError):
+                logger.error(e.stderr)
+            return False
+        return True
+
+    def _update_api_layer(self, _=None):
+        failure_status, swift_environment = self._api_layer_blocker()
+
+        if failure_status is None and not self._sync_nginx_config():
+            failure_status = BlockedStatus("Invalid nginx configuration; check debug-log")
 
         if failure_status is not None:
             if self._disable_active_swift_proxy():

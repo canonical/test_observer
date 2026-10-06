@@ -101,9 +101,7 @@ def test_unauthenticated_subrequest_provides_same_origin_login_url(
     assert login_url.netloc == "test-observer-api.example.com"
     assert login_url.path == "/v1/auth/saml/login"
     return_to = parse_qs(login_url.query)["return_to"][0]
-    assert return_to == (
-        "https://test-observer-api.example.com/v1/swift/charm-qa/artifact.tar?download=1"
-    )
+    assert return_to == ("https://test-observer-api.example.com/v1/swift/charm-qa/artifact.tar?download=1")
 
 
 def test_login_url_accepts_exact_swift_root(monkeypatch: pytest.MonkeyPatch):
@@ -111,9 +109,7 @@ def test_login_url_accepts_exact_swift_root(monkeypatch: pytest.MonkeyPatch):
 
     login_url = urlsplit(swift_proxy._login_url("/v1/swift"))
 
-    assert parse_qs(login_url.query)["return_to"] == [
-        "https://test-observer-api.example.com/v1/swift"
-    ]
+    assert parse_qs(login_url.query)["return_to"] == ["https://test-observer-api.example.com/v1/swift"]
 
 
 @pytest.mark.parametrize(

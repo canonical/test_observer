@@ -86,18 +86,12 @@ def _login_url(original_uri: str) -> str:
     if (
         parsed.scheme
         or parsed.netloc
-        or not (
-            decoded_path == "/v1/swift"
-            or decoded_path.startswith("/v1/swift/")
-        )
+        or not (decoded_path == "/v1/swift" or decoded_path.startswith("/v1/swift/"))
         or "\\" in decoded_path
         or "\x00" in decoded_path
         or any(ord(character) < 32 or ord(character) == 127 for character in decoded_path)
         or any(segment in {".", ".."} for segment in decoded_path.split("/"))
-        or not (
-            normalized_path == "/v1/swift"
-            or normalized_path.startswith("/v1/swift/")
-        )
+        or not (normalized_path == "/v1/swift" or normalized_path.startswith("/v1/swift/"))
     ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
