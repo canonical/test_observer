@@ -152,8 +152,17 @@ def _create_user(db: Session, auth: OneLogin_Saml2_Auth) -> User:
         },
     )
 
-    if lp_user:
-        teams_to_add = [get_or_create(db, Team, {"name": t}) for t in lp_user.teams]
+    if USE_LOCAL_LOGIN:
+        local_team_claim = attributes.get("lp_teams", [])
+        if not isinstance(local_team_claim, list) or any(not isinstance(team, str) for team in local_team_claim):
+            logger.warning("Ignoring malformed lp_teams SAML attribute for local user %s", email)
+            local_team_claim = []
+        team_names = [team.strip() for team in local_team_claim if team.strip()]
+    else:
+        team_names = lp_user.teams if lp_user else []
+
+    if team_names:
+        teams_to_add = [get_or_create(db, Team, {"name": team}) for team in team_names]
         user_teams = user.teams + teams_to_add
         user.teams = list({team.id: team for team in user_teams}.values())
 
@@ -186,9 +195,11 @@ async def saml_logout_callback(request: Request):
 
 def _redirect_to_return_url(return_to: str) -> RedirectResponse | None:
     frontend_url = urlparse(FRONTEND_URL)
+    api_url = urlparse(SAML_SP_BASE_URL)
     return_url = urlparse(return_to)
     # Check if it's safe to redirect user to this URL
-    if frontend_url.netloc == return_url.netloc:
+    allowed_origins = {(url.scheme, url.netloc) for url in (frontend_url, api_url) if url.scheme and url.netloc}
+    if (return_url.scheme, return_url.netloc) in allowed_origins:
         response = RedirectResponse(url=return_to, status_code=status.HTTP_302_FOUND)
         return response
     else:

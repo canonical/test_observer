@@ -63,57 +63,25 @@ assumes:
 
 config:
   options:
-    saml_idp_metadata_url:
-      description: SAML metadata endpoint for the identity provider
-      type: string
-    saml_sp_cert:
-      description: SAML service provider X.509 certificate
-      type: string
-    saml_sp_key:
-      description: SAML service provider certificate private key
-      type: string
-    port:
-      default: 30000
-      description: The port to listen on for incoming HTTP requests.
-      type: int
-    hostname:
-      default: test-observer-api
-      description: Public hostname for the service.
-      type: string
     additional_cors_origins:
       default: ""
       description: Additional origins for CORS headers as comma-separated full origins, including scheme and optional port (for example, https://example.com or http://localhost:3000)
-      type: string
-    frontend_hostname:
-      default: test-observer
-      description: Public hostname for the frontend connected to this API
-      type: string
-    sentry_dsn:
-      default: ""
-      description: value for SENTRY_DSN that is used to send errors to sentry
-      type: string
-    sessions_secret:
-      description: Randomly generated secret key to use for signing session cookies
-      type: string
-    ignore_permissions:
-      description: Comma separated list of API permissions to ignore for all requests
       type: string
     enable_issue_sync:
       description: Whether to enable periodic syncing of issues from GitHub, Jira, and Launchpad
       type: boolean
       default: false
-    metrics_init_days:
-      description: Number of days of historical data to load when initializing metrics on startup. Use 0 to load all historical data.
-      type: int
-      default: 30
-    metrics_init_enabled:
-      description: Whether to initialize Prometheus metrics from the database on startup.
-      type: boolean
-      default: true
-    require_authentication:
-      description: Whether to require authentication for all API endpoints.
-      type: boolean
-      default: false
+    frontend_hostname:
+      default: test-observer
+      description: Public hostname for the frontend connected to this API
+      type: string
+    hostname:
+      default: test-observer-api
+      description: Public hostname for the service.
+      type: string
+    ignore_permissions:
+      description: Comma separated list of API permissions to ignore for all requests
+      type: string
     max_execution_page_limit:
       description: >-
         The largest page size (the limit query parameter) the test execution search,
@@ -123,13 +91,6 @@ config:
         It must be at least 50, the default page size.
       type: int
       default: 50
-    max_result_page_limit:
-      description: >-
-        The largest page size the test result search, GET /v1/test-results, accepts.
-        Each result on a page carries its own io log. Larger requests are rejected
-        with HTTP 422. It must be at least 50, the default page size.
-      type: int
-      default: 1000
     max_listing_page_limit:
       description: >-
         The largest page size the listing endpoints accept: artefact search and
@@ -139,6 +100,84 @@ config:
         page size of most of them.
       type: int
       default: 1000
+    max_result_page_limit:
+      description: >-
+        The largest page size the test result search, GET /v1/test-results, accepts.
+        Each result on a page carries its own io log. Larger requests are rejected
+        with HTTP 422. It must be at least 50, the default page size.
+      type: int
+      default: 1000
+    metrics_init_days:
+      description: Number of days of historical data to load when initializing metrics on startup. Use 0 to load all historical data.
+      type: int
+      default: 30
+    metrics_init_enabled:
+      description: Whether to initialize Prometheus metrics from the database on startup.
+      type: boolean
+      default: true
+    port:
+      default: 30000
+      description: The port to listen on for incoming HTTP requests.
+      type: int
+    require_authentication:
+      description: Whether to require authentication for all API endpoints.
+      type: boolean
+      default: false
+    saml_idp_metadata_url:
+      description: SAML metadata endpoint for the identity provider
+      type: string
+    saml_sp_cert:
+      description: SAML service provider X.509 certificate
+      type: string
+    saml_sp_key:
+      description: SAML service provider certificate private key
+      type: string
+    sentry_dsn:
+      default: ""
+      description: value for SENTRY_DSN that is used to send errors to sentry
+      type: string
+    sessions_secret:
+      description: Randomly generated secret key to use for signing session cookies
+      type: string
+    swift_base_url:
+      description: HTTPS Swift base URL including the AUTH segment and trailing slash.
+      type: string
+      default: ""
+    swift_containers:
+      description: Comma-separated Swift containers to expose under /v1/swift/.
+      type: string
+      default: ""
+    swift_os_auth_url:
+      description: OpenStack Keystone v3 authentication URL for the Swift read-only proxy.
+      type: string
+      default: ""
+    swift_os_password_secret:
+      description: Juju secret containing the OpenStack password in a "password" field.
+      type: secret
+    swift_os_project_domain_name:
+      description: OpenStack project domain name.
+      type: string
+      default: "Default"
+    swift_os_project_name:
+      description: OpenStack project name for the Swift read-only proxy.
+      type: string
+      default: ""
+    swift_os_user_domain_name:
+      description: OpenStack user domain name.
+      type: string
+      default: "Default"
+    swift_os_username:
+      description: OpenStack service account username for the Swift read-only proxy.
+      type: string
+      default: ""
+    swift_proxy_ssl_verify_depth:
+      description: Maximum TLS certificate chain depth for the Swift backend.
+      type: int
+      default: 1
+    swift_proxy_team:
+      description: Launchpad team required to access the Swift read-only proxy.
+      type: string
+      default: "swift"
 
 resources:
   api-image:

@@ -39,11 +39,13 @@ from . import (
 from .application import version
 from .artefact_matching_rules import artefact_matching_rules
 from .artefacts import artefacts
+from .auth.swift_proxy import router as swift_proxy_auth_router
 from .execution_metadata import execution_metadata
 from .issues import issues
 from .teams import teams
 
 router: APIRouter = APIRouter()
+router.include_router(swift_proxy_auth_router)
 router.include_router(version.router, prefix="/v1/version")
 router.include_router(test_executions.router, prefix="/v1/test-executions")
 router.include_router(artefacts.router, prefix="/v1/artefacts")

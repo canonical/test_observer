@@ -38,11 +38,26 @@ services:
       SESSIONS_HTTPS_ONLY: "false"
       REQUIRE_AUTHENTICATION: "${REQUIRE_AUTHENTICATION:-false}"
       USE_LOCAL_LOGIN: "${USE_LOCAL_LOGIN:-true}"
+      SWIFT_PROXY_ENABLED: "${SWIFT_PROXY_ENABLED:-false}"
+      SWIFT_PROXY_AUTH_SECRET: "${SWIFT_PROXY_AUTH_SECRET:-}"
+      SWIFT_PROXY_TEAM: "${SWIFT_PROXY_TEAM:-swift}"
+      SWIFT_BASE_URL: "${SWIFT_BASE_URL:-}"
+      SWIFT_CONTAINERS: "${SWIFT_CONTAINERS:-}"
+      SWIFT_PROXY_SSL_VERIFY_DEPTH: "${SWIFT_PROXY_SSL_VERIFY_DEPTH:-1}"
+      OS_AUTH_URL: "${OS_AUTH_URL:-}"
+      OS_USERNAME: "${OS_USERNAME:-}"
+      OS_PASSWORD: "${OS_PASSWORD:-}"
+      OS_PROJECT_NAME: "${OS_PROJECT_NAME:-}"
+      OS_USER_DOMAIN_NAME: "${OS_USER_DOMAIN_NAME:-Default}"
+      OS_PROJECT_DOMAIN_NAME: "${OS_PROJECT_DOMAIN_NAME:-Default}"
     volumes:
       # Mount source code from host for development
       - ./backend:/home/app
       # Preserve virtual environment in anonymous volume
       - /home/app/.venv
+      # Keep local proxy config generation aligned with the backend charm
+      - ./charms/backend/src/swift_proxy_nginx.py:/opt/test-observer/swift_proxy_nginx.py:ro
+      - ./charms/backend/src/templates/nginx.conf:/etc/nginx/nginx.conf.template:ro
 
   test-observer-frontend:
     image: test-observer-frontend

@@ -225,6 +225,7 @@ class TestSAMLAuthentication:
         # skips the Launchpad lookup and no launchpad handle is recorded.
         if USE_LOCAL_LOGIN:
             assert user.launchpad_handle is None
+            assert "canonical" in {team.name for team in user.teams}
         else:
             assert user.launchpad_handle == self.CREDENTIALS["username"]
 
@@ -305,12 +306,40 @@ class TestSAMLAuthentication:
         )
 
 
-def _build_auth(email: str, fullname: str) -> MagicMock:
+def _build_auth(
+    email: str,
+    fullname: str,
+    lp_teams: list[str] | None = None,
+) -> MagicMock:
     """Build a stub SAML auth object exposing the bits _create_user uses."""
     auth = MagicMock()
     auth.get_nameid.return_value = email
-    auth.get_attributes.return_value = {"fullname": [fullname]}
+    attributes = {"fullname": [fullname]}
+    if lp_teams is not None:
+        attributes["lp_teams"] = lp_teams
+    auth.get_attributes.return_value = attributes
     return auth
+
+
+def test_saml_return_url_accepts_api_origin_for_proxy(monkeypatch: pytest.MonkeyPatch):
+    """SAML may return to protected proxy paths on the API host."""
+    monkeypatch.setattr(saml, "FRONTEND_URL", "https://test-observer.example.com")
+    monkeypatch.setattr(saml, "SAML_SP_BASE_URL", "https://test-observer-api.example.com")
+
+    response = saml._redirect_to_return_url("https://test-observer-api.example.com/v1/swift/charm-qa/artifact.tar")
+
+    assert response is not None
+    assert response.status_code == 302
+    assert response.headers["location"] == ("https://test-observer-api.example.com/v1/swift/charm-qa/artifact.tar")
+
+
+def test_saml_return_url_rejects_api_origin_with_different_scheme(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    monkeypatch.setattr(saml, "FRONTEND_URL", "https://test-observer.example.com")
+    monkeypatch.setattr(saml, "SAML_SP_BASE_URL", "https://test-observer-api.example.com")
+
+    assert saml._redirect_to_return_url("http://test-observer-api.example.com/v1/swift/charm-qa/artifact.tar") is None
 
 
 class TestCreateUserLocalLogin:
@@ -343,6 +372,51 @@ class TestCreateUserLocalLogin:
         assert persisted.id == user.id
         assert persisted.launchpad_handle is None
         assert persisted.teams == []
+
+    def test_local_login_adds_teams_from_saml_attribute(self, db_session: Session, monkeypatch: pytest.MonkeyPatch):
+        """Local SAML lp_teams claims are persisted without a Launchpad lookup."""
+        monkeypatch.setattr(saml, "USE_LOCAL_LOGIN", True)
+        monkeypatch.setattr(
+            saml,
+            "LaunchpadAPI",
+            MagicMock(side_effect=AssertionError("LaunchpadAPI should not be used")),
+        )
+
+        auth = _build_auth(
+            "local.user@example.com",
+            "Local User",
+            lp_teams=["canonical-hw-cert", "swift"],
+        )
+        user = saml._create_user(db_session, auth)
+
+        assert {team.name for team in user.teams} == {"canonical-hw-cert", "swift"}
+        assert user.launchpad_handle is None
+
+    def test_local_login_preserves_existing_memberships_and_adds_claims(
+        self, db_session: Session, monkeypatch: pytest.MonkeyPatch
+    ):
+        """Local SAML team claims add memberships without removing existing teams."""
+        monkeypatch.setattr(saml, "USE_LOCAL_LOGIN", True)
+        existing_team = get_or_create(db_session, Team, {"name": "existing-team"})
+        user = User(
+            email="existing.membership@example.com",
+            name="Existing Membership",
+            teams=[existing_team],
+        )
+        db_session.add(user)
+        db_session.flush()
+
+        auth = _build_auth(
+            "existing.membership@example.com",
+            "Existing Membership",
+            lp_teams=["canonical-hw-cert"],
+        )
+        updated_user = saml._create_user(db_session, auth)
+
+        assert {team.name for team in updated_user.teams} == {
+            "existing-team",
+            "canonical-hw-cert",
+        }
 
 
 class TestCreateUserLaunchpadLogin:

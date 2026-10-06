@@ -19,6 +19,7 @@
 
 import logging
 import os
+import secrets
 import sys
 import urllib.parse
 from collections import ChainMap
@@ -33,18 +34,37 @@ from charms.traefik_k8s.v2.ingress import (
     IngressPerAppRequirer,
     IngressPerAppRevokedEvent,
 )
-from ops import CollectStatusEvent, StoredState, UpdateStatusEvent
-from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
+from ops import CollectStatusEvent, SecretNotFoundError, StoredState, UpdateStatusEvent
+from ops.charm import (
+    CharmBase,
+    RelationChangedEvent,
+    RelationCreatedEvent,
+    SecretChangedEvent,
+)
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import APIError, ExecError, Layer
+from ops.pebble import APIError, ExecError, Layer, PathError
+from ops.pebble import Error as PebbleError
 from requests import get
+from swift_proxy_nginx import (
+    API_INTERNAL_PORT,
+    render_nginx_config,
+    validate_keystone_auth_url,
+    validate_nginx_listen_port,
+    validate_swift_config,
+)
 
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
 
 INGRESS_RELATION_NAME = "ingress"
 INGRESS_CONFLICT_MESSAGE = "Cannot have both ingress and nginx-route relations at the same time"
+NGINX_SERVICE_NAME = "nginx"
+NGINX_CONFIG_PATH = "/etc/nginx/nginx.conf"
+SWIFT_PROXY_DISABLE_FAILED_MESSAGE = (
+    "Swift proxy may still be accessible: unable to disable or stop nginx; "
+    "the charm will retry when Pebble is available"
+)
 
 # Charm options for the largest page each kind of paginated endpoint accepts,
 # and the API settings they become. The API refuses values below MIN_PAGE_LIMIT.
@@ -84,6 +104,7 @@ class TestObserverBackendCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self.api_pebble_service_name = "test-observer-api"
+        self.nginx_pebble_service_name = NGINX_SERVICE_NAME
         self.api_container = self.unit.get_container("api")
 
         self.celery_pebble_service_name = "celery-worker"
@@ -92,6 +113,7 @@ class TestObserverBackendCharm(CharmBase):
         self.framework.observe(self.on.api_pebble_ready, self._update_api_layer)
         self.framework.observe(self.on.celery_pebble_ready, self._update_celery_layer)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(self.on.secret_changed, self._on_secret_changed)
 
         self.database = DatabaseRequires(
             self, relation_name="database", database_name="test_observer_db"
@@ -178,7 +200,13 @@ class TestObserverBackendCharm(CharmBase):
         )
 
     def _setup_redis(self):
-        self._stored.set_default(redis_relation={})
+        self._stored.set_default(
+            redis_relation={},
+            swift_proxy_auth_secret=secrets.token_urlsafe(32),
+            swift_proxy_active=False,
+            swift_proxy_disable_pending=False,
+            nginx_restart_pending=False,
+        )
         self.redis = RedisRequires(self)
         self.framework.observe(
             self.on.redis_relation_updated,
@@ -268,6 +296,12 @@ class TestObserverBackendCharm(CharmBase):
         return True
 
     def _on_update_status(self, event: UpdateStatusEvent) -> None:
+        if self._stored.swift_proxy_disable_pending or self._stored.nginx_restart_pending:
+            self._update_api_layer()
+            if isinstance(self.unit.status, ActiveStatus):
+                self._update_celery_layer()
+            return
+
         # On the leader, (re)run migrations when the last attempt failed, or
         # when the published revision no longer matches the Alembic heads this
         # unit's image expects. The latter happens after a leadership change
@@ -441,15 +475,8 @@ class TestObserverBackendCharm(CharmBase):
         return self._get_published_migration_revision() == expected
 
     def _on_database_changed(self, event):
-        if not self._validate_saml_config():
-            self.unit.status = BlockedStatus(
-                "SAML config incomplete: if any SAML setting is provided, "
-                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
-            )
-            return
-
-        if page_limit_error := self._page_limit_config_error():
-            self.unit.status = BlockedStatus(page_limit_error)
+        if self._api_configuration_error():
+            self._update_api_layer()
             return
 
         # Don't reconcile layers if the migration set a blocking/waiting status,
@@ -497,63 +524,336 @@ class TestObserverBackendCharm(CharmBase):
         # If none are provided, that's valid
         return True
 
-    def _on_config_changed(self, event):
+    def _swift_proxy_enabled(self) -> bool:
+        """Return True when any Swift proxy option is configured."""
+        keys = (
+            "swift_os_auth_url",
+            "swift_os_username",
+            "swift_os_project_name",
+            "swift_os_password_secret",
+            "swift_base_url",
+            "swift_containers",
+        )
+        return any(self.config.get(key) and str(self.config.get(key)).strip() for key in keys)
+
+    def _validate_swift_proxy_config(self) -> str | None:
+        """Validate optional Swift proxy configuration."""
+        if not self._swift_proxy_enabled():
+            return None
+
+        required = {
+            "swift_os_auth_url": "OpenStack Keystone URL",
+            "swift_os_username": "OpenStack service username",
+            "swift_os_project_name": "OpenStack project name",
+            "swift_os_password_secret": "OpenStack password secret",
+            "swift_base_url": "Swift base URL",
+            "swift_containers": "Swift container list",
+        }
+        for key, description in required.items():
+            value = self.config.get(key)
+            if not value or not str(value).strip():
+                return f"Missing required Swift proxy configuration: {description}"
+
+        if not str(self.config.get("swift_proxy_team", "swift")).strip():
+            return "swift_proxy_team must be a non-empty Launchpad team name"
+
+        if not self.config.get("saml_idp_metadata_url") or not self._validate_saml_config():
+            return "Swift proxy requires complete Test Observer SAML configuration"
+
+        try:
+            validate_keystone_auth_url(
+                str(self.config["swift_os_auth_url"]),
+                setting_name="swift_os_auth_url",
+            )
+        except ValueError as exc:
+            return str(exc)
+
+        containers = self._swift_containers()
+        try:
+            verify_depth = int(self.config.get("swift_proxy_ssl_verify_depth", 1))
+        except (TypeError, ValueError):
+            return "swift_proxy_ssl_verify_depth must be a positive integer"
+
+        try:
+            validate_swift_config(
+                str(self.config["swift_base_url"]),
+                containers,
+                verify_depth,
+                base_url_setting="swift_base_url",
+                containers_setting="swift_containers",
+                verify_depth_setting="swift_proxy_ssl_verify_depth",
+            )
+        except ValueError as exc:
+            return str(exc)
+
+        return None
+
+    def _api_configuration_error(self) -> str | None:
+        """Return the first API, page-limit, or Swift configuration error."""
+        try:
+            validate_nginx_listen_port(int(self.config["port"]))
+        except (TypeError, ValueError) as exc:
+            return str(exc)
+
         if not self._validate_saml_config():
-            self.unit.status = BlockedStatus(
+            return (
                 "SAML config incomplete: if any SAML setting is provided, "
                 "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
             )
-            return
-
         if page_limit_error := self._page_limit_config_error():
-            self.unit.status = BlockedStatus(page_limit_error)
+            return page_limit_error
+        return self._validate_swift_proxy_config()
+
+    def _swift_containers(self) -> list[str]:
+        """Return the configured Swift container names."""
+        return [
+            container.strip()
+            for container in str(self.config.get("swift_containers", "")).split(",")
+            if container.strip()
+        ]
+
+    def _swift_proxy_environment(self) -> dict[str, str] | None:
+        """Return Swift settings for the API service, excluding them from Celery."""
+        if not self._swift_proxy_enabled():
+            return {
+                "SWIFT_PROXY_ENABLED": "false",
+                "SWIFT_PROXY_AUTH_SECRET": "",
+                "SWIFT_PROXY_TEAM": str(self.config.get("swift_proxy_team", "swift")).strip(),
+                "OS_AUTH_URL": "",
+                "OS_USERNAME": "",
+                "OS_PASSWORD": "",
+                "OS_PROJECT_NAME": "",
+                "OS_USER_DOMAIN_NAME": "",
+                "OS_PROJECT_DOMAIN_NAME": "",
+            }
+
+        secret_id = str(self.config.get("swift_os_password_secret", ""))
+        try:
+            secret = self.model.get_secret(id=secret_id)
+            content = secret.get_content(refresh=True)
+        except SecretNotFoundError:
+            logger.error("Juju secret %s was not found", secret_id)
+            return None
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Could not read Swift proxy password secret %s", secret_id)
+            return None
+
+        password = content.get("password")
+        if not password:
+            logger.error("Swift proxy password secret %s has no 'password' field", secret_id)
+            return None
+
+        return {
+            "SWIFT_PROXY_ENABLED": "true",
+            "OS_AUTH_URL": str(self.config["swift_os_auth_url"]),
+            "OS_USERNAME": str(self.config["swift_os_username"]),
+            "OS_PROJECT_NAME": str(self.config["swift_os_project_name"]),
+            "OS_USER_DOMAIN_NAME": str(self.config.get("swift_os_user_domain_name", "Default")),
+            "OS_PROJECT_DOMAIN_NAME": str(
+                self.config.get("swift_os_project_domain_name", "Default")
+            ),
+            "OS_PASSWORD": password,
+            "SWIFT_PROXY_AUTH_SECRET": self._stored.swift_proxy_auth_secret,
+            "SWIFT_PROXY_TEAM": str(self.config.get("swift_proxy_team", "swift")).strip(),
+        }
+
+    def _build_nginx_config(self, *, swift_proxy_enabled: bool | None = None) -> str:
+        """Render nginx with one restricted object location per configured container."""
+        template_path = self.charm_dir / "src" / "templates" / "nginx.conf"
+        if swift_proxy_enabled is None:
+            swift_proxy_enabled = self._swift_proxy_enabled()
+        return render_nginx_config(
+            template_path.read_text(encoding="utf-8"),
+            port=int(self.config["port"]),
+            swift_proxy_enabled=swift_proxy_enabled,
+            auth_secret=self._stored.swift_proxy_auth_secret if swift_proxy_enabled else "",
+            swift_base_url=str(self.config.get("swift_base_url", "")),
+            containers=self._swift_containers(),
+            verify_depth=int(self.config.get("swift_proxy_ssl_verify_depth", 1))
+            if swift_proxy_enabled
+            else 1,
+        )
+
+    def _disable_active_swift_proxy(self) -> bool:
+        """Remove Swift routes from nginx if a previously active proxy must fail closed."""
+        if not self.api_container.can_connect():
+            self._stored.swift_proxy_disable_pending = True
+            logger.error(
+                "The Swift proxy may remain accessible because Pebble is unavailable; "
+                "the charm will retry disabling nginx"
+            )
+            return False
+
+        try:
+            nginx_is_running = any(
+                service.is_running()
+                for service in self.api_container.get_services(self.nginx_pebble_service_name)
+            )
+        except (PebbleError, OSError):
+            logger.exception("Could not determine whether nginx is serving Swift routes")
+            self._stored.swift_proxy_disable_pending = True
+            return False
+
+        if (
+            not self._stored.swift_proxy_active
+            and not self._stored.nginx_restart_pending
+            and not nginx_is_running
+        ):
+            self._stored.swift_proxy_disable_pending = False
+            return True
+
+        try:
+            self.api_container.push(
+                NGINX_CONFIG_PATH,
+                self._build_nginx_config(swift_proxy_enabled=False),
+                make_dirs=True,
+                permissions=0o600,
+            )
+            self.api_container.exec(["nginx", "-t"]).wait_output()
+            self.api_container.restart(self.nginx_pebble_service_name)
+        except (PebbleError, OSError, ValueError):
+            logger.exception("Failed to disable the active Swift proxy")
+            try:
+                self.api_container.stop(self.nginx_pebble_service_name)
+            except (PebbleError, OSError):
+                logger.exception(
+                    "Could not stop nginx after failing to disable Swift proxy routes"
+                )
+                self._stored.swift_proxy_disable_pending = True
+                return False
+
+        self._stored.swift_proxy_active = False
+        self._stored.swift_proxy_disable_pending = False
+        self._stored.nginx_restart_pending = False
+        return True
+
+    def _restart_nginx_if_pending(self) -> bool:
+        """Retry an nginx restart after its config changed, preserving state on failure."""
+        if not self._stored.nginx_restart_pending:
+            return True
+        try:
+            self.api_container.restart(self.nginx_pebble_service_name)
+        except (PebbleError, OSError):
+            logger.exception("Failed to restart nginx with the updated configuration")
+            self.unit.status = WaitingStatus("Waiting for nginx restart")
+            return False
+        self._stored.nginx_restart_pending = False
+        return True
+
+    def _on_config_changed(self, event):
+        if self._api_configuration_error():
+            self._update_api_layer(event)
             return
 
         self.ingress.provide_ingress_requirements(port=int(self.config["port"]))
         self._update_frontend_relation_data()
         self._update_api_layer(event)
+        if not isinstance(self.unit.status, ActiveStatus):
+            return
         self._update_celery_layer(event)
 
-    def _update_api_layer(self, _=None):
-        if not self._validate_saml_config():
-            self.unit.status = BlockedStatus(
-                "SAML config incomplete: if any SAML setting is provided, "
-                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
-            )
+    def _on_secret_changed(self, event: SecretChangedEvent) -> None:
+        """Reload the API workload when its Swift password secret changes."""
+        secret_id = str(self.config.get("swift_os_password_secret", "")).strip()
+        if not self._swift_proxy_enabled() or event.secret.id != secret_id:
             return
+        self._update_api_layer()
 
-        if page_limit_error := self._page_limit_config_error():
-            self.unit.status = BlockedStatus(page_limit_error)
-            return
-
+    def _api_layer_blocker(
+        self,
+    ) -> tuple[BlockedStatus | WaitingStatus | None, dict[str, str] | None]:
+        if configuration_error := self._api_configuration_error():
+            return BlockedStatus(configuration_error), None
         if not self.api_container.can_connect():
-            self.unit.status = WaitingStatus("Waiting for Pebble for API")
-            return
-
+            return WaitingStatus("Waiting for Pebble for API"), None
         # Building the Pebble layer reads the database connection details via
         # _app_environment -> _postgres_relation_data(), which raises SystemExit
         # and aborts the hook if the relation has not provided endpoints yet.
         # Gate on relation readiness first so we report the real blocker.
         if not self._database_relation_ready():
-            self.unit.status = WaitingStatus("Waiting for database relation")
+            return WaitingStatus("Waiting for database relation"), None
+        if not self._migrations_ready():
+            return WaitingStatus(WAITING_FOR_MIGRATION_MSG), None
+        swift_environment = self._swift_proxy_environment()
+        if swift_environment is None:
+            return (
+                BlockedStatus(
+                    "Cannot read password from swift_os_password_secret; check the secret grant"
+                ),
+                None,
+            )
+        return None, swift_environment
+
+    def _sync_nginx_config(self) -> bool:
+        """Write and validate the nginx config; return False if it is invalid."""
+        nginx_config_changed = True
+        try:
+            nginx_config = self._build_nginx_config()
+            try:
+                with self.api_container.pull(NGINX_CONFIG_PATH) as current_config:
+                    nginx_config_changed = current_config.read() != nginx_config
+            except PathError as exc:
+                if exc.kind != "not-found":
+                    raise
+            nginx_was_running = any(
+                service.is_running()
+                for service in self.api_container.get_services(self.nginx_pebble_service_name)
+            )
+            if nginx_config_changed and nginx_was_running:
+                self._stored.nginx_restart_pending = True
+            if nginx_config_changed:
+                self.api_container.push(
+                    NGINX_CONFIG_PATH,
+                    nginx_config,
+                    make_dirs=True,
+                    permissions=0o600,
+                )
+            self.api_container.exec(["nginx", "-t"]).wait_output()
+        except (APIError, ExecError, OSError, PathError, ValueError) as e:
+            logger.error("Nginx configuration update failed: %s", e)
+            if isinstance(e, ExecError):
+                logger.error(e.stderr)
+            return False
+        return True
+
+    def _update_api_layer(self, _=None):
+        failure_status, swift_environment = self._api_layer_blocker()
+
+        if failure_status is None and not self._sync_nginx_config():
+            failure_status = BlockedStatus("Invalid nginx configuration; check debug-log")
+
+        if failure_status is not None:
+            if self._disable_active_swift_proxy():
+                self.unit.status = failure_status
+            else:
+                self.unit.status = BlockedStatus(SWIFT_PROXY_DISABLE_FAILED_MESSAGE)
             return
 
-        if not self._migrations_ready():
-            self.unit.status = WaitingStatus(WAITING_FOR_MIGRATION_MSG)
-            return
+        assert swift_environment is not None
 
         self.unit.status = MaintenanceStatus(f"Updating {self.api_pebble_service_name} layer")
 
         self.api_container.add_layer(
-            self.api_pebble_service_name, self._api_pebble_layer, combine=True
+            self.api_pebble_service_name,
+            self._api_pebble_layer(swift_environment),
+            combine=True,
         )
-        self.api_container.restart(self.api_pebble_service_name)
+        self.api_container.replan()
+        if not self._restart_nginx_if_pending():
+            return
+        self._stored.swift_proxy_active = self._swift_proxy_enabled()
+        self._stored.swift_proxy_disable_pending = False
         version = self.version
         if version:
             self.unit.set_workload_version(self.version)
         self.unit.status = ActiveStatus()
 
     def _update_celery_layer(self, _=None):
+        if self._stored.swift_proxy_disable_pending or self._stored.nginx_restart_pending:
+            return
+        if self._swift_proxy_enabled() and isinstance(self.unit.status, BlockedStatus):
+            return
+
         if not self._validate_saml_config():
             self.unit.status = BlockedStatus(
                 "SAML config incomplete: if any SAML setting is provided, "
@@ -673,18 +973,17 @@ class TestObserverBackendCharm(CharmBase):
             # 0.0.0.0 instead of config['hostname'] intentional:
             # request made from pebble's container to api in the same unit (same pod).
             try:
-                return get(f"http://0.0.0.0:{self.config['port']}/v1/version").json()["version"]
+                return get(f"http://127.0.0.1:{API_INTERNAL_PORT}/v1/version").json()["version"]
             except Exception as e:
                 logger.warning(f"Failed to get version: {e}")
                 logger.exception(e)
         return None
 
-    @property
-    def _api_pebble_layer(self) -> Layer:
+    def _api_pebble_layer(self, swift_environment: dict[str, str]) -> Layer:
         return Layer(
             {
                 "summary": "test observer",
-                "description": "pebble config layer for Test Observer",
+                "description": "pebble config layer for Test Observer and nginx",
                 "services": {
                     self.api_pebble_service_name: {
                         "override": "replace",
@@ -694,13 +993,25 @@ class TestObserverBackendCharm(CharmBase):
                                 "uvicorn",
                                 "test_observer.main:app",
                                 "--host",
-                                "0.0.0.0",
-                                f"--port={self.config['port']}",
+                                "127.0.0.1",
+                                f"--port={API_INTERNAL_PORT}",
+                                "--proxy-headers",
+                                "--forwarded-allow-ips=127.0.0.1",
                             ]
                         ),
                         "startup": "enabled",
-                        "environment": self._app_environment,
-                    }
+                        "environment": {
+                            **self._app_environment,
+                            **swift_environment,
+                        },
+                    },
+                    self.nginx_pebble_service_name: {
+                        "override": "replace",
+                        "summary": "nginx API and Swift reverse proxy",
+                        "command": "nginx -g 'daemon off;'",
+                        "startup": "enabled",
+                        "after": [self.api_pebble_service_name],
+                    },
                 },
             }
         )
