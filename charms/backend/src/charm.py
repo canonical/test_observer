@@ -673,9 +673,6 @@ class TestObserverBackendCharm(CharmBase):
 
     def _disable_active_swift_proxy(self) -> bool:
         """Remove Swift routes from nginx if a previously active proxy must fail closed."""
-        if not self._stored.swift_proxy_active and not self._stored.nginx_restart_pending:
-            self._stored.swift_proxy_disable_pending = False
-            return True
         if not self.api_container.can_connect():
             self._stored.swift_proxy_disable_pending = True
             logger.error(
@@ -683,6 +680,26 @@ class TestObserverBackendCharm(CharmBase):
                 "the charm will retry disabling nginx"
             )
             return False
+
+        try:
+            nginx_is_running = any(
+                service.is_running()
+                for service in self.api_container.get_services(
+                    [self.nginx_pebble_service_name]
+                )
+            )
+        except (PebbleError, OSError):
+            logger.exception("Could not determine whether nginx is serving Swift routes")
+            self._stored.swift_proxy_disable_pending = True
+            return False
+
+        if (
+            not self._stored.swift_proxy_active
+            and not self._stored.nginx_restart_pending
+            and not nginx_is_running
+        ):
+            self._stored.swift_proxy_disable_pending = False
+            return True
 
         try:
             self.api_container.push(
@@ -693,11 +710,11 @@ class TestObserverBackendCharm(CharmBase):
             )
             self.api_container.exec(["nginx", "-t"]).wait_output()
             self.api_container.restart(self.nginx_pebble_service_name)
-        except (APIError, ExecError, OSError, ValueError):
+        except (PebbleError, OSError, ValueError):
             logger.exception("Failed to disable the active Swift proxy")
             try:
                 self.api_container.stop(self.nginx_pebble_service_name)
-            except (APIError, ExecError):
+            except (PebbleError, OSError):
                 logger.exception("Could not stop nginx after failing to disable Swift proxy routes")
                 self._stored.swift_proxy_disable_pending = True
                 return False
