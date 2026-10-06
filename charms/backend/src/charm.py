@@ -19,7 +19,6 @@
 
 import logging
 import os
-import re
 import secrets
 import sys
 import urllib.parse
@@ -51,6 +50,7 @@ from swift_proxy_nginx import (
     render_nginx_config,
     validate_keystone_auth_url,
     validate_nginx_listen_port,
+    validate_swift_config,
 )
 
 # Log messages can be retrieved using juju debug-log
@@ -559,12 +559,6 @@ class TestObserverBackendCharm(CharmBase):
             return "Swift proxy requires complete Test Observer SAML configuration"
 
         try:
-            swift_url = urllib.parse.urlsplit(str(self.config["swift_base_url"]).rstrip("/"))
-            swift_port = swift_url.port
-        except ValueError:
-            return "Swift proxy URLs are invalid"
-
-        try:
             validate_keystone_auth_url(
                 str(self.config["swift_os_auth_url"]),
                 setting_name="swift_os_auth_url",
@@ -572,38 +566,23 @@ class TestObserverBackendCharm(CharmBase):
         except ValueError as exc:
             return str(exc)
 
-        if (
-            swift_url.scheme != "https"
-            or not swift_url.netloc
-            or swift_url.username
-            or swift_url.password
-            or swift_url.query
-            or swift_url.fragment
-            or not re.fullmatch(r"[A-Za-z0-9._~/-]*", swift_url.path)
-            or any(segment in {".", ".."} for segment in swift_url.path.split("/"))
-        ):
-            return "swift_base_url must be an HTTPS URL with a plain path and no credentials, query, or fragment"
-
-        if not re.fullmatch(r"(?:[A-Za-z0-9.-]+|\[[0-9A-Fa-f:.]+\])(?::[0-9]{1,5})?", swift_url.netloc):
-            return "swift_base_url contains an invalid host or port"
-        if swift_port is not None and not 1 <= swift_port <= 65535:
-            return "swift_base_url contains an invalid port"
-
         containers = self._swift_containers()
-        if not containers:
-            return "At least one Swift container must be configured"
-        if len(containers) != len(set(containers)) or any(
-            not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", container)
-            for container in containers
-        ):
-            return "swift_containers must contain unique, valid container names"
-
         try:
             verify_depth = int(self.config.get("swift_proxy_ssl_verify_depth", 1))
         except (TypeError, ValueError):
             return "swift_proxy_ssl_verify_depth must be a positive integer"
-        if verify_depth < 1:
-            return "swift_proxy_ssl_verify_depth must be a positive integer"
+
+        try:
+            validate_swift_config(
+                str(self.config["swift_base_url"]),
+                containers,
+                verify_depth,
+                base_url_setting="swift_base_url",
+                containers_setting="swift_containers",
+                verify_depth_setting="swift_proxy_ssl_verify_depth",
+            )
+        except ValueError as exc:
+            return str(exc)
 
         return None
 
@@ -734,7 +713,7 @@ class TestObserverBackendCharm(CharmBase):
         self.ingress.provide_ingress_requirements(port=int(self.config["port"]))
         self._update_frontend_relation_data()
         self._update_api_layer(event)
-        if isinstance(self.unit.status, BlockedStatus):
+        if not isinstance(self.unit.status, ActiveStatus):
             return
         self._update_celery_layer(event)
 

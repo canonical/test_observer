@@ -65,12 +65,12 @@ def render_nginx_config(
             locations.append(
                 f"""
         location = {public_path} {{
-            if ($request_method !~ ^(GET|HEAD)$) {{ return 405; }}
+            limit_except GET HEAD {{ deny all; }}
                 return 301 {public_path}/$is_args$args;
         }}
 
         location ^~ {public_path}/ {{
-            if ($request_method !~ ^(GET|HEAD)$) {{ return 405; }}
+            limit_except GET HEAD {{ deny all; }}
             auth_request /_internal/swift-auth;
             auth_request_set $keystone_token $upstream_http_x_keystone_token;
             auth_request_set $swift_login_url $upstream_http_x_swift_login_url;
@@ -149,20 +149,21 @@ def validate_keystone_auth_url(auth_url: str, *, setting_name: str = "OS_AUTH_UR
         )
 
 
-def _validate_swift_config(
-    auth_secret: str,
+def validate_swift_config(
     swift_base_url: str,
     containers: Sequence[str],
     verify_depth: int,
+    *,
+    base_url_setting: str = "SWIFT_BASE_URL",
+    containers_setting: str = "SWIFT_CONTAINERS",
+    verify_depth_setting: str = "SWIFT_PROXY_SSL_VERIFY_DEPTH",
 ) -> None:
-    if not _AUTH_SECRET.fullmatch(auth_secret):
-        raise ValueError("SWIFT_PROXY_AUTH_SECRET must contain only letters, digits, '_' or '-'")
-
+    """Validate the Swift URL, container names, and TLS verification depth."""
     try:
         url = urllib.parse.urlsplit(swift_base_url.rstrip("/"))
         port = url.port
     except ValueError as exc:
-        raise ValueError("SWIFT_BASE_URL is invalid") from exc
+        raise ValueError(f"{base_url_setting} is invalid") from exc
 
     if (
         url.scheme != "https"
@@ -176,16 +177,30 @@ def _validate_swift_config(
         or any(segment in {".", ".."} for segment in url.path.split("/"))
         or (port is not None and not 1 <= port <= 65535)
     ):
-        raise ValueError("SWIFT_BASE_URL must be an HTTPS URL without credentials, query, or fragment")
+        raise ValueError(
+            f"{base_url_setting} must be an HTTPS URL without credentials, query, or fragment"
+        )
 
     if not containers:
-        raise ValueError("SWIFT_CONTAINERS must include at least one container")
+        raise ValueError(f"{containers_setting} must include at least one container")
     if len(containers) != len(set(containers)) or any(
         not _CONTAINER_NAME.fullmatch(container) for container in containers
     ):
-        raise ValueError("SWIFT_CONTAINERS must contain unique, valid container names")
+        raise ValueError(f"{containers_setting} must contain unique, valid container names")
     if verify_depth < 1:
-        raise ValueError("SWIFT_PROXY_SSL_VERIFY_DEPTH must be a positive integer")
+        raise ValueError(f"{verify_depth_setting} must be a positive integer")
+
+
+def _validate_swift_config(
+    auth_secret: str,
+    swift_base_url: str,
+    containers: Sequence[str],
+    verify_depth: int,
+) -> None:
+    if not _AUTH_SECRET.fullmatch(auth_secret):
+        raise ValueError("SWIFT_PROXY_AUTH_SECRET must contain only letters, digits, '_' or '-'")
+
+    validate_swift_config(swift_base_url, containers, verify_depth)
 
 
 def main() -> None:
