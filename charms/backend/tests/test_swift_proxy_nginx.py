@@ -57,6 +57,8 @@ def test_render_swift_locations_and_preserve_marker_text_in_secret(template: str
     )
 
     assert 'X-Swift-Proxy-Auth "local__SWIFT_PROXY_LOGIN_LOCATION__secret";' in rendered
+    assert "proxy_set_header Cookie $http_cookie;" in rendered
+    assert 'proxy_set_header Cookie "";' in rendered
     assert "location ^~ /v1/swift/artifacts/" in rendered
     assert "location ^~ /v1/swift/logs/" in rendered
     assert rendered.count("limit_except GET HEAD { deny all; }") == 4

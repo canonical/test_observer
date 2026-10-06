@@ -159,10 +159,14 @@ cannot validate or reload that disabled config, it stops nginx to fail closed.
 If Pebble is unavailable and the charm cannot confirm that nginx was disabled
 or stopped, it marks the unit blocked, warns that Swift routes may remain
 accessible, and retries the disable operation on update-status.
+If nginx cannot restart after a configuration change, the unit remains waiting
+and retries on update-status; the charm only records the new proxy state after
+the restart succeeds.
 The URL uses the API hostname so the host-scoped Test Observer session cookie
 is sent with object requests. SAML must be configured, and the SAML return URL
 allowlist includes the API hostname so a successful login can return to the
-requested object URL.
+requested object URL. The cookie is used by nginx's internal authorization
+subrequest and is not forwarded to Swift.
 
 This is a temporary, Swift-specific feature in the backend charm. The
 team check uses Test Observer's existing Launchpad team records: membership

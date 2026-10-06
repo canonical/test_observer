@@ -43,7 +43,7 @@ from ops.charm import (
 )
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
-from ops.pebble import APIError, ExecError, Layer, PathError
+from ops.pebble import APIError, Error as PebbleError, ExecError, Layer, PathError
 from requests import get
 from swift_proxy_nginx import (
     API_INTERNAL_PORT,
@@ -204,6 +204,7 @@ class TestObserverBackendCharm(CharmBase):
             swift_proxy_auth_secret=secrets.token_urlsafe(32),
             swift_proxy_active=False,
             swift_proxy_disable_pending=False,
+            nginx_restart_pending=False,
         )
         self.redis = RedisRequires(self)
         self.framework.observe(
@@ -294,7 +295,7 @@ class TestObserverBackendCharm(CharmBase):
         return True
 
     def _on_update_status(self, event: UpdateStatusEvent) -> None:
-        if self._stored.swift_proxy_disable_pending:
+        if self._stored.swift_proxy_disable_pending or self._stored.nginx_restart_pending:
             self._update_api_layer()
             if isinstance(self.unit.status, ActiveStatus):
                 self._update_celery_layer()
@@ -672,7 +673,7 @@ class TestObserverBackendCharm(CharmBase):
 
     def _disable_active_swift_proxy(self) -> bool:
         """Remove Swift routes from nginx if a previously active proxy must fail closed."""
-        if not self._stored.swift_proxy_active:
+        if not self._stored.swift_proxy_active and not self._stored.nginx_restart_pending:
             self._stored.swift_proxy_disable_pending = False
             return True
         if not self.api_container.can_connect():
@@ -703,6 +704,20 @@ class TestObserverBackendCharm(CharmBase):
 
         self._stored.swift_proxy_active = False
         self._stored.swift_proxy_disable_pending = False
+        self._stored.nginx_restart_pending = False
+        return True
+
+    def _restart_nginx_if_pending(self) -> bool:
+        """Retry an nginx restart after its config changed, preserving state on failure."""
+        if not self._stored.nginx_restart_pending:
+            return True
+        try:
+            self.api_container.restart(self.nginx_pebble_service_name)
+        except (PebbleError, OSError):
+            logger.exception("Failed to restart nginx with the updated configuration")
+            self.unit.status = WaitingStatus("Waiting for nginx restart")
+            return False
+        self._stored.nginx_restart_pending = False
         return True
 
     def _on_config_changed(self, event):
@@ -764,6 +779,8 @@ class TestObserverBackendCharm(CharmBase):
                         [self.nginx_pebble_service_name]
                     )
                 )
+                if nginx_config_changed and nginx_was_running:
+                    self._stored.nginx_restart_pending = True
                 if nginx_config_changed:
                     self.api_container.push(
                         NGINX_CONFIG_PATH,
@@ -795,9 +812,9 @@ class TestObserverBackendCharm(CharmBase):
             combine=True,
         )
         self.api_container.replan()
+        if not self._restart_nginx_if_pending():
+            return
         self._stored.swift_proxy_active = self._swift_proxy_enabled()
-        if nginx_config_changed and nginx_was_running:
-            self.api_container.restart(self.nginx_pebble_service_name)
         self._stored.swift_proxy_disable_pending = False
         version = self.version
         if version:
@@ -805,6 +822,8 @@ class TestObserverBackendCharm(CharmBase):
         self.unit.status = ActiveStatus()
 
     def _update_celery_layer(self, _=None):
+        if self._stored.swift_proxy_disable_pending or self._stored.nginx_restart_pending:
+            return
         if self._swift_proxy_enabled() and isinstance(self.unit.status, BlockedStatus):
             return
 

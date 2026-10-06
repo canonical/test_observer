@@ -36,7 +36,7 @@ if [ "$SWIFT_PROXY_ENABLED" = "true" ]; then
     : "${OS_PASSWORD:?OS_PASSWORD must be set when SWIFT_PROXY_ENABLED=true}"
     : "${OS_PROJECT_NAME:?OS_PROJECT_NAME must be set when SWIFT_PROXY_ENABLED=true}"
     : "${SWIFT_PROXY_TEAM:?SWIFT_PROXY_TEAM must be set when SWIFT_PROXY_ENABLED=true}"
-    python /opt/test-observer/swift_proxy_nginx.py
+    uv run python /opt/test-observer/swift_proxy_nginx.py
     nginx -t
     API_HOST=127.0.0.1
     API_PORT=30001

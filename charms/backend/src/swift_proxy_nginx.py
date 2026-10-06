@@ -86,6 +86,7 @@ def render_nginx_config(
             proxy_set_header Connection "";
             proxy_set_header X-Auth-Token $keystone_token;
             proxy_set_header Authorization "";
+            proxy_set_header Cookie "";
             proxy_hide_header X-Auth-Token;
             proxy_hide_header X-Keystone-Token;
             proxy_set_header Host $proxy_host;
