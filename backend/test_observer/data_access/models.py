@@ -326,7 +326,11 @@ class Artefact(Base):
     image_url: Mapped[str] = mapped_column(String(200), default="")
 
     # Relationships
-    builds: Mapped[list["ArtefactBuild"]] = relationship(back_populates="artefact", cascade="all, delete")
+    builds: Mapped[list["ArtefactBuild"]] = relationship(
+        back_populates="artefact",
+        cascade="all, delete",
+        passive_deletes=True,
+    )
     reviewers: Mapped[list[User]] = relationship(
         secondary=artefact_reviewers_association, back_populates="artefact_reviews"
     )
@@ -439,7 +443,9 @@ class ArtefactBuild(Base):
     artefact_id: Mapped[int] = mapped_column(ForeignKey("artefact.id", ondelete="CASCADE"), index=True)
     artefact: Mapped[Artefact] = relationship(back_populates="builds", foreign_keys=[artefact_id])
     test_executions: Mapped[list["TestExecution"]] = relationship(
-        back_populates="artefact_build", cascade="all, delete"
+        back_populates="artefact_build",
+        cascade="all, delete",
+        passive_deletes=True,
     )
     environment_reviews: Mapped[list["ArtefactBuildEnvironmentReview"]] = relationship(
         back_populates="artefact_build",
@@ -557,10 +563,10 @@ class TestExecutionRerunRequest(Base):
 test_execution_metadata_association_table = Table(
     "test_execution_metadata_association_table",
     Base.metadata,
-    Column("test_execution_id", ForeignKey("test_execution.id"), primary_key=True),
+    Column("test_execution_id", ForeignKey("test_execution.id", ondelete="CASCADE"), primary_key=True),
     Column(
         "test_execution_metadata_id",
-        ForeignKey("test_execution_metadata.id"),
+        ForeignKey("test_execution_metadata.id", ondelete="CASCADE"),
         primary_key=True,
     ),
 )
@@ -580,6 +586,7 @@ class TestExecutionMetadata(Base):
     test_executions: Mapped[list["TestExecution"]] = relationship(
         secondary=test_execution_metadata_association_table,
         back_populates="execution_metadata",
+        passive_deletes=True,
     )
 
     __table_args__ = (UniqueConstraint("category", "value"),)
@@ -617,11 +624,16 @@ class TestExecution(Base):
         uselist=False,
     )
 
-    test_results: Mapped[list["TestResult"]] = relationship(back_populates="test_execution", cascade="all, delete")
+    test_results: Mapped[list["TestResult"]] = relationship(
+        back_populates="test_execution",
+        cascade="all, delete",
+        passive_deletes=True,
+    )
     test_events: Mapped[list["TestEvent"]] = relationship(
         back_populates="test_execution",
         cascade="all, delete",
         order_by="TestEvent.timestamp",
+        passive_deletes=True,
     )
     resource_url: Mapped[str] = mapped_column(default="")
 
@@ -631,12 +643,15 @@ class TestExecution(Base):
     checkbox_version: Mapped[str | None] = mapped_column(String(200), nullable=True, default=None)
 
     relevant_links: Mapped[list["TestExecutionRelevantLink"]] = relationship(
-        back_populates="test_execution", cascade="all, delete-orphan"
+        back_populates="test_execution",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
     execution_metadata: Mapped[list["TestExecutionMetadata"]] = relationship(
         secondary=test_execution_metadata_association_table,
         back_populates="test_executions",
+        passive_deletes=True,
     )
 
     if TYPE_CHECKING:

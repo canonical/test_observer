@@ -16,7 +16,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
-from sqlalchemy import distinct, func, select
+from sqlalchemy import delete, distinct, exists, func, select
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
@@ -39,7 +39,10 @@ from test_observer.data_access.models import (
     Application,
     Artefact,
     ArtefactBuild,
+    TestExecution,
+    TestExecutionMetadata,
     User,
+    test_execution_metadata_association_table,
 )
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
@@ -248,6 +251,32 @@ def delete_artefact(
     artefact: Artefact = Depends(ArtefactRetriever()),
 ) -> None:
     check_artefact_permission(db, user, app, artefact, Permission.delete_artefact)
+
+    # Let database cascades purge history set-wise; delete metadata only when no other artefact references it.
+    metadata_associations = test_execution_metadata_association_table
+    artefact_execution_ids = (
+        select(TestExecution.id)
+        .join(ArtefactBuild, ArtefactBuild.id == TestExecution.artefact_build_id)
+        .where(ArtefactBuild.artefact_id == artefact.id)
+    )
+    artefact_metadata_ids = select(metadata_associations.c.test_execution_metadata_id).where(
+        metadata_associations.c.test_execution_id.in_(artefact_execution_ids)
+    )
+    metadata_referenced_elsewhere = (
+        select(1)
+        .select_from(metadata_associations)
+        .join(TestExecution, TestExecution.id == metadata_associations.c.test_execution_id)
+        .join(ArtefactBuild, ArtefactBuild.id == TestExecution.artefact_build_id)
+        .where(metadata_associations.c.test_execution_metadata_id == TestExecutionMetadata.id)
+        .where(ArtefactBuild.artefact_id != artefact.id)
+    )
+    db.execute(
+        delete(TestExecutionMetadata)
+        .where(TestExecutionMetadata.id.in_(artefact_metadata_ids))
+        .where(~exists(metadata_referenced_elsewhere))
+        .execution_options(synchronize_session=False)
+    )
+
     db.delete(artefact)
     db.commit()
 

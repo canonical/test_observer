@@ -28,8 +28,11 @@ from test_observer.data_access.models import (
     ArtefactBuildEnvironmentReview,
     IssueTestResultAttachment,
     Notification,
+    TestEvent,
     TestExecution,
     TestExecutionMetadata,
+    TestExecutionRelevantLink,
+    TestResult,
 )
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
@@ -1644,11 +1647,22 @@ class TestArtefactDeletePermissions:
             review_decision=[],
         )
         test_case = generator.gen_test_case()
-        test_execution = generator.gen_test_execution(build, environment)
+        test_execution = generator.gen_test_execution(
+            build,
+            environment,
+            execution_metadata={"hardware": ["delete-cascade-device"]},
+            relevant_links=[{"label": "logs", "url": "https://example.com/logs"}],
+        )
+        event = generator.gen_test_event(test_execution, "started")
         test_result = generator.gen_test_result(test_case, test_execution)
         issue = generator.gen_issue()
         attachment = IssueTestResultAttachment(issue=issue, test_result=test_result)
         generator._add_object(attachment)
+        test_execution_id = test_execution.id
+        event_id = event.id
+        test_result_id = test_result.id
+        relevant_link_id = test_execution.relevant_links[0].id
+        metadata_id = test_execution.execution_metadata[0].id
         review_id = review.id
         attachment_id = attachment.id
 
@@ -1661,6 +1675,11 @@ class TestArtefactDeletePermissions:
         db_session.expire_all()
         assert db_session.get(ArtefactBuildEnvironmentReview, review_id) is None
         assert db_session.get(IssueTestResultAttachment, attachment_id) is None
+        assert db_session.get(TestExecution, test_execution_id) is None
+        assert db_session.get(TestEvent, event_id) is None
+        assert db_session.get(TestResult, test_result_id) is None
+        assert db_session.get(TestExecutionRelevantLink, relevant_link_id) is None
+        assert db_session.get(TestExecutionMetadata, metadata_id) is None
 
     def test_delete_artefact_preserves_shared_execution_metadata(
         self,
@@ -1693,6 +1712,31 @@ class TestArtefactDeletePermissions:
         assert [(item.category, item.value) for item in retained_execution_after_delete.execution_metadata] == [
             ("hardware", "shared-device")
         ]
+
+    def test_delete_artefact_removes_unshared_execution_metadata(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+        db_session: Session,
+    ):
+        artefact = generator.gen_artefact(name="sole-owner-artefact", stage=StageName.beta)
+        build = generator.gen_artefact_build(artefact)
+        environment = generator.gen_environment()
+        execution = generator.gen_test_execution(
+            build,
+            environment,
+            execution_metadata={"hardware": ["sole-owner-device"]},
+        )
+        metadata_id = execution.execution_metadata[0].id
+
+        response = make_authenticated_request(
+            lambda: test_client.delete(f"/v1/artefacts/{artefact.id}"),
+            Permission.delete_artefact,
+        )
+
+        assert response.status_code == 204
+        db_session.expire_all()
+        assert db_session.get(TestExecutionMetadata, metadata_id) is None
 
     def test_delete_artefact_with_team_permission(self, test_client: TestClient, generator: DataGenerator):
         artefact = generator.gen_artefact(stage=StageName.beta)
