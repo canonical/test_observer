@@ -48,4 +48,9 @@ class Artefact extends _$Artefact {
     final artefact = await api.changeArtefactComment(artefactId, comment);
     state = AsyncData(artefact);
   }
+
+  Future<void> deleteArtefact() async {
+    final api = ref.read(apiProvider);
+    await api.deleteArtefact(artefactId);
+  }
 }
