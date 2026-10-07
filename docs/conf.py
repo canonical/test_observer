@@ -309,7 +309,9 @@ exclude_patterns = [
 
 # Adds custom JavaScript files, located under 'html_static_path'
 
-# html_js_files = []
+html_js_files = [
+    "overwrite_links.js",   # Overwrite links in RTD version fly-out panel
+]
 
 
 # Specifies a reST snippet to be appended to each .rst file
