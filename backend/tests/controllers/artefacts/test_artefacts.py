@@ -23,7 +23,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models import Artefact, Notification, TestExecution
+from test_observer.data_access.models import (
+    Artefact,
+    ArtefactBuildEnvironmentReview,
+    IssueTestResultAttachment,
+    Notification,
+    TestExecution,
+)
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
@@ -1602,3 +1608,105 @@ class TestArtefactPatchAMRPermissions:
             assert response.json()["comment"] == "Updated despite no permissions"
         finally:
             del app.dependency_overrides[get_current_user]
+
+
+class TestArtefactDeletePermissions:
+    def test_delete_artefact_with_permission(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+        db_session: Session,
+    ):
+        artefact = generator.gen_artefact(stage=StageName.beta)
+
+        response = make_authenticated_request(
+            lambda: test_client.delete(f"/v1/artefacts/{artefact.id}"),
+            Permission.delete_artefact,
+        )
+
+        assert response.status_code == 204
+        db_session.expire_all()
+        assert db_session.get(Artefact, artefact.id) is None
+
+    def test_delete_artefact_with_environment_reviews(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+        db_session: Session,
+    ):
+        artefact = generator.gen_artefact(stage=StageName.beta)
+        build = generator.gen_artefact_build(artefact)
+        environment = generator.gen_environment()
+        review = generator.gen_artefact_build_environment_review(
+            build,
+            environment,
+            review_decision=[],
+        )
+        test_case = generator.gen_test_case()
+        test_execution = generator.gen_test_execution(build, environment)
+        test_result = generator.gen_test_result(test_case, test_execution)
+        issue = generator.gen_issue()
+        attachment = IssueTestResultAttachment(issue=issue, test_result=test_result)
+        generator._add_object(attachment)
+
+        response = make_authenticated_request(
+            lambda: test_client.delete(f"/v1/artefacts/{artefact.id}"),
+            Permission.delete_artefact,
+        )
+
+        assert response.status_code == 204
+        db_session.expire_all()
+        assert db_session.get(ArtefactBuildEnvironmentReview, review.id) is None
+        assert db_session.get(IssueTestResultAttachment, attachment.id) is None
+
+    def test_delete_artefact_with_team_permission(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(stage=StageName.beta)
+        team = generator.gen_team(name="deletion-team")
+        team.permissions = [Permission.delete_artefact]
+        user = generator.gen_user(name="authorized")
+        user.teams = [team]
+        user.is_admin = False
+        generator._add_object(user)
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.delete(f"/v1/artefacts/{artefact.id}")
+            assert response.status_code == 204
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_delete_artefact_without_permission_denied(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(stage=StageName.beta)
+        user = generator.gen_user(name="unauthorized")
+        user.teams = []
+        user.is_admin = False
+        generator._add_object(user)
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.delete(f"/v1/artefacts/{artefact.id}")
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_delete_artefact_admin_bypasses_permission(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(stage=StageName.beta)
+        user = generator.gen_user(name="admin")
+        user.teams = []
+        user.is_admin = True
+        generator._add_object(user)
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.delete(f"/v1/artefacts/{artefact.id}")
+            assert response.status_code == 204
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_delete_missing_artefact_returns_not_found(self, test_client: TestClient):
+        response = make_authenticated_request(
+            lambda: test_client.delete("/v1/artefacts/999999"),
+            Permission.delete_artefact,
+        )
+
+        assert response.status_code == 404

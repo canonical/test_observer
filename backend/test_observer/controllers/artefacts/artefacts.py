@@ -236,6 +236,22 @@ def get_artefact(
     return artefact
 
 
+@router.delete(
+    "/{artefact_id}",
+    status_code=204,
+    dependencies=[Security(openapi_scope_declaration, scopes=[Permission.delete_artefact.value])],
+)
+def delete_artefact(
+    db: Session = Depends(get_db),
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+    artefact: Artefact = Depends(ArtefactRetriever()),
+) -> None:
+    check_artefact_permission(db, user, app, artefact, Permission.delete_artefact)
+    db.delete(artefact)
+    db.commit()
+
+
 @router.patch(
     "/{artefact_id}",
     response_model=ArtefactResponse,

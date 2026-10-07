@@ -443,6 +443,8 @@ class ArtefactBuild(Base):
     )
     environment_reviews: Mapped[list["ArtefactBuildEnvironmentReview"]] = relationship(
         back_populates="artefact_build",
+        cascade="all, delete",
+        passive_deletes=True,
     )
 
     __table_args__ = (
@@ -694,7 +696,11 @@ class TestResult(Base):
     test_case_id: Mapped[int] = mapped_column(ForeignKey("test_case.id", ondelete="CASCADE"), index=True)
     test_case: Mapped["TestCase"] = relationship()
 
-    issue_attachments: Mapped[list["IssueTestResultAttachment"]] = relationship(back_populates="test_result")
+    issue_attachments: Mapped[list["IssueTestResultAttachment"]] = relationship(
+        back_populates="test_result",
+        cascade="all, delete",
+        passive_deletes=True,
+    )
 
     def __repr__(self) -> str:
         return data_model_repr(
