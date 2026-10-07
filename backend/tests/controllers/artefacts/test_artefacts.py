@@ -1648,6 +1648,8 @@ class TestArtefactDeletePermissions:
         issue = generator.gen_issue()
         attachment = IssueTestResultAttachment(issue=issue, test_result=test_result)
         generator._add_object(attachment)
+        review_id = review.id
+        attachment_id = attachment.id
 
         response = make_authenticated_request(
             lambda: test_client.delete(f"/v1/artefacts/{artefact.id}"),
@@ -1656,8 +1658,8 @@ class TestArtefactDeletePermissions:
 
         assert response.status_code == 204
         db_session.expire_all()
-        assert db_session.get(ArtefactBuildEnvironmentReview, review.id) is None
-        assert db_session.get(IssueTestResultAttachment, attachment.id) is None
+        assert db_session.get(ArtefactBuildEnvironmentReview, review_id) is None
+        assert db_session.get(IssueTestResultAttachment, attachment_id) is None
 
     def test_delete_artefact_with_team_permission(self, test_client: TestClient, generator: DataGenerator):
         artefact = generator.gen_artefact(stage=StageName.beta)
@@ -1704,9 +1706,6 @@ class TestArtefactDeletePermissions:
             del app.dependency_overrides[get_current_user]
 
     def test_delete_missing_artefact_returns_not_found(self, test_client: TestClient):
-        response = make_authenticated_request(
-            lambda: test_client.delete("/v1/artefacts/999999"),
-            Permission.delete_artefact,
-        )
+        response = test_client.delete("/v1/artefacts/999999")
 
         assert response.status_code == 404
