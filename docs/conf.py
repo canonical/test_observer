@@ -208,7 +208,7 @@ sitemap_excludes = [
 #######################
 
 html_static_path = [".sphinx/_static"]
-# templates_path = ["_templates"]
+templates_path = [".sphinx/_templates"]
 
 # Extra files to copy to the root of the documentation
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_extra_path
