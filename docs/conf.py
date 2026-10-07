@@ -208,7 +208,7 @@ sitemap_excludes = [
 #######################
 
 html_static_path = [".sphinx/_static"]
-# templates_path = ["_templates"]
+templates_path = [".sphinx/_templates"]
 
 # Extra files to copy to the root of the documentation
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_extra_path
@@ -303,14 +303,14 @@ exclude_patterns = [
 ]
 
 # Adds custom CSS files, located under 'html_static_path'
-
-# html_css_files = []
-
+html_css_files = [
+    "https://assets.ubuntu.com/v1/d86746ef-cookie_banner.css",  # Google Analytics cookie banner
+]
 
 # Adds custom JavaScript files, located under 'html_static_path'
-
-# html_js_files = []
-
+html_js_files = [
+    "https://assets.ubuntu.com/v1/287a5e8f-bundle.js",  # Google Analytics cookie banner
+]
 
 # Specifies a reST snippet to be appended to each .rst file
 
