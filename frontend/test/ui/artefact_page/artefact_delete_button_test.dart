@@ -36,7 +36,7 @@ void main() {
       const User(id: 1, name: 'User', email: 'user@example.com'),
     );
 
-    expect(find.text('delete'), findsNothing);
+    expect(find.text('Delete'), findsNothing);
   });
 
   testWidgets('shows the button for a team permission grant', (tester) async {
@@ -56,7 +56,7 @@ void main() {
       ),
     );
 
-    expect(find.text('delete'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
   });
 
   testWidgets('shows the button for an admin', (tester) async {
@@ -70,7 +70,7 @@ void main() {
       ),
     );
 
-    expect(find.text('delete'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
   });
 
   testWidgets('requires confirmation and allows cancellation', (tester) async {
@@ -84,13 +84,13 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('delete'));
+    await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
     expect(find.text('Delete artefact?'), findsOneWidget);
 
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
     expect(find.text('Delete artefact?'), findsNothing);
-    expect(find.text('delete'), findsOneWidget);
+    expect(find.text('Delete'), findsOneWidget);
   });
 }

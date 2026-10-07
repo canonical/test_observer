@@ -21,6 +21,7 @@ import '../../models/artefact.dart';
 import '../../providers/artefact_environment_reviews.dart';
 import '../spacing.dart';
 import '../reviewers_avatars.dart';
+import 'artefact_archive_button.dart';
 import 'artefact_delete_button.dart';
 import 'artefact_signoff_button.dart';
 
@@ -59,6 +60,11 @@ class ArtefactPageHeader extends ConsumerWidget {
                 ?.apply(color: YaruColors.red),
           ),
         const Spacer(),
+        ArtefactArchiveButton(
+          artefactId: artefact.id,
+          archived: artefact.archived,
+        ),
+        const SizedBox(width: Spacing.level2),
         ArtefactDeleteButton(artefactId: artefact.id),
       ],
     );

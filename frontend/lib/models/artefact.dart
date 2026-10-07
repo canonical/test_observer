@@ -50,6 +50,7 @@ abstract class Artefact with _$Artefact {
     required int allEnvironmentReviewsCount,
     @JsonKey(name: 'completed_environment_reviews_count')
     required int completedEnvironmentReviewsCount,
+    @Default(false) bool archived,
     @Default([]) List<User> reviewers,
     @JsonKey(name: 'bug_link') required String bugLink,
     @JsonKey(name: 'due_date') DateTime? dueDate,

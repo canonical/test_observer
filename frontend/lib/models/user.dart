@@ -51,6 +51,10 @@ abstract class User with _$User {
       isAdmin ||
       teams.any((team) => team.permissions.contains('delete_artefact'));
 
+    bool get canChangeArtefact =>
+      isAdmin ||
+      teams.any((team) => team.permissions.contains('change_artefact'));
+
   String get initials {
     if (isEmpty) return 'N/A';
 
