@@ -70,7 +70,7 @@ copyright = "%s CC-BY-SA, %s" % (datetime.date.today().year, author)
 # NOTE: The Open Graph Protocol (OGP) enhances page display in a social graph
 #       and is used by social media platforms; see https://ogp.me/
 
-ogp_site_url = "https://canonical-test-observer.readthedocs-hosted.com/"
+ogp_site_url = f"https://ubuntu.com/docs/test-observer/{os.environ.get('READTHEDOCS_VERSION', 'local')}/"
 
 
 # Preview name of the documentation website
@@ -160,33 +160,33 @@ html_context = {
 # - https://launchpad.net/example
 # - https://git.launchpad.net/example
 #
-# html_theme_options = {
-# 'source_edit_link': 'https://github.com/canonical/sphinx-docs-starter-pack',
-# }
+html_theme_options = {
+'source_edit_link': 'https://github.com/canonical/test-observer',
+}
 
 # Project slug; see https://meta.discourse.org/t/what-is-category-slug/87897
 #
 # TODO: If your documentation is hosted on https://docs.ubuntu.com/,
 #       uncomment and update as needed.
 
-# slug = ''
+slug = "docs/test-observer"
 
 #######################
 # Sitemap configuration: https://sphinx-sitemap.readthedocs.io/
 #######################
 
-# Use RTD canonical URL to ensure duplicate pages have a specific canonical URL
+# Published documentation URL, used as the canonical URL and for the sitemap.
+# Versioned docs: the RTD version (e.g. latest, stable) is part of the URL.
 
-html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "/")
+html_baseurl = f"https://ubuntu.com/docs/test-observer/{os.environ.get('READTHEDOCS_VERSION', 'local')}/"
 
-# URL scheme. Add language and version scheme elements.
-# When configured with RTD variables, check for RTD environment so manual runs succeed:
+# URL scheme for the sitemap.
 
-if 'READTHEDOCS_VERSION' in os.environ:
-    version = os.environ["READTHEDOCS_VERSION"]
-    sitemap_url_scheme = '{version}{link}'
-else:
-    sitemap_url_scheme = 'MANUAL/{link}'
+sitemap_url_scheme = "{link}"
+
+# Sitemap filename served by the proxy.
+
+sitemap_filename = "doc-sitemap.xml"
 
 # Include `lastmod` dates in the sitemap:
 
