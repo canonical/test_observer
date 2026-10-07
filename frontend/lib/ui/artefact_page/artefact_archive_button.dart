@@ -29,8 +29,7 @@ class ArtefactArchiveButton extends ConsumerStatefulWidget {
       _ArtefactArchiveButtonState();
 }
 
-class _ArtefactArchiveButtonState
-    extends ConsumerState<ArtefactArchiveButton> {
+class _ArtefactArchiveButtonState extends ConsumerState<ArtefactArchiveButton> {
   bool _updating = false;
 
   @override
