@@ -637,7 +637,6 @@ class TestExecution(Base):
     execution_metadata: Mapped[list["TestExecutionMetadata"]] = relationship(
         secondary=test_execution_metadata_association_table,
         back_populates="test_executions",
-        cascade="all, delete",
     )
 
     if TYPE_CHECKING:

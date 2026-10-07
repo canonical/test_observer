@@ -29,6 +29,7 @@ from test_observer.data_access.models import (
     IssueTestResultAttachment,
     Notification,
     TestExecution,
+    TestExecutionMetadata,
 )
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
@@ -1660,6 +1661,38 @@ class TestArtefactDeletePermissions:
         db_session.expire_all()
         assert db_session.get(ArtefactBuildEnvironmentReview, review_id) is None
         assert db_session.get(IssueTestResultAttachment, attachment_id) is None
+
+    def test_delete_artefact_preserves_shared_execution_metadata(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+        db_session: Session,
+    ):
+        first_artefact = generator.gen_artefact(name="first-artefact", stage=StageName.beta)
+        first_build = generator.gen_artefact_build(first_artefact)
+        second_artefact = generator.gen_artefact(name="second-artefact", stage=StageName.beta)
+        second_build = generator.gen_artefact_build(second_artefact)
+        environment = generator.gen_environment()
+        shared_values = {"hardware": ["shared-device"]}
+
+        deleted_execution = generator.gen_test_execution(first_build, environment, execution_metadata=shared_values)
+        retained_execution = generator.gen_test_execution(second_build, environment, execution_metadata=shared_values)
+        shared_metadata_id = deleted_execution.execution_metadata[0].id
+        retained_execution_id = retained_execution.id
+
+        response = make_authenticated_request(
+            lambda: test_client.delete(f"/v1/artefacts/{first_artefact.id}"),
+            Permission.delete_artefact,
+        )
+
+        assert response.status_code == 204
+        db_session.expire_all()
+        assert db_session.get(TestExecutionMetadata, shared_metadata_id) is not None
+        retained_execution_after_delete = db_session.get(TestExecution, retained_execution_id)
+        assert retained_execution_after_delete is not None
+        assert [(item.category, item.value) for item in retained_execution_after_delete.execution_metadata] == [
+            ("hardware", "shared-device")
+        ]
 
     def test_delete_artefact_with_team_permission(self, test_client: TestClient, generator: DataGenerator):
         artefact = generator.gen_artefact(stage=StageName.beta)
