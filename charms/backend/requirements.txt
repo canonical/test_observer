@@ -19,9 +19,11 @@ ops >= 2.8.0
 requests==2.34.2
 pydantic==2.13.3
 
+# psycopg2-binary bundles libpq, so it does not require libpq5 on the charm host.
+--only-binary=psycopg2-binary
+
 # Vendored charm lib dependency.
 cosl
-charmlibs-apt~=1.0
 
 # Validator glue from charm-integration-testing; keep pinned to the same
 # upstream commit so the charm tracks the reviewed glue packages together.

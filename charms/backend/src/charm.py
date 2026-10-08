@@ -23,7 +23,6 @@ import sys
 import urllib.parse
 from collections import ChainMap
 
-from charmlibs import apt
 from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
@@ -35,7 +34,7 @@ from charms.traefik_k8s.v2.ingress import (
     IngressPerAppRevokedEvent,
 )
 from ops import CollectStatusEvent, StoredState, UpdateStatusEvent
-from ops.charm import CharmBase, InstallEvent, RelationChangedEvent, RelationCreatedEvent
+from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import APIError, ExecError, Layer
@@ -95,7 +94,6 @@ class TestObserverBackendCharm(CharmBase):
         self.framework.observe(self.on.api_pebble_ready, self._update_api_layer)
         self.framework.observe(self.on.celery_pebble_ready, self._update_celery_layer)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
-        self.framework.observe(self.on.install, self._on_install)
 
         self.database = DatabaseRequires(
             self, relation_name="database", database_name="test_observer_db"
@@ -162,9 +160,6 @@ class TestObserverBackendCharm(CharmBase):
 
         # The ops framework triggers a CollectStatusEvent at the end of each hook
         self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
-
-    def _on_install(self, event: InstallEvent) -> None:
-        apt.add_package("libpq5", update_cache=True)
 
     def _on_ingress_ready(self, event: IngressPerAppReadyEvent) -> None:
         """Process the ingress URL and provide the hostname where needed."""
