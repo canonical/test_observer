@@ -115,6 +115,16 @@ class TestIntegrationValidation(unittest.TestCase):
             self._run_update_status()
         self.assertIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
 
+    def test_update_status_blocks_when_postgresql_validator_produces_no_result(self):
+        self._add_ready_database_relation()
+        with patch("charm.run_simple_check", return_value=_results()):
+            self._run_update_status()
+
+        self.assertIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
+        self.assertIn(
+            "database (postgresql_client): ERROR", self.harness.model.unit.status.message
+        )
+
     def test_update_status_clears_previous_failure_once_passing(self):
         self._add_ready_database_relation()
         with patch("charm.run_simple_check", return_value=_results("FAIL")):

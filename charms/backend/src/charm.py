@@ -39,6 +39,7 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import APIError, ExecError, Layer
 from requests import get
+from validators.base import ValidationResult
 from validators.update_status_check import ValidationStatusStore, run_simple_check
 from validators.validate_action import observe_validate_action
 
@@ -324,7 +325,28 @@ class TestObserverBackendCharm(CharmBase):
                 self.unit.status = WaitingStatus("Waiting for database relation")
             return
 
-        self._validation_status.record(run_simple_check(self).results)
+        results = run_simple_check(self).results
+        if not any(
+            result.endpoint == "database"
+            and result.interface == "postgresql_client"
+            and result.status != "SKIPPED"
+            for result in results
+        ):
+            logger.error(
+                "Integration check produced no result for the required PostgreSQL validator"
+            )
+            results.append(
+                ValidationResult(
+                    status="ERROR",
+                    endpoint="database",
+                    interface="postgresql_client",
+                    role="requires",
+                    level="simple",
+                    relation_id=self._current_database_relation_id(),
+                    error="The required PostgreSQL validator did not produce a result.",
+                )
+            )
+        self._validation_status.record(results)
         if previous_status is not None and self._validation_status.status() is None:
             if self.unit.status == previous_status:
                 self.unit.status = ActiveStatus()
