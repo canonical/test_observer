@@ -46,6 +46,7 @@ parts:
     charm-entrypoint: src/charm.py
     charm-requirements:
       - requirements.txt
+    charm-binary-python-packages: [psycopg2-binary]
     build-packages: [pkg-config, libffi-dev, libssl-dev, build-essential, libpq-dev, git]
     build-snaps: [rustup]
     override-build: |
