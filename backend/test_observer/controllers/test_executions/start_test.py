@@ -350,6 +350,17 @@ class StartTestExecutionController:
             case StartSolutionTestExecutionRequest():
                 creation_kwargs["attributes"] = self.request.attributes
 
+        existing_artefact = self.db.query(Artefact).filter_by(**filter_kwargs).one_or_none()
+        if existing_artefact is None and self.request.expected_environments:
+            creation_kwargs["expected_environments"] = [
+                get_or_create(
+                    self.db,
+                    Environment,
+                    filter_kwargs={"name": name, "architecture": self.request.arch},
+                )
+                for name in self.request.expected_environments
+            ]
+
         self.artefact = get_or_create(self.db, Artefact, filter_kwargs=filter_kwargs, creation_kwargs=creation_kwargs)
 
         request = self.request

@@ -155,6 +155,37 @@ def test_start_test_without_attributes_creates_new_solution_with_empty_attribute
     assert test_execution.artefact_build.artefact.attributes == {}
 
 
+def test_start_test_sets_expected_environments_only_when_creating_artefact(
+    execute: Execute,
+    db_session: Session,
+) -> None:
+    response = execute({**solution_test_request, "expected_environments": ["expected-a", "expected-b"]})
+
+    assert response.status_code == 200
+    test_execution = db_session.get(TestExecution, response.json()["id"])
+    assert test_execution is not None
+    artefact = test_execution.artefact_build.artefact
+    assert {(environment.name, environment.architecture) for environment in artefact.expected_environments} == {
+        ("expected-a", "amd64"),
+        ("expected-b", "amd64"),
+    }
+
+    response = execute(
+        {
+            **solution_test_request,
+            "ci_link": "http://localhost/second",
+            "expected_environments": ["should-not-be-added"],
+        }
+    )
+
+    assert response.status_code == 200
+    db_session.expire_all()
+    assert {(environment.name, environment.architecture) for environment in artefact.expected_environments} == {
+        ("expected-a", "amd64"),
+        ("expected-b", "amd64"),
+    }
+
+
 def test_start_test_on_existing_solution_updates_attributes(
     execute: Execute,
     db_session: Session,

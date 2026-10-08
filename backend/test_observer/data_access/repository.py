@@ -21,7 +21,7 @@ from typing import Any
 from pydantic import HttpUrl
 from sqlalchemy import and_, func
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from .models import Artefact, ArtefactBuild, DataModel, TestExecutionRelevantLink
 from .models_enums import FamilyName
@@ -133,7 +133,11 @@ def get_artefacts_by_family(
                 )
 
     if load_environment_reviews:
-        query = query.options(joinedload(Artefact.builds).joinedload(ArtefactBuild.environment_reviews))
+        query = query.options(
+            selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
+            selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions),
+            selectinload(Artefact.expected_environments),
+        )
     elif load_builds:
         query = query.options(joinedload(Artefact.builds))
 

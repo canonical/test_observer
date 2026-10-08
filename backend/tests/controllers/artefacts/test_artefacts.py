@@ -406,6 +406,52 @@ def test_patch_artefact_with_explicit_null_attributes_clears_them(
     assert get_response.json()["attributes"] == {}
 
 
+def test_patch_artefact_replaces_expected_environments(test_client: TestClient, generator: DataGenerator):
+    old_environment = generator.gen_environment(name="old", architecture="amd64")
+    expected_environment = generator.gen_environment(name="expected", architecture="arm64")
+    artefact = generator.gen_artefact(expected_environments=[old_environment])
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"expected_environments": [{"name": "expected", "architecture": "arm64"}]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["expected_environments"] == [
+        {"id": expected_environment.id, "name": "expected", "architecture": "arm64"}
+    ]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(f"/v1/artefacts/{artefact.id}", json={"expected_environments": []}),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["expected_environments"] == []
+    assert response.json()["missing_expected_environments"] == []
+
+
+def test_missing_expected_environments_checks_latest_builds(test_client: TestClient, generator: DataGenerator):
+    latest_environment = generator.gen_environment(name="latest", architecture="amd64")
+    old_build_environment = generator.gen_environment(name="old-build", architecture="amd64")
+    artefact = generator.gen_artefact(expected_environments=[latest_environment, old_build_environment])
+    old_build = generator.gen_artefact_build(artefact, revision=1)
+    latest_build = generator.gen_artefact_build(artefact, revision=2)
+    generator.gen_test_execution(old_build, old_build_environment)
+    generator.gen_test_execution(latest_build, latest_environment)
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    assert [environment["name"] for environment in response.json()["missing_expected_environments"]] == ["old-build"]
+
+
 def test_artefact_signoff_ignore_old_build_on_approve(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate)
     build1 = generator.gen_artefact_build(artefact, revision=1)
@@ -1320,6 +1366,13 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "jira_issue": artefact.jira_issue,
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
+        "expected_environments": [
+            {"id": env.id, "name": env.name, "architecture": env.architecture} for env in artefact.expected_environments
+        ],
+        "missing_expected_environments": [
+            {"id": env.id, "name": env.name, "architecture": env.architecture}
+            for env in artefact.missing_expected_environments
+        ],
         "created_at": artefact.created_at.isoformat(),
     }
     if artefact.reviewers:

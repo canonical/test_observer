@@ -39,6 +39,7 @@ from test_observer.data_access.models import (
     Application,
     Artefact,
     ArtefactBuild,
+    Environment,
     User,
 )
 from test_observer.data_access.models_enums import (
@@ -52,7 +53,7 @@ from test_observer.data_access.models_enums import (
     SolutionStage,
     StageName,
 )
-from test_observer.data_access.repository import get_artefacts_by_family
+from test_observer.data_access.repository import get_artefacts_by_family, get_or_create
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
@@ -230,6 +231,8 @@ def get_artefact(
     artefact: Artefact = Depends(
         ArtefactRetriever(
             selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
+            selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions),
+            selectinload(Artefact.expected_environments),
         )
     ),
 ):
@@ -249,6 +252,8 @@ def patch_artefact(
     artefact: Artefact = Depends(
         ArtefactRetriever(
             selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
+            selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions),
+            selectinload(Artefact.expected_environments),
         )
     ),
 ):
@@ -269,6 +274,15 @@ def patch_artefact(
     if "attributes" in request.model_fields_set:
         # attributes is non-nullable in the DB; an explicit null in the request clears it to {}.
         artefact.attributes = request.attributes if request.attributes is not None else {}
+    if "expected_environments" in request.model_fields_set and request.expected_environments is not None:
+        artefact.expected_environments = [
+            get_or_create(
+                db,
+                Environment,
+                filter_kwargs={"name": environment.name, "architecture": environment.architecture},
+            )
+            for environment in request.expected_environments
+        ]
 
     reviewer_ids_set = hasattr(request, "reviewer_ids") and "reviewer_ids" in request.model_fields_set
     reviewer_emails_set = hasattr(request, "reviewer_emails") and "reviewer_emails" in request.model_fields_set

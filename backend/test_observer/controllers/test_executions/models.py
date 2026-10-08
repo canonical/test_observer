@@ -74,6 +74,13 @@ class _StartTestExecutionRequest(BaseModel):
         "'aws-ec2'. The environment will be auto-created if it doesn't "
         "exist."
     )
+    expected_environments: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Environment names expected for this artefact, resolved using this request's architecture. "
+            "Only applied when this request creates the artefact."
+        ),
+    )
     ci_link: Annotated[str, HttpUrl] | None = Field(
         default=None,
         description="Optional URL linking to the CI job executing these "
@@ -106,6 +113,13 @@ class _StartTestExecutionRequest(BaseModel):
         "test results need human review before the artefact can be "
         "promoted. Default false means no review assignment needed.",
     )
+
+    @field_validator("expected_environments")
+    @classmethod
+    def validate_expected_environments(cls, environments: list[str]) -> list[str]:
+        if len(environments) != len(set(environments)):
+            raise ValueError("Duplicate expected environments are not allowed")
+        return environments
 
     @field_validator("version")
     @classmethod

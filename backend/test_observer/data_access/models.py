@@ -115,6 +115,14 @@ artefact_reviewers_association = Table(
 )
 
 
+artefact_expected_environments_association = Table(
+    "artefact_expected_environments_association",
+    Base.metadata,
+    Column("artefact_id", ForeignKey("artefact.id", ondelete="CASCADE"), primary_key=True),
+    Column("environment_id", ForeignKey("environment.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
 environment_review_reviewers_association = Table(
     "environment_review_reviewers_association",
     Base.metadata,
@@ -330,6 +338,10 @@ class Artefact(Base):
     reviewers: Mapped[list[User]] = relationship(
         secondary=artefact_reviewers_association, back_populates="artefact_reviews"
     )
+    expected_environments: Mapped[list["Environment"]] = relationship(
+        secondary=artefact_expected_environments_association,
+        order_by=lambda: (Environment.name, Environment.architecture),
+    )
 
     attributes: Mapped[dict[str, Any]] = mapped_column(MutableDict.as_mutable(JSONB), default=dict, server_default="{}")
     jira_issue: Mapped[str | None] = mapped_column(default=None)
@@ -426,6 +438,13 @@ class Artefact(Base):
     @property
     def completed_environment_reviews_count(self) -> int:
         return sum(len([er for er in ab.environment_reviews if er.review_decision]) for ab in self.latest_builds)
+
+    @property
+    def missing_expected_environments(self) -> list["Environment"]:
+        tested_environment_ids = {
+            test_execution.environment_id for build in self.latest_builds for test_execution in build.test_executions
+        }
+        return [env for env in self.expected_environments if env.id not in tested_environment_ids]
 
 
 class ArtefactBuild(Base):
