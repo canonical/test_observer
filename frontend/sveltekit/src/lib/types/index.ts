@@ -37,6 +37,8 @@ export interface ColumnSpec {
   key: string;
   field?: string;
   format?: string;
+  /** Starts out of view, still listed in the grid's "Choose columns" menu. */
+  hidden?: boolean;
 }
 
 // A filter, described by data (from families.json). `field` names an Artefact
@@ -51,7 +53,11 @@ export interface FilterSpec {
 export type ArtefactStatus = "APPROVED" | "MARKED_AS_FAILED" | "UNDECIDED";
 export type ViewMode = "dashboard" | "list";
 
-export interface Artefact {
+// A type alias rather than an interface because only object type aliases get
+// TypeScript's implicit index signature, which is what lets this satisfy
+// SvGrid's `RowData extends Record<string, unknown>` constraint.
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+export type Artefact = {
   id: number;
   name: string;
   version: string;
@@ -67,6 +73,7 @@ export interface Artefact {
   sha256: string;
   image_url: string;
   stage: string;
+  risk: string;
   family: string;
   status: ArtefactStatus;
   comment: string;
@@ -77,9 +84,10 @@ export interface Artefact {
   due_date: string | null;
   created_at: string;
   bug_link: string;
+  jira_issue: string | null;
   all_environment_reviews_count: number;
   completed_environment_reviews_count: number;
-}
+};
 
 export const STATUS_COLORS: Record<ArtefactStatus, string> = {
   APPROVED: "#0e8420",

@@ -1,5 +1,5 @@
 {
-  "comment": "This file functions as a stopgap, providing some family definitions which can be interpreted by the UI at runtime.  It can also be customized/overridden by the Test Observer charm.  'columns' and 'filters' reference generic value formatters/categorisers by name (see artefactMetadata.ts); 'field' names an artefact property to read.",
+  "comment": "This file functions as a stopgap, providing some family definitions which can be interpreted by the UI at runtime.  It can also be customized/overridden by the Test Observer charm.  'columns' and 'filters' reference generic value formatters/categorisers by name (see artefactMetadata.ts); 'field' names an artefact property to read.  A column marked 'hidden' starts out of view but stays available in the grid's 'Choose columns' menu.",
   "families": [
     {
       "name": "snaps",
@@ -19,6 +19,12 @@
           "format": "date"
         },
         {
+          "label": "Created",
+          "key": "createdAt",
+          "field": "created_at",
+          "format": "date"
+        },
+        {
           "label": "Reviews",
           "key": "reviewsRemaining",
           "format": "reviewsRemaining"
@@ -29,7 +35,38 @@
           "field": "status",
           "format": "status"
         },
-        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" }
+        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" },
+        { "label": "Store", "key": "store", "field": "store", "hidden": true },
+        {
+          "label": "Channel risk",
+          "key": "channelRisk",
+          "field": "risk",
+          "hidden": true
+        },
+        {
+          "label": "Bug link",
+          "key": "bugLink",
+          "field": "bug_link",
+          "hidden": true
+        },
+        {
+          "label": "Jira issue",
+          "key": "jiraIssue",
+          "field": "jira_issue",
+          "hidden": true
+        },
+        {
+          "label": "Comment",
+          "key": "comment",
+          "field": "comment",
+          "hidden": true
+        },
+        {
+          "label": "Archived",
+          "key": "archived",
+          "field": "archived",
+          "hidden": true
+        }
       ],
       "filters": [
         { "label": "Reviewers", "category": "reviewers" },
@@ -57,6 +94,12 @@
           "format": "date"
         },
         {
+          "label": "Created",
+          "key": "createdAt",
+          "field": "created_at",
+          "format": "date"
+        },
+        {
           "label": "Reviews",
           "key": "reviewsRemaining",
           "format": "reviewsRemaining"
@@ -67,7 +110,37 @@
           "field": "status",
           "format": "status"
         },
-        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" }
+        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" },
+        {
+          "label": "Channel risk",
+          "key": "channelRisk",
+          "field": "risk",
+          "hidden": true
+        },
+        {
+          "label": "Bug link",
+          "key": "bugLink",
+          "field": "bug_link",
+          "hidden": true
+        },
+        {
+          "label": "Jira issue",
+          "key": "jiraIssue",
+          "field": "jira_issue",
+          "hidden": true
+        },
+        {
+          "label": "Comment",
+          "key": "comment",
+          "field": "comment",
+          "hidden": true
+        },
+        {
+          "label": "Archived",
+          "key": "archived",
+          "field": "archived",
+          "hidden": true
+        }
       ],
       "filters": [
         { "label": "Reviewers", "category": "reviewers" },
@@ -95,6 +168,12 @@
           "format": "date"
         },
         {
+          "label": "Created",
+          "key": "createdAt",
+          "field": "created_at",
+          "format": "date"
+        },
+        {
           "label": "Reviews",
           "key": "reviewsRemaining",
           "format": "reviewsRemaining"
@@ -105,7 +184,38 @@
           "field": "status",
           "format": "status"
         },
-        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" }
+        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" },
+        { "label": "Store", "key": "store", "field": "store", "hidden": true },
+        {
+          "label": "Channel risk",
+          "key": "channelRisk",
+          "field": "risk",
+          "hidden": true
+        },
+        {
+          "label": "Bug link",
+          "key": "bugLink",
+          "field": "bug_link",
+          "hidden": true
+        },
+        {
+          "label": "Jira issue",
+          "key": "jiraIssue",
+          "field": "jira_issue",
+          "hidden": true
+        },
+        {
+          "label": "Comment",
+          "key": "comment",
+          "field": "comment",
+          "hidden": true
+        },
+        {
+          "label": "Archived",
+          "key": "archived",
+          "field": "archived",
+          "hidden": true
+        }
       ],
       "filters": [
         { "label": "Reviewers", "category": "reviewers" },
@@ -132,6 +242,12 @@
           "format": "date"
         },
         {
+          "label": "Created",
+          "key": "createdAt",
+          "field": "created_at",
+          "format": "date"
+        },
+        {
           "label": "Reviews",
           "key": "reviewsRemaining",
           "format": "reviewsRemaining"
@@ -142,7 +258,49 @@
           "field": "status",
           "format": "status"
         },
-        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" }
+        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" },
+        {
+          "label": "SHA256",
+          "key": "sha256",
+          "field": "sha256",
+          "hidden": true
+        },
+        {
+          "label": "Image URL",
+          "key": "imageUrl",
+          "field": "image_url",
+          "hidden": true
+        },
+        {
+          "label": "Channel risk",
+          "key": "channelRisk",
+          "field": "risk",
+          "hidden": true
+        },
+        {
+          "label": "Bug link",
+          "key": "bugLink",
+          "field": "bug_link",
+          "hidden": true
+        },
+        {
+          "label": "Jira issue",
+          "key": "jiraIssue",
+          "field": "jira_issue",
+          "hidden": true
+        },
+        {
+          "label": "Comment",
+          "key": "comment",
+          "field": "comment",
+          "hidden": true
+        },
+        {
+          "label": "Archived",
+          "key": "archived",
+          "field": "archived",
+          "hidden": true
+        }
       ],
       "filters": [
         { "label": "OS type", "field": "os" },

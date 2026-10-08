@@ -4,29 +4,71 @@
 -->
 <script lang="ts">
   import type { Family } from '$lib/types';
+  import { Button } from '@canonical/svelte-ds-app-launchpad';
+  import { CheckmarkIcon, CloseIcon, ShareIcon } from '@canonical/svelte-icons';
+  import { errorStore } from '$lib/stores/error.svelte';
 
   let {
     family,
-    filteredCount,
-    totalCount,
+    count,
+    filtered,
+    onClear,
+    onShare,
   }: {
     family: Family;
-    filteredCount: number;
-    totalCount: number;
+    count: number;
+    filtered: boolean;
+    onClear: () => void;
+    onShare: () => string;
   } = $props();
 
   const title = $derived(family.friendly_name);
-  const countText = $derived(
-    filteredCount === totalCount
-      ? `${totalCount} artifacts`
-      : `${filteredCount} of ${totalCount} artifacts`
-  );
+  const countText = $derived(`${count} artifacts`);
+
+  let copied = $state(false);
+  let copiedTimer: ReturnType<typeof setTimeout> | undefined;
+
+  async function share() {
+    const url = onShare();
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      // Clipboard access needs a secure context and user permission; neither is
+      // guaranteed, so say so rather than silently doing nothing.
+      errorStore.set(`Could not copy the link. You can copy it from the address bar: ${url}`);
+      return;
+    }
+    copied = true;
+    clearTimeout(copiedTimer);
+    copiedTimer = setTimeout(() => (copied = false), 2000);
+  }
+
+  $effect(() => () => {
+    clearTimeout(copiedTimer);
+  });
 </script>
 
 <header class="dashboard-header">
   <div class="title-group">
     <h1>{title}</h1>
     <span class="count">{countText}</span>
+  </div>
+
+  <div class="actions">
+    <Button
+      density="dense"
+      severity="base"
+      disabled={!filtered}
+      onclick={onClear}
+      aria-label="Clear all filters and sorting"
+    >
+      {#snippet iconLeft()}<CloseIcon />{/snippet}
+      Clear filters
+    </Button>
+    <Button density="dense" severity="base" onclick={share} aria-label="Copy a link to this view">
+      {#snippet iconLeft()}{#if copied}<CheckmarkIcon />{:else}<ShareIcon />{/if}{/snippet}
+      {copied ? 'Link copied' : 'Share'}
+    </Button>
   </div>
 </header>
 
@@ -54,5 +96,12 @@
   .count {
     font-size: 0.875rem;
     color: var(--lp-color-text-muted);
+  }
+
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
   }
 </style>

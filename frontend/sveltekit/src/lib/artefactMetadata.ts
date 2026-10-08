@@ -13,12 +13,12 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Generic accessors that turn a data-driven ColumnSpec/FilterSpec (declared per
-// family in families.json) into displayable/sortable/filterable values. Nothing
-// here branches on a specific family — the named `format`/`category` values are
-// reusable value transformations, not family identifiers.
+// Generic accessors that turn a data-driven ColumnSpec (declared per family in
+// families.json) into displayable/sortable values. Nothing here branches on a
+// specific family — the named `format` values are reusable value
+// transformations, not family identifiers.
 
-import type { Artefact, ColumnSpec, FilterSpec } from "$lib/types";
+import type { Artefact, ColumnSpec } from "$lib/types";
 import { STATUS_COLORS, STATUS_LABELS } from "$lib/types";
 
 function fieldValue(a: Artefact, field?: string): string {
@@ -41,24 +41,6 @@ function reviewersColumnValue(reviewers: Artefact["reviewers"]): string {
   if (r.length === 0) return "N/A";
   if (r.length === 1) return r[0].name;
   return `${r.length} reviewers`;
-}
-
-// Grouping label for the reviewers filter ("Unassigned" when there are none).
-function reviewersFilterValue(reviewers: Artefact["reviewers"]): string {
-  const r = reviewers ?? [];
-  if (r.length === 0) return "Unassigned";
-  if (r.length === 1) return r[0].name;
-  return `${r.length} reviewers`;
-}
-
-function dueDateCategory(dueDate: string | null): string {
-  if (!dueDate) return "No due date";
-  const due = new Date(dueDate);
-  const now = new Date();
-  if (due < now) return "Overdue";
-  const diffDays = (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
-  if (diffDays < 7) return "Within a week";
-  return "More than a week";
 }
 
 /** Value shown in a table cell for the given column. */
@@ -99,17 +81,5 @@ export function columnSortValue(
       return a.reviewers?.[0]?.name ?? null;
     default:
       return fieldValue(a, col.field);
-  }
-}
-
-/** Grouping value used when filtering by the given filter. */
-export function filterValue(a: Artefact, filter: FilterSpec): string {
-  switch (filter.category) {
-    case "reviewers":
-      return reviewersFilterValue(a.reviewers);
-    case "dueDate":
-      return dueDateCategory(fieldValue(a, filter.field) || null);
-    default:
-      return fieldValue(a, filter.field);
   }
 }
