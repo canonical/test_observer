@@ -317,11 +317,15 @@ class TestObserverBackendCharm(CharmBase):
         data_interfaces readiness check, which is stricter than the engine's
         own "any data published" gate.
         """
-        if not self._database_relation_ready():
+        previous_status = self._validation_status.status()
+        if self._database_relation_ready():
+            self._validation_status.record(run_simple_check(self).results)
+        else:
             self._validation_status.clear()
-            return
 
-        self._validation_status.record(run_simple_check(self).results)
+        if previous_status is not None and self._validation_status.status() is None:
+            if self.unit.status == previous_status:
+                self.unit.status = ActiveStatus()
 
     def _on_peer_relation_changed(self, event) -> None:
         # The published migration revision may have changed; reconcile the

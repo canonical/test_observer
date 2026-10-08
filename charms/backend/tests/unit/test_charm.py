@@ -87,46 +87,58 @@ class TestIntegrationValidation(unittest.TestCase):
             "postgresql",
             {"endpoints": "postgresql:5432", "database": "test_observer_db"},
         )
+        # Relation hooks wait for Pebble in the harness; these tests exercise
+        # validation status, not workload startup.
+        self.harness.model.unit.status = ops.ActiveStatus()
         return relation_id
+
+    def _run_update_status(self):
+        with patch.object(self.harness.charm, "_migrations_ready", return_value=True):
+            self.harness.charm.on.update_status.emit()
+        self.harness.evaluate_status()
 
     def test_update_status_sets_blocked_on_failing_check(self):
         self._add_ready_database_relation()
         with patch("charm.run_simple_check", return_value=_results("FAIL")):
-            self.harness.charm.on.update_status.emit()
-
-        self.harness.evaluate_status()
+            self._run_update_status()
         self.assertIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
         self.assertIn("database", self.harness.model.unit.status.message)
 
     def test_update_status_sets_blocked_on_erroring_check(self):
         self._add_ready_database_relation()
         with patch("charm.run_simple_check", return_value=_results("ERROR")):
-            self.harness.charm.on.update_status.emit()
-
-        self.harness.evaluate_status()
+            self._run_update_status()
         self.assertIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
 
     def test_update_status_clears_previous_failure_once_passing(self):
         self._add_ready_database_relation()
         with patch("charm.run_simple_check", return_value=_results("FAIL")):
-            self.harness.charm.on.update_status.emit()
+            self._run_update_status()
 
         with patch("charm.run_simple_check", return_value=_results("PASS")):
-            self.harness.charm.on.update_status.emit()
+            self._run_update_status()
+        self.assertIsInstance(self.harness.model.unit.status, ops.ActiveStatus)
 
-        self.harness.evaluate_status()
-        self.assertNotIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
+    def test_update_status_preserves_other_blocked_status(self):
+        self._add_ready_database_relation()
+        with patch("charm.run_simple_check", return_value=_results("FAIL")):
+            self._run_update_status()
+
+        self.harness.model.unit.status = ops.BlockedStatus("Unrelated failure")
+        with patch("charm.run_simple_check", return_value=_results("PASS")):
+            self._run_update_status()
+
+        self.assertEqual(self.harness.model.unit.status, ops.BlockedStatus("Unrelated failure"))
 
     def test_update_status_skips_check_until_database_relation_ready(self):
         # GIVEN no database relation at all
         # WHEN update-status runs
         with patch("charm.run_simple_check", return_value=_results("ERROR")) as run_check:
-            self.harness.charm.on.update_status.emit()
+            self._run_update_status()
 
         # THEN the validator engine is never invoked, so the missing relation
         # cannot mask the "Waiting for database relation" status with Blocked
         run_check.assert_not_called()
-        self.harness.evaluate_status()
         self.assertNotIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
 
     def test_validate_action_returns_results_and_defaults_to_simple(self):
@@ -169,7 +181,10 @@ class TestIntegrationValidation(unittest.TestCase):
     def test_validate_action_reports_skipped_when_relation_not_ready(self):
         # GIVEN a database relation with no data published yet (e.g. right
         # after `juju integrate`, before the two ends negotiate)
-        self.harness.add_relation("database", "postgresql")
+        relation_id = self.harness.add_relation("database", "postgresql")
+        self.harness.update_relation_data(
+            relation_id, self.harness.model.app.name, {"database": ""}
+        )
 
         # WHEN the validate action runs
         with patch(
