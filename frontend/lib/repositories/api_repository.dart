@@ -69,6 +69,18 @@ class ApiRepository {
     return Artefact.fromJson(response.data);
   }
 
+  Future<Artefact> setArtefactArchived(int artefactId, bool archived) async {
+    final response = await dio.patch(
+      '/v1/artefacts/$artefactId',
+      data: {'archived': archived},
+    );
+    return Artefact.fromJson(response.data);
+  }
+
+  Future<void> deleteArtefact(int artefactId) async {
+    await dio.delete('/v1/artefacts/$artefactId');
+  }
+
   Future<List<ArtefactBuild>> getArtefactBuilds(int artefactId) async {
     final response = await dio.get('/v1/artefacts/$artefactId/builds');
     final List artefactBuildsJson = response.data;

@@ -1716,6 +1716,42 @@
           "view_artefact"
         ]
       },
+      "delete": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Delete Artefact",
+        "operationId": "delete_artefact_v1_artefacts__artefact_id__delete",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "delete_artefact"
+        ]
+      },
       "patch": {
         "tags": [
           "artefacts"
@@ -8098,6 +8134,7 @@
           "change_rerun_bulk",
           "view_artefact",
           "change_artefact",
+          "delete_artefact",
           "view_environment_review",
           "change_environment_review",
           "view_report",
