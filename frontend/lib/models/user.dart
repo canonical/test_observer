@@ -20,6 +20,18 @@ part 'user.freezed.dart';
 part 'user.g.dart';
 
 @freezed
+abstract class UserTeam with _$UserTeam {
+  const factory UserTeam({
+    required int id,
+    required String name,
+    @Default([]) List<String> permissions,
+  }) = _UserTeam;
+
+  factory UserTeam.fromJson(Map<String, Object?> json) =>
+      _$UserTeamFromJson(json);
+}
+
+@freezed
 abstract class User with _$User {
   const User._();
 
@@ -28,10 +40,20 @@ abstract class User with _$User {
     required String name,
     required String email,
     @Default(null) @JsonKey(name: 'launchpad_handle') String? launchpadHandle,
+    @Default([]) List<UserTeam> teams,
+    @Default(false) @JsonKey(name: 'is_admin') bool isAdmin,
     @Default(false) bool isEmpty,
   }) = _User;
 
   factory User.fromJson(Map<String, Object?> json) => _$UserFromJson(json);
+
+  bool get canDeleteArtefact =>
+      isAdmin ||
+      teams.any((team) => team.permissions.contains('delete_artefact'));
+
+  bool get canChangeArtefact =>
+      isAdmin ||
+      teams.any((team) => team.permissions.contains('change_artefact'));
 
   String get initials {
     if (isEmpty) return 'N/A';
