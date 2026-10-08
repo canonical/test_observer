@@ -24,8 +24,8 @@ cosl
 
 # Validator glue from charm-integration-testing; keep pinned to the same
 # upstream commit so the charm tracks the reviewed glue packages together.
-validators-update-status-check @ git+https://github.com/canonical/charm-integration-testing.git@2861faa8#subdirectory=validators/update_status_check
-validators-validate-action @ git+https://github.com/canonical/charm-integration-testing.git@2861faa8#subdirectory=validators/validate_action
-validators-engine @ git+https://github.com/canonical/charm-integration-testing.git@2861faa8#subdirectory=validators/engine
-validators-base @ git+https://github.com/canonical/charm-integration-testing.git@2861faa8#subdirectory=validators/base
-validators-postgresql-client @ git+https://github.com/canonical/charm-integration-testing.git@2861faa8#subdirectory=validators/postgresql_client
+validators-update-status-check @ git+https://github.com/canonical/charm-integration-testing.git@ce8bab213c68b503bc8c8c20b9ae2f0c4666ecfa#subdirectory=validators/update_status_check
+validators-validate-action @ git+https://github.com/canonical/charm-integration-testing.git@ce8bab213c68b503bc8c8c20b9ae2f0c4666ecfa#subdirectory=validators/validate_action
+validators-engine @ git+https://github.com/canonical/charm-integration-testing.git@ce8bab213c68b503bc8c8c20b9ae2f0c4666ecfa#subdirectory=validators/engine
+validators-base @ git+https://github.com/canonical/charm-integration-testing.git@ce8bab213c68b503bc8c8c20b9ae2f0c4666ecfa#subdirectory=validators/base
+validators-postgresql-client @ git+https://github.com/canonical/charm-integration-testing.git@ce8bab213c68b503bc8c8c20b9ae2f0c4666ecfa#subdirectory=validators/postgresql_client
