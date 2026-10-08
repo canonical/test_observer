@@ -39,12 +39,9 @@ from test_observer.data_access.models import (
     Application,
     Artefact,
     ArtefactBuild,
-<<<<<<< HEAD
     Environment,
-=======
     TestExecution,
     TestExecutionMetadata,
->>>>>>> main
     User,
     test_execution_metadata_association_table,
 )
