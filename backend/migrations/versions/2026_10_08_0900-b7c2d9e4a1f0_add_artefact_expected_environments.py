@@ -17,7 +17,7 @@
 """Add expected environments to artefacts
 
 Revision ID: b7c2d9e4a1f0
-Revises: f3a9c7d21b84
+Revises: b2db87f4400c
 Create Date: 2026-10-08 09:00:00.000000+00:00
 
 """
@@ -27,7 +27,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "b7c2d9e4a1f0"
-down_revision = "f3a9c7d21b84"
+down_revision = "b2db87f4400c"
 branch_labels = None
 depends_on = None
 

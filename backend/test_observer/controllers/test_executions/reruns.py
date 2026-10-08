@@ -308,7 +308,7 @@ def create_rerun_requests(
             )
         ).all()
     }
-    rerun_requests = [reruns_by_id[rerun_id] for rerun_id in rerun_request_ids]
+    rerun_requests = [reruns_by_id[rerun_id] for rerun_id in rerun_request_ids if rerun_id in reruns_by_id]
     populate_expected_environment_status(
         db,
         [rerun.artefact_build.artefact for rerun in rerun_requests],
