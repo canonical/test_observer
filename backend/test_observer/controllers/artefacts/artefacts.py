@@ -53,7 +53,11 @@ from test_observer.data_access.models_enums import (
     SolutionStage,
     StageName,
 )
-from test_observer.data_access.repository import get_artefacts_by_family, get_or_create
+from test_observer.data_access.repository import (
+    get_artefacts_by_family,
+    get_or_create,
+    populate_expected_environment_status,
+)
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
@@ -100,6 +104,7 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
                 order_by_columns=order_by,
             )
 
+    populate_expected_environment_status(db, artefacts)
     return artefacts
 
 
@@ -231,11 +236,11 @@ def get_artefact(
     artefact: Artefact = Depends(
         ArtefactRetriever(
             selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
-            selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions),
-            selectinload(Artefact.expected_environments),
         )
     ),
+    db: Session = Depends(get_db),
 ):
+    populate_expected_environment_status(db, [artefact])
     return artefact
 
 
@@ -252,8 +257,6 @@ def patch_artefact(
     artefact: Artefact = Depends(
         ArtefactRetriever(
             selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
-            selectinload(Artefact.builds).selectinload(ArtefactBuild.test_executions),
-            selectinload(Artefact.expected_environments),
         )
     ),
 ):
@@ -360,6 +363,8 @@ def patch_artefact(
             NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
         )
     db.commit()
+
+    populate_expected_environment_status(db, [artefact])
 
     if len(newly_assigned_reviewers) > 0 and artefact.jira_issue is not None:
         review_assigned_messages = BatchReviewerAssignedMessage(

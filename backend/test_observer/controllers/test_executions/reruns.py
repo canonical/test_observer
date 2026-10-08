@@ -52,7 +52,7 @@ from test_observer.data_access.models import (
     TestResult,
     User,
 )
-from test_observer.data_access.repository import get_or_create
+from test_observer.data_access.repository import get_or_create, populate_expected_environment_status
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
@@ -297,6 +297,15 @@ def create_rerun_requests(
 
     db.commit()
 
+    artefact_build_ids = {rerun.artefact_build_id for rerun in rerun_requests}
+    artefacts = db.scalars(
+        select(Artefact)
+        .join(ArtefactBuild, ArtefactBuild.artefact_id == Artefact.id)
+        .where(ArtefactBuild.id.in_(artefact_build_ids))
+        .distinct()
+    ).all()
+    populate_expected_environment_status(db, artefacts)
+
     return rerun_requests
 
 
@@ -327,7 +336,10 @@ def get_rerun_requests(
         .options(
             selectinload(TestExecutionRerunRequest.artefact_build)
             .selectinload(ArtefactBuild.artefact)
-            .selectinload(Artefact.reviewers),
+            .options(
+                selectinload(Artefact.reviewers),
+                selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
+            ),
             selectinload(TestExecutionRerunRequest.environment),
             selectinload(TestExecutionRerunRequest.test_plan),
             selectinload(TestExecutionRerunRequest.test_executions),
@@ -355,6 +367,9 @@ def get_rerun_requests(
         stmt = stmt.limit(limit)
 
     return db.scalars(stmt)
+    reruns = db.scalars(stmt).all()
+    populate_expected_environment_status(db, [rerun.artefact_build.artefact for rerun in reruns])
+    return reruns
 
 
 @router.get(

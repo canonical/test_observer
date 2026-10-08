@@ -16,7 +16,7 @@
 import secrets
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 from sqlalchemy import (
     Boolean,
@@ -345,6 +345,7 @@ class Artefact(Base):
 
     attributes: Mapped[dict[str, Any]] = mapped_column(MutableDict.as_mutable(JSONB), default=dict, server_default="{}")
     jira_issue: Mapped[str | None] = mapped_column(default=None)
+    _missing_expected_environments_cache: ClassVar[list["Environment"] | None] = None
 
     @property
     def architectures(self) -> set[str]:
@@ -441,6 +442,9 @@ class Artefact(Base):
 
     @property
     def missing_expected_environments(self) -> list["Environment"]:
+        if self._missing_expected_environments_cache is not None:
+            return self._missing_expected_environments_cache
+
         tested_environment_ids = {
             test_execution.environment_id for build in self.latest_builds for test_execution in build.test_executions
         }
