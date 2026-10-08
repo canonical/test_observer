@@ -74,9 +74,18 @@ def _make_stub_validator(
 
 class TestIntegrationValidation(unittest.TestCase):
     def setUp(self):
+        self.install_package = patch("charm.apt.add_package")
+        self.mock_install_package = self.install_package.start()
+        self.addCleanup(self.install_package.stop)
         self.harness = ops.testing.Harness(TestObserverBackendCharm)
+        self.harness.set_leader(True)
         self.addCleanup(self.harness.cleanup)
         self.harness.begin()
+
+    def test_install_installs_libpq_runtime_package(self):
+        self.mock_install_package.reset_mock()
+        self.harness.charm.on.install.emit()
+        self.mock_install_package.assert_called_once_with("libpq5", update_cache=True)
 
     def _add_ready_database_relation(self):
         """Add a database relation with endpoint data so the check is not skipped."""

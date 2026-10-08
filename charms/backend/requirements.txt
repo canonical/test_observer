@@ -21,6 +21,7 @@ pydantic==2.13.3
 
 # Vendored charm lib dependency.
 cosl
+charmlibs-apt~=1.0
 
 # Validator glue from charm-integration-testing; keep pinned to the same
 # upstream commit so the charm tracks the reviewed glue packages together.
