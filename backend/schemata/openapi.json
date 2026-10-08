@@ -6634,6 +6634,21 @@
             ],
             "title": "Attributes"
           },
+          "expected_environments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ExpectedEnvironmentInput"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Environments",
+            "description": "Expected environments, replacing the current set. Each environment is identified by name and architecture."
+          },
           "assignee_id": {
             "anyOf": [
               {
@@ -6823,6 +6838,20 @@
             "type": "integer",
             "title": "Completed Environment Reviews Count"
           },
+          "expected_environments": {
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentResponse"
+            },
+            "type": "array",
+            "title": "Expected Environments"
+          },
+          "missing_expected_environments": {
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentResponse"
+            },
+            "type": "array",
+            "title": "Missing Expected Environments"
+          },
           "assignee": {
             "anyOf": [
               {
@@ -6865,6 +6894,8 @@
           "jira_issue",
           "all_environment_reviews_count",
           "completed_environment_reviews_count",
+          "expected_environments",
+          "missing_expected_environments",
           "assignee"
         ],
         "title": "ArtefactResponse"
@@ -7310,6 +7341,24 @@
           "execution_metadata"
         ],
         "title": "ExecutionMetadataGetResponse"
+      },
+      "ExpectedEnvironmentInput": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "architecture"
+        ],
+        "title": "ExpectedEnvironmentInput"
       },
       "FamilyName": {
         "type": "string",
@@ -8343,6 +8392,14 @@
             "title": "Environment",
             "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
           },
+          "expected_environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Expected Environments",
+            "description": "Environment names expected for this artefact, resolved using this request's architecture. Only applied when this request creates the artefact."
+          },
           "ci_link": {
             "anyOf": [
               {
@@ -8444,6 +8501,14 @@
             "type": "string",
             "title": "Environment",
             "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
+          },
+          "expected_environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Expected Environments",
+            "description": "Environment names expected for this artefact, resolved using this request's architecture. Only applied when this request creates the artefact."
           },
           "ci_link": {
             "anyOf": [
@@ -8578,6 +8643,14 @@
             "type": "string",
             "title": "Environment",
             "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
+          },
+          "expected_environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Expected Environments",
+            "description": "Environment names expected for this artefact, resolved using this request's architecture. Only applied when this request creates the artefact."
           },
           "ci_link": {
             "anyOf": [
@@ -8723,6 +8796,14 @@
             "title": "Environment",
             "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
           },
+          "expected_environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Expected Environments",
+            "description": "Environment names expected for this artefact, resolved using this request's architecture. Only applied when this request creates the artefact."
+          },
           "ci_link": {
             "anyOf": [
               {
@@ -8831,6 +8912,14 @@
             "type": "string",
             "title": "Environment",
             "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
+          },
+          "expected_environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Expected Environments",
+            "description": "Environment names expected for this artefact, resolved using this request's architecture. Only applied when this request creates the artefact."
           },
           "ci_link": {
             "anyOf": [
