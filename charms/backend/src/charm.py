@@ -851,7 +851,10 @@ class TestObserverBackendCharm(CharmBase):
 
         # Surface the last integration check (see _run_integration_check) as a
         # Blocked status, unless a more specific status was already added above.
-        if (status := self._validation_status.status()) is not None:
+        if (
+            isinstance(self.unit.status, ActiveStatus)
+            and (status := self._validation_status.status()) is not None
+        ):
             event.add_status(status)
 
     def _get_url(self) -> str:

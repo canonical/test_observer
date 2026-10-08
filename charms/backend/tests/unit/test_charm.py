@@ -130,6 +130,19 @@ class TestIntegrationValidation(unittest.TestCase):
 
         self.assertEqual(self.harness.model.unit.status, ops.BlockedStatus("Unrelated failure"))
 
+    def test_collect_status_preserves_waiting_status_over_validation_failure(self):
+        self._add_ready_database_relation()
+        with patch("charm.run_simple_check", return_value=_results("FAIL")):
+            self._run_update_status()
+
+        self.harness.model.unit.status = ops.WaitingStatus("Waiting for database migration")
+        self.harness.evaluate_status()
+
+        self.assertEqual(
+            self.harness.model.unit.status,
+            ops.WaitingStatus("Waiting for database migration"),
+        )
+
     def test_update_status_skips_check_until_database_relation_ready(self):
         # GIVEN no database relation at all
         # WHEN update-status runs
@@ -177,6 +190,15 @@ class TestIntegrationValidation(unittest.TestCase):
 
         self.assertIn("boom", ctx.exception.message)
         self.assertIn("results", ctx.exception.output.results)
+
+    def test_validate_action_fails_when_no_validators_are_discovered(self):
+        self._add_ready_database_relation()
+
+        with patch("validators.engine.engine.load_validators", return_value={}):
+            with self.assertRaises(ops.testing.ActionFailed) as ctx:
+                self.harness.run_action("validate")
+
+        self.assertIn("No validators produced validation results", ctx.exception.message)
 
     def test_validate_action_reports_skipped_when_relation_not_ready(self):
         # GIVEN a database relation with no data published yet (e.g. right
