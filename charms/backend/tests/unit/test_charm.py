@@ -85,7 +85,12 @@ class TestIntegrationValidation(unittest.TestCase):
         self.harness.update_relation_data(
             relation_id,
             "postgresql",
-            {"endpoints": "postgresql:5432", "database": "test_observer_db"},
+            {
+                "endpoints": "postgresql:5432",
+                "username": "test_observer",
+                "password": "test_password",
+                "database": "test_observer_db",
+            },
         )
         # Relation hooks wait for Pebble in the harness; these tests exercise
         # validation status, not workload startup.
@@ -145,14 +150,84 @@ class TestIntegrationValidation(unittest.TestCase):
 
     def test_update_status_skips_check_until_database_relation_ready(self):
         # GIVEN no database relation at all
+        self.harness.model.unit.status = ops.ActiveStatus()
+
         # WHEN update-status runs
         with patch("charm.run_simple_check", return_value=_results("ERROR")) as run_check:
             self._run_update_status()
 
-        # THEN the validator engine is never invoked, so the missing relation
-        # cannot mask the "Waiting for database relation" status with Blocked
+        # THEN the validator engine is skipped and the unit waits for the relation
         run_check.assert_not_called()
-        self.assertNotIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
+        self.assertEqual(
+            self.harness.model.unit.status,
+            ops.WaitingStatus("Waiting for database relation"),
+        )
+
+    def test_update_status_waits_for_complete_database_relation_data(self):
+        # GIVEN a relation with endpoints but no credentials
+        relation_id = self.harness.add_relation("database", "postgresql")
+        self.harness.update_relation_data(
+            relation_id, "postgresql", {"endpoints": "postgresql:5432"}
+        )
+        self.harness.model.unit.status = ops.ActiveStatus()
+
+        # WHEN update-status runs
+        with patch("charm.run_simple_check") as run_check:
+            self._run_update_status()
+
+        # THEN validation is skipped until all required connection data is present
+        run_check.assert_not_called()
+        self.assertEqual(
+            self.harness.model.unit.status,
+            ops.WaitingStatus("Waiting for database relation"),
+        )
+
+    def test_update_status_waits_when_database_data_disappears_after_failure(self):
+        # GIVEN a previously failing validation with a ready relation
+        relation_id = self._add_ready_database_relation()
+        with patch("charm.run_simple_check", return_value=_results("FAIL")):
+            self._run_update_status()
+        self.assertIsInstance(self.harness.model.unit.status, ops.BlockedStatus)
+
+        # WHEN the database stops publishing connection data
+        self.harness.update_relation_data(relation_id, "postgresql", {"endpoints": ""})
+        with patch("charm.run_simple_check") as run_check:
+            self._run_update_status()
+
+        # THEN the stale validator failure is cleared but the unit does not appear healthy
+        run_check.assert_not_called()
+        self.assertEqual(
+            self.harness.model.unit.status,
+            ops.WaitingStatus("Waiting for database relation"),
+        )
+
+    def test_update_status_recovers_when_database_data_returns(self):
+        # GIVEN a relation without usable connection data
+        relation_id = self.harness.add_relation("database", "postgresql")
+        self.harness.model.unit.status = ops.ActiveStatus()
+        self._run_update_status()
+        self.assertEqual(
+            self.harness.model.unit.status,
+            ops.WaitingStatus("Waiting for database relation"),
+        )
+
+        # WHEN the relation publishes complete connection data
+        self.harness.update_relation_data(
+            relation_id,
+            "postgresql",
+            {
+                "endpoints": "postgresql:5432",
+                "username": "test_observer",
+                "password": "test_password",
+            },
+        )
+        self.harness.model.unit.status = ops.WaitingStatus("Waiting for database relation")
+        with patch("charm.run_simple_check", return_value=_results("PASS")) as run_check:
+            self._run_update_status()
+
+        # THEN validation resumes and clears the relation wait
+        run_check.assert_called_once()
+        self.assertIsInstance(self.harness.model.unit.status, ops.ActiveStatus)
 
     def test_validate_action_returns_results_and_defaults_to_simple(self):
         self._add_ready_database_relation()

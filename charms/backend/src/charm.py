@@ -318,14 +318,18 @@ class TestObserverBackendCharm(CharmBase):
         own "any data published" gate.
         """
         previous_status = self._validation_status.status()
-        if self._database_relation_ready():
-            self._validation_status.record(run_simple_check(self).results)
-        else:
+        if not self._database_relation_ready():
             self._validation_status.clear()
+            if isinstance(self.unit.status, ActiveStatus) or self.unit.status == previous_status:
+                self.unit.status = WaitingStatus("Waiting for database relation")
+            return
 
+        self._validation_status.record(run_simple_check(self).results)
         if previous_status is not None and self._validation_status.status() is None:
             if self.unit.status == previous_status:
                 self.unit.status = ActiveStatus()
+        elif self.unit.status == WaitingStatus("Waiting for database relation"):
+            self.unit.status = ActiveStatus()
 
     def _on_peer_relation_changed(self, event) -> None:
         # The published migration revision may have changed; reconcile the
@@ -392,7 +396,10 @@ class TestObserverBackendCharm(CharmBase):
         if self.model.get_relation("database") is None:
             return False
         data = self.database.fetch_relation_data()
-        return any(val and val.get("endpoints") for val in data.values())
+        required_fields = ("endpoints", "username", "password")
+        return any(
+            val and all(val.get(field) for field in required_fields) for val in data.values()
+        )
 
     def _get_published_db_relation_id(self) -> int | None:
         """Return the database relation id the recorded migration applies to."""
