@@ -297,14 +297,22 @@ def create_rerun_requests(
 
     db.commit()
 
-    artefact_build_ids = {rerun.artefact_build_id for rerun in rerun_requests}
-    artefacts = db.scalars(
-        select(Artefact)
-        .join(ArtefactBuild, ArtefactBuild.artefact_id == Artefact.id)
-        .where(ArtefactBuild.id.in_(artefact_build_ids))
-        .distinct()
-    ).all()
-    populate_expected_environment_status(db, artefacts)
+    rerun_request_ids = [rerun.id for rerun in rerun_requests]
+    reruns_by_id = {
+        rerun.id: rerun
+        for rerun in db.scalars(
+            select(TestExecutionRerunRequest)
+            .where(TestExecutionRerunRequest.id.in_(rerun_request_ids))
+            .options(
+                selectinload(TestExecutionRerunRequest.artefact_build).selectinload(ArtefactBuild.artefact),
+            )
+        ).all()
+    }
+    rerun_requests = [reruns_by_id[rerun_id] for rerun_id in rerun_request_ids]
+    populate_expected_environment_status(
+        db,
+        [rerun.artefact_build.artefact for rerun in rerun_requests],
+    )
 
     return rerun_requests
 

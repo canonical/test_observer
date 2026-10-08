@@ -186,6 +186,12 @@ def test_start_test_sets_expected_environments_only_when_creating_artefact(
     }
 
 
+def test_start_test_rejects_overlong_expected_environment_name(execute: Execute) -> None:
+    response = execute({**solution_test_request, "expected_environments": ["e" * 201]})
+
+    assert response.status_code == 422
+
+
 def test_start_test_on_existing_solution_updates_attributes(
     execute: Execute,
     db_session: Session,

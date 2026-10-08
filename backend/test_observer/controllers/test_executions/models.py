@@ -74,7 +74,7 @@ class _StartTestExecutionRequest(BaseModel):
         "'aws-ec2'. The environment will be auto-created if it doesn't "
         "exist."
     )
-    expected_environments: list[str] = Field(
+    expected_environments: list[Annotated[str, Field(max_length=200)]] = Field(
         default_factory=list,
         description=(
             "Environment names expected for this artefact, resolved using this request's architecture. "

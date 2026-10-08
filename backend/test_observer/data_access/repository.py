@@ -157,8 +157,17 @@ def populate_expected_environment_status(session: Session, artefacts: Iterable[A
         .where(Artefact.id.in_(artefact_ids))
         .order_by(Artefact.id, Environment.name, Environment.architecture)
     ).all()
+    artefact_ids_with_expectations: set[int] = set()
     for artefact_id, environment in expected_environment_rows:
         expected_environments_by_artefact[artefact_id].append(environment)
+        artefact_ids_with_expectations.add(artefact_id)
+
+    for artefact_id, artefact in artefacts_by_id.items():
+        set_committed_value(artefact, "expected_environments", expected_environments_by_artefact[artefact_id])
+        object.__setattr__(artefact, "_missing_expected_environments_cache", [])
+
+    if not artefact_ids_with_expectations:
+        return
 
     latest_builds = (
         select(
@@ -171,7 +180,7 @@ def populate_expected_environment_status(session: Session, artefacts: Iterable[A
             )
             .label("build_rank"),
         )
-        .where(ArtefactBuild.artefact_id.in_(artefact_ids))
+        .where(ArtefactBuild.artefact_id.in_(artefact_ids_with_expectations))
         .subquery()
     )
     tested_environment_rows = session.execute(
@@ -181,13 +190,15 @@ def populate_expected_environment_status(session: Session, artefacts: Iterable[A
         .where(latest_builds.c.build_rank == 1)
         .distinct()
     ).all()
-    tested_environment_ids_by_artefact: dict[int, set[int]] = {artefact_id: set() for artefact_id in artefact_ids}
+    tested_environment_ids_by_artefact: dict[int, set[int]] = {
+        artefact_id: set() for artefact_id in artefact_ids_with_expectations
+    }
     for artefact_id, environment_id in tested_environment_rows:
         tested_environment_ids_by_artefact[artefact_id].add(environment_id)
 
-    for artefact_id, artefact in artefacts_by_id.items():
+    for artefact_id in artefact_ids_with_expectations:
+        artefact = artefacts_by_id[artefact_id]
         expected_environments = expected_environments_by_artefact[artefact_id]
-        set_committed_value(artefact, "expected_environments", expected_environments)
         object.__setattr__(
             artefact,
             "_missing_expected_environments_cache",

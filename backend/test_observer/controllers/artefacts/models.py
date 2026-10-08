@@ -59,8 +59,8 @@ class EnvironmentResponse(BaseModel):
 
 
 class ExpectedEnvironmentInput(BaseModel):
-    name: str
-    architecture: str
+    name: str = Field(max_length=200)
+    architecture: str = Field(max_length=100)
 
 
 class ArtefactResponse(BaseModel):

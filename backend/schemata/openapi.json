@@ -7346,10 +7346,12 @@
         "properties": {
           "name": {
             "type": "string",
+            "maxLength": 200,
             "title": "Name"
           },
           "architecture": {
             "type": "string",
+            "maxLength": 100,
             "title": "Architecture"
           }
         },
@@ -8394,7 +8396,8 @@
           },
           "expected_environments": {
             "items": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200
             },
             "type": "array",
             "title": "Expected Environments",
@@ -8504,7 +8507,8 @@
           },
           "expected_environments": {
             "items": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200
             },
             "type": "array",
             "title": "Expected Environments",
@@ -8646,7 +8650,8 @@
           },
           "expected_environments": {
             "items": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200
             },
             "type": "array",
             "title": "Expected Environments",
@@ -8798,7 +8803,8 @@
           },
           "expected_environments": {
             "items": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200
             },
             "type": "array",
             "title": "Expected Environments",
@@ -8915,7 +8921,8 @@
           },
           "expected_environments": {
             "items": {
-              "type": "string"
+              "type": "string",
+              "maxLength": 200
             },
             "type": "array",
             "title": "Expected Environments",

@@ -20,6 +20,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import event
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
@@ -434,6 +435,29 @@ def test_patch_artefact_replaces_expected_environments(test_client: TestClient, 
     assert response.json()["missing_expected_environments"] == []
 
 
+@pytest.mark.parametrize(
+    ("name", "architecture"),
+    [
+        ("e" * 201, "amd64"),
+        ("expected", "a" * 101),
+    ],
+)
+def test_patch_artefact_rejects_overlong_expected_environment_fields(
+    test_client: TestClient,
+    generator: DataGenerator,
+    name: str,
+    architecture: str,
+):
+    artefact = generator.gen_artefact()
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"expected_environments": [{"name": name, "architecture": architecture}]},
+    )
+
+    assert response.status_code == 422
+
+
 def test_missing_expected_environments_checks_latest_builds(test_client: TestClient, generator: DataGenerator):
     latest_environment = generator.gen_environment(name="latest", architecture="amd64")
     old_build_environment = generator.gen_environment(name="old-build", architecture="amd64")
@@ -450,6 +474,34 @@ def test_missing_expected_environments_checks_latest_builds(test_client: TestCli
 
     assert response.status_code == 200
     assert [environment["name"] for environment in response.json()["missing_expected_environments"]] == ["old-build"]
+
+
+def test_get_artefacts_skips_execution_query_without_expected_environments(
+    test_client: TestClient,
+    generator: DataGenerator,
+    db_session: Session,
+):
+    artefact = generator.gen_artefact()
+    build = generator.gen_artefact_build(artefact)
+    generator.gen_test_execution(build, generator.gen_environment())
+    statements: list[str] = []
+    connection = db_session.connection()
+
+    def record(_connection: object, _cursor: object, statement: str, *_: object) -> None:
+        statements.append(statement)
+
+    event.listen(connection, "before_cursor_execute", record)
+    try:
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/artefacts", params={"family": "snap"}),
+            Permission.view_artefact,
+        )
+    finally:
+        event.remove(connection, "before_cursor_execute", record)
+
+    assert response.status_code == 200
+    assert next(item for item in response.json() if item["id"] == artefact.id)["missing_expected_environments"] == []
+    assert not any("from test_execution" in statement.lower() for statement in statements)
 
 
 def test_artefact_signoff_ignore_old_build_on_approve(test_client: TestClient, generator: DataGenerator):
