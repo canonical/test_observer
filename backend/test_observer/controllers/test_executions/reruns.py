@@ -366,7 +366,6 @@ def get_rerun_requests(
     if limit is not None:
         stmt = stmt.limit(limit)
 
-    return db.scalars(stmt)
     reruns = db.scalars(stmt).all()
     populate_expected_environment_status(db, [rerun.artefact_build.artefact for rerun in reruns])
     return reruns
