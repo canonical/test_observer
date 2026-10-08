@@ -207,6 +207,9 @@ class TestIntegrationValidation(unittest.TestCase):
         self.harness.update_relation_data(
             relation_id, self.harness.model.app.name, {"database": ""}
         )
+        relation = self.harness.model.relations["database"][0]
+        self.assertEqual(dict(relation.data[self.harness.model.app]), {})
+        self.assertEqual(dict(relation.data[relation.app]), {})
 
         # WHEN the validate action runs
         with patch(
