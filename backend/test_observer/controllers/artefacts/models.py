@@ -231,6 +231,24 @@ class ArtefactHistoryResponse(BaseModel):
     items: list[ArtefactHistoryItemResponse]
 
 
+class MissingEnvironment(BaseModel):
+    name: str
+    architecture: str
+
+
+class MissingEnvironmentsResponse(BaseModel):
+    """Environments an artefact is missing versus the C3 source of truth."""
+
+    # Expected environments (name + architecture) not present in the latest build
+    # reviews. Empty when nothing is missing, or when no C3 source of truth applies
+    # (unsupported family, no matching pool, or C3 not configured).
+    missing_environments: list[MissingEnvironment]
+    # Link to the previous artefact version pre-filtered to the missing
+    # environments, so a reviewer can rerun or investigate them. Null when there
+    # is no previous version or nothing is missing.
+    previous_artefact_link: str | None = None
+
+
 class EnvironmentReviewReviewerResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
