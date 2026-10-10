@@ -39,6 +39,9 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import APIError, ExecError, Layer
 from requests import get
+from validators.base import ValidationResult
+from validators.update_status_check import ValidationStatusStore, run_simple_check
+from validators.validate_action import observe_validate_action
 
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
@@ -146,12 +149,15 @@ class TestObserverBackendCharm(CharmBase):
 
         self._setup_redis()
 
+        self._validation_status = ValidationStatusStore(self)
+
         self.framework.observe(self.on.delete_artefact_action, self._on_delete_artefact_action)
         self.framework.observe(self.on.add_user_action, self._on_add_user_action)
         self.framework.observe(self.on.change_assignee_action, self._on_change_assignee_action)
         self.framework.observe(
             self.on.promote_user_to_admin_action, self._on_promote_user_to_admin_action
         )
+        observe_validate_action(self)
 
         # The ops framework triggers a CollectStatusEvent at the end of each hook
         self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
@@ -302,6 +308,51 @@ class TestObserverBackendCharm(CharmBase):
             self._update_api_layer()
             self._update_celery_layer()
 
+        self._run_integration_check()
+
+    def _run_integration_check(self) -> None:
+        """Run the simple-level integration check and record the outcome.
+
+        Results are stored so `_on_collect_unit_status` can surface a Blocked
+        status without re-running the validators on every hook. Gated on the
+        data_interfaces readiness check, which is stricter than the engine's
+        own "any data published" gate.
+        """
+        previous_status = self._validation_status.status()
+        if not self._database_relation_ready():
+            self._validation_status.clear()
+            if isinstance(self.unit.status, ActiveStatus) or self.unit.status == previous_status:
+                self.unit.status = WaitingStatus("Waiting for database relation")
+            return
+
+        results = run_simple_check(self).results
+        if not any(
+            result.endpoint == "database"
+            and result.interface == "postgresql_client"
+            and result.status != "SKIPPED"
+            for result in results
+        ):
+            logger.error(
+                "Integration check produced no result for the required PostgreSQL validator"
+            )
+            results.append(
+                ValidationResult(
+                    status="ERROR",
+                    endpoint="database",
+                    interface="postgresql_client",
+                    role="requires",
+                    level="simple",
+                    relation_id=self._current_database_relation_id(),
+                    error="The required PostgreSQL validator did not produce a result.",
+                )
+            )
+        self._validation_status.record(results)
+        if previous_status is not None and self._validation_status.status() is None:
+            if self.unit.status == previous_status:
+                self.unit.status = ActiveStatus()
+        elif self.unit.status == WaitingStatus("Waiting for database relation"):
+            self.unit.status = ActiveStatus()
+
     def _on_peer_relation_changed(self, event) -> None:
         # The published migration revision may have changed; reconcile the
         # workload layers so units start once the schema they expect is ready.
@@ -367,7 +418,10 @@ class TestObserverBackendCharm(CharmBase):
         if self.model.get_relation("database") is None:
             return False
         data = self.database.fetch_relation_data()
-        return any(val and val.get("endpoints") for val in data.values())
+        required_fields = ("endpoints", "username", "password")
+        return any(
+            val and all(val.get(field) for field in required_fields) for val in data.values()
+        )
 
     def _get_published_db_relation_id(self) -> int | None:
         """Return the database relation id the recorded migration applies to."""
@@ -823,6 +877,14 @@ class TestObserverBackendCharm(CharmBase):
             if not has_ingress_conflict:
                 event.add_status(ActiveStatus())
             return
+
+        # Surface the last integration check (see _run_integration_check) as a
+        # Blocked status, unless a more specific status was already added above.
+        if (
+            isinstance(self.unit.status, ActiveStatus)
+            and (status := self._validation_status.status()) is not None
+        ):
+            event.add_status(status)
 
     def _get_url(self) -> str:
         """Get the URL to use for this charm's service."""
