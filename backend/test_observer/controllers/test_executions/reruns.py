@@ -20,7 +20,8 @@ from fastapi import Depends, HTTPException, Query, Response, Security, status
 from fastapi.security import SecurityScopes
 from sqlalchemy import Select, and_, asc, delete, desc, func, literal, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm.attributes import set_committed_value
 
 from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
@@ -165,7 +166,11 @@ def _delete_reruns(db: Session, conditions: list) -> None:
 def _create_rerun_request(
     test_execution_id: int, db: Session, priority: int | None = None
 ) -> TestExecutionRerunRequest:
-    te = db.get(TestExecution, test_execution_id)
+    te = db.get(
+        TestExecution,
+        test_execution_id,
+        options=[joinedload(TestExecution.artefact_build).joinedload(ArtefactBuild.artefact)],
+    )
     if not te:
         raise _TestExecutionNotFound
 
@@ -183,6 +188,8 @@ def _create_rerun_request(
     # so explicitly update priority here.
     if priority is not None:
         rerun.priority = priority
+    # Reuse the already loaded artefact build in the response
+    set_committed_value(rerun, "artefact_build", te.artefact_build)
     return rerun
 
 
@@ -295,24 +302,12 @@ def create_rerun_requests(
     if len(rerun_requests) != len(request.test_execution_ids):
         response.status_code = status.HTTP_207_MULTI_STATUS
 
-    db.commit()
-
-    rerun_request_ids = [rerun.id for rerun in rerun_requests]
-    reruns_by_id = {
-        rerun.id: rerun
-        for rerun in db.scalars(
-            select(TestExecutionRerunRequest)
-            .where(TestExecutionRerunRequest.id.in_(rerun_request_ids))
-            .options(
-                selectinload(TestExecutionRerunRequest.artefact_build).selectinload(ArtefactBuild.artefact),
-            )
-        ).all()
-    }
-    rerun_requests = [reruns_by_id[rerun_id] for rerun_id in rerun_request_ids if rerun_id in reruns_by_id]
     populate_expected_environment_status(
         db,
         [rerun.artefact_build.artefact for rerun in rerun_requests],
     )
+
+    db.commit()
 
     return rerun_requests
 
