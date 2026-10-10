@@ -176,7 +176,7 @@ def populate_expected_environment_status(session: Session, artefacts: Iterable[A
             func.row_number()
             .over(
                 partition_by=(ArtefactBuild.artefact_id, ArtefactBuild.architecture),
-                order_by=func.coalesce(ArtefactBuild.revision, 0).desc(),
+                order_by=ArtefactBuild.revision.desc().nullslast(),
             )
             .label("build_rank"),
         )

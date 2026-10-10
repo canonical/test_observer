@@ -486,6 +486,32 @@ def test_missing_expected_environments_checks_latest_builds(test_client: TestCli
     assert [environment["name"] for environment in response.json()["missing_expected_environments"]] == ["old-build"]
 
 
+def test_missing_expected_environments_sorts_null_revision_after_zero(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    null_revision_environment = generator.gen_environment(name="null-revision")
+    zero_revision_environment = generator.gen_environment(name="zero-revision")
+    artefact = generator.gen_artefact(
+        family=FamilyName.deb,
+        expected_environments=[null_revision_environment, zero_revision_environment],
+    )
+    null_revision_build = generator.gen_artefact_build(artefact, revision=None)
+    zero_revision_build = generator.gen_artefact_build(artefact, revision=0)
+    generator.gen_test_execution(null_revision_build, null_revision_environment)
+    generator.gen_test_execution(zero_revision_build, zero_revision_environment)
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    assert [environment["name"] for environment in response.json()["missing_expected_environments"]] == [
+        "null-revision"
+    ]
+
+
 def test_get_artefacts_skips_execution_query_without_expected_environments(
     test_client: TestClient,
     generator: DataGenerator,
