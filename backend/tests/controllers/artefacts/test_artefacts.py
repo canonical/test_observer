@@ -20,6 +20,7 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import event
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
@@ -414,6 +415,129 @@ def test_patch_artefact_with_explicit_null_attributes_clears_them(
         Permission.view_artefact,
     )
     assert get_response.json()["attributes"] == {}
+
+
+def test_patch_artefact_replaces_expected_environments(test_client: TestClient, generator: DataGenerator):
+    old_environment = generator.gen_environment(name="old", architecture="amd64")
+    expected_environment = generator.gen_environment(name="expected", architecture="arm64")
+    artefact = generator.gen_artefact(expected_environments=[old_environment])
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"expected_environments": [{"name": "expected", "architecture": "arm64"}]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["expected_environments"] == [
+        {"id": expected_environment.id, "name": "expected", "architecture": "arm64"}
+    ]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(f"/v1/artefacts/{artefact.id}", json={"expected_environments": []}),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["expected_environments"] == []
+    assert response.json()["missing_expected_environments"] == []
+
+
+@pytest.mark.parametrize(
+    ("name", "architecture"),
+    [
+        ("e" * 201, "amd64"),
+        ("expected", "a" * 101),
+    ],
+)
+def test_patch_artefact_rejects_overlong_expected_environment_fields(
+    test_client: TestClient,
+    generator: DataGenerator,
+    name: str,
+    architecture: str,
+):
+    artefact = generator.gen_artefact()
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"expected_environments": [{"name": name, "architecture": architecture}]},
+    )
+
+    assert response.status_code == 422
+
+
+def test_missing_expected_environments_checks_latest_builds(test_client: TestClient, generator: DataGenerator):
+    latest_environment = generator.gen_environment(name="latest", architecture="amd64")
+    old_build_environment = generator.gen_environment(name="old-build", architecture="amd64")
+    artefact = generator.gen_artefact(expected_environments=[latest_environment, old_build_environment])
+    old_build = generator.gen_artefact_build(artefact, revision=1)
+    latest_build = generator.gen_artefact_build(artefact, revision=2)
+    generator.gen_test_execution(old_build, old_build_environment)
+    generator.gen_test_execution(latest_build, latest_environment)
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    assert [environment["name"] for environment in response.json()["missing_expected_environments"]] == ["old-build"]
+
+
+def test_missing_expected_environments_sorts_null_revision_after_zero(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    null_revision_environment = generator.gen_environment(name="null-revision")
+    zero_revision_environment = generator.gen_environment(name="zero-revision")
+    artefact = generator.gen_artefact(
+        family=FamilyName.deb,
+        expected_environments=[null_revision_environment, zero_revision_environment],
+    )
+    null_revision_build = generator.gen_artefact_build(artefact, revision=None)
+    zero_revision_build = generator.gen_artefact_build(artefact, revision=0)
+    generator.gen_test_execution(null_revision_build, null_revision_environment)
+    generator.gen_test_execution(zero_revision_build, zero_revision_environment)
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    assert [environment["name"] for environment in response.json()["missing_expected_environments"]] == [
+        "null-revision"
+    ]
+
+
+def test_get_artefacts_skips_execution_query_without_expected_environments(
+    test_client: TestClient,
+    generator: DataGenerator,
+    db_session: Session,
+):
+    artefact = generator.gen_artefact()
+    build = generator.gen_artefact_build(artefact)
+    generator.gen_test_execution(build, generator.gen_environment())
+    statements: list[str] = []
+    connection = db_session.connection()
+
+    def record(_connection: object, _cursor: object, statement: str, *_: object) -> None:
+        statements.append(statement)
+
+    event.listen(connection, "before_cursor_execute", record)
+    try:
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/artefacts", params={"family": "snap"}),
+            Permission.view_artefact,
+        )
+    finally:
+        event.remove(connection, "before_cursor_execute", record)
+
+    assert response.status_code == 200
+    assert next(item for item in response.json() if item["id"] == artefact.id)["missing_expected_environments"] == []
+    assert not any("from test_execution" in statement.lower() for statement in statements)
 
 
 def test_artefact_signoff_ignore_old_build_on_approve(test_client: TestClient, generator: DataGenerator):
@@ -1330,6 +1454,13 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "jira_issue": artefact.jira_issue,
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
+        "expected_environments": [
+            {"id": env.id, "name": env.name, "architecture": env.architecture} for env in artefact.expected_environments
+        ],
+        "missing_expected_environments": [
+            {"id": env.id, "name": env.name, "architecture": env.architecture}
+            for env in artefact.missing_expected_environments
+        ],
         "created_at": artefact.created_at.isoformat(),
     }
     if artefact.reviewers:

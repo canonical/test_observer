@@ -19,11 +19,12 @@ from collections.abc import Iterable
 from typing import Any
 
 from pydantic import HttpUrl
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm.attributes import set_committed_value
 
-from .models import Artefact, ArtefactBuild, DataModel, TestExecutionRelevantLink
+from .models import Artefact, ArtefactBuild, DataModel, Environment, TestExecution, TestExecutionRelevantLink
 from .models_enums import FamilyName
 
 
@@ -133,7 +134,7 @@ def get_artefacts_by_family(
                 )
 
     if load_environment_reviews:
-        query = query.options(joinedload(Artefact.builds).joinedload(ArtefactBuild.environment_reviews))
+        query = query.options(selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews))
     elif load_builds:
         query = query.options(joinedload(Artefact.builds))
 
@@ -141,6 +142,72 @@ def get_artefacts_by_family(
         query = query.order_by(*order_by_columns)
 
     return query.all()
+
+
+def populate_expected_environment_status(session: Session, artefacts: Iterable[Artefact]) -> None:
+    artefacts_by_id = {artefact.id: artefact for artefact in artefacts}
+    artefact_ids = list(artefacts_by_id)
+    if not artefact_ids:
+        return
+
+    expected_environments_by_artefact: dict[int, list[Environment]] = {artefact_id: [] for artefact_id in artefact_ids}
+    expected_environment_rows = session.execute(
+        select(Artefact.id, Environment)
+        .join(Artefact.expected_environments)
+        .where(Artefact.id.in_(artefact_ids))
+        .order_by(Artefact.id, Environment.name, Environment.architecture)
+    ).all()
+    artefact_ids_with_expectations: set[int] = set()
+    for artefact_id, environment in expected_environment_rows:
+        expected_environments_by_artefact[artefact_id].append(environment)
+        artefact_ids_with_expectations.add(artefact_id)
+
+    for artefact_id, artefact in artefacts_by_id.items():
+        set_committed_value(artefact, "expected_environments", expected_environments_by_artefact[artefact_id])
+        object.__setattr__(artefact, "_missing_expected_environments_cache", [])
+
+    if not artefact_ids_with_expectations:
+        return
+
+    latest_builds = (
+        select(
+            ArtefactBuild.id.label("build_id"),
+            ArtefactBuild.artefact_id.label("artefact_id"),
+            func.row_number()
+            .over(
+                partition_by=(ArtefactBuild.artefact_id, ArtefactBuild.architecture),
+                order_by=ArtefactBuild.revision.desc().nullslast(),
+            )
+            .label("build_rank"),
+        )
+        .where(ArtefactBuild.artefact_id.in_(artefact_ids_with_expectations))
+        .subquery()
+    )
+    tested_environment_rows = session.execute(
+        select(latest_builds.c.artefact_id, TestExecution.environment_id)
+        .select_from(latest_builds)
+        .join(TestExecution, TestExecution.artefact_build_id == latest_builds.c.build_id)
+        .where(latest_builds.c.build_rank == 1)
+        .distinct()
+    ).all()
+    tested_environment_ids_by_artefact: dict[int, set[int]] = {
+        artefact_id: set() for artefact_id in artefact_ids_with_expectations
+    }
+    for artefact_id, environment_id in tested_environment_rows:
+        tested_environment_ids_by_artefact[artefact_id].add(environment_id)
+
+    for artefact_id in artefact_ids_with_expectations:
+        artefact = artefacts_by_id[artefact_id]
+        expected_environments = expected_environments_by_artefact[artefact_id]
+        object.__setattr__(
+            artefact,
+            "_missing_expected_environments_cache",
+            [
+                environment
+                for environment in expected_environments
+                if environment.id not in tested_environment_ids_by_artefact[artefact_id]
+            ],
+        )
 
 
 def get_or_create(
