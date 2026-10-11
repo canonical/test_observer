@@ -105,6 +105,7 @@ class _StartManualTestingDialogState
       // Invalidate the artefact builds to refresh the page
       if (mounted) {
         ref.invalidate(artefactBuildsProvider(widget.artefactId));
+        ref.invalidate(artefactProvider(widget.artefactId));
         context.pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

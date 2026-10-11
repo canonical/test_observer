@@ -166,6 +166,13 @@ class _MissingEnvironmentsWarning extends ConsumerStatefulWidget {
 class _MissingEnvironmentsWarningState
     extends ConsumerState<_MissingEnvironmentsWarning> {
   bool _isDismissed = false;
+  final _missingEnvironmentsScrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _missingEnvironmentsScrollController.dispose();
+    super.dispose();
+  }
 
   @override
   void didUpdateWidget(covariant _MissingEnvironmentsWarning oldWidget) {
@@ -223,7 +230,9 @@ class _MissingEnvironmentsWarningState
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 200),
                     child: Scrollbar(
+                      controller: _missingEnvironmentsScrollController,
                       child: ListView.separated(
+                        controller: _missingEnvironmentsScrollController,
                         primary: false,
                         shrinkWrap: true,
                         itemCount: missingEnvironments.length,
