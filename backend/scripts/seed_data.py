@@ -973,10 +973,11 @@ def _assign_environment_reviewers(session: Session) -> None:
 
 
 def _create_missing_expected_environment_executions() -> list[StartSnapTestExecutionRequest]:
-    """Create test executions for an artefact expecting six environments and only covering three"""
-    # Create a lot of expected environments so that many are missing,
-    # to see the behavior of many missing environments in the frontend warning
-    expected = [f"environment-{i}" for i in range(1, 100)]
+    """
+    Create a lot of expected environments so that many are missing
+    to see the behavior of many missing environments in the frontend warning
+    """
+    expected = [f"environment-{i}" for i in range(1, 101)]
 
     return [
         StartSnapTestExecutionRequest(
