@@ -155,9 +155,7 @@ def test_run_promoter_updates_only_fields_changed_by_fetch(
 
     def fetch_snap(artefact: Artefact) -> StageName | None:
         if artefact.id == promoted_snap.id:
-            db_session.execute(
-                update(Artefact).where(Artefact.id == artefact.id).values(archived=True)
-            )
+            db_session.execute(update(Artefact).where(Artefact.id == artefact.id).values(archived=True))
             return StageName.beta
         db_session.execute(update(Artefact).where(Artefact.id == artefact.id).values(stage=StageName.stable))
         return None

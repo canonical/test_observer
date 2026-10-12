@@ -95,11 +95,7 @@ def run_promote_artefacts():
 
         try:
             with SessionLocal() as db:
-                db.execute(
-                    update(Artefact)
-                    .where(Artefact.id == artefact.id)
-                    .values(**promotion_updates[artefact.id])
-                )
+                db.execute(update(Artefact).where(Artefact.id == artefact.id).values(**promotion_updates[artefact.id]))
                 db.commit()
         except Exception as exc:
             processed_status[artefact.id] = False
