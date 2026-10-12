@@ -35,7 +35,7 @@ POCKET_PROMOTION_MAP = {
 def process_artefact_promotions(
     snap_artefacts: Sequence[Artefact],
     deb_artefacts: Sequence[Artefact],
-) -> tuple[dict[int, bool], dict[int, str]]:
+) -> tuple[dict[int, bool | None], dict[int, str]]:
     """
     Fetch promotion data for all artefacts via HTTP. Does not write to the database.
 
@@ -43,14 +43,14 @@ def process_artefact_promotions(
     :deb_artefacts: Deb Artefact objects (detached from any session)
     :return: tuple of (processed statuses, error messages) keyed by artefact ID
     """
-    processed_artefacts_status: dict[int, bool] = {}
+    processed_artefacts_status: dict[int, bool | None] = {}
     processed_artefacts_error_messages: dict[int, str] = {}
 
     for snap in snap_artefacts:
         try:
-            processed_artefacts_status[snap.id] = True
             new_stage = fetch_snap_promotion(snap)
             _apply_snap_promotion(snap, new_stage)
+            processed_artefacts_status[snap.id] = True
         except Exception as exc:
             processed_artefacts_status[snap.id] = False
             processed_artefacts_error_messages[snap.id] = str(exc)
@@ -58,10 +58,12 @@ def process_artefact_promotions(
 
     for deb in deb_artefacts:
         try:
-            processed_artefacts_status[deb.id] = True
             result = fetch_deb_promotion(deb)
-            if result is not None:
-                _apply_deb_promotion(deb, result)
+            if result is None:
+                processed_artefacts_status[deb.id] = None
+                continue
+            _apply_deb_promotion(deb, result)
+            processed_artefacts_status[deb.id] = True
         except Exception as exc:
             processed_artefacts_status[deb.id] = False
             processed_artefacts_error_messages[deb.id] = str(exc)

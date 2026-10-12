@@ -21,6 +21,7 @@ from datetime import UTC, datetime
 from os import environ
 
 from celery import Celery, Task
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Artefact, Issue
@@ -89,15 +90,16 @@ def run_promote_artefacts():
 
     # Write phase — one session per artefact so a single failure doesn't roll back others
     for artefact in snap_artefacts + deb_artefacts:
-        if not processed_status.get(artefact.id, False):
+        if processed_status.get(artefact.id) is not True:
             continue
 
         try:
             with SessionLocal() as db:
-                fresh_artefact = db.get(Artefact, artefact.id)
-                if fresh_artefact is not None:
-                    fresh_artefact.stage = artefact.stage
-                    fresh_artefact.archived = artefact.archived
+                db.execute(
+                    update(Artefact)
+                    .where(Artefact.id == artefact.id)
+                    .values(stage=artefact.stage, archived=artefact.archived)
+                )
                 db.commit()
         except Exception as exc:
             processed_status[artefact.id] = False

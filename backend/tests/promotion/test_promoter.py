@@ -59,7 +59,7 @@ def test_run_promoter_preserves_concurrent_review_changes(
     def promote(
         snap_artefacts: Sequence[Artefact],
         _deb_artefacts: Sequence[Artefact],
-    ) -> tuple[dict[int, bool], dict[int, str]]:
+    ) -> tuple[dict[int, bool | None], dict[int, str]]:
         db_session.execute(
             update(Artefact)
             .where(Artefact.id == artefact.id)
@@ -103,6 +103,37 @@ def test_run_promoter_does_not_write_fields_after_fetch_failure(
     assert persisted_artefact.archived is True
 
 
+def test_run_promoter_skips_deb_without_fetch_result(
+    db_session: Session,
+    generator: DataGenerator,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artefact = generator.gen_artefact(
+        StageName.proposed,
+        family=FamilyName.deb,
+        name="linux-generic",
+        version="1.0",
+        series="noble",
+        repo="main",
+    )
+    generator.gen_artefact_build(artefact, "amd64")
+    db_session.execute(update(Artefact).where(Artefact.id == artefact.id).values(stage=""))
+
+    def no_fetch_result(_artefact: Artefact) -> tuple[bool, StageName | None] | None:
+        db_session.execute(
+            update(Artefact).where(Artefact.id == artefact.id).values(stage=StageName.updates, archived=True)
+        )
+        return None
+
+    monkeypatch.setattr(promoter, "fetch_deb_promotion", no_fetch_result)
+
+    _run_promoter(db_session)
+
+    persisted_artefact = _get_artefact(db_session, artefact)
+    assert persisted_artefact.stage == StageName.updates
+    assert persisted_artefact.archived is True
+
+
 def test_run_promoter_tracks_same_name_version_rows_independently(
     db_session: Session,
     generator: DataGenerator,
@@ -128,9 +159,7 @@ def test_run_promoter_tracks_same_name_version_rows_independently(
     def fetch_snap(artefact: Artefact) -> StageName | None:
         if artefact.id == failed_artefact.id:
             db_session.execute(
-                update(Artefact)
-                .where(Artefact.id == failed_artefact.id)
-                .values(stage=StageName.stable, archived=True)
+                update(Artefact).where(Artefact.id == failed_artefact.id).values(stage=StageName.stable, archived=True)
             )
             raise RuntimeError("Snapcraft unavailable")
         return StageName.beta
