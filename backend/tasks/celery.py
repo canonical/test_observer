@@ -89,8 +89,7 @@ def run_promote_artefacts():
 
     # Write phase — one session per artefact so a single failure doesn't roll back others
     for artefact in snap_artefacts + deb_artefacts:
-        artefact_key = f"{artefact.family} - {artefact.name} - {artefact.version}"
-        if not processed_status.get(artefact_key, False):
+        if not processed_status.get(artefact.id, False):
             continue
 
         try:
@@ -101,9 +100,9 @@ def run_promote_artefacts():
                     fresh_artefact.archived = artefact.archived
                 db.commit()
         except Exception as exc:
-            processed_status[artefact_key] = False
-            error_messages[artefact_key] = str(exc)
-            logger.error("Failed to write artefact %s: %s", artefact_key, exc)
+            processed_status[artefact.id] = False
+            error_messages[artefact.id] = str(exc)
+            logger.error("Failed to write artefact %s: %s", artefact.id, exc)
 
     logger.info("INFO: Processed artefacts %s", processed_status)
     if False in processed_status.values():

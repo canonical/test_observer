@@ -59,7 +59,7 @@ def test_run_promoter_preserves_concurrent_review_changes(
     def promote(
         snap_artefacts: Sequence[Artefact],
         _deb_artefacts: Sequence[Artefact],
-    ) -> tuple[dict[str, bool], dict[str, str]]:
+    ) -> tuple[dict[int, bool], dict[int, str]]:
         db_session.execute(
             update(Artefact)
             .where(Artefact.id == artefact.id)
@@ -67,7 +67,7 @@ def test_run_promoter_preserves_concurrent_review_changes(
         )
         snap_artefacts[0].stage = StageName.beta
         snap_artefacts[0].archived = True
-        return {"snap - core - 1.1.1": True}, {}
+        return {artefact.id: True}, {}
 
     monkeypatch.setattr(celery_tasks, "process_artefact_promotions", promote)
 
@@ -90,9 +90,7 @@ def test_run_promoter_does_not_write_fields_after_fetch_failure(
 
     def fail_fetch(_artefact: Artefact) -> StageName | None:
         db_session.execute(
-            update(Artefact)
-            .where(Artefact.id == artefact.id)
-            .values(stage=StageName.stable, archived=True)
+            update(Artefact).where(Artefact.id == artefact.id).values(stage=StageName.stable, archived=True)
         )
         raise RuntimeError("Snapcraft unavailable")
 
@@ -103,6 +101,50 @@ def test_run_promoter_does_not_write_fields_after_fetch_failure(
     persisted_artefact = _get_artefact(db_session, artefact)
     assert persisted_artefact.stage == StageName.stable
     assert persisted_artefact.archived is True
+
+
+def test_run_promoter_tracks_same_name_version_rows_independently(
+    db_session: Session,
+    generator: DataGenerator,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    failed_artefact = generator.gen_artefact(
+        StageName.edge,
+        family=FamilyName.snap,
+        name="same-snap",
+        version="1.0",
+        track="latest",
+    )
+    successful_artefact = generator.gen_artefact(
+        StageName.edge,
+        family=FamilyName.snap,
+        name="same-snap",
+        version="1.0",
+        track="2.0",
+    )
+    generator.gen_artefact_build(failed_artefact)
+    generator.gen_artefact_build(successful_artefact)
+
+    def fetch_snap(artefact: Artefact) -> StageName | None:
+        if artefact.id == failed_artefact.id:
+            db_session.execute(
+                update(Artefact)
+                .where(Artefact.id == failed_artefact.id)
+                .values(stage=StageName.stable, archived=True)
+            )
+            raise RuntimeError("Snapcraft unavailable")
+        return StageName.beta
+
+    monkeypatch.setattr(promoter, "fetch_snap_promotion", fetch_snap)
+
+    _run_promoter(db_session)
+
+    failed_after_promotion = _get_artefact(db_session, failed_artefact)
+    successful_after_promotion = _get_artefact(db_session, successful_artefact)
+    assert failed_after_promotion.stage == StageName.stable
+    assert failed_after_promotion.archived is True
+    assert successful_after_promotion.stage == StageName.beta
+    assert successful_after_promotion.archived is False
 
 
 def test_run_to_move_artefact_snap(

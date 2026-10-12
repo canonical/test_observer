@@ -35,39 +35,37 @@ POCKET_PROMOTION_MAP = {
 def process_artefact_promotions(
     snap_artefacts: Sequence[Artefact],
     deb_artefacts: Sequence[Artefact],
-) -> tuple[dict[str, bool], dict[str, str]]:
+) -> tuple[dict[int, bool], dict[int, str]]:
     """
     Fetch promotion data for all artefacts via HTTP. Does not write to the database.
 
     :snap_artefacts: Snap Artefact objects (detached from any session)
     :deb_artefacts: Deb Artefact objects (detached from any session)
-    :return: tuple of (processed statuses, error messages) keyed by artefact identifier
+    :return: tuple of (processed statuses, error messages) keyed by artefact ID
     """
-    processed_artefacts_status: dict[str, bool] = {}
-    processed_artefacts_error_messages: dict[str, str] = {}
+    processed_artefacts_status: dict[int, bool] = {}
+    processed_artefacts_error_messages: dict[int, str] = {}
 
     for snap in snap_artefacts:
-        artefact_key = f"{FamilyName.snap} - {snap.name} - {snap.version}"
         try:
-            processed_artefacts_status[artefact_key] = True
+            processed_artefacts_status[snap.id] = True
             new_stage = fetch_snap_promotion(snap)
             _apply_snap_promotion(snap, new_stage)
         except Exception as exc:
-            processed_artefacts_status[artefact_key] = False
-            processed_artefacts_error_messages[artefact_key] = str(exc)
-            logger.warning("WARNING: %s", str(exc), exc_info=True)
+            processed_artefacts_status[snap.id] = False
+            processed_artefacts_error_messages[snap.id] = str(exc)
+            logger.warning("Failed to process artefact %s: %s", snap.id, exc, exc_info=True)
 
     for deb in deb_artefacts:
-        artefact_key = f"{FamilyName.deb} - {deb.name} - {deb.version}"
         try:
-            processed_artefacts_status[artefact_key] = True
+            processed_artefacts_status[deb.id] = True
             result = fetch_deb_promotion(deb)
             if result is not None:
                 _apply_deb_promotion(deb, result)
         except Exception as exc:
-            processed_artefacts_status[artefact_key] = False
-            processed_artefacts_error_messages[artefact_key] = str(exc)
-            logger.warning("WARNING: %s", str(exc), exc_info=True)
+            processed_artefacts_status[deb.id] = False
+            processed_artefacts_error_messages[deb.id] = str(exc)
+            logger.warning("Failed to process artefact %s: %s", deb.id, exc, exc_info=True)
 
     return processed_artefacts_status, processed_artefacts_error_messages
 
