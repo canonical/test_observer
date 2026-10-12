@@ -15,27 +15,68 @@
 
 """Test promoter API"""
 
+from collections.abc import Sequence
+from contextlib import nullcontext
 from datetime import datetime, timedelta
 
+import pytest
 from requests_mock import Mocker
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import ArtefactBuild
-from test_observer.data_access.models_enums import FamilyName, StageName
-from test_observer.data_access.repository import get_artefacts_by_family
-from test_observer.promotion.promoter import process_artefact_promotions
+from tasks import celery as celery_tasks
+from test_observer.data_access.models import Artefact, ArtefactBuild
+from test_observer.data_access.models_enums import ArtefactStatus, FamilyName, StageName
 from tests.data_generator import DataGenerator
 
 
 def _run_promoter(db_session: Session) -> None:
-    """Test helper replicating run_promote_artefacts task: read → HTTP → write."""
-    snap_artefacts = get_artefacts_by_family(db_session, FamilyName.snap, load_builds=True)
-    deb_artefacts = get_artefacts_by_family(db_session, FamilyName.deb, load_builds=True)
-    db_session.expunge_all()  # detach before HTTP phase, mirroring production pattern
-    process_artefact_promotions(snap_artefacts, deb_artefacts)
-    for artefact in snap_artefacts + deb_artefacts:
-        db_session.add(artefact)
-    db_session.commit()
+    """Run the real task against the transactional test session."""
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(celery_tasks, "SessionLocal", lambda: nullcontext(db_session))
+        celery_tasks.run_promote_artefacts.run()
+
+
+def _get_artefact(db_session: Session, artefact: Artefact) -> Artefact:
+    persisted_artefact = db_session.get(Artefact, artefact.id)
+    assert persisted_artefact is not None
+    return persisted_artefact
+
+
+def test_run_promoter_preserves_concurrent_review_changes(
+    db_session: Session,
+    generator: DataGenerator,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artefact = generator.gen_artefact(
+        StageName.edge,
+        family=FamilyName.snap,
+        status=ArtefactStatus.UNDECIDED,
+    )
+    generator.gen_artefact_build(artefact)
+
+    def promote(
+        snap_artefacts: Sequence[Artefact],
+        _deb_artefacts: Sequence[Artefact],
+    ) -> tuple[dict[str, bool], dict[str, str]]:
+        db_session.execute(
+            update(Artefact)
+            .where(Artefact.id == artefact.id)
+            .values(status=ArtefactStatus.APPROVED, comment="Reviewed during promotion")
+        )
+        snap_artefacts[0].stage = StageName.beta
+        snap_artefacts[0].archived = True
+        return {"snap - core - 1.1.1": True}, {}
+
+    monkeypatch.setattr(celery_tasks, "process_artefact_promotions", promote)
+
+    _run_promoter(db_session)
+
+    persisted_artefact = _get_artefact(db_session, artefact)
+    assert persisted_artefact.stage == StageName.beta
+    assert persisted_artefact.archived is True
+    assert persisted_artefact.status == ArtefactStatus.APPROVED
+    assert persisted_artefact.comment == "Reviewed during promotion"
 
 
 def test_run_to_move_artefact_snap(
@@ -88,10 +129,10 @@ def test_run_to_move_artefact_snap(
     # Act
     _run_promoter(db_session)
 
-    db_session.refresh(artefact)
+    persisted_artefact = _get_artefact(db_session, artefact)
 
     # Assert
-    assert artefact.stage == StageName.beta
+    assert persisted_artefact.stage == StageName.beta
 
 
 def test_archives_snap_if_not_found(
@@ -115,7 +156,7 @@ def test_archives_snap_if_not_found(
 
     _run_promoter(db_session)
 
-    assert a.archived
+    assert _get_artefact(db_session, a).archived
 
 
 def test_custom_named_snaps_not_archived(
@@ -136,7 +177,7 @@ def test_custom_named_snaps_not_archived(
 
     _run_promoter(db_session)
 
-    assert not a.archived
+    assert not _get_artefact(db_session, a).archived
 
 
 def test_promote_snap_from_beta_to_stable(
@@ -167,7 +208,7 @@ def test_promote_snap_from_beta_to_stable(
 
     _run_promoter(db_session)
 
-    assert artefact.stage == StageName.stable
+    assert _get_artefact(db_session, artefact).stage == StageName.stable
 
 
 def test_snap_that_is_in_two_stages(
@@ -208,7 +249,7 @@ def test_snap_that_is_in_two_stages(
 
     _run_promoter(db_session)
 
-    assert artefact.stage == StageName.beta
+    assert _get_artefact(db_session, artefact).stage == StageName.beta
 
 
 def test_run_to_move_artefact_deb(
@@ -262,12 +303,10 @@ def test_run_to_move_artefact_deb(
     # Act
     _run_promoter(db_session)
 
-    db_session.refresh(artefact1)
-
     # Assert
-    assert artefact1.stage == StageName.updates
-    assert artefact2.stage == StageName.updates
-    assert artefact3.stage == StageName.updates
+    assert _get_artefact(db_session, artefact1).stage == StageName.updates
+    assert _get_artefact(db_session, artefact2).stage == StageName.updates
+    assert _get_artefact(db_session, artefact3).stage == StageName.updates
 
 
 def test_archives_deb_if_version_not_found(generator: DataGenerator, db_session: Session, requests_mock: Mocker):
@@ -285,7 +324,7 @@ def test_archives_deb_if_version_not_found(generator: DataGenerator, db_session:
 
     _run_promoter(db_session)
 
-    assert a.archived
+    assert _get_artefact(db_session, a).archived
 
 
 def test_keeps_deb_unarchived_if_custom_name(generator: DataGenerator, db_session: Session, requests_mock: Mocker):
@@ -303,7 +342,7 @@ def test_keeps_deb_unarchived_if_custom_name(generator: DataGenerator, db_sessio
 
     _run_promoter(db_session)
 
-    assert not a.archived
+    assert not _get_artefact(db_session, a).archived
 
 
 def _prepare_archive_mock(requests_mock: Mocker) -> None:

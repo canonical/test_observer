@@ -23,7 +23,7 @@ from os import environ
 from celery import Celery, Task
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import Issue
+from test_observer.data_access.models import Artefact, Issue
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import SessionLocal
@@ -92,7 +92,10 @@ def run_promote_artefacts():
         artefact_key = f"{artefact.family} - {artefact.name} - {artefact.version}"
         try:
             with SessionLocal() as db:
-                db.merge(artefact)
+                fresh_artefact = db.get(Artefact, artefact.id)
+                if fresh_artefact is not None:
+                    fresh_artefact.stage = artefact.stage
+                    fresh_artefact.archived = artefact.archived
                 db.commit()
         except Exception as exc:
             processed_status[artefact_key] = False
