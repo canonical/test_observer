@@ -25,6 +25,7 @@ from test_observer.data_access.models import TestCase
 from test_observer.data_access.repository import (
     create_test_execution_relevant_link,
     get_or_create,
+    get_or_create_environments,
 )
 from tests.data_generator import DataGenerator
 
@@ -177,3 +178,28 @@ def test_get_or_create_does_not_commit(
     # Query again - should not find the instance since it wasn't committed
     not_found = db_session.query(TestCase).filter_by(name=test_case_name, category=test_case_category).first()
     assert not_found is None
+
+
+def test_get_or_create_environments_empty_input(db_session: Session):
+    assert get_or_create_environments(db_session, []) == []
+
+
+def test_get_or_create_environments_bulk_create_and_reuse(db_session: Session):
+    # Act: create first batch
+    keys_1 = [("bulk_env_a", "amd64"), ("bulk_env_b", "arm64")]
+    result_1 = get_or_create_environments(db_session, keys_1)
+
+    assert len(result_1) == 2
+    assert (result_1[0].name, result_1[0].architecture) == ("bulk_env_a", "amd64")
+    assert (result_1[1].name, result_1[1].architecture) == ("bulk_env_b", "arm64")
+    assert result_1[0].id is not None
+    assert result_1[1].id is not None
+
+    # Act: second batch has one existing, one new, plus duplicate in input
+    keys_2 = [("bulk_env_a", "amd64"), ("bulk_env_c", "riscv64"), ("bulk_env_a", "amd64")]
+    result_2 = get_or_create_environments(db_session, keys_2)
+
+    assert len(result_2) == 2
+    assert result_2[0].id == result_1[0].id
+    assert (result_2[1].name, result_2[1].architecture) == ("bulk_env_c", "riscv64")
+    assert result_2[1].id not in (result_1[0].id, result_1[1].id)

@@ -39,7 +39,6 @@ from test_observer.data_access.models import (
     Application,
     Artefact,
     ArtefactBuild,
-    Environment,
     TestExecution,
     TestExecutionMetadata,
     User,
@@ -58,7 +57,7 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.data_access.repository import (
     get_artefacts_by_family,
-    get_or_create,
+    get_or_create_environments,
     populate_expected_environment_status,
 )
 from test_observer.data_access.setup import get_db
@@ -323,14 +322,10 @@ def patch_artefact(
         # attributes is non-nullable in the DB; an explicit null in the request clears it to {}.
         artefact.attributes = request.attributes if request.attributes is not None else {}
     if "expected_environments" in request.model_fields_set and request.expected_environments is not None:
-        artefact.expected_environments = [
-            get_or_create(
-                db,
-                Environment,
-                filter_kwargs={"name": environment.name, "architecture": environment.architecture},
-            )
-            for environment in request.expected_environments
-        ]
+        artefact.expected_environments = get_or_create_environments(
+            db,
+            [(environment.name, environment.architecture) for environment in request.expected_environments],
+        )
 
     reviewer_ids_set = hasattr(request, "reviewer_ids") and "reviewer_ids" in request.model_fields_set
     reviewer_emails_set = hasattr(request, "reviewer_emails") and "reviewer_emails" in request.model_fields_set

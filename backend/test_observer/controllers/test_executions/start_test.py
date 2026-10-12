@@ -44,6 +44,7 @@ from test_observer.data_access.queries import match_artefact_considering_specifi
 from test_observer.data_access.repository import (
     create_test_execution_relevant_link,
     get_or_create,
+    get_or_create_environments,
 )
 from test_observer.data_access.setup import get_db
 from test_observer.external_apis.jira import get_jira_client
@@ -350,16 +351,13 @@ class StartTestExecutionController:
             case StartSolutionTestExecutionRequest():
                 creation_kwargs["attributes"] = self.request.attributes
 
-        existing_artefact = self.db.query(Artefact).filter_by(**filter_kwargs).one_or_none()
-        if existing_artefact is None and self.request.expected_environments:
-            creation_kwargs["expected_environments"] = [
-                get_or_create(
+        if self.request.expected_environments and self.request.arch is not None:
+            existing_artefact = self.db.query(Artefact).filter_by(**filter_kwargs).first()
+            if existing_artefact is None:
+                creation_kwargs["expected_environments"] = get_or_create_environments(
                     self.db,
-                    Environment,
-                    filter_kwargs={"name": name, "architecture": self.request.arch},
+                    [(name, self.request.arch) for name in self.request.expected_environments],
                 )
-                for name in self.request.expected_environments
-            ]
 
         self.artefact = get_or_create(self.db, Artefact, filter_kwargs=filter_kwargs, creation_kwargs=creation_kwargs)
 

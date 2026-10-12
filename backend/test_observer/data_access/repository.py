@@ -19,7 +19,8 @@ from collections.abc import Iterable
 from typing import Any
 
 from pydantic import HttpUrl
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, select, tuple_
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.orm.attributes import set_committed_value
@@ -269,6 +270,41 @@ def get_or_create(
         instance = db.query(model).filter_by(**filter_kwargs).one()
 
     return instance
+
+
+def get_or_create_environments(
+    session: Session,
+    environment_keys: Iterable[tuple[str, str]],
+) -> list[Environment]:
+    """Get existing environments and bulk-create any missing ones."""
+    unique_keys = list(dict.fromkeys(environment_keys))
+    if not unique_keys:
+        return []
+
+    existing = session.scalars(
+        select(Environment).where(tuple_(Environment.name, Environment.architecture).in_(unique_keys))
+    ).all()
+    existing_map = {(env.name, env.architecture): env for env in existing}
+    missing_keys = [k for k in unique_keys if k not in existing_map]
+
+    if missing_keys:
+        insert_stmt = (
+            pg_insert(Environment)
+            .values([{"name": name, "architecture": arch} for name, arch in missing_keys])
+            .on_conflict_do_nothing()
+            .returning(Environment)
+        )
+        for env in session.scalars(insert_stmt).all():
+            existing_map[(env.name, env.architecture)] = env
+
+        if len(existing_map) < len(unique_keys):
+            still_missing = [k for k in unique_keys if k not in existing_map]
+            for env in session.scalars(
+                select(Environment).where(tuple_(Environment.name, Environment.architecture).in_(still_missing))
+            ).all():
+                existing_map[(env.name, env.architecture)] = env
+
+    return [existing_map[k] for k in unique_keys]
 
 
 def create_test_execution_relevant_link(
