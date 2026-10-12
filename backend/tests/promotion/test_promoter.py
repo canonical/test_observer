@@ -59,7 +59,7 @@ def test_run_promoter_preserves_concurrent_review_changes(
     def promote(
         snap_artefacts: Sequence[Artefact],
         _deb_artefacts: Sequence[Artefact],
-    ) -> tuple[dict[int, bool | None], dict[int, str]]:
+    ) -> tuple[dict[int, bool | None], dict[int, str], dict[int, promoter.PromotionUpdate]]:
         db_session.execute(
             update(Artefact)
             .where(Artefact.id == artefact.id)
@@ -67,7 +67,7 @@ def test_run_promoter_preserves_concurrent_review_changes(
         )
         snap_artefacts[0].stage = StageName.beta
         snap_artefacts[0].archived = True
-        return {artefact.id: True}, {}
+        return {artefact.id: True}, {}, {artefact.id: {"stage": StageName.beta, "archived": True}}
 
     monkeypatch.setattr(celery_tasks, "process_artefact_promotions", promote)
 
@@ -132,6 +132,54 @@ def test_run_promoter_skips_deb_without_fetch_result(
     persisted_artefact = _get_artefact(db_session, artefact)
     assert persisted_artefact.stage == StageName.updates
     assert persisted_artefact.archived is True
+
+
+def test_run_promoter_updates_only_fields_changed_by_fetch(
+    db_session: Session,
+    generator: DataGenerator,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    promoted_snap = generator.gen_artefact(StageName.edge, name="promoted-snap")
+    archived_snap = generator.gen_artefact(StageName.edge, name="archived-snap")
+    deb = generator.gen_artefact(
+        StageName.proposed,
+        family=FamilyName.deb,
+        name="linux-generic",
+        version="1.0",
+        series="noble",
+        repo="main",
+    )
+    generator.gen_artefact_build(promoted_snap)
+    generator.gen_artefact_build(archived_snap)
+    generator.gen_artefact_build(deb, "amd64")
+
+    def fetch_snap(artefact: Artefact) -> StageName | None:
+        if artefact.id == promoted_snap.id:
+            db_session.execute(
+                update(Artefact).where(Artefact.id == artefact.id).values(archived=True)
+            )
+            return StageName.beta
+        db_session.execute(update(Artefact).where(Artefact.id == artefact.id).values(stage=StageName.stable))
+        return None
+
+    def fetch_deb(_artefact: Artefact) -> tuple[bool, StageName | None]:
+        db_session.execute(update(Artefact).where(Artefact.id == deb.id).values(stage=StageName.stable))
+        return True, None
+
+    monkeypatch.setattr(promoter, "fetch_snap_promotion", fetch_snap)
+    monkeypatch.setattr(promoter, "fetch_deb_promotion", fetch_deb)
+
+    _run_promoter(db_session)
+
+    promoted_after = _get_artefact(db_session, promoted_snap)
+    archived_after = _get_artefact(db_session, archived_snap)
+    deb_after = _get_artefact(db_session, deb)
+    assert promoted_after.stage == StageName.beta
+    assert promoted_after.archived is True
+    assert archived_after.stage == StageName.stable
+    assert archived_after.archived is True
+    assert deb_after.stage == StageName.stable
+    assert deb_after.archived is True
 
 
 def test_run_promoter_tracks_same_name_version_rows_independently(

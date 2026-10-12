@@ -86,7 +86,7 @@ def run_promote_artefacts():
         db.expunge_all()  # detach objects before session closes so attributes remain accessible
 
     # HTTP — no session open
-    processed_status, error_messages = process_artefact_promotions(snap_artefacts, deb_artefacts)
+    processed_status, error_messages, promotion_updates = process_artefact_promotions(snap_artefacts, deb_artefacts)
 
     # Write phase — one session per artefact so a single failure doesn't roll back others
     for artefact in snap_artefacts + deb_artefacts:
@@ -98,7 +98,7 @@ def run_promote_artefacts():
                 db.execute(
                     update(Artefact)
                     .where(Artefact.id == artefact.id)
-                    .values(stage=artefact.stage, archived=artefact.archived)
+                    .values(**promotion_updates[artefact.id])
                 )
                 db.commit()
         except Exception as exc:
