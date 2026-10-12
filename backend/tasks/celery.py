@@ -83,6 +83,9 @@ def run_promote_artefacts():
     with SessionLocal() as db:
         snap_artefacts = get_artefacts_by_family(db, FamilyName.snap, load_builds=True)
         deb_artefacts = get_artefacts_by_family(db, FamilyName.deb, load_builds=True)
+        promotion_source_values = {
+            artefact.id: (artefact.stage, artefact.archived) for artefact in snap_artefacts + deb_artefacts
+        }
         db.expunge_all()  # detach objects before session closes so attributes remain accessible
 
     # HTTP — no session open
@@ -95,8 +98,20 @@ def run_promote_artefacts():
 
         try:
             with SessionLocal() as db:
-                db.execute(update(Artefact).where(Artefact.id == artefact.id).values(**promotion_updates[artefact.id]))
+                update_values = promotion_updates[artefact.id]
+                original_stage, original_archived = promotion_source_values[artefact.id]
+                conditions = [Artefact.id == artefact.id]
+                if "stage" in update_values:
+                    conditions.append(Artefact.stage == original_stage)
+                if "archived" in update_values:
+                    conditions.append(Artefact.archived == original_archived)
+
+                result = db.execute(update(Artefact).where(*conditions).values(**update_values))
                 db.commit()
+                if result.rowcount != 1:
+                    processed_status[artefact.id] = False
+                    error_messages[artefact.id] = "Promotion fields changed during fetch; update skipped"
+                    logger.warning("Skipped promotion update for artefact %s due to concurrent changes", artefact.id)
         except Exception as exc:
             processed_status[artefact.id] = False
             error_messages[artefact.id] = str(exc)

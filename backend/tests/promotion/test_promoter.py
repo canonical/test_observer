@@ -80,6 +80,55 @@ def test_run_promoter_preserves_concurrent_review_changes(
     assert persisted_artefact.comment == "Reviewed during promotion"
 
 
+def test_run_promoter_skips_update_when_patched_field_changed_concurrently(
+    db_session: Session,
+    generator: DataGenerator,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artefact = generator.gen_artefact(StageName.edge, name="concurrently-promoted-snap")
+    generator.gen_artefact_build(artefact)
+
+    def fetch_snap(_artefact: Artefact) -> StageName:
+        db_session.execute(update(Artefact).where(Artefact.id == artefact.id).values(stage=StageName.stable))
+        return StageName.beta
+
+    monkeypatch.setattr(promoter, "fetch_snap_promotion", fetch_snap)
+
+    _run_promoter(db_session)
+
+    persisted_artefact = _get_artefact(db_session, artefact)
+    assert persisted_artefact.stage == StageName.stable
+    assert persisted_artefact.archived is False
+
+
+def test_run_promoter_skips_archive_update_when_archived_changed_concurrently(
+    db_session: Session,
+    generator: DataGenerator,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artefact = generator.gen_artefact(
+        StageName.proposed,
+        family=FamilyName.deb,
+        name="linux-generic",
+        version="1.0",
+        series="noble",
+        repo="main",
+    )
+    generator.gen_artefact_build(artefact, "amd64")
+
+    def fetch_deb(_artefact: Artefact) -> tuple[bool, StageName | None]:
+        db_session.execute(update(Artefact).where(Artefact.id == artefact.id).values(archived=True))
+        return False, None
+
+    monkeypatch.setattr(promoter, "fetch_deb_promotion", fetch_deb)
+
+    _run_promoter(db_session)
+
+    persisted_artefact = _get_artefact(db_session, artefact)
+    assert persisted_artefact.stage == StageName.proposed
+    assert persisted_artefact.archived is True
+
+
 def test_run_promoter_does_not_write_fields_after_fetch_failure(
     db_session: Session,
     generator: DataGenerator,
