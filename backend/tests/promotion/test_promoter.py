@@ -27,6 +27,7 @@ from sqlalchemy.orm import Session
 from tasks import celery as celery_tasks
 from test_observer.data_access.models import Artefact, ArtefactBuild
 from test_observer.data_access.models_enums import ArtefactStatus, FamilyName, StageName
+from test_observer.promotion import promoter
 from tests.data_generator import DataGenerator
 
 
@@ -77,6 +78,31 @@ def test_run_promoter_preserves_concurrent_review_changes(
     assert persisted_artefact.archived is True
     assert persisted_artefact.status == ArtefactStatus.APPROVED
     assert persisted_artefact.comment == "Reviewed during promotion"
+
+
+def test_run_promoter_does_not_write_fields_after_fetch_failure(
+    db_session: Session,
+    generator: DataGenerator,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artefact = generator.gen_artefact(StageName.edge, family=FamilyName.snap)
+    generator.gen_artefact_build(artefact)
+
+    def fail_fetch(_artefact: Artefact) -> StageName | None:
+        db_session.execute(
+            update(Artefact)
+            .where(Artefact.id == artefact.id)
+            .values(stage=StageName.stable, archived=True)
+        )
+        raise RuntimeError("Snapcraft unavailable")
+
+    monkeypatch.setattr(promoter, "fetch_snap_promotion", fail_fetch)
+
+    _run_promoter(db_session)
+
+    persisted_artefact = _get_artefact(db_session, artefact)
+    assert persisted_artefact.stage == StageName.stable
+    assert persisted_artefact.archived is True
 
 
 def test_run_to_move_artefact_snap(

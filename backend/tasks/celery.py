@@ -90,6 +90,9 @@ def run_promote_artefacts():
     # Write phase — one session per artefact so a single failure doesn't roll back others
     for artefact in snap_artefacts + deb_artefacts:
         artefact_key = f"{artefact.family} - {artefact.name} - {artefact.version}"
+        if not processed_status.get(artefact_key, False):
+            continue
+
         try:
             with SessionLocal() as db:
                 fresh_artefact = db.get(Artefact, artefact.id)
