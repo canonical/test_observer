@@ -21,9 +21,10 @@ from datetime import UTC, datetime
 from os import environ
 
 from celery import Celery, Task
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import Issue
+from test_observer.data_access.models import Artefact, Issue
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
 from test_observer.data_access.setup import SessionLocal
@@ -82,22 +83,39 @@ def run_promote_artefacts():
     with SessionLocal() as db:
         snap_artefacts = get_artefacts_by_family(db, FamilyName.snap, load_builds=True)
         deb_artefacts = get_artefacts_by_family(db, FamilyName.deb, load_builds=True)
+        promotion_source_values = {
+            artefact.id: (artefact.stage, artefact.archived) for artefact in snap_artefacts + deb_artefacts
+        }
         db.expunge_all()  # detach objects before session closes so attributes remain accessible
 
     # HTTP — no session open
-    processed_status, error_messages = process_artefact_promotions(snap_artefacts, deb_artefacts)
+    processed_status, error_messages, promotion_updates = process_artefact_promotions(snap_artefacts, deb_artefacts)
 
     # Write phase — one session per artefact so a single failure doesn't roll back others
     for artefact in snap_artefacts + deb_artefacts:
-        artefact_key = f"{artefact.family} - {artefact.name} - {artefact.version}"
+        if processed_status.get(artefact.id) is not True:
+            continue
+
         try:
             with SessionLocal() as db:
-                db.merge(artefact)
+                update_values = promotion_updates[artefact.id]
+                original_stage, original_archived = promotion_source_values[artefact.id]
+                conditions = [Artefact.id == artefact.id]
+                if "stage" in update_values:
+                    conditions.append(Artefact.stage == original_stage)
+                if "archived" in update_values:
+                    conditions.append(Artefact.archived == original_archived)
+
+                result = db.execute(update(Artefact).where(*conditions).values(**update_values))
                 db.commit()
+                if result.rowcount != 1:
+                    processed_status[artefact.id] = False
+                    error_messages[artefact.id] = "Promotion fields changed during fetch; update skipped"
+                    logger.warning("Skipped promotion update for artefact %s due to concurrent changes", artefact.id)
         except Exception as exc:
-            processed_status[artefact_key] = False
-            error_messages[artefact_key] = str(exc)
-            logger.error("Failed to write artefact %s: %s", artefact_key, exc)
+            processed_status[artefact.id] = False
+            error_messages[artefact.id] = str(exc)
+            logger.error("Failed to write artefact %s: %s", artefact.id, exc)
 
     logger.info("INFO: Processed artefacts %s", processed_status)
     if False in processed_status.values():
