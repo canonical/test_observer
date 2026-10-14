@@ -1087,7 +1087,7 @@ def test_snap_branch_is_part_of_uniqueness(execute: Execute, db_session: Session
 
 def test_snap_store_is_not_part_of_uniqueness(execute: Execute, db_session: Session):
     """
-    Test covering an observer case where an artefact was created without a store,
+    Test covering an observed case where an artefact was created without a store,
     but then another call to /start-test included the store. At the time,
     the filter_kwargs and creation_kwargs passed to get_or_create were incorrect,
     so calls to /start-test failed by attempting to violate the snap uniqueness constraint.
