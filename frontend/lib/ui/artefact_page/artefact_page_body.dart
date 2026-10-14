@@ -273,7 +273,7 @@ class _MissingEnvironmentsWarningState
               onPressed: () async {
                 final csv = missingEnvironments
                     .map(
-                      (environment) => '${_escapeCsvField(environment.name)}, '
+                      (environment) => '${_escapeCsvField(environment.name)},'
                           '${_escapeCsvField(environment.architecture)}',
                     )
                     .join('\n');
