@@ -310,6 +310,74 @@
         { "label": "Status", "field": "status" },
         { "label": "Due date", "field": "due_date", "category": "dueDate" }
       ]
+    },
+    {
+      "name": "solutions",
+      "friendly_name": "Solution Testing",
+      "api_name": "solution",
+      "stages": ["edge", "beta", "candidate", "stable"],
+      "columns": [
+        { "label": "Name", "key": "name", "field": "name" },
+        { "label": "Version", "key": "version", "field": "version" },
+        { "label": "Track", "key": "track", "field": "track" },
+        { "label": "Risk", "key": "risk", "field": "risk" },
+        { "label": "Source", "key": "source", "field": "source" },
+        {
+          "label": "Due date",
+          "key": "dueDate",
+          "field": "due_date",
+          "format": "date"
+        },
+        {
+          "label": "Created",
+          "key": "createdAt",
+          "field": "created_at",
+          "format": "date"
+        },
+        {
+          "label": "Reviews",
+          "key": "reviewsRemaining",
+          "format": "reviewsRemaining"
+        },
+        {
+          "label": "Status",
+          "key": "status",
+          "field": "status",
+          "format": "status"
+        },
+        { "label": "Reviewers", "key": "reviewers", "format": "reviewers" },
+        { "label": "Stage", "key": "stage", "field": "stage", "hidden": true },
+        {
+          "label": "Bug link",
+          "key": "bugLink",
+          "field": "bug_link",
+          "hidden": true
+        },
+        {
+          "label": "Jira issue",
+          "key": "jiraIssue",
+          "field": "jira_issue",
+          "hidden": true
+        },
+        {
+          "label": "Comment",
+          "key": "comment",
+          "field": "comment",
+          "hidden": true
+        },
+        {
+          "label": "Archived",
+          "key": "archived",
+          "field": "archived",
+          "hidden": true
+        }
+      ],
+      "filters": [
+        { "label": "Reviewers", "category": "reviewers" },
+        { "label": "Status", "field": "status" },
+        { "label": "Due date", "field": "due_date", "category": "dueDate" },
+        { "label": "Risk", "field": "risk" }
+      ]
     }
   ]
 }
