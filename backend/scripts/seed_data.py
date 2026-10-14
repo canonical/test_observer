@@ -290,48 +290,6 @@ START_TEST_EXECUTION_REQUESTS = [
         ci_link="http://example7",
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
-    # These with the test-plan-environments-count test plan are to include the case where
-    # a subsequent version has fewer environments than the previous version,
-    # which should show a warning in the frontend
-    StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
-        name="snapd",
-        version="2.72",
-        revision=1,
-        track="latest",
-        store="ubuntu",
-        arch="arm64",
-        execution_stage=SnapStage.stable,
-        environment="environment-1",
-        ci_link="http://example-more-environments-1",
-        test_plan="test-plan-environments-count",
-    ),
-    StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
-        name="snapd",
-        version="2.72",
-        revision=1,
-        track="latest",
-        store="ubuntu",
-        arch="arm64",
-        execution_stage=SnapStage.stable,
-        environment="environment-2",
-        ci_link="http://example-more-environments-2",
-        test_plan="test-plan-environments-count",
-    ),
-    StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
-        name="snapd",
-        version="2.73",
-        revision=1,
-        track="latest",
-        store="ubuntu",
-        arch="arm64",
-        execution_stage=SnapStage.stable,
-        environment="environment-1",
-        ci_link="http://example-fewer-environments-1",
-        test_plan="test-plan-environments-count",
-    ),
     StartDebTestExecutionRequest(
         family=FamilyName.deb,
         name="linux-raspi",
@@ -871,8 +829,9 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
         response.raise_for_status()
         attachment_rules.append(response.json())
 
+    to_start = START_TEST_EXECUTION_REQUESTS + _create_missing_expected_environment_executions()
     test_executions = []
-    for start_request in START_TEST_EXECUTION_REQUESTS:
+    for start_request in to_start:
         response = client.put(
             START_TEST_EXECUTION_URL,
             json=start_request.model_dump(mode="json"),
@@ -1011,6 +970,57 @@ def _assign_environment_reviewers(session: Session) -> None:
                 review.review_decision = [ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS]
 
     session.commit()
+
+
+def _create_missing_expected_environment_executions() -> list[StartSnapTestExecutionRequest]:
+    """
+    Create a lot of expected environments so that many are missing
+    to see the behavior of many missing environments in the frontend warning
+    """
+    expected = [f"environment-{i}" for i in range(1, 101)]
+
+    return [
+        StartSnapTestExecutionRequest(
+            family=FamilyName.snap,
+            name="snapd",
+            version="2.72",
+            revision=1,
+            track="latest",
+            store="ubuntu",
+            arch="arm64",
+            execution_stage=SnapStage.stable,
+            environment="environment-1",
+            expected_environments=expected,
+            ci_link="http://example-environment-1",
+            test_plan="test-plan-missing-environments",
+        ),
+        StartSnapTestExecutionRequest(
+            family=FamilyName.snap,
+            name="snapd",
+            version="2.72",
+            revision=1,
+            track="latest",
+            store="ubuntu",
+            arch="arm64",
+            execution_stage=SnapStage.stable,
+            environment="environment-2",
+            ci_link="http://example-environment-2",
+            test_plan="test-plan-missing-environments",
+        ),
+        StartSnapTestExecutionRequest(
+            family=FamilyName.snap,
+            name="snapd",
+            version="2.72",
+            revision=1,
+            track="latest",
+            store="ubuntu",
+            arch="arm64",
+            execution_stage=SnapStage.stable,
+            environment="environment-3",
+            ci_link="http://example-environment-3",
+            test_plan="test-plan-missing-environments",
+        ),
+    ]
 
 
 if __name__ == "__main__":

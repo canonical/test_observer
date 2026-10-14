@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:yaru/yaru.dart';
 
+import 'environment.dart';
 import 'stage_name.dart';
 import 'user.dart';
 
@@ -48,6 +49,9 @@ abstract class Artefact with _$Artefact {
     required StageName stage,
     @JsonKey(name: 'all_environment_reviews_count')
     required int allEnvironmentReviewsCount,
+    @JsonKey(name: 'missing_expected_environments')
+    @Default([])
+    List<Environment> missingExpectedEnvironments,
     @JsonKey(name: 'completed_environment_reviews_count')
     required int completedEnvironmentReviewsCount,
     @Default(false) bool archived,
