@@ -64,7 +64,7 @@ class IssueAttachmentsExpandable extends ConsumerWidget {
             child: IconButton(
               icon: const Icon(Icons.info_outline),
               onPressed: () => launchUrlString(
-                'https://canonical-test-observer.readthedocs-hosted.com/en/latest/how-to/triage-test-results/',
+                'https://ubuntu.com/docs/test-observer/latest/how-to/triage-test-results/',
               ),
             ),
           ),
