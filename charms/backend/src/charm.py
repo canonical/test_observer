@@ -76,8 +76,8 @@ class TestObserverBackendCharm(CharmBase):
         self.celery_pebble_service_name = "celery-worker"
         self.celery_container = self.unit.get_container("celery")
 
-        self.framework.observe(self.on.api_pebble_ready, self._update_api_layer)
-        self.framework.observe(self.on.celery_pebble_ready, self._update_celery_layer)
+        self.framework.observe(self.on.api_pebble_ready, self._update_layers)
+        self.framework.observe(self.on.celery_pebble_ready, self._update_layers)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
 
         self.database = DatabaseRequires(
@@ -137,14 +137,12 @@ class TestObserverBackendCharm(CharmBase):
     def _on_ingress_ready(self, event: IngressPerAppReadyEvent) -> None:
         """Process the ingress URL and provide the hostname where needed."""
         logger.info("Ingress is ready with url %s", event.url)
-        self._update_api_layer()
-        self._update_celery_layer()
+        self._update_layers()
         self._update_frontend_relation_data()
 
     def _on_ingress_revoked(self, event: IngressPerAppRevokedEvent) -> None:
         logger.info("Ingress revoked")
-        self._update_api_layer()
-        self._update_celery_layer()
+        self._update_layers()
         self._update_frontend_relation_data()
 
     def _setup_nginx(self):
@@ -189,8 +187,7 @@ class TestObserverBackendCharm(CharmBase):
     def _on_update_status(self, event: UpdateStatusEvent) -> None:
         # Retry a failed migration; healthy workloads are not restarted on every tick.
         if self.unit.status == BlockedStatus(MIGRATION_FAILED_MSG):
-            self._update_api_layer()
-            self._update_celery_layer()
+            self._update_layers()
 
         self._run_integration_check()
 
@@ -258,8 +255,7 @@ class TestObserverBackendCharm(CharmBase):
         )
 
     def _on_database_changed(self, event):
-        self._update_api_layer(None)
-        self._update_celery_layer(None)
+        self._update_layers()
 
     def _on_database_relation_broken(self, event):
         self.unit.status = WaitingStatus("Waiting for database relation")
@@ -313,10 +309,13 @@ class TestObserverBackendCharm(CharmBase):
 
         self.ingress.provide_ingress_requirements(port=int(self.config["port"]))
         self._update_frontend_relation_data()
-        self._update_api_layer(event)
-        self._update_celery_layer(event)
+        self._update_layers()
 
-    def _update_api_layer(self, _=None):
+    def _update_layers(self, _=None) -> None:
+        """Migrate the database once, then update both workload layers.
+
+        A failed migration leaves its status set and skips both layers.
+        """
         if not self._validate_saml_config():
             self.unit.status = BlockedStatus(
                 "SAML config incomplete: if any SAML setting is provided, "
@@ -328,14 +327,15 @@ class TestObserverBackendCharm(CharmBase):
             self.unit.status = BlockedStatus(page_limit_error)
             return
 
+        # Migrations run through the API container.
         if not self.api_container.can_connect():
             self.unit.status = WaitingStatus("Waiting for Pebble for API")
             return
 
-        # Building the Pebble layer reads the database connection details via
-        # _app_environment -> _postgres_relation_data(), which raises SystemExit
-        # and aborts the hook if the relation has not provided endpoints yet.
-        # Gate on relation readiness first so we report the real blocker.
+        # Building the environment reads the database connection details via
+        # _postgres_relation_data(), which raises SystemExit and aborts the hook
+        # if the relation has not provided endpoints yet. Gate on relation
+        # readiness first so we report the real blocker.
         if not self._database_relation_ready():
             self.unit.status = WaitingStatus("Waiting for database relation")
             return
@@ -343,6 +343,10 @@ class TestObserverBackendCharm(CharmBase):
         if not self._migrate_database():
             return
 
+        self._update_api_layer()
+        self._update_celery_layer()
+
+    def _update_api_layer(self) -> None:
         self.unit.status = MaintenanceStatus(f"Updating {self.api_pebble_service_name} layer")
 
         self.api_container.add_layer(
@@ -354,36 +358,9 @@ class TestObserverBackendCharm(CharmBase):
             self.unit.set_workload_version(self.version)
         self.unit.status = ActiveStatus()
 
-    def _update_celery_layer(self, _=None):
-        if not self._validate_saml_config():
-            self.unit.status = BlockedStatus(
-                "SAML config incomplete: if any SAML setting is provided, "
-                "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
-            )
-            return
-
-        if page_limit_error := self._page_limit_config_error():
-            self.unit.status = BlockedStatus(page_limit_error)
-            return
-
+    def _update_celery_layer(self) -> None:
         if not self.celery_container.can_connect():
             self.unit.status = WaitingStatus("Waiting for Pebble for Celery")
-            return
-
-        # Migrations run through the API container.
-        if not self.api_container.can_connect():
-            self.unit.status = WaitingStatus("Waiting for Pebble for API")
-            return
-
-        # The Celery layer also depends on _app_environment ->
-        # _postgres_relation_data(), which raises SystemExit and aborts the hook
-        # if the relation has not provided endpoints yet. Gate on relation
-        # readiness first so we report the real blocker.
-        if not self._database_relation_ready():
-            self.unit.status = WaitingStatus("Waiting for database relation")
-            return
-
-        if not self._migrate_database():
             return
 
         self.unit.status = MaintenanceStatus(f"Updating {self.celery_pebble_service_name} layer")
@@ -460,8 +437,7 @@ class TestObserverBackendCharm(CharmBase):
 
     def _test_observer_rest_api_client_changed(self, event: RelationChangedEvent) -> None:
         self._update_frontend_relation_data()
-        self._update_api_layer()
-        self._update_celery_layer()
+        self._update_layers()
 
     @property
     def version(self) -> str | None:

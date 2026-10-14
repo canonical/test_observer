@@ -13,27 +13,17 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import hashlib
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool, text
 
+from test_observer.common.constants import MIGRATION_LOCK_ID
 from test_observer.data_access import Base
 from test_observer.data_access.setup import DB_URL
 
 # for 'autogenerate' support
 target_metadata = Base.metadata
-
-
-def _lock_key() -> int:
-    """Generate a 64-bit integer key for advisory locking."""
-    digest = hashlib.sha256(b"test-observer-backend").digest()[:8]
-    return int.from_bytes(digest, "big", signed=True)
-
-
-# 64-bit integer key shared by every process that migrates this database
-MIGRATION_LOCK_ID = _lock_key()
 
 config = context.config
 
