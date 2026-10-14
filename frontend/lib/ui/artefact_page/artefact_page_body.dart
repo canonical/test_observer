@@ -273,7 +273,19 @@ class _MissingEnvironmentsWarningState
                           '${sanitizeCSV(environment.architecture)}',
                     )
                     .join('\n');
-                await Clipboard.setData(ClipboardData(text: csv));
+                try {
+                  await Clipboard.setData(ClipboardData(text: csv));
+                } catch (_) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context)
+                    ..hideCurrentSnackBar()
+                    ..showSnackBar(
+                      const SnackBar(
+                        content: Text('Failed to copy missing environments'),
+                      ),
+                    );
+                  return;
+                }
                 if (!context.mounted) return;
                 ScaffoldMessenger.of(context)
                   ..hideCurrentSnackBar()
