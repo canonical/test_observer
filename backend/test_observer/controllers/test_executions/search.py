@@ -45,6 +45,7 @@ from test_observer.data_access.models import (
     TestResult,
 )
 from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.repository import populate_expected_environment_status
 from test_observer.data_access.setup import get_db
 
 from .models import TestExecutionResponseWithContext, TestExecutionSearchResponse
@@ -67,16 +68,17 @@ _TEST_RESULT_QUERY_OPTIONS = [
     ),
 ]
 
-# TestExecutionResponseWithContext also reads the build, the artefact and the
-# environment reviews of the artefact's builds. Reviewers stay lazy: the
-# relationship has no order, and the legacy assignee field is the first
-# reviewer, so loading them another way could change which one that is.
+# TestExecutionResponseWithContext reads the build and artefact. Expected-environment
+# status is batch-populated before validation; reviews are preloaded for counts.
+# Reviewers stay lazy: the relationship has no order, and the legacy assignee field
+# is the first reviewer, so loading them another way could change which one that is.
 _TEST_EXECUTION_QUERY_OPTIONS = [
     *BASE_TEST_EXECUTION_OPTIONS,
     selectinload(TestExecution.artefact_build)
     .selectinload(ArtefactBuild.artefact)
-    .selectinload(Artefact.builds)
-    .selectinload(ArtefactBuild.environment_reviews),
+    .options(
+        selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
+    ),
 ]
 
 
@@ -219,6 +221,10 @@ def _search_executions(
 
     execution_by_id = {execution.id: execution for execution in rows}
     ordered_rows = [execution_by_id[execution_id] for execution_id in execution_ids if execution_id in execution_by_id]
+    populate_expected_environment_status(
+        db,
+        [execution.artefact_build.artefact for execution in ordered_rows],
+    )
 
     total = db.execute(count_query).scalar() or 0
     return ordered_rows, grouped_results, total

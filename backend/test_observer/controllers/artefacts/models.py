@@ -50,6 +50,19 @@ class ReviewerResponse(BaseModel):
     name: str
 
 
+class EnvironmentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    architecture: str
+
+
+class ExpectedEnvironmentInput(BaseModel):
+    name: str = Field(max_length=200)
+    architecture: str = Field(max_length=100)
+
+
 class ArtefactResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -80,20 +93,14 @@ class ArtefactResponse(BaseModel):
     jira_issue: str | None
     all_environment_reviews_count: int
     completed_environment_reviews_count: int
+    expected_environments: list[EnvironmentResponse]
+    missing_expected_environments: list[EnvironmentResponse]
 
     @computed_field(
         description=("Backward-compatible assignee field. Populated from the first entry in reviewers when present.")
     )
     def assignee(self) -> ReviewerResponse | None:
         return self.reviewers[0] if self.reviewers else None
-
-
-class EnvironmentResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    name: str
-    architecture: str
 
 
 class TestExecutionRelevantLinkCreate(BaseModel):
@@ -156,6 +163,12 @@ class ArtefactPatch(BaseModel):
     comment: str | None = None
     jira_issue: str | None = None
     attributes: dict[str, Any] | None = None
+    expected_environments: list[ExpectedEnvironmentInput] | None = Field(
+        default=None,
+        description=(
+            "Expected environments, replacing the current set. Each environment is identified by name and architecture."
+        ),
+    )
     assignee_id: int | None = Field(
         default=None,
         deprecated=True,
@@ -180,6 +193,18 @@ class ArtefactPatch(BaseModel):
         default=None,
         description=("Reviewer emails. Preferred over legacy assignee_id/assignee_email for setting assignees."),
     )
+
+    @field_validator("expected_environments")
+    @classmethod
+    def validate_expected_environments(
+        cls, environments: list[ExpectedEnvironmentInput] | None
+    ) -> list[ExpectedEnvironmentInput] | None:
+        if environments is None:
+            return None
+        environment_keys = [(environment.name, environment.architecture) for environment in environments]
+        if len(environment_keys) != len(set(environment_keys)):
+            raise ValueError("Duplicate required environments are not allowed")
+        return environments
 
     @model_validator(mode="before")
     @classmethod

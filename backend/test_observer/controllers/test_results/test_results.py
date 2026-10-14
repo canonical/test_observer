@@ -44,6 +44,7 @@ from test_observer.data_access.models_enums import (
     TestExecutionStatus,
     TestResultStatus,
 )
+from test_observer.data_access.repository import populate_expected_environment_status
 from test_observer.data_access.setup import get_db
 
 from .filter_test_results import filter_test_results
@@ -141,9 +142,6 @@ def _search_with_result_details(
         selectinload(TestResult.issue_attachments)
         .selectinload(IssueTestResultAttachment.attachment_rule)
         .selectinload(IssueTestResultAttachmentRule.execution_metadata),
-        # Pre-load all builds + environment reviews for each artefact
-        # so that Artefact.all_environment_reviews_count and completed_environment_reviews_count
-        # can evaluate without additional queries
         _artefact.selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
     )
     query = filter_test_results(query, filters)
@@ -159,6 +157,10 @@ def _search_with_result_details(
 
     rows = db.execute(query).scalars().all()
     total = db.execute(count_query).scalar() or 0
+    populate_expected_environment_status(
+        db,
+        [result.test_execution.artefact_build.artefact for result in rows],
+    )
     return list(rows), total
 
 
