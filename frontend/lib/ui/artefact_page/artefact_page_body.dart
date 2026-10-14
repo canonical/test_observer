@@ -269,8 +269,7 @@ class _MissingEnvironmentsWarningState
               onPressed: () async {
                 final csv = missingEnvironments
                     .map(
-                      (environment) =>
-                          '${sanitizeCSV(environment.name)},'
+                      (environment) => '${sanitizeCSV(environment.name)},'
                           '${sanitizeCSV(environment.architecture)}',
                     )
                     .join('\n');
