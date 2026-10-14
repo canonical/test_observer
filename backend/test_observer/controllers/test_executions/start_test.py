@@ -304,7 +304,8 @@ class StartTestExecutionController:
 
         match self.request:
             case StartSnapTestExecutionRequest():
-                filter_kwargs["store"] = self.request.store
+                # Store is not part of the snap uniqueness constraint
+                creation_kwargs["store"] = self.request.store
                 filter_kwargs["track"] = self.request.track
                 filter_kwargs["branch"] = self.request.branch
             case StartCharmTestExecutionRequest():
