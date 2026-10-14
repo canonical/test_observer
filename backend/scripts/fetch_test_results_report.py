@@ -27,7 +27,14 @@ import requests
 from fastapi.testclient import TestClient
 
 DATE_FORMAT = "%Y-%m-%d"
-TO_API_URL = os.environ.get("TO_API_URL", "https://test-observer-api.canonical.com")
+TO_API_URL = os.environ.get(
+    "TO_API_URL", "https://test-observer-api.canonical.com"
+)
+TO_AUTH_TOKEN = os.environ.get("TO_AUTH_TOKEN")
+
+if not TO_AUTH_TOKEN:
+    raise SystemExit("TO_AUTH_TOKEN envvar required")
+
 EMPTY_TEST_RESULT_STATUS_COUNT = {
     "FAILED": 0,
     "PASSED": 0,
@@ -41,6 +48,8 @@ logging.basicConfig(
 
 
 def _is_test_result_relevant(test_result: dict) -> bool:
+    if "intel-npu-driver" in test_result["Artefact.name"]:
+        return False
     if "mir" in test_result["TestCase.name"]:
         return False
 
@@ -52,11 +61,14 @@ def _validate_date(date_str: str) -> datetime:
     try:
         return datetime.strptime(date_str, DATE_FORMAT)
     except ValueError as err:
-        raise argparse.ArgumentTypeError(f"Date {date_str} is not in the correct format: {DATE_FORMAT}") from err
+        raise argparse.ArgumentTypeError(
+            f"Date {date_str} is not in the correct format: {DATE_FORMAT}"
+        ) from err
 
 
 def _save_test_results_report_data(
-    date_string: str, test_results_response: httpx._models.Response | requests.Response
+    date_string: str,
+    test_results_response: httpx._models.Response | requests.Response,
 ) -> None:
     if not os.path.exists("test-results-reports"):
         os.makedirs("test-results-reports")
@@ -65,7 +77,9 @@ def _save_test_results_report_data(
     logging.info(f"Saving test results report data to {file_name}")
     with open(file_name, "w") as file:
         file.write(test_results_response.text)
-    logging.info(f"Test results report data for {date_string} saved to {file_name}")
+    logging.info(
+        f"Test results report data for {date_string} saved to {file_name}"
+    )
 
 
 def _read_test_results_report_data(date_string: str) -> Iterable[dict]:
@@ -74,20 +88,27 @@ def _read_test_results_report_data(date_string: str) -> Iterable[dict]:
         yield from csv.DictReader(file)
 
 
-def get_test_results_report_data(date: datetime, client: TestClient | requests.Session) -> Iterable[dict]:
+def get_test_results_report_data(
+    date: datetime, client: TestClient | requests.Session
+) -> Iterable[dict]:
     date_string = date.strftime(DATE_FORMAT)
     if os.path.exists(f"test-results-reports/{date_string}.csv"):
-        logging.info(f"Test results report data for {date_string} already exists.")
+        logging.info(
+            f"Test results report data for {date_string} already exists."
+        )
         yield from _read_test_results_report_data(date_string)
     else:
         logging.info(f"Fetching test results report data for {date_string}.")
         next_date_string = (date + timedelta(days=1)).strftime(DATE_FORMAT)
+        headers = {}
+        headers["Authorization"] = f"Bearer {TO_AUTH_TOKEN}"
         test_results_response = client.get(
             f"{TO_API_URL}/v1/reports/test-results",
             params={
                 "start_date": f"{date_string}T00:00:00",
                 "end_date": f"{next_date_string}T00:00:00",
             },
+            headers=headers,
             timeout=120,
         )
         test_results_response.raise_for_status()
@@ -98,7 +119,9 @@ def get_test_results_report_data(date: datetime, client: TestClient | requests.S
 def write_data_summary(test_results_summary: dict, output_file: str) -> None:
     with open(output_file, "w") as f:
         summary_writer = csv.writer(f)
-        summary_writer.writerow(["Test Identifier", "ALL", "FAIL", "PASS", "SKIP"])
+        summary_writer.writerow(
+            ["Test Identifier", "ALL", "FAIL", "PASS", "SKIP"]
+        )
 
         for test_identifier, test_result in test_results_summary.items():
             summary_writer.writerow(
@@ -120,11 +143,15 @@ def fetch_test_results_report(
     output_file: str,
     client: TestClient | requests.Session,
 ) -> None:
-    test_results_summary: dict = defaultdict(lambda: EMPTY_TEST_RESULT_STATUS_COUNT.copy())
+    test_results_summary: dict = defaultdict(
+        lambda: EMPTY_TEST_RESULT_STATUS_COUNT.copy()
+    )
 
     current_date = start_date
     while current_date <= end_date:
-        current_date_results = get_test_results_report_data(current_date, client)
+        current_date_results = get_test_results_report_data(
+            current_date, client
+        )
         for test_result in current_date_results:
             if not _is_test_result_relevant(test_result):
                 continue
@@ -134,7 +161,9 @@ def fetch_test_results_report(
                 if test_result["TestCase.template_id"]
                 else test_result["TestCase.name"]
             )
-            test_results_summary[test_identifier][test_result["TestResult.status"]] += 1
+            test_results_summary[test_identifier][
+                test_result["TestResult.status"]
+            ] += 1
 
         current_date = current_date + timedelta(days=1)
 
@@ -155,7 +184,12 @@ if __name__ == "__main__":
         epilog=example_usage,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("--start_date", help="Start date, format: YYYY-MM-DD", required=True, type=str)
+    parser.add_argument(
+        "--start_date",
+        help="Start date, format: YYYY-MM-DD",
+        required=True,
+        type=str,
+    )
     parser.add_argument(
         "--end_date",
         help="End date, format: YYYY-MM-DD",
@@ -176,9 +210,15 @@ if __name__ == "__main__":
     end_date = _validate_date(args.end_date)
 
     if start_date > end_date:
-        raise argparse.ArgumentTypeError(f"Start date '{start_date}' must be before end date '{end_date}'")
+        raise argparse.ArgumentTypeError(
+            f"Start date '{start_date}' must be before end date '{end_date}'"
+        )
 
     if os.path.exists(args.output_file):
-        raise argparse.ArgumentTypeError(f"Output file '{args.output_file}' already exists")
+        raise argparse.ArgumentTypeError(
+            f"Output file '{args.output_file}' already exists"
+        )
 
-    fetch_test_results_report(start_date, end_date, args.output_file, requests.Session())
+    fetch_test_results_report(
+        start_date, end_date, args.output_file, requests.Session()
+    )
