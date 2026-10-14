@@ -1122,6 +1122,24 @@ def test_snap_branch_is_part_of_uniqueness(execute: Execute, db_session: Session
     assert te1.artefact_build.artefact_id != te2.artefact_build.artefact_id
 
 
+def test_snap_store_is_not_part_of_uniqueness(execute: Execute, db_session: Session):
+    """
+    Test covering an observed case where an artefact was created without a store,
+    but then another call to /start-test included the store. At the time,
+    the filter_kwargs and creation_kwargs passed to get_or_create were incorrect,
+    so calls to /start-test failed by attempting to violate the snap uniqueness constraint.
+    """
+    response = execute({**snap_test_request, "store": "", "ci_link": "https://example-1.link"})
+    te1 = db_session.get(TestExecution, response.json()["id"])
+
+    response = execute({**snap_test_request, "store": "ubuntu", "ci_link": "https://example-2.link"})
+    assert response.status_code == 200
+    te2 = db_session.get(TestExecution, response.json()["id"])
+
+    assert te1 and te2
+    assert te1.artefact_build.artefact_id == te2.artefact_build.artefact_id
+
+
 def test_deb_source_is_part_of_uniqueness(execute: Execute, db_session: Session):
     response = execute(deb_test_request)
     te1 = db_session.get(TestExecution, response.json()["id"])
