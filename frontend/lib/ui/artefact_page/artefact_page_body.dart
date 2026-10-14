@@ -15,6 +15,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:intersperse/intersperse.dart';
 import 'package:yaru/yaru.dart';
 import '../../models/artefact.dart';
@@ -174,6 +175,11 @@ class _MissingEnvironmentsWarningState
     super.dispose();
   }
 
+  String _escapeCsvField(String value) {
+    if (!value.contains(RegExp(r'[,"\r\n]'))) return value;
+    return '"${value.replaceAll('"', '""')}"';
+  }
+
   @override
   void didUpdateWidget(covariant _MissingEnvironmentsWarning oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -260,6 +266,30 @@ class _MissingEnvironmentsWarningState
                     ),
                   ),
                 ],
+              ),
+            ),
+            IconButton(
+              tooltip: 'Copy as CSV',
+              onPressed: () async {
+                final csv = missingEnvironments
+                    .map(
+                      (environment) => '${_escapeCsvField(environment.name)}, '
+                          '${_escapeCsvField(environment.architecture)}',
+                    )
+                    .join('\n');
+                await Clipboard.setData(ClipboardData(text: csv));
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    const SnackBar(
+                      content: Text('Missing environments copied as CSV'),
+                    ),
+                  );
+              },
+              icon: Icon(
+                Icons.content_copy,
+                color: colorScheme.onSecondaryContainer,
               ),
             ),
             IconButton(
