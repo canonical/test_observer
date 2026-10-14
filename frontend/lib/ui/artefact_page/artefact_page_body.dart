@@ -25,6 +25,7 @@ import '../../providers/environments_issues.dart';
 import '../../providers/filtered_artefact_environments.dart';
 import '../../providers/tests_issues.dart';
 import '../../routing.dart';
+import '../../utils/csv.dart';
 import '../non_blocking_provider_preloader.dart';
 import '../spacing.dart';
 import 'bulk_environment_selection_controls.dart';
@@ -175,11 +176,6 @@ class _MissingEnvironmentsWarningState
     super.dispose();
   }
 
-  String _escapeCsvField(String value) {
-    if (!value.contains(RegExp(r'[,"\r\n]'))) return value;
-    return '"${value.replaceAll('"', '""')}"';
-  }
-
   @override
   void didUpdateWidget(covariant _MissingEnvironmentsWarning oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -273,8 +269,9 @@ class _MissingEnvironmentsWarningState
               onPressed: () async {
                 final csv = missingEnvironments
                     .map(
-                      (environment) => '${_escapeCsvField(environment.name)},'
-                          '${_escapeCsvField(environment.architecture)}',
+                      (environment) =>
+                          '${sanitizeCSV(environment.name)},'
+                          '${sanitizeCSV(environment.architecture)}',
                     )
                     .join('\n');
                 await Clipboard.setData(ClipboardData(text: csv));
