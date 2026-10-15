@@ -37,6 +37,7 @@ abstract class TestExecution with _$TestExecution {
     required TestExecutionStatus status,
     required Environment environment,
     @Default(false) @JsonKey(name: 'is_rerun_requested') bool isRerunRequested,
+    @JsonKey(name: 'rerun_priority') int? rerunPriority,
     @JsonKey(name: 'artefact_build_id') int? artefactBuildId,
     @JsonKey(name: 'test_plan') required String testPlan,
     @Default([])

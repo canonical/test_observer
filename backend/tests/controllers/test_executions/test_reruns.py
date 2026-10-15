@@ -14,6 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Callable
+from datetime import datetime
 from operator import itemgetter
 from typing import Any
 
@@ -34,7 +35,7 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.main import app
 from test_observer.users.user_injection import get_current_user
-from tests.conftest import make_authenticated_request
+from tests.conftest import authenticate_user, make_authenticated_request, override_permissions
 from tests.data_generator import DataGenerator
 
 reruns_url = "/v1/test-executions/reruns"
@@ -51,7 +52,11 @@ def post(test_client: TestClient):
         permissions = [Permission.change_rerun]
         if data and isinstance(data, dict):
             test_execution_ids = data.get("test_execution_ids", [])
-            if len(test_execution_ids) > 1 or data.get("test_results_filters") is not None:
+            if (
+                len(test_execution_ids) > 1
+                or data.get("test_results_filters") is not None
+                or data.get("test_executions_filters") is not None
+            ):
                 permissions.append(Permission.change_rerun_bulk)
 
         return make_authenticated_request(
@@ -97,7 +102,11 @@ def delete(test_client: TestClient):
         permissions = [Permission.change_rerun]
         if data and isinstance(data, dict):
             test_execution_ids = data.get("test_execution_ids", [])
-            if len(test_execution_ids) > 1 or data.get("test_results_filters") is not None:
+            if (
+                len(test_execution_ids) > 1
+                or data.get("test_results_filters") is not None
+                or data.get("test_executions_filters") is not None
+            ):
                 permissions.append(Permission.change_rerun_bulk)
 
         return make_authenticated_request(
@@ -113,11 +122,12 @@ type Get = Callable[..., Response]
 type Delete = Callable[[Any], Response]
 
 
-def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
+def test_execution_to_pending_rerun(test_execution: TestExecution, priority: int = 0) -> dict:
     return_data = {
         "test_execution_id": test_execution.id,
         "ci_link": test_execution.ci_link,
         "family": test_execution.artefact_build.artefact.family,
+        "priority": priority,
         "test_execution": {
             "id": test_execution.id,
             "ci_link": test_execution.ci_link,
@@ -133,6 +143,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             "status": test_execution.status.name,
             "test_plan": test_execution.test_plan.name,
             "is_rerun_requested": bool(test_execution.rerun_request),
+            "rerun_priority": test_execution.rerun_request.priority if test_execution.rerun_request else None,
             "created_at": test_execution.created_at.isoformat(),
             "execution_metadata": {},
             "is_triaged": test_execution.is_triaged,
@@ -145,7 +156,6 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             "store": test_execution.artefact_build.artefact.store,
             "branch": test_execution.artefact_build.artefact.branch,
             "series": test_execution.artefact_build.artefact.series,
-            "risk": test_execution.artefact_build.artefact.risk,
             "repo": test_execution.artefact_build.artefact.repo,
             "source": test_execution.artefact_build.artefact.source,
             "os": test_execution.artefact_build.artefact.os,
@@ -162,7 +172,6 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
                 if test_execution.artefact_build.artefact.reviewers
                 else None
             ),
-            "bundled_builds": [],
             "reviewers": test_execution.artefact_build.artefact.reviewers,
             "due_date": test_execution.artefact_build.artefact.due_date,
             "bug_link": test_execution.artefact_build.artefact.bug_link,
@@ -173,6 +182,7 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
             ),
             "family": test_execution.artefact_build.artefact.family,
             "created_at": (test_execution.artefact_build.artefact.created_at.isoformat()),
+            "attributes": test_execution.artefact_build.artefact.attributes,
         },
         "artefact_build": {
             "id": test_execution.artefact_build.id,
@@ -181,6 +191,13 @@ def test_execution_to_pending_rerun(test_execution: TestExecution) -> dict:
         },
     }
     return jsonable_encoder(return_data)
+
+
+def without_server_fields(reruns: list[dict] | dict) -> list[dict] | dict:
+    """Strip server-generated fields (e.g. created_at) before comparing to an expected dict."""
+    if isinstance(reruns, list):
+        return [{k: v for k, v in r.items() if k != "created_at"} for r in reruns]
+    return {k: v for k, v in reruns.items() if k != "created_at"}
 
 
 # ==============================================================================
@@ -203,7 +220,7 @@ def test_valid_post(post: Post, test_execution: TestExecution):
     response = post({"test_execution_ids": [test_execution.id]})
 
     assert response.status_code == 200
-    assert response.json() == [test_execution_to_pending_rerun(test_execution)]
+    assert without_server_fields(response.json()) == [test_execution_to_pending_rerun(test_execution)]
 
 
 def test_post_with_valid_and_invalid_ids(post: Post, test_execution: TestExecution):
@@ -228,7 +245,15 @@ def test_get_after_one_post(get: Get, post: Post, test_execution: TestExecution)
 
     post({"test_execution_ids": [test_execution.id]})
 
-    assert get().json() == [test_execution_to_pending_rerun(test_execution)]
+    assert without_server_fields(get().json()) == [test_execution_to_pending_rerun(test_execution)]
+
+
+def test_get_returns_created_at(get: Get, post: Post, test_execution: TestExecution):
+    post({"test_execution_ids": [test_execution.id]})
+
+    rerun = get().json()[0]
+    assert "created_at" in rerun
+    datetime.fromisoformat(rerun["created_at"])
 
 
 def test_get_after_two_identical_posts(get: Get, post: Post, test_execution: TestExecution):
@@ -237,7 +262,7 @@ def test_get_after_two_identical_posts(get: Get, post: Post, test_execution: Tes
     post({"test_execution_ids": [test_execution.id]})
     post({"test_execution_ids": [test_execution.id]})
 
-    assert get().json() == [test_execution_to_pending_rerun(test_execution)]
+    assert without_server_fields(get().json()) == [test_execution_to_pending_rerun(test_execution)]
 
 
 def test_get_after_two_different_posts(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
@@ -250,7 +275,7 @@ def test_get_after_two_different_posts(get: Get, post: Post, test_execution: Tes
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert get().json() == [
+    assert without_server_fields(get().json()) == [
         test_execution_to_pending_rerun(te1),
         test_execution_to_pending_rerun(te2),
     ]
@@ -266,7 +291,7 @@ def test_get_after_post_with_two_test_execution_ids(get: Get, post: Post, genera
 
     post({"test_execution_ids": [te1.id, te2.id]})
 
-    assert sorted(get().json(), key=itemgetter("test_execution_id")) == [
+    assert sorted(without_server_fields(get().json()), key=itemgetter("test_execution_id")) == [
         test_execution_to_pending_rerun(te1),
         test_execution_to_pending_rerun(te2),
     ]
@@ -279,7 +304,7 @@ def test_get_with_limit(get: Get, post: Post, test_execution: TestExecution, gen
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert get(limit=1).json() == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(limit=1).json()) == [test_execution_to_pending_rerun(te1)]
 
 
 # ==============================================================================
@@ -407,8 +432,8 @@ def test_get_with_family(get: Get, post: Post, test_execution: TestExecution, ge
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert get(family=FamilyName.snap).json() == [test_execution_to_pending_rerun(te1)]
-    assert get(family=FamilyName.charm).json() == [test_execution_to_pending_rerun(te2)]
+    assert without_server_fields(get(family=FamilyName.snap).json()) == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(family=FamilyName.charm).json()) == [test_execution_to_pending_rerun(te2)]
     assert get(family=FamilyName.image).json() == []
 
 
@@ -457,8 +482,8 @@ def test_get_with_environment_filter(get: Get, post: Post, test_execution: TestE
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert get(environment="rpi2").json() == [test_execution_to_pending_rerun(te1)]
-    assert get(environment="dawson-i").json() == [test_execution_to_pending_rerun(te2)]
+    assert without_server_fields(get(environment="rpi2").json()) == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(environment="dawson-i").json()) == [test_execution_to_pending_rerun(te2)]
     assert get(environment="nonexistent").json() == []
 
 
@@ -475,9 +500,9 @@ def test_get_with_build_architecture_filter(get: Get, post: Post, generator: Dat
 
     post({"test_execution_ids": [te1.id, te2.id, te3.id]})
 
-    assert get(build_architecture="arm64").json() == [test_execution_to_pending_rerun(te1)]
-    assert get(build_architecture="amd64").json() == [test_execution_to_pending_rerun(te2)]
-    assert get(build_architecture="armhf").json() == [test_execution_to_pending_rerun(te3)]
+    assert without_server_fields(get(build_architecture="arm64").json()) == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(build_architecture="amd64").json()) == [test_execution_to_pending_rerun(te2)]
+    assert without_server_fields(get(build_architecture="armhf").json()) == [test_execution_to_pending_rerun(te3)]
     assert get(build_architecture="riscv64").json() == []
 
 
@@ -495,9 +520,9 @@ def test_get_with_environment_architecture_filter(get: Get, post: Post, generato
 
     post({"test_execution_ids": [te1.id, te2.id, te3.id]})
 
-    assert get(environment_architecture="arm64").json() == [test_execution_to_pending_rerun(te1)]
-    assert get(environment_architecture="amd64").json() == [test_execution_to_pending_rerun(te2)]
-    assert get(environment_architecture="armhf").json() == [test_execution_to_pending_rerun(te3)]
+    assert without_server_fields(get(environment_architecture="arm64").json()) == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(environment_architecture="amd64").json()) == [test_execution_to_pending_rerun(te2)]
+    assert without_server_fields(get(environment_architecture="armhf").json()) == [test_execution_to_pending_rerun(te3)]
 
 
 def test_get_with_combined_filters(get: Get, post: Post, generator: DataGenerator):
@@ -527,15 +552,19 @@ def test_get_with_combined_filters(get: Get, post: Post, generator: DataGenerato
     assert result[1]["test_execution_id"] in [te1.id, te3.id]
 
     # Test combining family + environment
-    assert get(family=FamilyName.snap, environment="rpi4").json() == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(family=FamilyName.snap, environment="rpi4").json()) == [
+        test_execution_to_pending_rerun(te1)
+    ]
 
     # Test combining all filters
-    assert get(
-        family=FamilyName.snap,
-        build_architecture="arm64",
-        environment="rpi4",
-        environment_architecture="arm64",
-    ).json() == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(
+        get(
+            family=FamilyName.snap,
+            build_architecture="arm64",
+            environment="rpi4",
+            environment_architecture="arm64",
+        ).json()
+    ) == [test_execution_to_pending_rerun(te1)]
 
     # Test filter combination with no matches
     assert (
@@ -567,7 +596,7 @@ def test_get_multiple_reruns_same_build_different_environments(get: Get, post: P
     assert len(result) == 3
 
     # Only specific environment
-    assert get(environment="rpi4").json() == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(environment="rpi4").json()) == [test_execution_to_pending_rerun(te1)]
 
     # All should be returned with environment_architecture filter
     result = get(environment_architecture="arm64").json()
@@ -943,6 +972,34 @@ def test_delete_bulk_permission_not_required_for_single_id(
 
     assert response.status_code == 200
     assert len(get().json()) == 0
+
+
+def test_user_team_permission_respected_for_post(
+    test_client: TestClient, generator: DataGenerator, create_session_cookie: Callable[[int], str]
+):
+    """Test that team permissions are respected for POST and not ignored by AMR permission checks.
+    If no AMR exists, but the user has the required team permissions, the request should succeed.
+    """
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te_1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
+    te_2 = generator.gen_test_execution(ab, e, ci_link="http://ci2")
+    te_3 = generator.gen_test_execution(ab, e, ci_link="http://ci3")
+
+    team = generator.gen_team(name="test-team", permissions=[Permission.change_rerun, Permission.change_rerun_bulk])
+    user = generator.gen_user(name="user", teams=[team])
+    authenticate_user(test_client, user, generator, create_session_cookie)
+
+    response = test_client.post(
+        "/v1/test-executions/reruns", headers={"X-CSRF-Token": "1"}, json={"test_execution_ids": [te_1.id]}
+    )
+    assert response.status_code == 200
+
+    response = test_client.post(
+        "/v1/test-executions/reruns", headers={"X-CSRF-Token": "1"}, json={"test_execution_ids": [te_2.id, te_3.id]}
+    )
+    assert response.status_code == 200
 
 
 # ==============================================================================
@@ -1591,3 +1648,438 @@ class TestRerunAMRPermissions:
         finally:
             del app.dependency_overrides[get_current_user]
             del app.dependency_overrides[get_current_application]
+
+
+# ==============================================================================
+# Priority Tests
+# ==============================================================================
+
+
+def test_post_default_priority_is_zero(post: Post, get: Get, test_execution: TestExecution):
+    post({"test_execution_ids": [test_execution.id]})
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == 0
+
+
+def test_post_custom_priority_is_returned(post: Post, get: Get, test_execution: TestExecution):
+    post({"test_execution_ids": [test_execution.id], "priority": 5})
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == 5
+
+
+def test_post_negative_priority_is_returned(post: Post, get: Get, test_execution: TestExecution):
+    post({"test_execution_ids": [test_execution.id], "priority": -3})
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == -3
+
+
+def test_get_sorted_by_priority_descending(post: Post, get: Get, generator: DataGenerator):
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("e1")
+    e2 = generator.gen_environment("e2")
+    e3 = generator.gen_environment("e3")
+    te1 = generator.gen_test_execution(ab, e1)
+    te2 = generator.gen_test_execution(ab, e2)
+    te3 = generator.gen_test_execution(ab, e3)
+
+    post({"test_execution_ids": [te1.id], "priority": 0})
+    post({"test_execution_ids": [te2.id], "priority": 10})
+    post({"test_execution_ids": [te3.id], "priority": -1})
+
+    reruns = get().json()
+    priorities = [r["priority"] for r in reruns]
+    assert priorities == [10, 0, -1]
+
+
+def test_get_fifo_within_same_priority(get: Get, generator: DataGenerator):
+    """Within same priority, older reruns should come first."""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e1 = generator.gen_environment("env-fifo-1")
+    e2 = generator.gen_environment("env-fifo-2")
+    te1 = generator.gen_test_execution(ab, e1)
+    te2 = generator.gen_test_execution(ab, e2)
+
+    rr1 = generator.gen_rerun_request(te1, priority=1)
+    rr2 = generator.gen_rerun_request(te2, priority=1)
+
+    reruns = get().json()
+    te_ids = [r["test_execution_id"] for r in reruns]
+    # te1's rerun was created first, so it should appear first
+    assert te_ids.index(te1.id) < te_ids.index(te2.id)
+    assert rr1.priority == rr2.priority == 1
+
+
+def test_post_without_priority_does_not_change_existing_priority(post: Post, get: Get, test_execution: TestExecution):
+    """Posting without a priority should not overwrite an existing rerun's priority."""
+    post({"test_execution_ids": [test_execution.id], "priority": 7})
+    post({"test_execution_ids": [test_execution.id]})  # no priority supplied
+
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == 7
+
+
+def test_silent_post_without_priority_does_not_change_existing_priority(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """Silent post without priority should not overwrite an existing rerun's priority."""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("silent-no-priority-env")
+    te = generator.gen_test_execution(ab, e)
+
+    make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_execution_ids": [te.id], "priority": 3},
+        ),
+        Permission.change_rerun,
+    )
+    make_authenticated_request(
+        lambda: test_client.post(reruns_url, params={"silent": True}, json={"test_execution_ids": [te.id]}),
+        Permission.change_rerun,
+    )
+
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == 3
+
+
+def test_post_updates_priority_if_rerun_already_exists(post: Post, get: Get, test_execution: TestExecution):
+    """Re-posting a rerun with a different priority should update the priority."""
+    post({"test_execution_ids": [test_execution.id], "priority": 1})
+    post({"test_execution_ids": [test_execution.id], "priority": 5})
+
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == 5
+
+
+def test_silent_post_updates_priority_if_rerun_already_exists(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """Silent post with a different priority should update an existing rerun's priority."""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("silent-update-env")
+    te = generator.gen_test_execution(ab, e)
+
+    make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_execution_ids": [te.id], "priority": 2},
+        ),
+        Permission.change_rerun,
+    )
+    make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_execution_ids": [te.id], "priority": 9},
+        ),
+        Permission.change_rerun,
+    )
+
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["priority"] == 9
+
+
+# ==============================================================================
+# test_executions_filters
+# ==============================================================================
+
+
+def test_post_with_test_executions_filters_requires_silent(test_client: TestClient, generator: DataGenerator):
+    """test_executions_filters without silent=True returns 422"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    generator.gen_test_execution(ab, e)
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            json={"test_executions_filters": {"artefacts": [a.name]}},
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 422
+    assert "must be done silently" in response.json()["detail"]
+
+
+def test_post_silent_with_test_executions_filters_on_not_started_execution(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """Can create reruns for NOT_STARTED executions (no test results) via test_executions_filters"""
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    te = generator.gen_test_execution(ab, e)
+    # Deliberately do NOT create any test results — te remains NOT_STARTED
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_executions_filters": {"artefacts": [a.name]}},
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 200
+    assert response.json() is None
+
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["test_execution_id"] == te.id
+
+
+def test_post_silent_with_test_executions_filters_matches_by_family(
+    test_client: TestClient, get: Get, generator: DataGenerator
+):
+    """test_executions_filters with families filter only matches matching artefacts"""
+    a_snap = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    a_deb = generator.gen_artefact(StageName.beta, family=FamilyName.deb)
+    ab_snap = generator.gen_artefact_build(a_snap)
+    ab_deb = generator.gen_artefact_build(a_deb)
+    e = generator.gen_environment("test-env")
+    te_snap = generator.gen_test_execution(ab_snap, e)
+    generator.gen_test_execution(ab_deb, e)
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_executions_filters": {"families": ["snap"]}},
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 200
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["test_execution_id"] == te_snap.id
+
+
+def test_post_silent_with_empty_test_executions_filters_returns_422(test_client: TestClient):
+    """Empty test_executions_filters (no filter criteria) returns 422"""
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_executions_filters": {}},
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 422
+    assert "At least one filter must be provided" in response.json()["detail"]
+
+
+def test_delete_with_test_executions_filters(test_client: TestClient, post: Post, get: Get, generator: DataGenerator):
+    """Can delete reruns using test_executions_filters"""
+    a1 = generator.gen_artefact(StageName.beta, name="snap-a")
+    a2 = generator.gen_artefact(StageName.beta, name="snap-b")
+    ab1 = generator.gen_artefact_build(a1)
+    ab2 = generator.gen_artefact_build(a2)
+    e = generator.gen_environment("test-env")
+    te1 = generator.gen_test_execution(ab1, e)
+    te2 = generator.gen_test_execution(ab2, e)
+
+    post({"test_execution_ids": [te1.id, te2.id]})
+    assert len(get().json()) == 2
+
+    response = make_authenticated_request(
+        lambda: test_client.request(
+            "DELETE",
+            reruns_url,
+            json={"test_executions_filters": {"artefacts": ["snap-a"]}},
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 200
+    reruns = get().json()
+    assert len(reruns) == 1
+    assert reruns[0]["test_execution_id"] == te2.id
+
+
+def test_bulk_permission_required_for_test_executions_filters(test_client: TestClient, generator: DataGenerator):
+    """change_rerun_bulk is required when using test_executions_filters"""
+    a = generator.gen_artefact(StageName.beta)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("test-env")
+    generator.gen_test_execution(ab, e)
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            reruns_url,
+            params={"silent": True},
+            json={"test_executions_filters": {"artefacts": [a.name]}},
+        ),
+        Permission.change_rerun,  # Only regular permission, no bulk
+    )
+
+    assert response.status_code == 403
+
+
+def test_post_priority_above_max_is_rejected(test_client: TestClient, test_execution: TestExecution):
+    with override_permissions(Permission.change_rerun):
+        response = test_client.post(
+            reruns_url,
+            json={"test_execution_ids": [test_execution.id], "priority": 1_000_001},
+        )
+    assert response.status_code == 422
+
+
+def test_post_priority_below_min_is_rejected(test_client: TestClient, test_execution: TestExecution):
+    with override_permissions(Permission.change_rerun):
+        response = test_client.post(
+            reruns_url,
+            json={"test_execution_ids": [test_execution.id], "priority": -1_000_001},
+        )
+    assert response.status_code == 422
+
+
+def test_post_priority_at_max_is_accepted(post: Post, get: Get, test_execution: TestExecution):
+    post({"test_execution_ids": [test_execution.id], "priority": 1_000_000})
+    assert get().json()[0]["priority"] == 1_000_000
+
+
+def test_post_priority_at_min_is_accepted(post: Post, get: Get, test_execution: TestExecution):
+    post({"test_execution_ids": [test_execution.id], "priority": -1_000_000})
+    assert get().json()[0]["priority"] == -1_000_000
+
+
+# ==============================================================================
+# GET /v1/test-executions/reruns/details
+# ==============================================================================
+
+details_url = "/v1/test-executions/reruns/details"
+
+
+def _get_details(test_client: TestClient, **params: Any) -> Response:  # noqa: ANN401
+    return make_authenticated_request(
+        lambda: test_client.get(details_url, params=params),
+        Permission.view_rerun,
+    )
+
+
+def test_details_groups_counts_by_priority_and_defaults_to_highest(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    ab = generator.gen_artefact_build(a)
+    # Distinct environments so each rerun is its own (test_plan, build, environment) group.
+    for i, priority in enumerate([5, 5, 0, -3]):
+        e = generator.gen_environment(f"charm-env-{i}")
+        te = generator.gen_test_execution(ab, e)
+        generator.gen_rerun_request(te, priority=priority)
+
+    body = _get_details(test_client, family="charm").json()
+
+    assert body["priority_summaries"] == [
+        {"priority": -3, "count": 1},
+        {"priority": 0, "count": 1},
+        {"priority": 5, "count": 2},
+    ]
+    assert body["count"] == 4
+    assert body["selected_priority"] == 5
+    assert body["selected_count"] == 2
+    assert {r["priority"] for r in body["reruns"]} == {5}
+
+
+def test_details_selected_priority_returns_fields_and_paginates(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    ab = generator.gen_artefact_build(a)
+    total = 55
+    for i in range(total):
+        e = generator.gen_environment(f"page-env-{i}", architecture="arm64")
+        te = generator.gen_test_execution(ab, e, test_plan="page-plan")
+        generator.gen_rerun_request(te, priority=7)
+
+    first = _get_details(test_client, family="charm", priority=7).json()
+    assert first["selected_priority"] == 7
+    assert first["count"] == total
+    assert first["limit"] == 50
+    assert first["offset"] == 0
+    assert len(first["reruns"]) == 50
+
+    row = first["reruns"][0]
+    assert set(row.keys()) == {
+        "test_plan_name",
+        "created_at",
+        "priority",
+        "architecture",
+        "environment_name",
+    }
+    assert row["test_plan_name"] == "page-plan"
+    assert row["priority"] == 7
+    assert row["architecture"] == "arm64"
+    assert row["environment_name"].startswith("page-env-")
+
+    second = _get_details(test_client, family="charm", priority=7, offset=50).json()
+    assert second["offset"] == 50
+    assert len(second["reruns"]) == total - 50
+
+
+def test_details_filters_by_family_and_is_empty_when_none_exist(test_client: TestClient, generator: DataGenerator):
+    charm = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    snap = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    e = generator.gen_environment("family-env")
+    for artefact in (charm, snap):
+        ab = generator.gen_artefact_build(artefact)
+        te = generator.gen_test_execution(ab, e)
+        generator.gen_rerun_request(te, priority=1)
+
+    charm_body = _get_details(test_client, family="charm").json()
+    assert charm_body["count"] == 1
+    assert [s["priority"] for s in charm_body["priority_summaries"]] == [1]
+
+    deb_body = _get_details(test_client, family="deb").json()
+    assert deb_body["priority_summaries"] == []
+    assert deb_body["selected_priority"] is None
+    assert deb_body["count"] == 0
+    assert deb_body["reruns"] == []
+
+
+def test_details_rejects_priority_with_no_reruns(test_client: TestClient, generator: DataGenerator):
+    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    ab = generator.gen_artefact_build(a)
+    e = generator.gen_environment("unavailable-priority-env")
+    te = generator.gen_test_execution(ab, e)
+    generator.gen_rerun_request(te, priority=5)
+
+    response = _get_details(test_client, family="charm", priority=1)
+    assert response.status_code == 422
+
+
+def test_details_rejects_out_of_range_priority_and_limit(test_client: TestClient):
+    with override_permissions(Permission.view_rerun):
+        assert test_client.get(details_url, params={"family": "charm", "priority": 1_000_001}).status_code == 422
+        assert test_client.get(details_url, params={"family": "charm", "limit": 51}).status_code == 422
+
+
+def test_details_requires_view_rerun_permission(test_client: TestClient):
+    # Unauthenticated request is rejected.
+    assert test_client.get(details_url, params={"family": "charm"}).status_code == 403
+
+    # Authenticated without view_rerun is rejected.
+    with override_permissions(Permission.view_test):
+        assert test_client.get(details_url, params={"family": "charm"}).status_code == 403
+
+    # view_rerun grants access.
+    with override_permissions(Permission.view_rerun):
+        assert test_client.get(details_url, params={"family": "charm"}).status_code == 200

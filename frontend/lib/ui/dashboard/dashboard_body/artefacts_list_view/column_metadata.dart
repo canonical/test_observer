@@ -73,9 +73,9 @@ const _snapColumnsMetadata = <ColumnMetadata>[
   ),
   (
     name: 'Reviewers',
-    queryParam: ArtefactSortingQuery.assignee,
+    queryParam: ArtefactSortingQuery.reviewer,
     flex: 1,
-    cellBuilder: _buildAssigneeCell,
+    cellBuilder: _buildReviewersCell,
   ),
 ];
 
@@ -136,9 +136,9 @@ const _debColumnsMetadata = <ColumnMetadata>[
   ),
   (
     name: 'Reviewers',
-    queryParam: ArtefactSortingQuery.assignee,
+    queryParam: ArtefactSortingQuery.reviewer,
     flex: 1,
-    cellBuilder: _buildAssigneeCell,
+    cellBuilder: _buildReviewersCell,
   ),
 ];
 
@@ -193,9 +193,9 @@ const _charmColumnsMetadata = <ColumnMetadata>[
   ),
   (
     name: 'Reviewers',
-    queryParam: ArtefactSortingQuery.assignee,
+    queryParam: ArtefactSortingQuery.reviewer,
     flex: 1,
-    cellBuilder: _buildAssigneeCell,
+    cellBuilder: _buildReviewersCell,
   ),
 ];
 
@@ -250,9 +250,48 @@ const _imageColumnsMetadata = <ColumnMetadata>[
   ),
   (
     name: 'Reviewers',
-    queryParam: ArtefactSortingQuery.assignee,
+    queryParam: ArtefactSortingQuery.reviewer,
     flex: 1,
-    cellBuilder: _buildAssigneeCell,
+    cellBuilder: _buildReviewersCell,
+  ),
+];
+
+const _solutionColumnsMetadata = <ColumnMetadata>[
+  (
+    name: 'Name',
+    queryParam: ArtefactSortingQuery.name,
+    flex: 2,
+    cellBuilder: _buildNameCell,
+  ),
+  (
+    name: 'Version',
+    queryParam: ArtefactSortingQuery.version,
+    flex: 2,
+    cellBuilder: _buildVersionCell,
+  ),
+  (
+    name: 'Due date',
+    queryParam: ArtefactSortingQuery.dueDate,
+    flex: 1,
+    cellBuilder: _buildDueDateCell,
+  ),
+  (
+    name: 'Reviews remaining',
+    queryParam: ArtefactSortingQuery.reviewsRemaining,
+    flex: 1,
+    cellBuilder: _buildReviewsRemainingCell,
+  ),
+  (
+    name: 'Status',
+    queryParam: ArtefactSortingQuery.status,
+    flex: 1,
+    cellBuilder: _buildStatusCell,
+  ),
+  (
+    name: 'Reviewers',
+    queryParam: ArtefactSortingQuery.reviewer,
+    flex: 1,
+    cellBuilder: _buildReviewersCell,
   ),
 ];
 
@@ -294,7 +333,7 @@ Widget _buildStatusCell(BuildContext context, Artefact artefact) {
   );
 }
 
-Widget _buildAssigneeCell(BuildContext context, Artefact artefact) {
+Widget _buildReviewersCell(BuildContext context, Artefact artefact) {
   if (artefact.reviewers.isEmpty) {
     return const Text('N/A');
   }

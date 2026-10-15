@@ -175,6 +175,18 @@ def search_test_results(
         list[str] | None,
         Query(description="Filter by artefact names"),
     ] = None,
+    artefact_versions: Annotated[
+        list[str] | None,
+        Query(description="Filter by artefact versions"),
+    ] = None,
+    artefact_stages: Annotated[
+        list[str] | None,
+        Query(description="Filter by artefact stages"),
+    ] = None,
+    artefact_tracks: Annotated[
+        list[str] | None,
+        Query(description="Filter by artefact tracks"),
+    ] = None,
     artefact_is_archived: Annotated[
         bool | None,
         Query(description="Filter by whether the artefact is archived"),
@@ -182,6 +194,10 @@ def search_test_results(
     environments: Annotated[
         list[str] | None,
         Query(description="Filter by environment names"),
+    ] = None,
+    test_plans: Annotated[
+        list[str] | None,
+        Query(description="Filter by test plan names"),
     ] = None,
     test_cases: Annotated[
         list[str] | None,
@@ -235,10 +251,14 @@ def search_test_results(
     filters = TestResultSearchFilters(
         families=families or [],
         artefacts=artefacts or [],
+        artefact_versions=artefact_versions or [],
+        artefact_stages=artefact_stages or [],
+        artefact_tracks=artefact_tracks or [],
         artefact_is_archived=artefact_is_archived,
         environments=environments or [],
         test_cases=test_cases or [],
         template_ids=template_ids or [],
+        test_plans=test_plans or [],
         execution_metadata=execution_metadata or ExecutionMetadata(),
         issues=parse_list_or_query_value(issues),  # type: ignore[arg-type]
         test_result_statuses=test_result_statuses or [],

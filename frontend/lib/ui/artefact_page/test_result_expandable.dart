@@ -66,6 +66,7 @@ class TestResultExpandable extends ConsumerWidget {
         testResultIdToExpand != null && testResult.id == testResultIdToExpand;
 
     return Expandable(
+      storageKey: 'test_result_${testResult.id}',
       initiallyExpanded: initiallyExpanded,
       title: Row(
         children: [
@@ -88,7 +89,8 @@ class TestResultExpandable extends ConsumerWidget {
         ),
         _TestResultOutputExpandable(
           testResult: testResult,
-          initiallyExpanded: initiallyExpanded,
+          initiallyExpanded:
+              initiallyExpanded || testResult.status == TestResultStatus.failed,
         ),
       ],
     );
@@ -107,6 +109,7 @@ class _TestResultOutputExpandable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expandable(
+      storageKey: 'test_result_details_${testResult.id}',
       title: const Text('Details'),
       initiallyExpanded: initiallyExpanded,
       children: [
@@ -123,7 +126,7 @@ class _TestResultOutputExpandable extends StatelessWidget {
         if (testResult.ioLog != '')
           YaruTile(
             title: const Text('IO Log'),
-            subtitle: SelectableText(
+            subtitle: Text(
               testResult.ioLog,
               style: const TextStyle(
                 fontFamily: 'UbuntuMono',

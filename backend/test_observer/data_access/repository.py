@@ -32,7 +32,6 @@ def get_artefacts_by_family(
     family: FamilyName,
     load_environment_reviews: bool = False,
     load_builds: bool = False,
-    load_bundled_builds: bool = False,
     order_by_columns: Iterable[Any] | None = None,
 ) -> list[Artefact]:
     """
@@ -40,7 +39,9 @@ def get_artefacts_by_family(
 
     :session: DB session
     :family: name of the family
-    :load_stage: whether to eagerly load stage object in all artefacts
+    :load_environment_reviews: whether to eagerly load each build's environment reviews
+    :load_builds: whether to eagerly load each artefact's builds
+    :order_by_columns: optional columns to order the results by
     :return: list of Artefacts
     """
     if family == FamilyName.charm:
@@ -115,8 +116,8 @@ def get_artefacts_by_family(
 
             case FamilyName.solution:
                 subquery = (
-                    base_query.add_columns(Artefact.source, Artefact.track, Artefact.risk)
-                    .group_by(Artefact.source, Artefact.track, Artefact.risk)
+                    base_query.add_columns(Artefact.source, Artefact.track)
+                    .group_by(Artefact.source, Artefact.track)
                     .subquery()
                 )
 
@@ -128,7 +129,6 @@ def get_artefacts_by_family(
                         Artefact.created_at == subquery.c.max_created,
                         Artefact.source == subquery.c.source,
                         Artefact.track == subquery.c.track,
-                        Artefact.risk == subquery.c.risk,
                     ),
                 )
 
@@ -136,9 +136,6 @@ def get_artefacts_by_family(
         query = query.options(joinedload(Artefact.builds).joinedload(ArtefactBuild.environment_reviews))
     elif load_builds:
         query = query.options(joinedload(Artefact.builds))
-
-    if load_bundled_builds:
-        query = query.options(joinedload(Artefact.bundled_builds))
 
     if order_by_columns:
         query = query.order_by(*order_by_columns)

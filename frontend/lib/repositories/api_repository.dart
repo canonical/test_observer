@@ -26,7 +26,7 @@ import '../models/environment_review.dart';
 import '../models/execution_metadata.dart';
 import '../models/family_name.dart';
 import '../models/issue.dart';
-import '../models/rerun_request.dart';
+import '../models/rerun_details.dart';
 import '../models/test_event.dart';
 import '../models/test_issue.dart';
 import '../models/test_result.dart';
@@ -127,22 +127,25 @@ class ApiRepository {
     return testEvents;
   }
 
-  Future<List<RerunRequest>> rerunTestExecutions(
-    Set<int> testExecutionIds,
-  ) async {
-    final response = await dio.post(
+  Future<void> rerunTestExecutions(
+    Set<int> testExecutionIds, {
+    int? priority,
+  }) async {
+    final data = <String, dynamic>{
+      'test_execution_ids': testExecutionIds.toList(),
+    };
+    if (priority != null) data['priority'] = priority;
+    await dio.post(
       '/v1/test-executions/reruns',
-      data: {'test_execution_ids': testExecutionIds.toList()},
+      queryParameters: {'silent': true},
+      data: data,
     );
-    final List rerunsJson = response.data;
-    final reruns =
-        rerunsJson.map((json) => RerunRequest.fromJson(json)).toList();
-    return reruns;
   }
 
   Future<void> createReruns({
     List<int>? testExecutionIds,
     TestResultsFilters? filters,
+    int? priority,
   }) async {
     final data = <String, dynamic>{};
     if (testExecutionIds != null && testExecutionIds.isNotEmpty) {
@@ -151,6 +154,7 @@ class ApiRepository {
     if (filters != null) {
       data['test_results_filters'] = filters.toJson();
     }
+    if (priority != null) data['priority'] = priority;
 
     await dio.post(
       '/v1/test-executions/reruns',
@@ -174,6 +178,50 @@ class ApiRepository {
     await dio.delete(
       '/v1/test-executions/reruns',
       data: data,
+    );
+  }
+
+  Future<RerunDetailsResponse> getRerunDetails({
+    required FamilyName family,
+    int? priority,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'family': family.name,
+      'limit': limit,
+      'offset': offset,
+    };
+    if (priority != null) queryParams['priority'] = priority;
+
+    final response = await dio.get(
+      '/v1/test-executions/reruns/details',
+      queryParameters: queryParams,
+    );
+    return RerunDetailsResponse.fromJson(response.data);
+  }
+
+  Future<({FamilyName family, int artefactId, int testExecutionId})?>
+      getLatestTestExecutionForTestPlan(String testPlanName) async {
+    final response = await dio.get(
+      '/v1/test-executions',
+      queryParameters: {
+        'test_plans': testPlanName,
+        'limit': 1,
+      },
+    );
+    final List executions = response.data['test_executions'] ?? [];
+    if (executions.isEmpty) return null;
+
+    final te = executions.first as Map<String, dynamic>;
+    final artefact = te['artefact'] as Map<String, dynamic>;
+    return (
+      family: FamilyName.values.firstWhere(
+        (f) => f.name == artefact['family'],
+        orElse: () => FamilyName.values.first,
+      ),
+      artefactId: artefact['id'] as int,
+      testExecutionId: te['id'] as int,
     );
   }
 
@@ -350,6 +398,32 @@ class ApiRepository {
     final Map<String, dynamic> data = response.data;
     final List<dynamic> environments = data['environments'] ?? [];
     return environments.cast<String>();
+  }
+
+  Future<List<String>> searchTestPlans({
+    String? query,
+    List<String>? families,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final queryParams = <String, dynamic>{
+      'limit': limit,
+      'offset': offset,
+    };
+
+    if (query != null && query.trim().isNotEmpty) {
+      queryParams['q'] = query.trim();
+    }
+
+    if (families != null && families.isNotEmpty) {
+      queryParams['families'] = families;
+    }
+
+    final response =
+        await dio.get('/v1/test-plans', queryParameters: queryParams);
+    final Map<String, dynamic> data = response.data;
+    final List<dynamic> testPlans = data['test_plans'] ?? [];
+    return testPlans.cast<String>();
   }
 
   Future<List<String>> searchTestCases({

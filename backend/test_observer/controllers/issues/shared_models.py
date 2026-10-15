@@ -58,7 +58,12 @@ class MinimalIssueTestResultAttachmentRuleResponse(BaseModel):
     enabled: bool
 
     families: list[FamilyName]
+    artefacts: list[str]
+    artefact_versions: list[str]
+    artefact_stages: list[str]
+    artefact_tracks: list[str]
     environment_names: list[str]
+    test_plans: list[str]
     test_case_names: list[str]
     template_ids: list[str]
     test_result_statuses: list[TestResultStatus]

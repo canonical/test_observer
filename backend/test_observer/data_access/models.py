@@ -13,7 +13,6 @@
 # SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import hashlib
 import secrets
 from collections import defaultdict
 from datetime import date, datetime, timedelta
@@ -34,16 +33,15 @@ from sqlalchemy import (
     case,
     column,
     desc,
-    event,
     exists,
     select,
 )
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import (
     DeclarativeBase,
     Mapped,
-    Session,
     column_property,
     foreign,
     mapped_column,
@@ -112,22 +110,6 @@ artefact_reviewers_association = Table(
     Column(
         "user_id",
         ForeignKey("app_user.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-)
-
-
-artefact_bundled_builds_association = Table(
-    "artefact_bundled_builds_association",
-    Base.metadata,
-    Column(
-        "artefact_id",
-        ForeignKey("artefact.id", ondelete="CASCADE"),
-        primary_key=True,
-    ),
-    Column(
-        "artefact_build_id",
-        ForeignKey("artefact_build.id", ondelete="CASCADE"),
         primary_key=True,
     ),
 )
@@ -326,14 +308,14 @@ class Artefact(Base):
     # Snap and Charm specific field
     branch: Mapped[str] = mapped_column(String(200), default="")
 
-    # Snap, Charm and Solution specific field
+    # Snap and Charm specific field
     track: Mapped[str] = mapped_column(default="")
 
     # Deb specific fields
     series: Mapped[str] = mapped_column(default="")
     repo: Mapped[str] = mapped_column(default="")
 
-    # Deb and Solution specific field
+    # Deb specific field
     source: Mapped[str] = mapped_column(String(200), default="")
 
     # Image specific fields
@@ -343,19 +325,13 @@ class Artefact(Base):
     owner: Mapped[str] = mapped_column(String(200), default="")
     image_url: Mapped[str] = mapped_column(String(200), default="")
 
-    # Solution specific field
-    risk: Mapped[str] = mapped_column(String(200), default="")
-
     # Relationships
     builds: Mapped[list["ArtefactBuild"]] = relationship(back_populates="artefact", cascade="all, delete")
-    bundled_builds: Mapped[list["ArtefactBuild"]] = relationship(
-        secondary=artefact_bundled_builds_association, back_populates="bundled_in"
-    )
-    bundled_builds_hash: Mapped[str | None] = mapped_column(String(64), default=None)
     reviewers: Mapped[list[User]] = relationship(
         secondary=artefact_reviewers_association, back_populates="artefact_reviews"
     )
 
+    attributes: Mapped[dict[str, Any]] = mapped_column(MutableDict.as_mutable(JSONB), default=dict, server_default="{}")
     jira_issue: Mapped[str | None] = mapped_column(default=None)
 
     @property
@@ -400,11 +376,7 @@ class Artefact(Base):
         Index(
             "unique_solution",
             "name",
-            "source",
             "version",
-            "track",
-            "risk",
-            "bundled_builds_hash",
             postgresql_where=column("family") == FamilyName.solution.name,
             unique=True,
         ),
@@ -431,7 +403,6 @@ class Artefact(Base):
             "due_date",
             "status",
             "archived",
-            "bundled_builds_hash",
         )
 
     @hybrid_property
@@ -457,34 +428,6 @@ class Artefact(Base):
         return sum(len([er for er in ab.environment_reviews if er.review_decision]) for ab in self.latest_builds)
 
 
-def calculate_bundled_builds_hash(build_ids: list[int]) -> str:
-    ordered_ids = ",".join(str(build_id) for build_id in sorted(build_ids))
-    return hashlib.sha256(ordered_ids.encode()).hexdigest()
-
-
-def refresh_artefact_hash(artefact: Artefact) -> None:
-    if artefact.family == FamilyName.solution:
-        build_ids = [b.id for b in artefact.bundled_builds if b.id]
-        artefact.bundled_builds_hash = calculate_bundled_builds_hash(build_ids)
-
-
-@event.listens_for(Session, "before_flush")
-def receive_before_flush(session: Session, *args: Any) -> None:  # noqa: ANN401, ARG001
-    for obj in session.new | session.dirty:
-        if isinstance(obj, Artefact) and obj.family == FamilyName.solution:
-            refresh_artefact_hash(obj)
-
-
-@event.listens_for(Artefact.bundled_builds, "append")
-def bundle_append(target: Artefact, *args: Any) -> None:  # noqa: ANN401, ARG001
-    refresh_artefact_hash(target)
-
-
-@event.listens_for(Artefact.bundled_builds, "remove")
-def bundle_remove(target: Artefact, *args: Any) -> None:  # noqa: ANN401, ARG001
-    refresh_artefact_hash(target)
-
-
 class ArtefactBuild(Base):
     """A model to represent specific builds of artefact (e.g. arm64 revision 2)"""
 
@@ -495,9 +438,6 @@ class ArtefactBuild(Base):
     # Relationships
     artefact_id: Mapped[int] = mapped_column(ForeignKey("artefact.id", ondelete="CASCADE"), index=True)
     artefact: Mapped[Artefact] = relationship(back_populates="builds", foreign_keys=[artefact_id])
-    bundled_in: Mapped[list["Artefact"]] = relationship(
-        secondary=artefact_bundled_builds_association, back_populates="bundled_builds"
-    )
     test_executions: Mapped[list["TestExecution"]] = relationship(
         back_populates="artefact_build", cascade="all, delete"
     )
@@ -581,7 +521,14 @@ class TestExecutionRerunRequest(Base):
             "environment_id",
             name="uq_rerun_request_group",
         ),
+        Index(
+            "idx_rerun_request_priority_created_at",
+            desc(column("priority")),
+            column("created_at"),
+        ),
     )
+
+    priority: Mapped[int] = mapped_column(default=0)
 
     test_plan_id: Mapped[int] = mapped_column(ForeignKey("test_plan.id", ondelete="CASCADE"), index=True)
     test_plan: Mapped["TestPlan"] = relationship(back_populates="rerun_requests")
@@ -644,6 +591,7 @@ class TestExecution(Base):
 
     __test__ = False
     __tablename__ = "test_execution"
+    __table_args__ = (Index(None, "updated_at"),)
 
     ci_link: Mapped[str | None] = mapped_column(String(200), nullable=True, unique=True)
     c3_link: Mapped[str | None] = mapped_column(String(200), nullable=True)
@@ -949,14 +897,21 @@ class IssueTestResultAttachmentRule(Base):
 
     test_results: Mapped[list["IssueTestResultAttachment"]] = relationship(back_populates="attachment_rule")
 
-    families: Mapped[list[FamilyName]] = mapped_column(ARRAY(Enum(FamilyName)), default=list)
-    environment_names: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    test_case_names: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
-    template_ids: Mapped[list[str]] = mapped_column(ARRAY(String), default=list)
+    families: Mapped[list[FamilyName]] = mapped_column(ARRAY(Enum(FamilyName)), nullable=False, default=list)
+    artefacts: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    artefact_versions: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    artefact_stages: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    artefact_tracks: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    environment_names: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    test_plans: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    test_case_names: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    template_ids: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     execution_metadata: Mapped[list["IssueTestResultAttachmentRuleExecutionMetadata"]] = relationship(
         back_populates="attachment_rule", cascade="all, delete"
     )
-    test_result_statuses: Mapped[list[TestResultStatus]] = mapped_column(ARRAY(Enum(TestResultStatus)), default=list)
+    test_result_statuses: Mapped[list[TestResultStatus]] = mapped_column(
+        ARRAY(Enum(TestResultStatus)), nullable=False, default=list
+    )
 
 
 class IssueTestResultAttachmentRuleExecutionMetadata(Base):

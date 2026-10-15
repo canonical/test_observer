@@ -106,21 +106,26 @@ class _ArtefactVersionSelector extends ConsumerWidget {
     return Row(
       children: [
         Text('version: ', style: labelFontStyle),
-        DropdownMenu<ArtefactVersion>(
-          initialSelection: currentVersion,
-          dropdownMenuEntries: versions
-              .map(
-                (version) => DropdownMenuEntry<ArtefactVersion>(
-                  value: version,
-                  label: version.version,
-                ),
-              )
-              .toList(),
-          onSelected: (version) {
-            if (version != null) {
-              navigateToArtefactPage(context, version.artefactId);
-            }
-          },
+        Expanded(
+          child: DropdownMenu<ArtefactVersion>(
+            // Fill the remaining width of the sidebar so a long version name
+            // truncates with an ellipsis instead of overflowing into the body.
+            expandedInsets: EdgeInsets.zero,
+            initialSelection: currentVersion,
+            dropdownMenuEntries: versions
+                .map(
+                  (version) => DropdownMenuEntry<ArtefactVersion>(
+                    value: version,
+                    label: version.version,
+                  ),
+                )
+                .toList(),
+            onSelected: (version) {
+              if (version != null) {
+                navigateToArtefactPage(context, version.artefactId);
+              }
+            },
+          ),
         ),
       ],
     );

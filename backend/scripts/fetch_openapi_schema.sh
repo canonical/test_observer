@@ -23,8 +23,13 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/.."
 
 tmpfile=$(mktemp)
+# Normalise integer-valued floats (e.g. 1000000.0 -> 1000000) so the committed
+# schema is stable across jq versions. jq 1.7 preserves number literals while
+# jq 1.6 (used on the jammy CI runner) canonicalises them, which otherwise
+# causes spurious diffs in the "Compare schema with repository" CI step.
+normalise='walk(if type == "number" and floor == . then floor else . end)'
 if curl --silent --fail "http://localhost:30000/openapi.json" -o "$tmpfile"; then
-    jq < "$tmpfile" > schemata/openapi.json
+    jq "$normalise" < "$tmpfile" > schemata/openapi.json
     echo "OpenAPI schema fetched and written to schemata/openapi.json"
 else
     echo "Failed to fetch openapi.json"

@@ -33,6 +33,11 @@ class ArtefactFiltersView extends ConsumerWidget {
       GlobalKey<MultiSelectComboboxState>();
 
   static const spacingBetweenFilters = Spacing.level4;
+  static const comboboxFilterNames = {
+    'Environment',
+    'Test plan',
+    'Environment reviewer',
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,13 +52,11 @@ class ArtefactFiltersView extends ConsumerWidget {
     }
 
     final widgets = <Widget>[];
-
-    // Process filters: Environment and Test plan as comboboxes, others as checkboxes
     final comboboxFilters = <FilterState>[];
     final regularFilters = <FilterState>[];
 
     for (final filter in filters) {
-      if (filter.name == 'Environment' || filter.name == 'Test plan') {
+      if (comboboxFilterNames.contains(filter.name)) {
         comboboxFilters.add(filter);
       } else {
         regularFilters.add(filter);
@@ -78,6 +81,11 @@ class ArtefactFiltersView extends ConsumerWidget {
           .map((option) => option.name)
           .toSet();
 
+      // Use newline separator for 'Environment reviewer' to improve layout
+      // when the title is long and would otherwise wrap awkwardly
+      final titleSuffixSeparator =
+          filter.name == 'Environment reviewer' ? '\n' : ' ';
+
       widgets.add(
         MultiSelectCombobox<String>(
           key: key,
@@ -86,6 +94,7 @@ class ArtefactFiltersView extends ConsumerWidget {
           itemToString: (option) => option,
           initialSelected: initialSelected,
           maxSuggestions: 10,
+          titleSuffixSeparator: titleSuffixSeparator,
           onChanged: (option, isSelected) {
             // Update the filter state
             ref

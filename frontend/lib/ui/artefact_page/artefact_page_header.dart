@@ -14,21 +14,26 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
+import '../../providers/artefact_environment_reviews.dart';
 import '../spacing.dart';
 import '../reviewers_avatars.dart';
 import 'artefact_signoff_button.dart';
 
-class ArtefactPageHeader extends StatelessWidget {
+class ArtefactPageHeader extends ConsumerWidget {
   const ArtefactPageHeader({super.key, required this.artefact});
 
   final Artefact artefact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final dueDate = artefact.dueDateString;
+    final environmentReviewsAsync =
+        ref.watch(artefactEnvironmentReviewsProvider(artefact.id));
+    final environmentReviews = environmentReviewsAsync.valueOrNull ?? const [];
 
     return Row(
       children: [
@@ -41,6 +46,7 @@ class ArtefactPageHeader extends StatelessWidget {
           allEnvironmentReviewsCount: artefact.allEnvironmentReviewsCount,
           completedEnvironmentReviewsCount:
               artefact.completedEnvironmentReviewsCount,
+          environmentReviews: environmentReviews,
         ),
         const SizedBox(width: Spacing.level4),
         if (dueDate != null)

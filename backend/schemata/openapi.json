@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Test Observer",
-    "description": "Test Observer API (see https://github.com/canonical/test_observer)",
+    "description": "Test Observer API (see https://github.com/canonical/test_observer)\n\nNote: authentication is only enforced when the REQUIRE_AUTHENTICATION configuration option is enabled. It is disabled by default in development deployments, where endpoints accept unauthenticated requests even though this specification declares security requirements.",
     "license": {
       "name": "GNU Affero General Public License v3",
       "url": "https://raw.githubusercontent.com/canonical/test_observer/refs/heads/main/backend/LICENSE"
@@ -288,11 +288,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "If true, omit returning created reruns in the response body. Speeds up bulk operations, as the rerun schema contains a lot of information and returning many reruns can be slow. Required when creating reruns with test result filters.",
+              "description": "If true, omit returning created reruns in the response body. Speeds up bulk operations, as the rerun schema contains a lot of information and returning many reruns can be slow. Required when creating reruns with test_results_filters or test_executions_filters.",
               "default": false,
               "title": "Silent"
             },
-            "description": "If true, omit returning created reruns in the response body. Speeds up bulk operations, as the rerun schema contains a lot of information and returning many reruns can be slow. Required when creating reruns with test result filters."
+            "description": "If true, omit returning created reruns in the response body. Speeds up bulk operations, as the rerun schema contains a lot of information and returning many reruns can be slow. Required when creating reruns with test_results_filters or test_executions_filters."
           }
         ],
         "requestBody": {
@@ -503,6 +503,91 @@
         ]
       }
     },
+    "/v1/test-executions/reruns/details": {
+      "get": {
+        "tags": [
+          "test-executions"
+        ],
+        "summary": "Get Rerun Details",
+        "operationId": "get_rerun_details_v1_test_executions_reruns_details_get",
+        "parameters": [
+          {
+            "name": "family",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/FamilyName"
+            }
+          },
+          {
+            "name": "priority",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 1000000,
+                  "minimum": -1000000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Priority"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RerunDetailsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_rerun"
+        ]
+      }
+    },
     "/v1/test-executions/{id}": {
       "get": {
         "tags": [
@@ -607,7 +692,7 @@
           "test-executions"
         ],
         "summary": "Search Test Executions",
-        "description": "Search test executions with optional test result context.\n\nReturns one item per matching test execution with paginated results.\nThe test_results field contains all filtered test results for that execution.\n\nUse test_result=none to find executions without results,\ntest_result=any to find executions with results,\nor test_result={id} to filter by specific test result IDs.",
+        "description": "Search test executions with optional test result context.\n\nReturns one item per matching test execution with paginated results.\nThe test_results field contains all filtered test results for that execution.\n\nUse test_result=none to find executions without results,\ntest_result=any to find executions with results,\nor test_result={id} to filter by specific test result IDs.\nIf test_result is omitted, executions are not filtered by result\npresence at all.",
         "operationId": "search_test_executions_v1_test_executions_get",
         "parameters": [
           {
@@ -653,6 +738,69 @@
             "description": "Filter by artefact names"
           },
           {
+            "name": "artefact_versions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact versions",
+              "title": "Artefact Versions"
+            },
+            "description": "Filter by artefact versions"
+          },
+          {
+            "name": "artefact_stages",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact stages",
+              "title": "Artefact Stages"
+            },
+            "description": "Filter by artefact stages"
+          },
+          {
+            "name": "artefact_tracks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact tracks",
+              "title": "Artefact Tracks"
+            },
+            "description": "Filter by artefact tracks"
+          },
+          {
             "name": "artefact_is_archived",
             "in": "query",
             "required": false,
@@ -690,6 +838,27 @@
               "title": "Environments"
             },
             "description": "Filter by environment names"
+          },
+          {
+            "name": "test_plans",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test plan names",
+              "title": "Test Plans"
+            },
+            "description": "Filter by test plan names"
           },
           {
             "name": "test_execution_statuses",
@@ -850,10 +1019,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s)",
+              "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s). If omitted, executions are not filtered by result presence, so executions with zero results (e.g. NOT_STARTED, ENDED_PREMATURELY) are included.",
               "title": "Test Result"
             },
-            "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s)"
+            "description": "Filter by test result presence: 'any' (executions with results), 'none' (executions without results), or specific test result ID(s). If omitted, executions are not filtered by result presence, so executions with zero results (e.g. NOT_STARTED, ENDED_PREMATURELY) are included."
           },
           {
             "name": "event_names",
@@ -889,6 +1058,44 @@
               "title": "Event Names"
             },
             "description": "Filter by event log: 'any' (executions with any events), 'none' (executions without events), or specific event name(s)"
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter executions updated on or after this datetime",
+              "title": "From Date"
+            },
+            "description": "Filter executions updated on or after this datetime"
+          },
+          {
+            "name": "until_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter executions updated on or before this datetime",
+              "title": "Until Date"
+            },
+            "description": "Filter executions updated on or before this datetime"
           },
           {
             "name": "limit",
@@ -989,6 +1196,9 @@
                   },
                   {
                     "$ref": "#/components/schemas/StartImageTestExecutionRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/StartSolutionTestExecutionRequest"
                   }
                 ],
                 "title": "Request",
@@ -998,7 +1208,8 @@
                     "snap": "#/components/schemas/StartSnapTestExecutionRequest",
                     "deb": "#/components/schemas/StartDebTestExecutionRequest",
                     "charm": "#/components/schemas/StartCharmTestExecutionRequest",
-                    "image": "#/components/schemas/StartImageTestExecutionRequest"
+                    "image": "#/components/schemas/StartImageTestExecutionRequest",
+                    "solution": "#/components/schemas/StartSolutionTestExecutionRequest"
                   }
                 }
               }
@@ -2558,6 +2769,109 @@
         ]
       }
     },
+    "/v1/test-plans": {
+      "get": {
+        "tags": [
+          "test-plans"
+        ],
+        "summary": "Get Test Plans",
+        "description": "Returns list of distinct test plan names.\n\nSupports pagination and search filtering.",
+        "operationId": "get_test_plans_v1_test_plans_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Search term for test plan names",
+              "title": "Q"
+            },
+            "description": "Search term for test plan names"
+          },
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyName"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact families",
+              "title": "Families"
+            },
+            "description": "Filter by artefact families"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results (defaults to 50 if not specified)",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results (defaults to 50 if not specified)"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestPlansResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
+      }
+    },
     "/v1/issues/{issue_id}/attach": {
       "post": {
         "tags": [
@@ -3234,6 +3548,69 @@
             "description": "Filter by artefact names"
           },
           {
+            "name": "artefact_versions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact versions",
+              "title": "Artefact Versions"
+            },
+            "description": "Filter by artefact versions"
+          },
+          {
+            "name": "artefact_stages",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact stages",
+              "title": "Artefact Stages"
+            },
+            "description": "Filter by artefact stages"
+          },
+          {
+            "name": "artefact_tracks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact tracks",
+              "title": "Artefact Tracks"
+            },
+            "description": "Filter by artefact tracks"
+          },
+          {
             "name": "artefact_is_archived",
             "in": "query",
             "required": false,
@@ -3271,6 +3648,27 @@
               "title": "Environments"
             },
             "description": "Filter by environment names"
+          },
+          {
+            "name": "test_plans",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test plan names",
+              "title": "Test Plans"
+            },
+            "description": "Filter by test plan names"
           },
           {
             "name": "test_cases",
@@ -3681,7 +4079,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/v1/auth/saml/logout": {
@@ -3728,7 +4127,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/v1/auth/saml/acs": {
@@ -3747,7 +4147,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/v1/auth/saml/sls": {
@@ -3766,7 +4167,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       },
       "post": {
         "tags": [
@@ -3783,7 +4185,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/v1/users/me": {
@@ -3812,7 +4215,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
       }
     },
     "/v1/users": {
@@ -3938,6 +4347,42 @@
         },
         "x-permissions": [
           "view_user"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Delete User",
+        "operationId": "delete_user_v1_users__user_id__delete",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "User Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_user"
         ]
       },
       "patch": {
@@ -4363,6 +4808,77 @@
         ]
       }
     },
+    "/v1/applications/me/rotate": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Rotate Own Api Key",
+        "operationId": "rotate_own_api_key_v1_applications_me_rotate_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/applications/{application_id}/rotate": {
+      "post": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Rotate Api Key",
+        "operationId": "rotate_api_key_v1_applications__application_id__rotate_post",
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_application"
+        ]
+      }
+    },
     "/v1/applications/me": {
       "get": {
         "tags": [
@@ -4389,7 +4905,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/v1/applications/{application_id}": {
@@ -4434,6 +4955,42 @@
         },
         "x-permissions": [
           "view_application"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "applications"
+        ],
+        "summary": "Delete Application",
+        "operationId": "delete_application_v1_applications__application_id__delete",
+        "parameters": [
+          {
+            "name": "application_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Application Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_application"
         ]
       },
       "patch": {
@@ -4560,7 +5117,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
       }
     },
     "/v1/users/me/notifications/count": {
@@ -4607,7 +5170,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
       }
     },
     "/v1/users/me/notifications/{notification_id}/dismiss": {
@@ -4650,7 +5219,13 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
       }
     },
     "/v1/users/{user_id}/notifications": {
@@ -5115,7 +5690,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/health/ready": {
@@ -5138,7 +5714,8 @@
               }
             }
           }
-        }
+        },
+        "security": []
       }
     },
     "/": {
@@ -5362,13 +5939,6 @@
             },
             "type": "array",
             "title": "Test Executions"
-          },
-          "bundled_in": {
-            "items": {
-              "$ref": "#/components/schemas/ArtefactMinimalResponse"
-            },
-            "type": "array",
-            "title": "Bundled In"
           }
         },
         "type": "object",
@@ -5993,34 +6563,6 @@
         "title": "ArtefactMatchingRuleResponse",
         "description": "Artefact matching rule with associated teams"
       },
-      "ArtefactMinimalResponse": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "version": {
-            "type": "string",
-            "title": "Version"
-          },
-          "family": {
-            "type": "string",
-            "title": "Family"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "name",
-          "version",
-          "family"
-        ],
-        "title": "ArtefactMinimalResponse"
-      },
       "ArtefactPatch": {
         "properties": {
           "status": {
@@ -6076,31 +6618,17 @@
             ],
             "title": "Jira Issue"
           },
-          "risk": {
+          "attributes": {
             "anyOf": [
               {
-                "type": "string"
+                "additionalProperties": true,
+                "type": "object"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Risk"
-          },
-          "bundled_builds": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "integer"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Bundled Builds",
-            "description": "List of ArtefactBuild IDs to bundle with this artefact"
+            "title": "Attributes"
           },
           "assignee_id": {
             "anyOf": [
@@ -6235,6 +6763,11 @@
             "type": "string",
             "title": "Comment"
           },
+          "attributes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Attributes"
+          },
           "archived": {
             "type": "boolean",
             "title": "Archived"
@@ -6278,10 +6811,6 @@
             ],
             "title": "Jira Issue"
           },
-          "risk": {
-            "type": "string",
-            "title": "Risk"
-          },
           "all_environment_reviews_count": {
             "type": "integer",
             "title": "All Environment Reviews Count"
@@ -6289,13 +6818,6 @@
           "completed_environment_reviews_count": {
             "type": "integer",
             "title": "Completed Environment Reviews Count"
-          },
-          "bundled_builds": {
-            "items": {
-              "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
-            },
-            "type": "array",
-            "title": "Bundled Builds"
           },
           "assignee": {
             "anyOf": [
@@ -6330,13 +6852,13 @@
           "family",
           "status",
           "comment",
+          "attributes",
           "archived",
           "reviewers",
           "due_date",
           "created_at",
           "bug_link",
           "jira_issue",
-          "risk",
           "all_environment_reviews_count",
           "completed_environment_reviews_count",
           "assignee"
@@ -6485,6 +7007,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/TestResultSearchFilters"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "test_executions_filters": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TestExecutionRerunFilters"
               },
               {
                 "type": "null"
@@ -7054,12 +7586,47 @@
             "type": "array",
             "title": "Families"
           },
+          "artefacts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefacts"
+          },
+          "artefact_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Versions"
+          },
+          "artefact_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Stages"
+          },
+          "artefact_tracks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Tracks"
+          },
           "environment_names": {
             "items": {
               "type": "string"
             },
             "type": "array",
             "title": "Environment Names"
+          },
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
           },
           "test_case_names": {
             "items": {
@@ -7223,12 +7790,47 @@
             "type": "array",
             "title": "Families"
           },
+          "artefacts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefacts"
+          },
+          "artefact_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Versions"
+          },
+          "artefact_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Stages"
+          },
+          "artefact_tracks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Tracks"
+          },
           "environment_names": {
             "items": {
               "type": "string"
             },
             "type": "array",
             "title": "Environment Names"
+          },
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
           },
           "test_case_names": {
             "items": {
@@ -7260,7 +7862,12 @@
           "id",
           "enabled",
           "families",
+          "artefacts",
+          "artefact_versions",
+          "artefact_stages",
+          "artefact_tracks",
           "environment_names",
+          "test_plans",
           "test_case_names",
           "template_ids",
           "test_result_statuses",
@@ -7388,6 +7995,15 @@
           },
           "artefact_build": {
             "$ref": "#/components/schemas/ArtefactBuildMinimalResponse"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
           }
         },
         "type": "object",
@@ -7397,7 +8013,9 @@
           "family",
           "test_execution",
           "artefact",
-          "artefact_build"
+          "artefact_build",
+          "priority",
+          "created_at"
         ],
         "title": "PendingRerun"
       },
@@ -7470,6 +8088,114 @@
         ],
         "title": "PreviousTestResult"
       },
+      "RerunDetail": {
+        "properties": {
+          "test_plan_name": {
+            "type": "string",
+            "title": "Test Plan Name"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          },
+          "environment_name": {
+            "type": "string",
+            "title": "Environment Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_plan_name",
+          "created_at",
+          "priority",
+          "architecture",
+          "environment_name"
+        ],
+        "title": "RerunDetail"
+      },
+      "RerunDetailsResponse": {
+        "properties": {
+          "priority_summaries": {
+            "items": {
+              "$ref": "#/components/schemas/RerunPrioritySummary"
+            },
+            "type": "array",
+            "title": "Priority Summaries"
+          },
+          "selected_priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Priority"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "selected_count": {
+            "type": "integer",
+            "title": "Selected Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "reruns": {
+            "items": {
+              "$ref": "#/components/schemas/RerunDetail"
+            },
+            "type": "array",
+            "title": "Reruns"
+          }
+        },
+        "type": "object",
+        "required": [
+          "priority_summaries",
+          "selected_priority",
+          "count",
+          "selected_count",
+          "limit",
+          "offset",
+          "reruns"
+        ],
+        "title": "RerunDetailsResponse"
+      },
+      "RerunPrioritySummary": {
+        "properties": {
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "priority",
+          "count"
+        ],
+        "title": "RerunPrioritySummary"
+      },
       "RerunRequest": {
         "properties": {
           "test_execution_ids": {
@@ -7489,6 +8215,29 @@
                 "type": "null"
               }
             ]
+          },
+          "test_executions_filters": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TestExecutionRerunFilters"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 1000000,
+                "minimum": -1000000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
           }
         },
         "type": "object",
@@ -7543,6 +8292,16 @@
           "stable"
         ],
         "title": "SnapStage"
+      },
+      "SolutionStage": {
+        "type": "string",
+        "enum": [
+          "edge",
+          "beta",
+          "candidate",
+          "stable"
+        ],
+        "title": "SolutionStage"
       },
       "StageName": {
         "type": "string",
@@ -7776,17 +8535,38 @@
       "StartImageTestExecutionRequest": {
         "properties": {
           "name": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Name",
             "description": "User-defined name identifying the artefact under test. Not unique - multiple versions/stages of the same artefact share this name. Examples: 'core22', 'ubuntu-desktop', 'snapd'"
           },
           "version": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Version",
             "description": "Version identifier of the artefact being tested. Format depends on artefact family - e.g., revisions for charms/snaps, version numbers for debs."
           },
           "arch": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Arch",
             "description": "CPU architecture where tests will execute. Common values: 'amd64', 'arm64', 'armhf', 's390x', 'ppc64el'"
           },
@@ -7842,16 +8622,37 @@
             "default": "image"
           },
           "execution_stage": {
-            "$ref": "#/components/schemas/ImageStage",
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageStage"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "description": "Promotion stage of the image being tested. Options: 'pending' (awaiting approval), 'current' (approved and published). Use 'pending' for images undergoing testing before promotion."
           },
           "os": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Os",
             "description": "Operating system of the image. Examples: 'ubuntu', 'ubuntu-core', 'ubuntu-server'"
           },
           "release": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Release",
             "description": "OS release codename or version. Examples: 'focal', 'jammy', 'noble', '20.04', '22.04', '24.04'"
           },
@@ -7861,32 +8662,38 @@
             "description": "SHA256 checksum hash uniquely identifying this image build. Used to verify image integrity and uniqueness."
           },
           "owner": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Owner",
             "description": "Team or organization responsible for the image. Examples: 'canonical', 'ubuntu-images', team names"
           },
           "image_url": {
-            "type": "string",
-            "maxLength": 2083,
-            "minLength": 1,
-            "format": "uri",
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Image Url",
             "description": "Direct URL where the image file can be downloaded or accessed. Should be a valid HTTP/HTTPS URL."
           }
         },
         "type": "object",
         "required": [
-          "name",
-          "version",
-          "arch",
           "environment",
           "test_plan",
-          "execution_stage",
-          "os",
-          "release",
-          "sha256",
-          "owner",
-          "image_url"
+          "sha256"
         ],
         "title": "StartImageTestExecutionRequest"
       },
@@ -7998,6 +8805,95 @@
           "execution_stage"
         ],
         "title": "StartSnapTestExecutionRequest"
+      },
+      "StartSolutionTestExecutionRequest": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "User-defined name identifying the artefact under test. Not unique - multiple versions/stages of the same artefact share this name. Examples: 'core22', 'ubuntu-desktop', 'snapd'"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "Version identifier of the artefact being tested. Format depends on artefact family - e.g., revisions for charms/snaps, version numbers for debs."
+          },
+          "arch": {
+            "type": "string",
+            "title": "Arch",
+            "description": "CPU architecture where tests will execute. Common values: 'amd64', 'arm64', 'armhf', 's390x', 'ppc64el'"
+          },
+          "environment": {
+            "type": "string",
+            "title": "Environment",
+            "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
+          },
+          "ci_link": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2083,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ci Link",
+            "description": "Optional URL linking to the CI job executing these tests. Useful for tracking test runs back to their automation source. Can be omitted."
+          },
+          "test_plan": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Test Plan",
+            "description": "Identifier for the test suite or plan executed. Groups related test results together - e.g., 'certification-24.04', 'smoke-tests', 'full-regression'. The test plan will be auto-created if it doesn't exist."
+          },
+          "initial_status": {
+            "$ref": "#/components/schemas/TestExecutionStatus",
+            "description": "Initial status of the test execution. Default 'IN_PROGRESS' is appropriate for ongoing tests. Use 'COMPLETED' if test results will be uploaded separately.",
+            "default": "IN_PROGRESS"
+          },
+          "relevant_links": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionRelevantLinkCreate"
+            },
+            "type": "array",
+            "title": "Relevant Links",
+            "description": "Optional list of additional URLs related to this test execution (e.g., bug reports, documentation, related PRs). Can be omitted or left empty."
+          },
+          "needs_assignment": {
+            "type": "boolean",
+            "title": "Needs Assignment",
+            "description": "Whether the artefact created from this test execution requires assignment of a reviewer. Set to true if test results need human review before the artefact can be promoted. Default false means no review assignment needed.",
+            "default": false
+          },
+          "family": {
+            "type": "string",
+            "const": "solution",
+            "title": "Family"
+          },
+          "attributes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Attributes"
+          },
+          "execution_stage": {
+            "$ref": "#/components/schemas/SolutionStage",
+            "description": "Promotion stage of the solution being tested."
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "arch",
+          "environment",
+          "test_plan",
+          "family",
+          "execution_stage"
+        ],
+        "title": "StartSolutionTestExecutionRequest"
       },
       "StatusUpdateRequest": {
         "properties": {
@@ -8276,6 +9172,169 @@
         ],
         "title": "TestExecutionRelevantLinkResponse"
       },
+      "TestExecutionRerunFilters": {
+        "properties": {
+          "families": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyName"
+            },
+            "type": "array",
+            "title": "Families"
+          },
+          "artefacts": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefacts"
+          },
+          "artefact_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Versions"
+          },
+          "artefact_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Stages"
+          },
+          "artefact_tracks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Tracks"
+          },
+          "artefact_is_archived": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artefact Is Archived"
+          },
+          "environments": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Environments"
+          },
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
+          },
+          "test_execution_statuses": {
+            "items": {
+              "$ref": "#/components/schemas/TestExecutionStatus"
+            },
+            "type": "array",
+            "title": "Test Execution Statuses"
+          },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          },
+          "reviewer_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "any",
+                  "none"
+                ]
+              }
+            ],
+            "title": "Reviewer Ids"
+          },
+          "assignee_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "string",
+                "enum": [
+                  "any",
+                  "none"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assignee Ids",
+            "deprecated": true
+          },
+          "rerun_is_requested": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Is Requested"
+          },
+          "execution_is_latest": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Is Latest"
+          },
+          "from_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "From Date"
+          },
+          "until_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until Date"
+          }
+        },
+        "type": "object",
+        "title": "TestExecutionRerunFilters",
+        "description": "Filter model for rerun create/delete operations.\n\nExcludes pagination (limit/offset) and search-only fields (event_names)\nthat have no meaning in the rerun context."
+      },
       "TestExecutionResponse": {
         "properties": {
           "id": {
@@ -8337,6 +9396,18 @@
             "type": "boolean",
             "title": "Is Rerun Requested",
             "readOnly": true
+          },
+          "rerun_priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Priority",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -8350,7 +9421,8 @@
           "created_at",
           "execution_metadata",
           "is_triaged",
-          "is_rerun_requested"
+          "is_rerun_requested",
+          "rerun_priority"
         ],
         "title": "TestExecutionResponse"
       },
@@ -8428,6 +9500,18 @@
             "type": "boolean",
             "title": "Is Rerun Requested",
             "readOnly": true
+          },
+          "rerun_priority": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerun Priority",
+            "readOnly": true
           }
         },
         "type": "object",
@@ -8443,7 +9527,8 @@
           "is_triaged",
           "artefact",
           "artefact_build",
-          "is_rerun_requested"
+          "is_rerun_requested",
+          "rerun_priority"
         ],
         "title": "TestExecutionResponseWithContext"
       },
@@ -8548,6 +9633,38 @@
         },
         "type": "object",
         "title": "TestExecutionsPatchRequest"
+      },
+      "TestPlansResponse": {
+        "properties": {
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_plans",
+          "count",
+          "limit",
+          "offset"
+        ],
+        "title": "TestPlansResponse",
+        "description": "Response model for test plans endpoint"
       },
       "TestReportedIssueRequest": {
         "properties": {
@@ -8771,6 +9888,27 @@
             "type": "array",
             "title": "Artefacts"
           },
+          "artefact_versions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Versions"
+          },
+          "artefact_stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Stages"
+          },
+          "artefact_tracks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Artefact Tracks"
+          },
           "artefact_is_archived": {
             "anyOf": [
               {
@@ -8802,6 +9940,13 @@
             },
             "type": "array",
             "title": "Template Ids"
+          },
+          "test_plans": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Test Plans"
           },
           "execution_metadata": {
             "$ref": "#/components/schemas/ExecutionMetadata"
@@ -9148,6 +10293,13 @@
           "type": {
             "type": "string",
             "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
           }
         },
         "type": "object",
@@ -9158,6 +10310,34 @@
         ],
         "title": "ValidationError"
       }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Application API key passed as an Authorization: Bearer header"
+      },
+      "sessionCookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "session",
+        "description": "Session cookie issued by the SAML login flow for browser users"
+      },
+      "csrfTokenAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-CSRF-Token",
+        "description": "CSRF protection header, required on all requests authenticated with the session cookie"
+      }
     }
-  }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    },
+    {
+      "sessionCookieAuth": [],
+      "csrfTokenAuth": []
+    }
+  ]
 }

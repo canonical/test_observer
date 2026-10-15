@@ -29,13 +29,62 @@ class ArtefactBuilds extends _$ArtefactBuilds {
     return await api.getArtefactBuilds(artefactId);
   }
 
-  Future<void> rerunTestExecutions(Set<int> testExecutionIds) async {
+  Future<void> rerunTestExecutions(
+    Set<int> testExecutionIds, {
+    int? priority,
+  }) async {
     final api = ref.read(apiProvider);
-    final rerunRequests = await api.rerunTestExecutions(testExecutionIds);
+    await api.rerunTestExecutions(testExecutionIds, priority: priority);
+
+    // Update all executions that share the same rerun group
+    // (artefactBuildId, environment, testPlan) as the requested IDs,
+    // since the backend deduplicates reruns by group rather than by
+    // individual execution ID.
+    final artefactBuilds = await future;
+    final allExecutions = artefactBuilds.expand((ab) => ab.testExecutions);
+    final requestedExecutions =
+        allExecutions.where((te) => testExecutionIds.contains(te.id)).toList();
+    final groups = {
+      for (final te in requestedExecutions)
+        (te.artefactBuildId, te.environment.id, te.testPlan),
+    };
 
     await _updateTestExecutions(
-      rerunRequests.map((rr) => rr.testExecutionId).toSet(),
-      (te) => te.copyWith(isRerunRequested: true),
+      allExecutions
+          .where(
+            (te) => groups.contains(
+              (te.artefactBuildId, te.environment.id, te.testPlan),
+            ),
+          )
+          .map((te) => te.id)
+          .toSet(),
+      (te) => te.copyWith(isRerunRequested: true, rerunPriority: priority),
+    );
+  }
+
+  Future<void> deleteRerunTestExecutions(Set<int> testExecutionIds) async {
+    final api = ref.read(apiProvider);
+    await api.deleteReruns(testExecutionIds: testExecutionIds.toList());
+
+    final artefactBuilds = await future;
+    final allExecutions = artefactBuilds.expand((ab) => ab.testExecutions);
+    final requestedExecutions =
+        allExecutions.where((te) => testExecutionIds.contains(te.id)).toList();
+    final groups = {
+      for (final te in requestedExecutions)
+        (te.artefactBuildId, te.environment.id, te.testPlan),
+    };
+
+    await _updateTestExecutions(
+      allExecutions
+          .where(
+            (te) => groups.contains(
+              (te.artefactBuildId, te.environment.id, te.testPlan),
+            ),
+          )
+          .map((te) => te.id)
+          .toSet(),
+      (te) => te.copyWith(isRerunRequested: false, rerunPriority: null),
     );
   }
 

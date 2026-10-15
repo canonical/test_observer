@@ -44,3 +44,13 @@ Learn how Test Observer automatically assigns reviewers to artefacts and distrib
     :maxdepth: 1
 
     reviewer-assignment
+
+Release management
+------------------
+
+Understand how releases are managed in Test Observer, including versioning conventions, the candidate promotion workflow, and hotfix processes.
+
+.. toctree::
+    :maxdepth: 1
+
+    release-management

@@ -72,6 +72,40 @@ final environmentNameFilter = createFilterFromExtractor<EnrichedTestExecution>(
   (ee) => ee.environmentReview.environment.name,
 );
 
+const noEnvironmentReviewerAssignedOption = 'Unassigned';
+
+String _reviewerFilterOptionLabel(String name, String email) =>
+    '$name ($email)';
+
+Set<String> _reviewerFilterOptionsFor(EnrichedTestExecution ee) {
+  if (ee.environmentReview.reviewers.isEmpty) {
+    return {noEnvironmentReviewerAssignedOption};
+  }
+
+  return ee.environmentReview.reviewers
+      .map(
+        (reviewer) => _reviewerFilterOptionLabel(reviewer.name, reviewer.email),
+      )
+      .toSet();
+}
+
+final environmentReviewerFilter = Filter<EnrichedTestExecution>(
+  name: 'Environment reviewer',
+  extractOptions: (items) {
+    final options = <String>{};
+    for (final item in items) {
+      options.addAll(_reviewerFilterOptionsFor(item));
+    }
+    return options;
+  },
+  filter: (items, options) => items
+      .where(
+        (item) => _reviewerFilterOptionsFor(item)
+            .any((reviewerOption) => options.contains(reviewerOption)),
+      )
+      .toList(),
+);
+
 final testExecutionStatusFilter =
     createFilterFromExtractor<EnrichedTestExecution>(
   'Test Execution Status',
@@ -89,6 +123,7 @@ final enrichedTestExecutionFilters = [
   testPlanLastStatusFilter,
   testPlanNameFilter,
   environmentNameFilter,
+  environmentReviewerFilter,
   testExecutionStatusFilter,
   testExecutionTriagedFilter,
 ];

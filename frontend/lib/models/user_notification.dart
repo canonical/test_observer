@@ -55,7 +55,7 @@ extension NotificationTypeExtension on NotificationType {
   String get displayTitle {
     switch (this) {
       case NotificationType.userAssignedArtefactReview:
-        return 'Artefact Review Assigned';
+        return 'Artefact and Environment Review Assigned';
       case NotificationType.userAssignedEnvironmentReview:
         return 'Environment Review Assigned';
     }

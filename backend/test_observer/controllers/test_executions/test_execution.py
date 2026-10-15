@@ -34,7 +34,7 @@ from test_observer.data_access.setup import get_db
 from .models import TestExecutionsPatchRequest
 from .router import router
 
-TEST_EXECUTION_OPTIONS = [
+BASE_TEST_EXECUTION_OPTIONS = [
     # Single-query Joins (Many-to-One)
     joinedload(TestExecution.environment),
     joinedload(TestExecution.rerun_request),
@@ -42,6 +42,14 @@ TEST_EXECUTION_OPTIONS = [
     # Separate-query Collections (One-to-Many / Many-to-Many)
     selectinload(TestExecution.execution_metadata),
     selectinload(TestExecution.relevant_links),
+]
+
+ARTEFACT_BUILD_TEST_EXECUTION_OPTIONS = [
+    *BASE_TEST_EXECUTION_OPTIONS,
+]
+
+TEST_EXECUTION_OPTIONS = [
+    *BASE_TEST_EXECUTION_OPTIONS,
     # Needed by patch_test_execution to determine test execution status
     selectinload(TestExecution.test_results),
 ]

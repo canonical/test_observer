@@ -54,6 +54,7 @@ from .models import (
     StartDebTestExecutionRequest,
     StartImageTestExecutionRequest,
     StartSnapTestExecutionRequest,
+    StartSolutionTestExecutionRequest,
 )
 from .router import router
 
@@ -86,6 +87,7 @@ class StartTestExecutionController:
             | StartDebTestExecutionRequest
             | StartCharmTestExecutionRequest
             | StartImageTestExecutionRequest
+            | StartSolutionTestExecutionRequest
         ) = Body(discriminator="family"),
         db: Session = Depends(get_db),
     ):
@@ -94,6 +96,9 @@ class StartTestExecutionController:
 
     def execute(self):
         self.create_artefact()
+        # arch must be resolved after the artefact exists: for an existing image the
+        # request may omit arch, in which case it is derived from the image's build.
+        self.resolved_arch = self._resolve_arch()
         self.create_environment()
         self.create_artefact_build()
         self.create_artefact_build_environment()
@@ -154,20 +159,13 @@ class StartTestExecutionController:
             newly_assigned_environment_reviewers.add(reviewer)
             reviewers_to_assignment_count[reviewer.id] += 1
 
-        with self.db.begin_nested():
-            batch_create_review_notifications(
-                self.db,
-                list(newly_assigned_environment_reviewers),
-                self.artefact,
-                NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW,
-            )
-
         return list(newly_assigned_environment_reviewers)
 
     def assign_reviewer(self) -> BatchReviewerAssignedMessage | None:
-        if self.request.needs_assignment is False or len(self.artefact.reviewers) > 0:
+        if self.request.needs_assignment is False:
             return None
 
+        newly_assigned_reviewers: list[User] = []
         rule_ids = self.db.execute(match_artefact_considering_specificity(self.artefact)).scalars().all()
         if len(rule_ids) > 0:
             users = (
@@ -184,35 +182,34 @@ class StartTestExecutionController:
             )
 
             if users:
-                environment_count = sum(len(b.test_executions) for b in self.artefact.builds)
+                environment_count = self.artefact.all_environment_reviews_count
                 expected_number_of_reviewers = _ceil_division(environment_count, ENVIRONMENTS_PER_REVIEWER)
                 number_of_reviewers_to_assign = max(0, expected_number_of_reviewers - len(self.artefact.reviewers))
                 newly_assigned_reviewers = random.sample(users, min(len(users), number_of_reviewers_to_assign))
-                self.artefact.reviewers += newly_assigned_reviewers
-                newly_assigned_environment_reviewers = self._assign_reviewers_to_environments()
-                self.artefact.due_date = self.determine_due_date()
+                if newly_assigned_reviewers:
+                    self.artefact.reviewers += newly_assigned_reviewers
+                    self.artefact.due_date = self.determine_due_date()
 
-                with self.db.begin_nested():
-                    batch_create_review_notifications(
-                        self.db,
-                        newly_assigned_reviewers,
-                        self.artefact,
-                        NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
-                    )
+        if self.artefact.reviewers:
+            self._assign_reviewers_to_environments()
 
-                if self.artefact.jira_issue is not None:
-                    artefact_reviews = [
-                        (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW])
-                        for reviewer in newly_assigned_reviewers
-                    ]
-                    environment_reviews = [
-                        (reviewer, [NotificationType.USER_ASSIGNED_ENVIRONMENT_REVIEW])
-                        for reviewer in newly_assigned_environment_reviewers
-                    ]
-                    return BatchReviewerAssignedMessage(
-                        artefact=self.artefact,
-                        assigned_reviews=artefact_reviews + environment_reviews,
-                    )
+        if newly_assigned_reviewers:
+            with self.db.begin_nested():
+                batch_create_review_notifications(
+                    self.db,
+                    newly_assigned_reviewers,
+                    self.artefact,
+                    NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW,
+                )
+
+        if newly_assigned_reviewers and self.artefact.jira_issue is not None:
+            artefact_reviews = [
+                (reviewer, [NotificationType.USER_ASSIGNED_ARTEFACT_REVIEW]) for reviewer in newly_assigned_reviewers
+            ]
+            return BatchReviewerAssignedMessage(
+                artefact=self.artefact,
+                assigned_reviews=artefact_reviews,
+            )
 
         return None
 
@@ -278,7 +275,7 @@ class StartTestExecutionController:
             self.db,
             ArtefactBuild,
             filter_kwargs={
-                "architecture": self.request.arch,
+                "architecture": self.resolved_arch,
                 "revision": getattr(self.request, "revision", None),
                 "artefact_id": self.artefact.id,
             },
@@ -290,16 +287,20 @@ class StartTestExecutionController:
             Environment,
             filter_kwargs={
                 "name": self.request.environment,
-                "architecture": self.request.arch,
+                "architecture": self.resolved_arch,
             },
         )
 
     def create_artefact(self) -> None:
+        # The lookup filter must hold exactly the artefact's family-specific unique key;
+        # any other fields go in creation_kwargs so a differing value can't miss the
+        # existing row and then trip the unique constraint on insert.
         filter_kwargs = {
             "name": self.request.name,
             "version": self.request.version,
             "family": self.request.family,
         }
+        creation_kwargs: dict = {"stage": self.request.execution_stage}
 
         match self.request:
             case StartSnapTestExecutionRequest():
@@ -313,18 +314,60 @@ class StartTestExecutionController:
                 filter_kwargs["series"] = self.request.series
                 filter_kwargs["repo"] = self.request.repo
                 filter_kwargs["source"] = self.request.source
-            case StartImageTestExecutionRequest():
-                filter_kwargs["os"] = self.request.os
-                filter_kwargs["release"] = self.request.release
-                filter_kwargs["sha256"] = self.request.sha256
-                filter_kwargs["owner"] = self.request.owner
-                filter_kwargs["image_url"] = str(self.request.image_url)
 
-        self.artefact = get_or_create(
-            self.db,
-            Artefact,
-            filter_kwargs=filter_kwargs,
-            creation_kwargs={"stage": self.request.execution_stage},
+            # An image is identified by its sha256 alone, so an existing image can be
+            # tested by submitting only its sha256; the rest is needed only to create it.
+            case StartImageTestExecutionRequest():
+                filter_kwargs = {"family": self.request.family, "sha256": self.request.sha256}
+                existing_image = self.db.query(Artefact).filter_by(**filter_kwargs).one_or_none()
+
+                if existing_image is None and any(
+                    getattr(self.request, field) is None for field in self.request.REQUIRED_CREATION_FIELDS
+                ):
+                    raise HTTPException(
+                        status_code=422,
+                        detail="No image with this sha256 exists yet; provide the full image details to create it.",
+                    )
+                # An image is single-architecture: a provided arch must match the existing build.
+                if (
+                    existing_image is not None
+                    and self.request.arch is not None
+                    and self.request.arch not in existing_image.architectures
+                ):
+                    raise HTTPException(
+                        status_code=422,
+                        detail="'arch' must match the existing image build architecture.",
+                    )
+                creation_kwargs |= {
+                    "name": self.request.name,
+                    "version": self.request.version,
+                    "os": self.request.os,
+                    "release": self.request.release,
+                    "owner": self.request.owner,
+                    "image_url": str(self.request.image_url),
+                }
+
+            case StartSolutionTestExecutionRequest():
+                creation_kwargs["attributes"] = self.request.attributes
+
+        self.artefact = get_or_create(self.db, Artefact, filter_kwargs=filter_kwargs, creation_kwargs=creation_kwargs)
+
+        request = self.request
+        if isinstance(request, StartSolutionTestExecutionRequest) and "attributes" in request.model_fields_set:
+            self.artefact.attributes = request.attributes
+
+    def _resolve_arch(self) -> str:
+        if self.request.arch is not None:
+            return self.request.arch
+
+        # arch was omitted: only valid for an existing image, derive it from its build.
+        architectures = self.artefact.architectures
+        if len(architectures) == 1:
+            return next(iter(architectures))
+
+        raise HTTPException(
+            status_code=422,
+            detail="'arch' is required and could not be derived from the image's builds.",
         )
 
     def delete_rerun_request(self):

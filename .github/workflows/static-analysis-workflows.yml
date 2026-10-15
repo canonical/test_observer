@@ -20,7 +20,7 @@ name: Static Analysis - Workflows
 on:
   pull_request:
     paths:
-      - '.github/**'
+      - '.github/workflows/**'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

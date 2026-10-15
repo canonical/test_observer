@@ -38,7 +38,8 @@ LinkedHashMap<int, Artefact> filteredFamilyArtefacts(Ref ref, Uri pageUri) {
       ref.watch(familyArtefactsProvider(family)).value?.values.toList() ?? [];
 
   for (var filter in getArtefactFiltersFor(family)) {
-    final filterOptions = parameters[filter.name];
+    final filterOptions = parameters[filter.name] ??
+        (filter.name == 'Reviewer' ? parameters['Assignee'] : null);
     if (filterOptions != null) {
       artefacts = filter.filter(artefacts, filterOptions.toSet());
     }

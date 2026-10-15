@@ -15,6 +15,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../models/environment_review.dart';
 import '../models/user.dart';
 import 'user_avatar.dart';
 
@@ -24,14 +25,54 @@ class ReviewersAvatars extends StatelessWidget {
     required this.reviewers,
     required this.allEnvironmentReviewsCount,
     required this.completedEnvironmentReviewsCount,
+    this.environmentReviews = const [],
   });
 
   final List<User> reviewers;
   final int allEnvironmentReviewsCount;
   final int completedEnvironmentReviewsCount;
+  final List<EnvironmentReview> environmentReviews;
+
+  /// Returns a map from user id to (all, completed) assignment counts
+  /// derived from [environmentReviews]. When [environmentReviews] is empty
+  /// the map is empty and callers fall back to the overall artefact counts.
+  /// Reviewers with zero assignments are included with (all: 0, completed: 0).
+  Map<int, ({int all, int completed})> get _reviewerStats {
+    if (environmentReviews.isEmpty) return {};
+    final stats = <int, ({int all, int completed})>{};
+    // Initialize all reviewers with 0/0
+    for (final reviewer in reviewers) {
+      stats[reviewer.id] = (all: 0, completed: 0);
+    }
+    // Update with actual review counts
+    for (final review in environmentReviews) {
+      final isCompleted = review.reviewDecision.isNotEmpty;
+      for (final reviewer in review.reviewers) {
+        final current = stats[reviewer.id] ?? (all: 0, completed: 0);
+        stats[reviewer.id] = (
+          all: current.all + 1,
+          completed: current.completed + (isCompleted ? 1 : 0),
+        );
+      }
+    }
+    return stats;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final stats = _reviewerStats;
+
+    UserAvatar buildUserAvatar(User user) {
+      final s = stats[user.id];
+      return UserAvatar(
+        user: user,
+        allEnvironmentReviewsCount: allEnvironmentReviewsCount,
+        completedEnvironmentReviewsCount: completedEnvironmentReviewsCount,
+        reviewerAllCount: s?.all,
+        reviewerCompletedCount: s?.completed,
+      );
+    }
+
     if (reviewers.isEmpty) {
       // Show single empty avatar if no reviewers
       return UserAvatar(
@@ -42,12 +83,7 @@ class ReviewersAvatars extends StatelessWidget {
     }
 
     if (reviewers.length == 1) {
-      // Show single avatar for one reviewer
-      return UserAvatar(
-        user: reviewers.first,
-        allEnvironmentReviewsCount: allEnvironmentReviewsCount,
-        completedEnvironmentReviewsCount: completedEnvironmentReviewsCount,
-      );
+      return buildUserAvatar(reviewers.first);
     }
 
     // Show stacked avatars for multiple reviewers
@@ -57,12 +93,7 @@ class ReviewersAvatars extends StatelessWidget {
         for (int i = 0; i < reviewers.length; i++)
           Transform.translate(
             offset: Offset(-8.0 * i, 0),
-            child: UserAvatar(
-              user: reviewers[i],
-              allEnvironmentReviewsCount: allEnvironmentReviewsCount,
-              completedEnvironmentReviewsCount:
-                  completedEnvironmentReviewsCount,
-            ),
+            child: buildUserAvatar(reviewers[i]),
           ),
       ],
     );

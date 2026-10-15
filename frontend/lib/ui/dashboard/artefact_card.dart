@@ -19,10 +19,11 @@ import 'package:intersperse/intersperse.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/artefact.dart';
+import '../../models/user.dart';
 import '../../routing.dart';
 import '../spacing.dart';
 import '../navigable_link.dart';
-import '../reviewers_avatars.dart';
+import '../user_avatar.dart';
 import '../vanilla/vanilla_chip.dart';
 
 class ArtefactCard extends ConsumerWidget {
@@ -83,13 +84,30 @@ class ArtefactCard extends ConsumerWidget {
                       fontColor: YaruColors.red,
                     ),
                   const Spacer(),
-                  ReviewersAvatars(
-                    reviewers: artefact.reviewers,
-                    allEnvironmentReviewsCount:
-                        artefact.allEnvironmentReviewsCount,
-                    completedEnvironmentReviewsCount:
-                        artefact.completedEnvironmentReviewsCount,
-                  ),
+                  if (artefact.reviewers.isEmpty)
+                    UserAvatar(
+                      user: emptyUser,
+                      allEnvironmentReviewsCount:
+                          artefact.allEnvironmentReviewsCount,
+                      completedEnvironmentReviewsCount:
+                          artefact.completedEnvironmentReviewsCount,
+                    )
+                  else if (artefact.reviewers.length == 1)
+                    UserAvatar(
+                      user: artefact.reviewers.first,
+                      allEnvironmentReviewsCount:
+                          artefact.allEnvironmentReviewsCount,
+                      completedEnvironmentReviewsCount:
+                          artefact.completedEnvironmentReviewsCount,
+                    )
+                  else
+                    ReviewerCountAvatar(
+                      reviewers: artefact.reviewers,
+                      allEnvironmentReviewsCount:
+                          artefact.allEnvironmentReviewsCount,
+                      completedEnvironmentReviewsCount:
+                          artefact.completedEnvironmentReviewsCount,
+                    ),
                 ],
               ),
             ].intersperse(const SizedBox(height: Spacing.level2)).toList(),

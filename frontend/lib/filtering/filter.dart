@@ -38,3 +38,15 @@ Filter<T> createFilterFromExtractor<T>(
           .filter((item) => options.contains(extractOption(item)))
           .toList(),
     );
+
+Filter<T> createFilterFromListExtractor<T>(
+  String name,
+  List<String> Function(T) extractOptions,
+) =>
+    Filter(
+      name: name,
+      extractOptions: (items) => items.expand(extractOptions).toSet(),
+      filter: (items, options) => items
+          .filter((item) => extractOptions(item).any(options.contains))
+          .toList(),
+    );

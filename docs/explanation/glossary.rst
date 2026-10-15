@@ -41,3 +41,13 @@ Test Result
 -----------
 
 Includes the name and status (PASSED, FAILED, or SKIPPED) of a test. Additionally, it optionally can have logs and other useful bits of information.
+
+Rerun request
+-------------
+
+A request to run a test plan on an artefact build under a particular environment again. Test Observer does not run reruns itself; it stores the request in a queue that an external test scheduler polls to run the tests and submit new results. See :doc:`test-execution-lifecycle`.
+
+Priority
+--------
+
+An attribute of a rerun request. An integer between -1000000 and 1000000 (default 0) that orders the rerun queue returned by Test Observer (higher first, then oldest first). Priority is advisory: it only affects the order in which pending reruns are returned. Whether it influences when a rerun actually runs is up to the external test scheduler, which may or may not honour it.

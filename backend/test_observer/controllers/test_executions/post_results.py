@@ -75,6 +75,14 @@ def post_results(
             },
         )
 
+        # get_or_create doesn't update fields on an already existing row,
+        # so keep category/template_id in sync with the latest submission
+        # (e.g. after an upstream naming fix or file move).
+        if result.category and test_case.category != result.category:
+            test_case.category = result.category
+        if result.template_id and test_case.template_id != result.template_id:
+            test_case.template_id = result.template_id
+
         db.execute(
             delete(TestResult).where(
                 TestResult.test_execution_id == test_execution.id,

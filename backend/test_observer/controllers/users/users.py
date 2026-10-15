@@ -126,6 +126,22 @@ def get_user(
     return user
 
 
+@router.delete(
+    "/{user_id}",
+    status_code=204,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_user])],
+)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+):
+    user = db.get(User, user_id)
+    if user is None:
+        return
+    db.delete(user)
+    db.commit()
+
+
 @router.patch(
     "/{user_id}",
     response_model=UserResponse,

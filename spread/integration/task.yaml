@@ -30,16 +30,16 @@ execute: |
 
   trap crashdump ERR
 
-  backend_oci_image="$(cat "${SPREAD_PATH}"/backend/charm/charmcraft.yaml | yq '.resources.api-image.upstream-source')"
-  frontend_oci_image="$(cat "${SPREAD_PATH}"/frontend/charm/charmcraft.yaml | yq '.resources.frontend-image.upstream-source')"
+  backend_oci_image="$(cat "${SPREAD_PATH}"/charms/backend/charmcraft.yaml | yq '.resources.api-image.upstream-source')"
+  frontend_oci_image="$(cat "${SPREAD_PATH}"/charms/frontend/charmcraft.yaml | yq '.resources.frontend-image.upstream-source')"
 
   juju deploy --trust postgresql-k8s --channel=14/stable --revision=774 db
   juju deploy redis-k8s --channel=latest/edge --revision=27 redis
-  juju deploy "${SPREAD_PATH}"/backend/charm/*.charm backend \
+  juju deploy "${SPREAD_PATH}"/charms/backend/*.charm backend \
     --config hostname=test-observer-api.test \
     --config sessions_secret="$(openssl rand -base64 32)" \
     --resource api-image="${backend_oci_image}"
-  juju deploy "${SPREAD_PATH}"/frontend/charm/*.charm frontend \
+  juju deploy "${SPREAD_PATH}"/charms/frontend/*.charm frontend \
     --config hostname=test-observer-frontend.test \
     --config test-observer-api-scheme='http://' \
     --resource frontend-image="${frontend_oci_image}"

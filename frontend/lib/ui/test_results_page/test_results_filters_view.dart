@@ -21,6 +21,7 @@ import 'package:yaru/yaru.dart';
 import '../../models/execution_metadata.dart';
 import '../../models/family_name.dart';
 import '../../models/issue.dart';
+import '../../models/stage_name.dart';
 import '../../models/test_result.dart';
 import '../../models/test_results_filters.dart';
 import '../../models/user.dart';
@@ -29,6 +30,7 @@ import '../../providers/issues.dart';
 import '../../providers/test_results_artefacts.dart';
 import '../../providers/test_results_environments.dart';
 import '../../providers/test_results_test_cases.dart';
+import '../../providers/test_results_test_plans.dart';
 import '../../providers/users.dart';
 import '../issues.dart';
 import '../page_filters/date_time_selector.dart';
@@ -39,13 +41,17 @@ enum FilterType {
   families,
   testResultStatuses,
   issues,
-  assignees,
+  reviewers,
   artefacts,
+  artefactVersions,
+  artefactStages,
+  artefactTracks,
   artefactIsArchived,
   rerunIsRequested,
   executionIsLatest,
   environments,
   testCases,
+  testPlans,
   templateIds,
   metadata,
   dateRange,
@@ -234,6 +240,8 @@ class _TestResultsFiltersViewState
     final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
     final allTestResultStatusesOptions =
         TestResultStatus.values.map((s) => s.name).toList();
+    final allArtefactStageOptions =
+        StageName.values.map((s) => s.apiValue).toList();
     final executionMetadata = ref.watch(executionMetadataProvider).value ??
         ExecutionMetadata(data: {});
 
@@ -330,17 +338,17 @@ class _TestResultsFiltersViewState
               },
             ),
           ),
-        if (_isFilterEnabled(FilterType.assignees))
+        if (_isFilterEnabled(FilterType.reviewers))
           _box(
             _buildIntListFilterCombobox(
-              title: 'Assignees',
-              currentFilter: _selectedFilters.assignees,
+              title: 'Reviewers',
+              currentFilter: _selectedFilters.reviewers,
               metaOptions: const [
-                MetaOption(value: 'any', label: 'Has any assignee'),
-                MetaOption(value: 'none', label: 'Has no assignee'),
+                MetaOption(value: 'any', label: 'Has any reviewer'),
+                MetaOption(value: 'none', label: 'Has no reviewer'),
               ],
               onFilterChanged: (filter) {
-                _selectedFilters = _selectedFilters.copyWith(assignees: filter);
+                _selectedFilters = _selectedFilters.copyWith(reviewers: filter);
                 _notifyChanged(_selectedFilters);
               },
               asyncSuggestionsCallback: (pattern) async {
@@ -391,6 +399,78 @@ class _TestResultsFiltersViewState
                   _selectedFilters = _selectedFilters.copyWith(
                     artefacts: [
                       ..._selectedFilters.artefacts.where((a) => a != val),
+                      if (isSelected) val,
+                    ],
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
+              },
+            ),
+          ),
+        if (_isFilterEnabled(FilterType.artefactVersions))
+          _box(
+            MultiSelectCombobox<String>(
+              title: 'Artefact Version',
+              initialSelected: _selectedFilters.artefactVersions.toSet(),
+              // No backend search endpoint for versions, so we allow the
+              // user to type an exact version and add it directly.
+              asyncSuggestionsCallback: (pattern) async {
+                final trimmed = pattern.trim();
+                return trimmed.isEmpty ? [] : [trimmed];
+              },
+              minCharsForAsyncSearch: 1,
+              onChanged: (val, isSelected) {
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(
+                    artefactVersions: [
+                      ..._selectedFilters.artefactVersions
+                          .where((v) => v != val),
+                      if (isSelected) val,
+                    ],
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
+              },
+            ),
+          ),
+        if (_isFilterEnabled(FilterType.artefactStages))
+          _box(
+            MultiSelectCombobox<String>(
+              title: 'Artefact Stage',
+              allOptions: allArtefactStageOptions,
+              showAllOptionsWithoutSearch: true,
+              itemToString: (stage) => stage.isEmpty ? '(none)' : stage,
+              initialSelected: _selectedFilters.artefactStages.toSet(),
+              onChanged: (val, isSelected) {
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(
+                    artefactStages: [
+                      ..._selectedFilters.artefactStages.where((s) => s != val),
+                      if (isSelected) val,
+                    ],
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
+              },
+            ),
+          ),
+        if (_isFilterEnabled(FilterType.artefactTracks))
+          _box(
+            MultiSelectCombobox<String>(
+              title: 'Artefact Track',
+              initialSelected: _selectedFilters.artefactTracks.toSet(),
+              // No backend search endpoint for tracks, so we allow the
+              // user to type an exact track and add it directly.
+              asyncSuggestionsCallback: (pattern) async {
+                final trimmed = pattern.trim();
+                return trimmed.isEmpty ? [] : [trimmed];
+              },
+              minCharsForAsyncSearch: 1,
+              onChanged: (val, isSelected) {
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(
+                    artefactTracks: [
+                      ..._selectedFilters.artefactTracks.where((t) => t != val),
                       if (isSelected) val,
                     ],
                   );
@@ -512,6 +592,31 @@ class _TestResultsFiltersViewState
                         : _selectedFilters.testCases
                             .where((tc) => tc != val)
                             .toList(),
+                  );
+                  _notifyChanged(_selectedFilters);
+                });
+              },
+            ),
+          ),
+        if (_isFilterEnabled(FilterType.testPlans))
+          _box(
+            MultiSelectCombobox<String>(
+              title: 'Test Plan',
+              initialSelected: _selectedFilters.testPlans.toSet(),
+              asyncSuggestionsCallback: (pattern) async {
+                return await ref.read(
+                  suggestedTestPlansProvider(pattern, _selectedFilters.families)
+                      .future,
+                );
+              },
+              minCharsForAsyncSearch: 2,
+              onChanged: (val, isSelected) {
+                setState(() {
+                  _selectedFilters = _selectedFilters.copyWith(
+                    testPlans: [
+                      ..._selectedFilters.testPlans.where((tp) => tp != val),
+                      if (isSelected) val,
+                    ],
                   );
                   _notifyChanged(_selectedFilters);
                 });

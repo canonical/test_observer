@@ -23,9 +23,9 @@ import 'package:testcase_dashboard/models/user.dart';
 
 const dummyUser = User(
   id: 1,
-  name: 'Omar Abou Selo',
-  email: 'omar.selo@canonical.com',
-  launchpadHandle: 'omar-selo',
+  name: 'Dummy User',
+  email: 'dummy.user@canonical.com',
+  launchpadHandle: 'dummy-user',
 );
 
 const dummyUser2 = User(
@@ -66,6 +66,12 @@ const dummyEnvironment = Environment(
   architecture: 'amd64',
 );
 
+const dummyEnvironment2 = Environment(
+  id: 2,
+  name: 'desktop',
+  architecture: 'amd64',
+);
+
 const dummyArtefactBuild = ArtefactBuild(
   id: 1,
   architecture: 'amd64',
@@ -85,6 +91,18 @@ final dummyTestExecution = TestExecution(
   isTriaged: false,
 );
 
+final dummyTestExecution2 = TestExecution(
+  id: 2,
+  ciLink: 'ci-link-2',
+  c3Link: 'c3-link-2',
+  status: TestExecutionStatus.failed,
+  environment: dummyEnvironment2,
+  artefactBuildId: dummyArtefactBuild.id,
+  testPlan: 'test plan 2',
+  createdAt: DateTime.now(),
+  isTriaged: false,
+);
+
 final dummyEnvironmentReview = EnvironmentReview(
   id: 1,
   artefactBuild: EnvironmentReviewArtefactBuild(
@@ -95,4 +113,17 @@ final dummyEnvironmentReview = EnvironmentReview(
   environment: dummyEnvironment,
   reviewComment: '',
   reviewDecision: [],
+);
+
+final dummyEnvironmentReviewWithReviewer = EnvironmentReview(
+  id: 2,
+  artefactBuild: EnvironmentReviewArtefactBuild(
+    id: dummyArtefactBuild.id,
+    architecture: dummyArtefactBuild.architecture,
+    revision: dummyArtefactBuild.revision,
+  ),
+  environment: dummyEnvironment2,
+  reviewComment: '',
+  reviewDecision: [],
+  reviewers: [dummyUser],
 );

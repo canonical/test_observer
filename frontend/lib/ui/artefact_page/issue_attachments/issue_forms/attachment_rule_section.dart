@@ -43,6 +43,12 @@ class AttachmentRuleSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final artefact = ref.read(artefactProvider(artefactId)).value;
     final familyName = artefact?.family ?? '';
+    final artefactName = artefact?.name ?? '';
+    final artefactVersion = artefact?.version ?? '';
+    final artefactStage = (artefact != null && !artefact.stage.isEmpty)
+        ? artefact.stage.name
+        : '';
+    final artefactTrack = artefact?.track ?? '';
     final templateId = testResult?.templateId ?? '';
     final testCaseName = testResult?.name ?? '';
     final testExecution = ref
@@ -59,8 +65,14 @@ class AttachmentRuleSection extends ConsumerWidget {
         .value;
     final executionMetadata =
         testExecution?.executionMetadata ?? ExecutionMetadata();
+    final testPlan = testExecution?.testPlan ?? '';
     final filters = AttachmentRuleFilters(
       families: familyName.isNotEmpty ? [familyName] : [],
+      artefacts: artefactName.isNotEmpty ? [artefactName] : [],
+      artefactVersions: artefactVersion.isNotEmpty ? [artefactVersion] : [],
+      artefactStages: artefactStage.isNotEmpty ? [artefactStage] : [],
+      artefactTracks: artefactTrack.isNotEmpty ? [artefactTrack] : [],
+      testPlans: testPlan.isNotEmpty ? [testPlan] : [],
       testCaseNames: testCaseName.isNotEmpty ? [testCaseName] : [],
       templateIds: templateId.isNotEmpty ? [templateId] : [],
       executionMetadata: executionMetadata,

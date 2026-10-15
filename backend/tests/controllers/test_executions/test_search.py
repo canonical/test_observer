@@ -14,11 +14,12 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import uuid
+from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import FamilyName, StageName, TestExecutionStatus
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -205,15 +206,18 @@ class TestSearchTestExecutions:
         assert data["offset"] == 0
         assert isinstance(data["count"], int)
 
-    def test_no_test_result_filter_defaults_to_any(self, test_client: TestClient, generator: DataGenerator):
-        """When test_result param is omitted, behaves like test_result=any."""
+    def test_no_test_result_filter_returns_executions_with_and_without_results(
+        self, test_client: TestClient, generator: DataGenerator
+    ):
+        """When test_result param is omitted, executions aren't filtered by result presence."""
         artefact = generator.gen_artefact(name=_uid("artefact"))
         build = generator.gen_artefact_build(artefact)
         env = generator.gen_environment()
         tc = generator.gen_test_case(name=_uid("tc"))
 
-        te = generator.gen_test_execution(build, env)
-        tr = generator.gen_test_result(tc, te)
+        te_with_result = generator.gen_test_execution(build, env)
+        tr = generator.gen_test_result(tc, te_with_result)
+        te_without_result = generator.gen_test_execution(build, env, status=TestExecutionStatus.ENDED_PREMATURELY)
 
         response = make_authenticated_request(
             lambda: test_client.get(f"/v1/test-executions?artefacts={artefact.name}"),
@@ -222,6 +226,14 @@ class TestSearchTestExecutions:
 
         assert response.status_code == 200
         data = response.json()
+
+        te_ids = {item["id"] for item in data["test_executions"]}
+        assert te_with_result.id in te_ids
+        # Regression test: executions with zero TestResult rows (e.g. crashed
+        # before writing any result) must not be silently excluded when
+        # test_result is omitted.
+        assert te_without_result.id in te_ids
+
         tr_ids = {result["id"] for item in data["test_executions"] for result in item["test_results"]}
         assert tr.id in tr_ids
 
@@ -243,6 +255,80 @@ class TestSearchTestExecutions:
         te_ids = {item["id"] for item in response.json()["test_executions"]}
         assert te_a.id in te_ids
         assert te_b.id not in te_ids
+
+    def test_filter_by_test_plan(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        env = generator.gen_environment(name=_uid("env"))
+        plan_a = _uid("plan_a")
+        plan_b = _uid("plan_b")
+
+        te_a = generator.gen_test_execution(build, env, test_plan=plan_a)
+        te_b = generator.gen_test_execution(build, env, test_plan=plan_b)
+
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-executions?test_result=none&test_plans={plan_a}"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_a.id in te_ids
+        assert te_b.id not in te_ids
+
+    def test_filter_by_artefact_version(self, test_client: TestClient, generator: DataGenerator):
+        artefact_a = generator.gen_artefact(name=_uid("artefact"), version="1.0")
+        artefact_b = generator.gen_artefact(name=_uid("artefact"), version="2.0")
+        env = generator.gen_environment(name=_uid("env"))
+
+        te_a = generator.gen_test_execution(generator.gen_artefact_build(artefact_a), env)
+        te_b = generator.gen_test_execution(generator.gen_artefact_build(artefact_b), env)
+
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-executions?test_result=none&artefact_versions=1.0"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_a.id in te_ids
+        assert te_b.id not in te_ids
+
+    def test_filter_by_artefact_stage(self, test_client: TestClient, generator: DataGenerator):
+        artefact_edge = generator.gen_artefact(name=_uid("artefact"), stage=StageName.edge)
+        artefact_beta = generator.gen_artefact(name=_uid("artefact"), stage=StageName.beta)
+        env = generator.gen_environment(name=_uid("env"))
+
+        te_edge = generator.gen_test_execution(generator.gen_artefact_build(artefact_edge), env)
+        te_beta = generator.gen_test_execution(generator.gen_artefact_build(artefact_beta), env)
+
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-executions?test_result=none&artefact_stages=edge"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_edge.id in te_ids
+        assert te_beta.id not in te_ids
+
+    def test_filter_by_artefact_track(self, test_client: TestClient, generator: DataGenerator):
+        artefact_stable = generator.gen_artefact(name=_uid("artefact"), track="stable")
+        artefact_edge = generator.gen_artefact(name=_uid("artefact"), track="edge")
+        env = generator.gen_environment(name=_uid("env"))
+
+        te_stable = generator.gen_test_execution(generator.gen_artefact_build(artefact_stable), env)
+        te_edge = generator.gen_test_execution(generator.gen_artefact_build(artefact_edge), env)
+
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-executions?test_result=none&artefact_tracks=stable"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_stable.id in te_ids
+        assert te_edge.id not in te_ids
 
     def test_filter_by_rerun_requested_with_no_result(self, test_client: TestClient, generator: DataGenerator):
         artefact = generator.gen_artefact(name=_uid("artefact"))
@@ -476,3 +562,80 @@ class TestSearchTestExecutions:
         )
 
         assert response.status_code == 422
+
+    def test_filter_by_from_date_excludes_older_executions(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        env_old = generator.gen_environment(name=_uid("env_old"))
+        env_new = generator.gen_environment(name=_uid("env_new"))
+
+        te_old = generator.gen_test_execution(build, env_old)
+        te_new = generator.gen_test_execution(build, env_new)
+
+        te_old.updated_at = datetime(2020, 1, 1, tzinfo=UTC)
+        te_new.updated_at = datetime(2030, 1, 1, tzinfo=UTC)
+        generator.db_session.flush()
+
+        cutoff = "2025-01-01T00:00:00"
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-executions?test_result=none&from_date={cutoff}"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_new.id in te_ids
+        assert te_old.id not in te_ids
+
+    def test_filter_by_until_date_excludes_newer_executions(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        env_old = generator.gen_environment(name=_uid("env_old"))
+        env_new = generator.gen_environment(name=_uid("env_new"))
+
+        te_old = generator.gen_test_execution(build, env_old)
+        te_new = generator.gen_test_execution(build, env_new)
+
+        te_old.updated_at = datetime(2020, 1, 1, tzinfo=UTC)
+        te_new.updated_at = datetime(2030, 1, 1, tzinfo=UTC)
+        generator.db_session.flush()
+
+        cutoff = "2025-01-01T00:00:00"
+        response = make_authenticated_request(
+            lambda: test_client.get(f"/v1/test-executions?test_result=none&until_date={cutoff}"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_old.id in te_ids
+        assert te_new.id not in te_ids
+
+    def test_filter_by_from_date_and_until_date_combined(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(name=_uid("artefact"))
+        build = generator.gen_artefact_build(artefact)
+        env_before = generator.gen_environment(name=_uid("env_before"))
+        env_within = generator.gen_environment(name=_uid("env_within"))
+        env_after = generator.gen_environment(name=_uid("env_after"))
+
+        te_before = generator.gen_test_execution(build, env_before)
+        te_within = generator.gen_test_execution(build, env_within)
+        te_after = generator.gen_test_execution(build, env_after)
+
+        te_before.updated_at = datetime(2019, 6, 1, tzinfo=UTC)
+        te_within.updated_at = datetime(2022, 6, 1, tzinfo=UTC)
+        te_after.updated_at = datetime(2026, 6, 1, tzinfo=UTC)
+        generator.db_session.flush()
+
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-executions?test_result=none&from_date=2020-01-01T00:00:00&until_date=2025-01-01T00:00:00"
+            ),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        te_ids = {item["id"] for item in response.json()["test_executions"]}
+        assert te_within.id in te_ids
+        assert te_before.id not in te_ids
+        assert te_after.id not in te_ids

@@ -71,16 +71,15 @@ class ArtefactResponse(BaseModel):
     family: str
     status: ArtefactStatus
     comment: str
+    attributes: dict[str, Any]
     archived: bool
     reviewers: list[ReviewerResponse]
     due_date: date | None
     created_at: datetime
     bug_link: str
     jira_issue: str | None
-    risk: str
     all_environment_reviews_count: int
     completed_environment_reviews_count: int
-    bundled_builds: list["ArtefactBuildMinimalResponse"] = Field(default_factory=list)
 
     @computed_field(
         description=("Backward-compatible assignee field. Populated from the first entry in reviewers when present.")
@@ -131,6 +130,10 @@ class TestExecutionResponse(BaseModel):
     def is_rerun_requested(self) -> bool:
         return bool(self.rerun_request)
 
+    @computed_field
+    def rerun_priority(self) -> int | None:
+        return self.rerun_request.priority if self.rerun_request else None
+
     @field_validator("execution_metadata", mode="before")
     @classmethod
     def collect_execution_metadata(cls, v: Sequence) -> ExecutionMetadata:
@@ -144,7 +147,6 @@ class ArtefactBuildResponse(BaseModel):
     architecture: str
     revision: int | None
     test_executions: list[TestExecutionResponse]
-    bundled_in: list["ArtefactMinimalResponse"] = Field(default_factory=list)
 
 
 class ArtefactPatch(BaseModel):
@@ -153,11 +155,7 @@ class ArtefactPatch(BaseModel):
     stage: StageName | None = None
     comment: str | None = None
     jira_issue: str | None = None
-    risk: str | None = None
-    bundled_builds: list[int] | None = Field(
-        default=None,
-        description="List of ArtefactBuild IDs to bundle with this artefact",
-    )
+    attributes: dict[str, Any] | None = None
     assignee_id: int | None = Field(
         default=None,
         deprecated=True,
@@ -211,15 +209,6 @@ class ArtefactBuildMinimalResponse(BaseModel):
     id: int
     architecture: str
     revision: int | None
-
-
-class ArtefactMinimalResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    name: str
-    version: str
-    family: str
 
 
 class ArtefactSearchResponse(BaseModel):

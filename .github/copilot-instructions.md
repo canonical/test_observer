@@ -51,6 +51,13 @@ When reviewing PRs, **flag any new artefact-specific logic as a blocking issue**
   - Verify proper session management and transactions
   - Check for N+1 query problems
   - Ensure migrations are included for schema changes
+- **Database migrations**:
+  - For compatibility with rolling upgrades in highly available deployments, migrations which rename or delete tables or columns should follow an "expand/contract" pattern:
+    - Expand: Add the new thing without removing the old thing
+    - Migrate: Merge and deploy code with migration
+    - Contract: Remove the old thing
+    - Migrate: Merge and deploy code with migration
+    - As a result, the expand and contract steps should not be part of a single PR. Each should be merged and deployed separately.
 - **API design**:
   - Endpoints must be versioned (`/v1/`)
   - Pydantic models for request/response validation

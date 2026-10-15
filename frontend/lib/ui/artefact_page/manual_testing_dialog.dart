@@ -177,6 +177,12 @@ class _StartManualTestingDialogState
         fields['image_url'] = artefact.imageUrl;
         fields['execution_stage'] = artefact.stage.name;
         break;
+
+      case FamilyName.solution:
+        fields['track'] = artefact.track;
+        fields['source'] = artefact.source;
+        fields['execution_stage'] = artefact.stage.name;
+        break;
     }
 
     return fields;

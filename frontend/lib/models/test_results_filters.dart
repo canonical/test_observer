@@ -127,10 +127,16 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     @Default([])
     List<TestResultStatus> testResultStatuses,
     @Default([]) List<String> artefacts,
+    @JsonKey(name: 'artefact_versions')
+    @Default([])
+    List<String> artefactVersions,
+    @JsonKey(name: 'artefact_stages') @Default([]) List<String> artefactStages,
+    @JsonKey(name: 'artefact_tracks') @Default([]) List<String> artefactTracks,
     @JsonKey(name: 'artefact_is_archived') bool? artefactIsArchived,
     @JsonKey(name: 'rerun_is_requested') bool? rerunIsRequested,
     @JsonKey(name: 'execution_is_latest') bool? executionIsLatest,
     @Default([]) List<String> environments,
+    @JsonKey(name: 'test_plans') @Default([]) List<String> testPlans,
     @JsonKey(name: 'test_cases') @Default([]) List<String> testCases,
     @JsonKey(name: 'template_ids') @Default([]) List<String> templateIds,
     @JsonKey(name: 'execution_metadata')
@@ -141,8 +147,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     @Default(IntListFilter.list([]))
     IntListFilter issues,
     @IntListFilterConverter()
+    @JsonKey(name: 'reviewer_ids')
     @Default(IntListFilter.list([]))
-    IntListFilter assignees,
+    IntListFilter reviewers,
     @JsonKey(name: 'from_date') DateTime? fromDate,
     @JsonKey(name: 'until_date') DateTime? untilDate,
     int? offset,
@@ -173,6 +180,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
         .map((s) => TestResultStatus.fromString(s))
         .toList();
     final artefacts = parseParam(parameters['artefacts']);
+    final artefactVersions = parseParam(parameters['artefact_versions']);
+    final artefactStages = parseParam(parameters['artefact_stages']);
+    final artefactTracks = parseParam(parameters['artefact_tracks']);
     final artefactIsArchived = parseParam(parameters['artefact_is_archived'])
         .map((s) => s.toLowerCase() == 'true')
         .firstOrNull;
@@ -183,6 +193,7 @@ abstract class TestResultsFilters with _$TestResultsFilters {
         .map((s) => s.toLowerCase() == 'true')
         .firstOrNull;
     final environments = parseParam(parameters['environments']);
+    final testPlans = parseParam(parameters['test_plans']);
     final testCases = parseParam(parameters['test_cases']);
     final templateIds = parseParam(parameters['template_ids']);
     final executionMetadata = ExecutionMetadata.fromQueryParams(
@@ -191,8 +202,8 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     final issues = IntListFilter.fromQueryParam(
       parseParam(parameters['issues']),
     );
-    final assignees = IntListFilter.fromQueryParam(
-      parseParam(parameters['assignee_ids']),
+    final reviewers = IntListFilter.fromQueryParam(
+      parseParam(parameters['reviewer_ids'] ?? parameters['assignee_ids']),
     );
     final fromDate = parseParam(parameters['from_date'])
         .map((s) => DateTime.tryParse(s))
@@ -211,15 +222,19 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       families: families,
       testResultStatuses: testResultStatuses,
       artefacts: artefacts,
+      artefactVersions: artefactVersions,
+      artefactStages: artefactStages,
+      artefactTracks: artefactTracks,
       artefactIsArchived: artefactIsArchived,
       rerunIsRequested: rerunIsRequested,
       executionIsLatest: executionIsLatest,
       environments: environments,
+      testPlans: testPlans,
       testCases: testCases,
       templateIds: templateIds,
       executionMetadata: executionMetadata,
       issues: issues,
-      assignees: assignees,
+      reviewers: reviewers,
       fromDate: fromDate,
       untilDate: untilDate,
       offset: offset,
@@ -239,6 +254,15 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     if (artefacts.isNotEmpty) {
       params['artefacts'] = artefacts;
     }
+    if (artefactVersions.isNotEmpty) {
+      params['artefact_versions'] = artefactVersions;
+    }
+    if (artefactStages.isNotEmpty) {
+      params['artefact_stages'] = artefactStages;
+    }
+    if (artefactTracks.isNotEmpty) {
+      params['artefact_tracks'] = artefactTracks;
+    }
     if (artefactIsArchived != null) {
       params['artefact_is_archived'] = [artefactIsArchived.toString()];
     }
@@ -250,6 +274,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     }
     if (environments.isNotEmpty) {
       params['environments'] = environments;
+    }
+    if (testPlans.isNotEmpty) {
+      params['test_plans'] = testPlans;
     }
     if (testCases.isNotEmpty) {
       params['test_cases'] = testCases;
@@ -264,9 +291,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
     if (issuesParam.isNotEmpty) {
       params['issues'] = issuesParam;
     }
-    final assigneesParam = assignees.toQueryParam();
-    if (assigneesParam.isNotEmpty) {
-      params['assignee_ids'] = assigneesParam;
+    final reviewersParam = reviewers.toQueryParam();
+    if (reviewersParam.isNotEmpty) {
+      params['reviewer_ids'] = reviewersParam;
     }
     if (fromDate != null) {
       params['from_date'] = [fromDate!.toIso8601String()];
@@ -287,15 +314,19 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       families.isNotEmpty ||
       testResultStatuses.isNotEmpty ||
       artefacts.isNotEmpty ||
+      artefactVersions.isNotEmpty ||
+      artefactStages.isNotEmpty ||
+      artefactTracks.isNotEmpty ||
       artefactIsArchived != null ||
       rerunIsRequested != null ||
       executionIsLatest != null ||
       environments.isNotEmpty ||
+      testPlans.isNotEmpty ||
       testCases.isNotEmpty ||
       templateIds.isNotEmpty ||
       executionMetadata.isNotEmpty ||
       issues.isNotEmpty ||
-      assignees.isNotEmpty ||
+      reviewers.isNotEmpty ||
       fromDate != null ||
       untilDate != null;
 

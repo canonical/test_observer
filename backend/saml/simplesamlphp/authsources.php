@@ -1,8 +1,8 @@
 <?php
 
-// Copyright 2025 Canonical Ltd.
-
-// This program is free software: you can redistribute it and/or modify
+// Copyright 2026 Canonical Ltd.
+//
+//  This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License version 3, as
 // published by the Free Software Foundation.
 // This program is distributed in the hope that it will be useful,
@@ -11,9 +11,9 @@
 // GNU Affero General Public License for more details.
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-// SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
-// SPDX-License-Identifier: GPL-3.0-only
+//
+// SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+// SPDX-License-Identifier: AGPL-3.0-only
 
 $config = array(
 

@@ -30,6 +30,13 @@ class FakeLaunchpadAPI(LaunchpadAPI):
                 name="John Doe",
                 teams=["canonical", "hw-cert"],
             )
+        if email == "jane.smith@canonical.com":
+            return LaunchpadUser(
+                handle="jane-smith",
+                email=email,
+                name="Jane Smith",
+                teams=["canonical"],
+            )
         if email == "certbot@canonical.com":
             return LaunchpadUser(
                 handle="certbot",

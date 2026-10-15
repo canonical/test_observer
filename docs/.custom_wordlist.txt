@@ -16,6 +16,10 @@ github
 GPG
 GPLv
 gyre
+hotfix
+hotfixes
+Hotfix
+Hotfixes
 https
 hw
 jira
@@ -29,6 +33,7 @@ plantuml
 pytest
 rceil
 schemas
+sequenceDiagram
 SRU
 SRUs
 SSO

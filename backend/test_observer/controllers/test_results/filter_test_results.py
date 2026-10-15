@@ -29,6 +29,7 @@ from test_observer.data_access.models import (
     TestExecution,
     TestExecutionMetadata,
     TestExecutionRerunRequest,
+    TestPlan,
     TestResult,
     User,
     test_execution_metadata_association_table,
@@ -72,6 +73,18 @@ def build_query_filters_and_joins(
         query_filters.append(Artefact.name.in_(filters.artefacts))
         joins_needed.update(["test_execution", "artefact_build", "artefact"])
 
+    if len(filters.artefact_versions) > 0:
+        query_filters.append(Artefact.version.in_(filters.artefact_versions))
+        joins_needed.update(["test_execution", "artefact_build", "artefact"])
+
+    if len(filters.artefact_stages) > 0:
+        query_filters.append(Artefact.stage.in_(filters.artefact_stages))
+        joins_needed.update(["test_execution", "artefact_build", "artefact"])
+
+    if len(filters.artefact_tracks) > 0:
+        query_filters.append(Artefact.track.in_(filters.artefact_tracks))
+        joins_needed.update(["test_execution", "artefact_build", "artefact"])
+
     if filters.artefact_is_archived is not None:
         query_filters.append(Artefact.archived == filters.artefact_is_archived)
         joins_needed.update(["test_execution", "artefact_build", "artefact"])
@@ -79,6 +92,10 @@ def build_query_filters_and_joins(
     if len(filters.environments) > 0:
         query_filters.append(Environment.name.in_(filters.environments))
         joins_needed.update(["test_execution", "environment"])
+
+    if len(filters.test_plans) > 0:
+        query_filters.append(TestPlan.name.in_(filters.test_plans))
+        joins_needed.update(["test_execution", "test_plan"])
 
     if len(filters.test_cases) > 0:
         query_filters.append(TestCase.name.in_(filters.test_cases))
@@ -188,6 +205,9 @@ def apply_joins(query: Select, joins_needed: set[str]) -> Select:
 
     if "test_case" in joins_needed:
         query = query.join(TestResult.test_case)
+
+    if "test_plan" in joins_needed:
+        query = query.join(TestExecution.test_plan)
 
     return query
 

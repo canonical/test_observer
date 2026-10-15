@@ -531,3 +531,25 @@ def test_get_issues_pagination_metadata(test_client: TestClient, generator: Data
     assert data["limit"] == 2
     assert data["offset"] == 1
     assert len(data["issues"]) == 2
+
+
+def test_delete_user(test_client: TestClient, generator: DataGenerator, db_session: Session):
+    user = generator.gen_user()
+    user_id = user.id
+
+    response = make_authenticated_request(
+        lambda: test_client.delete(f"/v1/users/{user_id}"),
+        Permission.change_user,
+    )
+
+    assert response.status_code == 204
+    assert db_session.get(type(user), user_id) is None
+
+
+def test_delete_user_idempotent(test_client: TestClient):
+    response = make_authenticated_request(
+        lambda: test_client.delete("/v1/users/999999"),
+        Permission.change_user,
+    )
+
+    assert response.status_code == 204
