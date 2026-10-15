@@ -17,8 +17,8 @@ import { getApiRoot } from "$lib/config";
 import type { User } from "$lib/types";
 
 // Result of re-checking the session against the backend. "unknown" means the
-// check itself failed (transport/server error), so the previous login state
-// could not be confirmed either way.
+// check failed (transport/server error) or was superseded by a newer check,
+// so it cannot confirm the login state either way.
 export type AuthStatus = "authenticated" | "unauthenticated" | "unknown";
 
 // Single source of truth for client-side login state. Nothing else fetches
@@ -29,9 +29,25 @@ export type AuthStatus = "authenticated" | "unauthenticated" | "unknown";
 // `refresh()` and branch on its returned status, not on `current`.
 class UserStore {
   current = $state<User | null>(null);
+  private sessionConfirmedAdmin = $state(false);
+  private refreshGeneration = 0;
+
+  get isConfirmedAdmin(): boolean {
+    return Boolean(this.sessionConfirmedAdmin && this.current?.is_admin);
+  }
 
   get isLoggedIn(): boolean {
     return this.current !== null;
+  }
+
+  hasPermission(permission: string): boolean {
+    return (
+      this.current !== null &&
+      (this.isConfirmedAdmin ||
+        this.current.teams.some((team) =>
+          team.permissions.includes(permission),
+        ))
+    );
   }
 
   // Re-checks the session against the backend, updates the cached user, and
@@ -40,12 +56,20 @@ class UserStore {
   // callers must not treat that preserved value as proof of an active
   // session — branch on the returned status instead.
   async refresh(fetch: typeof globalThis.fetch): Promise<AuthStatus> {
+    const generation = ++this.refreshGeneration;
+    this.sessionConfirmedAdmin = false;
     const result = await fetchMe(fetch);
+    // A superseded response is not authorization evidence for its caller,
+    // even though it is already prevented from updating the cached state.
+    if (generation !== this.refreshGeneration) return "unknown";
     if (result.status === "authenticated") {
       this.current = result.user;
+      this.sessionConfirmedAdmin = result.user.is_admin;
     } else if (result.status === "unauthenticated") {
       this.current = null;
     }
+    // On "unknown", keep the cached profile for display, but the flag stays
+    // false so stale admin status cannot expose mutation controls.
     return result.status;
   }
 }

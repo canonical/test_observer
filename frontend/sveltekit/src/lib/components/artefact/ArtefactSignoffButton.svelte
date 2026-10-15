@@ -3,33 +3,44 @@
   SPDX-License-Identifier: Apache-2.0
 -->
 <script lang="ts">
-  import { tick } from 'svelte';
-  import { Chip } from '@canonical/svelte-ds-app-launchpad';
-  import type { Artefact, ArtefactStatus } from '$lib/types';
-  import { STATUS_LABELS } from '$lib/types';
+  import { tick } from "svelte";
+  import { Chip } from "@canonical/svelte-ds-app-launchpad";
+  import type { Artefact, ArtefactStatus } from "$lib/types";
+  import { STATUS_LABELS } from "$lib/types";
 
   interface Props {
     artefact: Artefact;
+    canChangeStatus: boolean;
     onstatuschange: (status: ArtefactStatus) => void;
   }
 
-  let { artefact, onstatuschange }: Props = $props();
+  let { artefact, canChangeStatus, onstatuschange }: Props = $props();
 
   let open = $state(false);
   let wrapperEl: HTMLDivElement | undefined = $state();
   let triggerEl: HTMLButtonElement | undefined = $state();
   let activeIndex = $state(0);
 
-  const statuses: ArtefactStatus[] = ['APPROVED', 'MARKED_AS_FAILED', 'UNDECIDED'];
+  const statuses: ArtefactStatus[] = [
+    "APPROVED",
+    "MARKED_AS_FAILED",
+    "UNDECIDED",
+  ];
 
-  const chipSeverity = $derived.by((): 'positive' | 'negative' | undefined => {
-    if (artefact.status === 'APPROVED') return 'positive';
-    if (artefact.status === 'MARKED_AS_FAILED') return 'negative';
+  $effect(() => {
+    if (!canChangeStatus) open = false;
+  });
+
+  const chipSeverity = $derived.by((): "positive" | "negative" | undefined => {
+    if (artefact.status === "APPROVED") return "positive";
+    if (artefact.status === "MARKED_AS_FAILED") return "negative";
     return undefined;
   });
 
   function menuItems() {
-    return wrapperEl?.querySelectorAll<HTMLButtonElement>('[role="menuitemradio"]');
+    return wrapperEl?.querySelectorAll<HTMLButtonElement>(
+      '[role="menuitemradio"]',
+    );
   }
 
   async function showMenu(index = statuses.indexOf(artefact.status)) {
@@ -40,6 +51,7 @@
   }
 
   function toggle() {
+    if (!canChangeStatus) return;
     if (open) {
       open = false;
       return;
@@ -48,15 +60,16 @@
   }
 
   function select(status: ArtefactStatus) {
+    if (!canChangeStatus) return;
     open = false;
     onstatuschange(status);
     triggerEl?.focus();
   }
 
   function handleTriggerKeydown(e: KeyboardEvent) {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
-      void showMenu(e.key === 'ArrowDown' ? 0 : statuses.length - 1);
+      void showMenu(e.key === "ArrowDown" ? 0 : statuses.length - 1);
     }
   }
 
@@ -65,24 +78,24 @@
     let nextIndex: number;
 
     switch (e.key) {
-      case 'ArrowDown':
+      case "ArrowDown":
         nextIndex = index === lastIndex ? 0 : index + 1;
         break;
-      case 'ArrowUp':
+      case "ArrowUp":
         nextIndex = index === 0 ? lastIndex : index - 1;
         break;
-      case 'Home':
+      case "Home":
         nextIndex = 0;
         break;
-      case 'End':
+      case "End":
         nextIndex = lastIndex;
         break;
-      case 'Escape':
+      case "Escape":
         e.preventDefault();
         open = false;
         triggerEl?.focus();
         return;
-      case 'Tab':
+      case "Tab":
         // Let the browser move focus according to the user's Tab direction
         // before removing the focused menu item from the DOM.
         setTimeout(() => (open = false));
@@ -104,25 +117,40 @@
 
   $effect(() => {
     if (open) {
-      document.addEventListener('click', handleClickOutside, true);
-      return () => document.removeEventListener('click', handleClickOutside, true);
+      document.addEventListener("click", handleClickOutside, true);
+      return () =>
+        document.removeEventListener("click", handleClickOutside, true);
     }
   });
 </script>
 
 <div class="wrapper" bind:this={wrapperEl}>
-  <button
-    bind:this={triggerEl}
-    class="trigger"
-    type="button"
-    onclick={toggle}
-    onkeydown={handleTriggerKeydown}
-    aria-haspopup="menu"
-    aria-expanded={open}
-    aria-label={`Artefact status: ${STATUS_LABELS[artefact.status]}`}
-  >
-    <Chip value={STATUS_LABELS[artefact.status]} severity={chipSeverity} readonly density="dense" />
-  </button>
+  {#if canChangeStatus}
+    <button
+      bind:this={triggerEl}
+      class="trigger"
+      type="button"
+      onclick={toggle}
+      onkeydown={handleTriggerKeydown}
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-label={`Artefact status: ${STATUS_LABELS[artefact.status]}`}
+    >
+      <Chip
+        value={STATUS_LABELS[artefact.status]}
+        severity={chipSeverity}
+        readonly
+        density="dense"
+      />
+    </button>
+  {:else}
+    <Chip
+      value={STATUS_LABELS[artefact.status]}
+      severity={chipSeverity}
+      readonly
+      density="dense"
+    />
+  {/if}
 
   {#if open}
     <div class="dropdown" role="menu" aria-label="Artefact status">

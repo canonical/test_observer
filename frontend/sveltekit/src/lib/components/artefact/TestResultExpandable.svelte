@@ -121,10 +121,12 @@
               readonly
               density="dense"
             />
-            <Link href={attachment.issue.url}>
-              [{attachment.issue.source}] {attachment.issue.project} #{attachment
-                .issue.key}
-            </Link>
+            {#if attachment.issue.url}
+              <Link href={attachment.issue.url}>
+                [{attachment.issue.source}] {attachment.issue.project} #{attachment
+                  .issue.key}
+              </Link>
+            {/if}
             <span class="att-title">{attachment.issue.title}</span>
           </div>
         {/each}

@@ -8,6 +8,7 @@
   import Expandable from "./Expandable.svelte";
   import ExecutionStatusChip from "./ExecutionStatusChip.svelte";
   import TestResultExpandable from "./TestResultExpandable.svelte";
+  import { shouldFetchExpandedData } from "$lib/utils/artefact-filters";
   import type { TestResultStatus } from "$lib/types/artefact-page";
   import type { ArtefactPageStore } from "$lib/stores/artefact-page.svelte";
 
@@ -15,9 +16,10 @@
     executionId: number;
     status: TestResultStatus;
     store: ArtefactPageStore;
+    parentExpanded: boolean;
   }
 
-  let { executionId, status, store }: Props = $props();
+  let { executionId, status, store, parentExpanded }: Props = $props();
 
   const allResults = $derived(store.getTestResults(executionId));
   const results = $derived.by(() => {
@@ -55,16 +57,19 @@
 
   $effect(() => {
     if (
-      allResults === undefined &&
-      requestedExecutionId !== executionId &&
-      (open || isDeepLinkTarget)
+      shouldFetchExpandedData(
+        parentExpanded,
+        open || isDeepLinkTarget,
+        allResults === undefined,
+      ) &&
+      requestedExecutionId !== executionId
     ) {
       fetchResults();
     }
   });
 
   $effect(() => {
-    if (targetExecutionId === executionId) {
+    if (parentExpanded && targetExecutionId === executionId) {
       open = true;
     }
   });
@@ -74,6 +79,7 @@
       allResults !== undefined &&
       allResults !== "loading" &&
       targetResultId !== null &&
+      parentExpanded &&
       targetExecutionId === executionId &&
       results.some((result) => result.id === targetResultId)
     ) {

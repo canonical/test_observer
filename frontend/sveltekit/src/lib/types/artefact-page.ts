@@ -3,6 +3,8 @@
 
 import type {
   ArtefactBuildEnvironmentReviewResponse,
+  ArtefactVersionResponse,
+  EnvironmentReportedIssueResponse,
   MinimalIssueResponse,
   MinimalIssueTestResultAttachmentRuleResponse,
   RerunRequest,
@@ -15,6 +17,10 @@ export type TestExecution = TestExecutionResponse & {
 };
 
 export type { TestResultStatus } from "./openapi";
+
+export type ArtefactVersion = ArtefactVersionResponse;
+export type EnvironmentReview = ArtefactBuildEnvironmentReviewResponse;
+export type EnvironmentIssue = EnvironmentReportedIssueResponse;
 
 export interface TestResult {
   id: number;
@@ -52,7 +58,7 @@ export interface TestEvent {
 
 export interface EnrichedTestExecution {
   testExecution: TestExecution;
-  environmentReview: ArtefactBuildEnvironmentReviewResponse;
+  environmentReview: ArtefactBuildEnvironmentReviewResponse | null;
 }
 
 // This store operation always issues an ID-based rerun, while the API also
@@ -62,7 +68,8 @@ export type RerunExecutionsRequest = Required<
 >;
 
 export interface ArtefactEnvironment {
-  reviews: ArtefactBuildEnvironmentReviewResponse[];
+  key: string;
+  review: ArtefactBuildEnvironmentReviewResponse | null;
   runsDescending: TestExecution[];
   name: string;
   architecture: string;

@@ -1,8 +1,9 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { api } from "$lib/api/client";
+import { api, FetchError, silentApi } from "$lib/api/client";
 import { SvelteMap, SvelteSet } from "svelte/reactivity";
+import { userStore } from "$lib/stores/user.svelte";
 import type { Artefact, ArtefactStatus } from "$lib/types";
 import type {
   ArtefactBuildResponse,
@@ -25,10 +26,37 @@ export class ArtefactPageStore {
   artefact = $state<Artefact | null>(null);
   builds = $state<ArtefactBuildResponse[]>([]);
   reviews = $state<ArtefactBuildEnvironmentReviewResponse[]>([]);
+  reviewsAvailable = $state(true);
   versions = $state<ArtefactVersionResponse[]>([]);
   environmentIssues = $state<EnvironmentReportedIssueResponse[]>([]);
   testIssues = $state<TestReportedIssueResponse[]>([]);
   loading = $state(true);
+  accessError = $state<
+    | "requiresLogin"
+    | "forbidden"
+    | "sessionCheckFailed"
+    | "familyMismatch"
+    | null
+  >(null);
+
+  get canChangeArtefact() {
+    // Matching-rule grants are not included in /users/me, so they cannot be
+    // established client-side. Administrators are the only users whose
+    // artefact write access can be confirmed from the existing user response.
+    return userStore.isConfirmedAdmin;
+  }
+
+  get canChangeRerun() {
+    // Rerun access is also granted by artefact matching rules, which /me does
+    // not expose. Fail closed except for administrators, who bypass that check.
+    return userStore.isConfirmedAdmin;
+  }
+
+  get canChangeRerunBulk() {
+    // The bulk permission alone does not establish the required matching-rule
+    // grant for this artefact. Administrators bypass both backend checks.
+    return userStore.isConfirmedAdmin;
+  }
 
   // Monotonic counter guarding against a stale init() overwriting newer data.
   private _initGeneration = 0;
@@ -86,7 +114,7 @@ export class ArtefactPageStore {
     Record<number, TestResult[] | "loading" | undefined>
   >({});
   private _testEvents = $state<
-    Record<number, TestEvent[] | "loading" | undefined>
+    Record<number, TestEvent[] | "loading" | "error" | undefined>
   >({});
 
   // Join builds + reviews into enriched executions
@@ -99,38 +127,34 @@ export class ArtefactPageStore {
             r.artefact_build.id === build.id &&
             r.environment.id === te.environment.id,
         );
-        if (review) {
-          result.push({
-            testExecution: { ...te, artefact_build_id: build.id },
-            environmentReview: review,
-          });
-        }
+        // Separate requests can observe different snapshots; a missing review
+        // must not hide an execution or imply a synthetic review exists.
+        result.push({
+          testExecution: { ...te, artefact_build_id: build.id },
+          environmentReview: review ?? null,
+        });
       }
     }
     return result;
   });
 
-  // Group enriched executions into per-environment buckets
+  // Match Flutter: each row groups runs for one build/environment review.
   allEnvironments = $derived.by(() => {
-    const map = new SvelteMap<number, ArtefactEnvironment>();
+    const map = new SvelteMap<string, ArtefactEnvironment>();
     for (const ee of this.enrichedExecutions) {
-      const key = ee.testExecution.environment.id;
+      const key = ee.environmentReview
+        ? `review:${ee.environmentReview.id}`
+        : `build:${ee.testExecution.artefact_build_id}:environment:${ee.testExecution.environment.id}`;
       let environment = map.get(key);
       if (environment === undefined) {
         environment = {
-          reviews: [],
+          key,
+          review: ee.environmentReview,
           runsDescending: [],
-          name: ee.environmentReview.environment.name,
-          architecture: ee.environmentReview.environment.architecture,
+          name: ee.testExecution.environment.name,
+          architecture: ee.testExecution.environment.architecture,
         };
         map.set(key, environment);
-      }
-      if (
-        !environment.reviews.some(
-          (review) => review.id === ee.environmentReview.id,
-        )
-      ) {
-        environment.reviews.push(ee.environmentReview);
       }
       environment.runsDescending.push(ee.testExecution);
     }
@@ -140,15 +164,17 @@ export class ArtefactPageStore {
     return Array.from(map.values());
   });
 
-  async init(artefactId: number) {
+  async init(artefactId: number, expectedFamily?: string) {
     // Capture this call's generation so results from a superseded init() are
     // discarded instead of clobbering data loaded by a newer one.
     const generation = ++this._initGeneration;
     this._activeArtefactId = artefactId;
     this.loading = true;
+    this.accessError = null;
     this.artefact = null;
     this.builds = [];
     this.reviews = [];
+    this.reviewsAvailable = true;
     this.versions = [];
     this.environmentIssues = [];
     this.testIssues = [];
@@ -157,22 +183,39 @@ export class ArtefactPageStore {
     this.selectedEnvironmentIds = new SvelteSet();
 
     try {
-      const artefact = await api<Artefact>(`/artefacts/${artefactId}`);
+      const artefact = await api<Artefact>(
+        `/artefacts/${artefactId}`,
+        {},
+        { ignoreForbidden: true },
+      );
       if (generation !== this._initGeneration) return;
+      if (expectedFamily && artefact?.family !== expectedFamily) {
+        this.accessError = "familyMismatch";
+        return;
+      }
       this.artefact = artefact;
 
       const [builds, reviews, versions, envIssues, testIssues] =
         await Promise.all([
-          api<ArtefactBuildResponse[]>(`/artefacts/${artefactId}/builds`),
-          api<ArtefactBuildEnvironmentReviewResponse[]>(
-            `/artefacts/${artefactId}/environment-reviews`,
-          ),
-          api<ArtefactVersionResponse[]>(`/artefacts/${artefactId}/versions`),
-          api<EnvironmentReportedIssueResponse[]>(
-            "/environments/reported-issues",
+          api<ArtefactBuildResponse[]>(
+            `/artefacts/${artefactId}/builds`,
             {},
             { ignoreForbidden: true },
-          ).catch(() => null),
+          ),
+          api<ArtefactBuildEnvironmentReviewResponse[]>(
+            `/artefacts/${artefactId}/environment-reviews`,
+            {},
+            { ignoreForbidden: true },
+          ).catch((err: unknown) => {
+            if (err instanceof FetchError && err.status === 403) return null;
+            throw err;
+          }),
+          api<ArtefactVersionResponse[]>(
+            `/artefacts/${artefactId}/versions`,
+            {},
+            { ignoreForbidden: true },
+          ),
+          this.loadEnvironmentIssues(),
           api<TestReportedIssueResponse[]>(
             "/test-cases/reported-issues",
             {},
@@ -183,15 +226,45 @@ export class ArtefactPageStore {
 
       this.builds = builds ?? [];
       this.reviews = reviews ?? [];
+      this.reviewsAvailable = reviews !== null;
       this.versions = versions ?? [];
       this.environmentIssues = envIssues ?? [];
       this.testIssues = testIssues ?? [];
-    } catch {
+    } catch (err) {
+      if (generation !== this._initGeneration) return;
       // api already surfaced the error to the UI; leave the cleared state
       // in place so the page shows an empty/error view rather than stale data.
+      this.artefact = null;
+      if (
+        err instanceof FetchError &&
+        (err.status === 401 || err.status === 403)
+      ) {
+        const authStatus = await userStore.refresh(fetch);
+        if (generation !== this._initGeneration) return;
+        if (err.status === 403 && authStatus === "authenticated") {
+          this.accessError = "forbidden";
+        } else if (authStatus === "unknown") {
+          this.accessError = "sessionCheckFailed";
+        } else {
+          this.accessError = "requiresLogin";
+        }
+      }
     } finally {
       // Only the most recent init() owns the loading flag.
       if (generation === this._initGeneration) this.loading = false;
+    }
+  }
+
+  private async loadEnvironmentIssues() {
+    try {
+      const issues = await api<EnvironmentReportedIssueResponse[]>(
+        "/environments/reported-issues",
+        {},
+        { ignoreForbidden: true },
+      );
+      return issues;
+    } catch {
+      return null;
     }
   }
 
@@ -199,7 +272,9 @@ export class ArtefactPageStore {
     return this._testResults[executionId];
   }
 
-  getTestEvents(executionId: number): TestEvent[] | "loading" | undefined {
+  getTestEvents(
+    executionId: number,
+  ): TestEvent[] | "loading" | "error" | undefined {
     return this._testEvents[executionId];
   }
 
@@ -208,7 +283,7 @@ export class ArtefactPageStore {
     const generation = this._initGeneration;
     this._testResults[executionId] = "loading";
     try {
-      const data = await api<TestResult[]>(
+      const data = await silentApi<TestResult[]>(
         `/test-executions/${executionId}/test-results`,
       );
       if (generation !== this._initGeneration) return;
@@ -222,20 +297,21 @@ export class ArtefactPageStore {
   }
 
   async fetchTestEvents(executionId: number) {
-    if (this._testEvents[executionId]) return;
+    const cachedEvents = this._testEvents[executionId];
+    if (cachedEvents && cachedEvents !== "error") return;
     const generation = this._initGeneration;
     this._testEvents[executionId] = "loading";
     try {
-      const data = await api<TestEvent[]>(
+      const data = await silentApi<TestEvent[]>(
         `/test-executions/${executionId}/status_update`,
       );
       if (generation !== this._initGeneration) return;
       this._testEvents = { ...this._testEvents, [executionId]: data ?? [] };
     } catch {
       if (generation !== this._initGeneration) return;
-      // Drop the "loading" marker so a later call retries instead of caching
-      // the failure as an empty event list.
-      this._testEvents = { ...this._testEvents, [executionId]: undefined };
+      // Preserve a retryable local failure state without opening the global
+      // error popup for this lazy, recoverable request.
+      this._testEvents = { ...this._testEvents, [executionId]: "error" };
     }
   }
 
@@ -356,12 +432,23 @@ export class ArtefactPageStore {
   }
 
   // Environment issues CRUD
+  private async requireEnvironmentIssueMutationAccess() {
+    const authStatus = await userStore.refresh(fetch);
+    if (authStatus !== "authenticated") {
+      throw new Error("An authenticated session is required to mutate issues");
+    }
+    if (!userStore.hasPermission("change_environment_reported_issue")) {
+      throw new Error("Environment issue mutations are not permitted");
+    }
+  }
+
   async createEnvironmentIssue(
     body: Omit<
       EnvironmentReportedIssueResponse,
       "id" | "created_at" | "updated_at"
     >,
   ) {
+    await this.requireEnvironmentIssueMutationAccess();
     const mutation = {
       page: this._initGeneration,
       generation: 0,
@@ -389,6 +476,7 @@ export class ArtefactPageStore {
   ) {
     const current = this.environmentIssues.find((i) => i.id === id);
     if (!current) return;
+    await this.requireEnvironmentIssueMutationAccess();
     const mutation = this.beginMutation(`environment-issue:${id}`);
     // The backend PUT replaces the whole record, so send a complete payload
     // built from the current issue merged with the requested changes.
@@ -416,6 +504,7 @@ export class ArtefactPageStore {
   }
 
   async deleteEnvironmentIssue(id: number) {
+    await this.requireEnvironmentIssueMutationAccess();
     const mutation = this.beginMutation(`environment-issue:${id}`);
     await api<null>(`/environments/reported-issues/${id}`, {
       method: "DELETE",

@@ -18,6 +18,8 @@ export interface User {
   email: string;
   name: string;
   launchpad_handle: string | null;
+  teams: { permissions: string[] }[];
+  is_admin: boolean;
 }
 
 export interface Family {

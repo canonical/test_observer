@@ -11,13 +11,15 @@
     allEnvironmentReviewsCount,
     completedEnvironmentReviewsCount,
   }: {
-    reviewers: User[] | undefined | null;
+    reviewers: Pick<User, 'id' | 'name'>[] | undefined | null;
     allEnvironmentReviewsCount: number;
     completedEnvironmentReviewsCount: number;
   } = $props();
 
   const reviewers = $derived(rawReviewers ?? []);
-  const remaining = $derived(allEnvironmentReviewsCount - completedEnvironmentReviewsCount);
+  const remaining = $derived(
+    allEnvironmentReviewsCount - completedEnvironmentReviewsCount,
+  );
 </script>
 
 <div class="reviewers-row">
@@ -28,7 +30,10 @@
     <span class="more">+{reviewers.length - 3}</span>
   {/if}
   {#if allEnvironmentReviewsCount > 0}
-    <Badge value={remaining} severity={remaining === 0 ? 'positive' : 'caution'} />
+    <Badge
+      value={remaining}
+      severity={remaining === 0 ? 'positive' : 'caution'}
+    />
   {/if}
 </div>
 
