@@ -16,6 +16,7 @@
 import itertools
 import logging
 from collections.abc import Sequence
+from typing import TypedDict
 
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.models_enums import FamilyName, StageName
@@ -32,44 +33,50 @@ POCKET_PROMOTION_MAP = {
 }
 
 
+class PromotionUpdate(TypedDict, total=False):
+    stage: StageName
+    archived: bool
+
+
 def process_artefact_promotions(
     snap_artefacts: Sequence[Artefact],
     deb_artefacts: Sequence[Artefact],
-) -> tuple[dict[str, bool], dict[str, str]]:
+) -> tuple[dict[int, bool | None], dict[int, str], dict[int, PromotionUpdate]]:
     """
     Fetch promotion data for all artefacts via HTTP. Does not write to the database.
 
     :snap_artefacts: Snap Artefact objects (detached from any session)
     :deb_artefacts: Deb Artefact objects (detached from any session)
-    :return: tuple of (processed statuses, error messages) keyed by artefact identifier
+    :return: processed statuses, error messages, and update values keyed by artefact ID
     """
-    processed_artefacts_status: dict[str, bool] = {}
-    processed_artefacts_error_messages: dict[str, str] = {}
+    processed_artefacts_status: dict[int, bool | None] = {}
+    processed_artefacts_error_messages: dict[int, str] = {}
+    promotion_updates: dict[int, PromotionUpdate] = {}
 
     for snap in snap_artefacts:
-        artefact_key = f"{FamilyName.snap} - {snap.name} - {snap.version}"
         try:
-            processed_artefacts_status[artefact_key] = True
             new_stage = fetch_snap_promotion(snap)
-            _apply_snap_promotion(snap, new_stage)
+            promotion_updates[snap.id] = _apply_snap_promotion(snap, new_stage)
+            processed_artefacts_status[snap.id] = True
         except Exception as exc:
-            processed_artefacts_status[artefact_key] = False
-            processed_artefacts_error_messages[artefact_key] = str(exc)
-            logger.warning("WARNING: %s", str(exc), exc_info=True)
+            processed_artefacts_status[snap.id] = False
+            processed_artefacts_error_messages[snap.id] = str(exc)
+            logger.warning("Failed to process artefact %s: %s", snap.id, exc, exc_info=True)
 
     for deb in deb_artefacts:
-        artefact_key = f"{FamilyName.deb} - {deb.name} - {deb.version}"
         try:
-            processed_artefacts_status[artefact_key] = True
             result = fetch_deb_promotion(deb)
-            if result is not None:
-                _apply_deb_promotion(deb, result)
+            if result is None:
+                processed_artefacts_status[deb.id] = None
+                continue
+            promotion_updates[deb.id] = _apply_deb_promotion(deb, result)
+            processed_artefacts_status[deb.id] = True
         except Exception as exc:
-            processed_artefacts_status[artefact_key] = False
-            processed_artefacts_error_messages[artefact_key] = str(exc)
-            logger.warning("WARNING: %s", str(exc), exc_info=True)
+            processed_artefacts_status[deb.id] = False
+            processed_artefacts_error_messages[deb.id] = str(exc)
+            logger.warning("Failed to process artefact %s: %s", deb.id, exc, exc_info=True)
 
-    return processed_artefacts_status, processed_artefacts_error_messages
+    return processed_artefacts_status, processed_artefacts_error_messages, promotion_updates
 
 
 def fetch_snap_promotion(snap: Artefact) -> StageName | None:
@@ -96,11 +103,13 @@ def fetch_snap_promotion(snap: Artefact) -> StageName | None:
         return None  # no matching channel map — archive the snap
 
 
-def _apply_snap_promotion(snap: Artefact, new_stage: StageName | None) -> None:
+def _apply_snap_promotion(snap: Artefact, new_stage: StageName | None) -> PromotionUpdate:
     if new_stage is None:
         snap.archived = True
-    else:
-        snap.stage = new_stage
+        return {"archived": True}
+
+    snap.stage = new_stage
+    return {"stage": new_stage}
 
 
 def fetch_deb_promotion(artefact: Artefact) -> tuple[bool, StageName | None] | None:
@@ -136,7 +145,11 @@ def fetch_deb_promotion(artefact: Artefact) -> tuple[bool, StageName | None] | N
     return name_found, highest_pocket_found
 
 
-def _apply_deb_promotion(artefact: Artefact, result: tuple[bool, StageName | None]) -> None:
+def _apply_deb_promotion(artefact: Artefact, result: tuple[bool, StageName | None]) -> PromotionUpdate:
     name_found, highest_pocket_found = result
     artefact.archived = name_found and not highest_pocket_found
-    artefact.stage = highest_pocket_found or artefact.stage
+    update: PromotionUpdate = {"archived": artefact.archived}
+    if highest_pocket_found is not None:
+        artefact.stage = highest_pocket_found
+        update["stage"] = highest_pocket_found
+    return update

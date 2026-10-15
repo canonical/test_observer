@@ -20,8 +20,10 @@ from fastapi import Depends, HTTPException, Query, Response, Security, status
 from fastapi.security import SecurityScopes
 from sqlalchemy import Select, and_, asc, delete, desc, func, literal, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy.orm.attributes import set_committed_value
 
+from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import (
     has_amr_permissions,
@@ -51,7 +53,7 @@ from test_observer.data_access.models import (
     TestResult,
     User,
 )
-from test_observer.data_access.repository import get_or_create
+from test_observer.data_access.repository import get_or_create, populate_expected_environment_status
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
 
@@ -164,7 +166,11 @@ def _delete_reruns(db: Session, conditions: list) -> None:
 def _create_rerun_request(
     test_execution_id: int, db: Session, priority: int | None = None
 ) -> TestExecutionRerunRequest:
-    te = db.get(TestExecution, test_execution_id)
+    te = db.get(
+        TestExecution,
+        test_execution_id,
+        options=[joinedload(TestExecution.artefact_build).joinedload(ArtefactBuild.artefact)],
+    )
     if not te:
         raise _TestExecutionNotFound
 
@@ -182,6 +188,8 @@ def _create_rerun_request(
     # so explicitly update priority here.
     if priority is not None:
         rerun.priority = priority
+    # Reuse the already loaded artefact build in the response
+    set_committed_value(rerun, "artefact_build", te.artefact_build)
     return rerun
 
 
@@ -294,6 +302,11 @@ def create_rerun_requests(
     if len(rerun_requests) != len(request.test_execution_ids):
         response.status_code = status.HTTP_207_MULTI_STATUS
 
+    populate_expected_environment_status(
+        db,
+        [rerun.artefact_build.artefact for rerun in rerun_requests],
+    )
+
     db.commit()
 
     return rerun_requests
@@ -306,7 +319,13 @@ def create_rerun_requests(
 )
 def get_rerun_requests(
     family: FamilyName | None = None,
-    limit: int | None = None,
+    # This is a work queue without an offset, so leaving out `limit` still
+    # returns every pending rerun: capping the default would hide queued
+    # reruns from callers that cannot page. An explicit `limit` is capped.
+    limit: Annotated[
+        int | None,
+        Query(ge=0, le=MAX_LISTING_PAGE_LIMIT, description="Maximum number of rerun requests to return"),
+    ] = None,
     environment: str | None = None,
     environment_architecture: str | None = None,
     build_architecture: str | None = None,
@@ -320,7 +339,10 @@ def get_rerun_requests(
         .options(
             selectinload(TestExecutionRerunRequest.artefact_build)
             .selectinload(ArtefactBuild.artefact)
-            .selectinload(Artefact.reviewers),
+            .options(
+                selectinload(Artefact.reviewers),
+                selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
+            ),
             selectinload(TestExecutionRerunRequest.environment),
             selectinload(TestExecutionRerunRequest.test_plan),
             selectinload(TestExecutionRerunRequest.test_executions),
@@ -347,7 +369,9 @@ def get_rerun_requests(
     if limit is not None:
         stmt = stmt.limit(limit)
 
-    return db.scalars(stmt)
+    reruns = db.scalars(stmt).all()
+    populate_expected_environment_status(db, [rerun.artefact_build.artefact for rerun in reruns])
+    return reruns
 
 
 @router.get(

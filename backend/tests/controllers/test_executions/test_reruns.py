@@ -180,6 +180,8 @@ def test_execution_to_pending_rerun(test_execution: TestExecution, priority: int
             "completed_environment_reviews_count": (
                 test_execution.artefact_build.artefact.completed_environment_reviews_count
             ),
+            "expected_environments": test_execution.artefact_build.artefact.expected_environments,
+            "missing_expected_environments": test_execution.artefact_build.artefact.missing_expected_environments,
             "family": test_execution.artefact_build.artefact.family,
             "created_at": (test_execution.artefact_build.artefact.created_at.isoformat()),
             "attributes": test_execution.artefact_build.artefact.attributes,

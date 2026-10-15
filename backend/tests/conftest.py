@@ -34,6 +34,13 @@ from sqlalchemy_utils import (  # type: ignore
     drop_database,
 )
 
+# Raise the execution search cap for tests (e.g. the performance benchmarks'
+# execution-search-1000 scenario) without changing the production default.
+# Must be set before test_observer.common.config is imported, since it reads
+# the environment at import time. setdefault so a value set outside pytest
+# (CI, docker compose) still takes precedence.
+environ.setdefault("MAX_EXECUTION_PAGE_LIMIT", "1000")
+
 from test_observer.common.config import SESSIONS_SECRET
 from test_observer.common.enums import Permission
 from test_observer.controllers.applications.application_injection import (

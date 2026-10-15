@@ -25,6 +25,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.common.config import MAX_RESULT_PAGE_LIMIT
 from test_observer.common.constants import QueryValue
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
@@ -43,6 +44,7 @@ from test_observer.data_access.models_enums import (
     TestExecutionStatus,
     TestResultStatus,
 )
+from test_observer.data_access.repository import populate_expected_environment_status
 from test_observer.data_access.setup import get_db
 
 from .filter_test_results import filter_test_results
@@ -140,9 +142,6 @@ def _search_with_result_details(
         selectinload(TestResult.issue_attachments)
         .selectinload(IssueTestResultAttachment.attachment_rule)
         .selectinload(IssueTestResultAttachmentRule.execution_metadata),
-        # Pre-load all builds + environment reviews for each artefact
-        # so that Artefact.all_environment_reviews_count and completed_environment_reviews_count
-        # can evaluate without additional queries
         _artefact.selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
     )
     query = filter_test_results(query, filters)
@@ -158,6 +157,10 @@ def _search_with_result_details(
 
     rows = db.execute(query).scalars().all()
     total = db.execute(count_query).scalar() or 0
+    populate_expected_environment_status(
+        db,
+        [result.test_execution.artefact_build.artefact for result in rows],
+    )
     return list(rows), total
 
 
@@ -239,7 +242,9 @@ def search_test_results(
     ] = None,
     from_date: Annotated[datetime | None, Query(description="Filter results from this timestamp")] = None,
     until_date: Annotated[datetime | None, Query(description="Filter results until this timestamp")] = None,
-    limit: Annotated[int, Query(ge=0, le=1000, description="Maximum number of results to return")] = 50,
+    limit: Annotated[
+        int, Query(ge=0, le=MAX_RESULT_PAGE_LIMIT, description="Maximum number of results to return")
+    ] = 50,
     offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination")] = 0,
     db: Session = Depends(get_db),
 ) -> TestResultSearchResponseWithContext:

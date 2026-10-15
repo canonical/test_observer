@@ -19,6 +19,19 @@ SPDX-License-Identifier: GPL-3.0-only
 
 The frontend of Test Observer is a web application developed in Flutter.
 
+## SvelteKit UI rewrite (development)
+
+For development of the SvelteKit UI rewrite, run the commands below from the repository root (where the `justfile` is located):
+
+```bash
+export TEST_OBSERVER_API_URL=https://test-observer-api-staging.canonical.com
+export TEST_OBSERVER_API_KEY=<read-only-key>
+
+just          # list available recipes
+just up       # start the frontend container
+just down     # stop the frontend container
+```
+
 ## Setup
 
 Install flutter snap:

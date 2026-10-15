@@ -39,12 +39,24 @@ from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import APIError, ExecError, Layer
 from requests import get
+from validators.base import ValidationResult
+from validators.update_status_check import ValidationStatusStore, run_simple_check
+from validators.validate_action import observe_validate_action
 
 # Log messages can be retrieved using juju debug-log
 logger = logging.getLogger(__name__)
 
 INGRESS_RELATION_NAME = "ingress"
 INGRESS_CONFLICT_MESSAGE = "Cannot have both ingress and nginx-route relations at the same time"
+
+# Charm options for the largest page each kind of paginated endpoint accepts,
+# and the API settings they become. The API refuses values below MIN_PAGE_LIMIT.
+PAGE_LIMIT_OPTIONS = {
+    "max_execution_page_limit": "MAX_EXECUTION_PAGE_LIMIT",
+    "max_result_page_limit": "MAX_RESULT_PAGE_LIMIT",
+    "max_listing_page_limit": "MAX_LISTING_PAGE_LIMIT",
+}
+MIN_PAGE_LIMIT = 50
 
 PEER_RELATION_NAME = "test-observer-peers"
 # Key in the peer application databag holding the Alembic revision the database
@@ -137,12 +149,15 @@ class TestObserverBackendCharm(CharmBase):
 
         self._setup_redis()
 
+        self._validation_status = ValidationStatusStore(self)
+
         self.framework.observe(self.on.delete_artefact_action, self._on_delete_artefact_action)
         self.framework.observe(self.on.add_user_action, self._on_add_user_action)
         self.framework.observe(self.on.change_assignee_action, self._on_change_assignee_action)
         self.framework.observe(
             self.on.promote_user_to_admin_action, self._on_promote_user_to_admin_action
         )
+        observe_validate_action(self)
 
         # The ops framework triggers a CollectStatusEvent at the end of each hook
         self.framework.observe(self.on.collect_unit_status, self._on_collect_unit_status)
@@ -293,6 +308,51 @@ class TestObserverBackendCharm(CharmBase):
             self._update_api_layer()
             self._update_celery_layer()
 
+        self._run_integration_check()
+
+    def _run_integration_check(self) -> None:
+        """Run the simple-level integration check and record the outcome.
+
+        Results are stored so `_on_collect_unit_status` can surface a Blocked
+        status without re-running the validators on every hook. Gated on the
+        data_interfaces readiness check, which is stricter than the engine's
+        own "any data published" gate.
+        """
+        previous_status = self._validation_status.status()
+        if not self._database_relation_ready():
+            self._validation_status.clear()
+            if isinstance(self.unit.status, ActiveStatus) or self.unit.status == previous_status:
+                self.unit.status = WaitingStatus("Waiting for database relation")
+            return
+
+        results = run_simple_check(self).results
+        if not any(
+            result.endpoint == "database"
+            and result.interface == "postgresql_client"
+            and result.status != "SKIPPED"
+            for result in results
+        ):
+            logger.error(
+                "Integration check produced no result for the required PostgreSQL validator"
+            )
+            results.append(
+                ValidationResult(
+                    status="ERROR",
+                    endpoint="database",
+                    interface="postgresql_client",
+                    role="requires",
+                    level="simple",
+                    relation_id=self._current_database_relation_id(),
+                    error="The required PostgreSQL validator did not produce a result.",
+                )
+            )
+        self._validation_status.record(results)
+        if previous_status is not None and self._validation_status.status() is None:
+            if self.unit.status == previous_status:
+                self.unit.status = ActiveStatus()
+        elif self.unit.status == WaitingStatus("Waiting for database relation"):
+            self.unit.status = ActiveStatus()
+
     def _on_peer_relation_changed(self, event) -> None:
         # The published migration revision may have changed; reconcile the
         # workload layers so units start once the schema they expect is ready.
@@ -358,7 +418,10 @@ class TestObserverBackendCharm(CharmBase):
         if self.model.get_relation("database") is None:
             return False
         data = self.database.fetch_relation_data()
-        return any(val and val.get("endpoints") for val in data.values())
+        required_fields = ("endpoints", "username", "password")
+        return any(
+            val and all(val.get(field) for field in required_fields) for val in data.values()
+        )
 
     def _get_published_db_relation_id(self) -> int | None:
         """Return the database relation id the recorded migration applies to."""
@@ -439,6 +502,10 @@ class TestObserverBackendCharm(CharmBase):
             )
             return
 
+        if page_limit_error := self._page_limit_config_error():
+            self.unit.status = BlockedStatus(page_limit_error)
+            return
+
         # Don't reconcile layers if the migration set a blocking/waiting status,
         # otherwise that status would be masked by the layer update below.
         if not self._migrate_database():
@@ -449,6 +516,19 @@ class TestObserverBackendCharm(CharmBase):
     def _on_database_relation_broken(self, event):
         self.unit.status = WaitingStatus("Waiting for database relation")
         raise SystemExit(0)
+
+    def _page_limit_config_error(self) -> str | None:
+        """Return why the page limit options are invalid, or None if they are valid.
+
+        The API refuses to start with a page limit below MIN_PAGE_LIMIT, so block
+        the unit with a clear message instead of letting it crash-loop.
+        """
+        too_low = [
+            option for option in PAGE_LIMIT_OPTIONS if int(self.config[option]) < MIN_PAGE_LIMIT
+        ]
+        if too_low:
+            return f"{', '.join(too_low)} must be at least {MIN_PAGE_LIMIT}"
+        return None
 
     def _validate_saml_config(self) -> bool:
         """Validate SAML configuration.
@@ -479,6 +559,10 @@ class TestObserverBackendCharm(CharmBase):
             )
             return
 
+        if page_limit_error := self._page_limit_config_error():
+            self.unit.status = BlockedStatus(page_limit_error)
+            return
+
         self.ingress.provide_ingress_requirements(port=int(self.config["port"]))
         self._update_frontend_relation_data()
         self._update_api_layer(event)
@@ -490,6 +574,10 @@ class TestObserverBackendCharm(CharmBase):
                 "SAML config incomplete: if any SAML setting is provided, "
                 "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
             )
+            return
+
+        if page_limit_error := self._page_limit_config_error():
+            self.unit.status = BlockedStatus(page_limit_error)
             return
 
         if not self.api_container.can_connect():
@@ -525,6 +613,10 @@ class TestObserverBackendCharm(CharmBase):
                 "SAML config incomplete: if any SAML setting is provided, "
                 "all of saml_idp_metadata_url, saml_sp_cert, and saml_sp_key must be set"
             )
+            return
+
+        if page_limit_error := self._page_limit_config_error():
+            self.unit.status = BlockedStatus(page_limit_error)
             return
 
         if not self.celery_container.can_connect():
@@ -594,6 +686,8 @@ class TestObserverBackendCharm(CharmBase):
                 self.config.get("require_authentication", False)
             ).lower(),
         }
+        for option, variable in PAGE_LIMIT_OPTIONS.items():
+            env[variable] = str(self.config[option])
         # Only set SAML environment variables if IDP metadata URL is provided
         if self.config.get("saml_idp_metadata_url"):
             env["SAML_IDP_METADATA_URL"] = str(self.config["saml_idp_metadata_url"])
@@ -783,6 +877,14 @@ class TestObserverBackendCharm(CharmBase):
             if not has_ingress_conflict:
                 event.add_status(ActiveStatus())
             return
+
+        # Surface the last integration check (see _run_integration_check) as a
+        # Blocked status, unless a more specific status was already added above.
+        if (
+            isinstance(self.unit.status, ActiveStatus)
+            and (status := self._validation_status.status()) is not None
+        ):
+            event.add_status(status)
 
     def _get_url(self) -> str:
         """Get the URL to use for this charm's service."""

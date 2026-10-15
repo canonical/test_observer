@@ -64,10 +64,11 @@ def get_test_execution(
     id: int,
     db: Session = Depends(get_db),
 ):
+    # TestExecutionResponse has no test_results, so do not load them.
     test_execution = db.get(
         TestExecution,
         id,
-        options=TEST_EXECUTION_OPTIONS,
+        options=BASE_TEST_EXECUTION_OPTIONS,
     )
 
     if test_execution is None:
@@ -118,7 +119,7 @@ def patch_test_execution(
     test_execution = db.get(
         TestExecution,
         id,
-        options=TEST_EXECUTION_OPTIONS,
+        options=BASE_TEST_EXECUTION_OPTIONS,
     )
     return test_execution
 

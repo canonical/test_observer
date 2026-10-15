@@ -149,6 +149,7 @@ class DataGenerator:
         due_date: date | None = None,
         reviewers: list[User] | None = None,
         attributes: dict[str, Any] | None = None,
+        expected_environments: list[Environment] | None = None,
     ) -> Artefact:
         family = FamilyName(family)
 
@@ -184,6 +185,7 @@ class DataGenerator:
             due_date=due_date,
             reviewers=reviewers,
             attributes=attributes,
+            expected_environments=expected_environments or [],
         )
         self._add_object(artefact)
         return artefact

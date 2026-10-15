@@ -373,14 +373,18 @@
             "schema": {
               "anyOf": [
                 {
-                  "type": "integer"
+                  "type": "integer",
+                  "maximum": 1000,
+                  "minimum": 0
                 },
                 {
                   "type": "null"
                 }
               ],
+              "description": "Maximum number of rerun requests to return",
               "title": "Limit"
-            }
+            },
+            "description": "Maximum number of rerun requests to return"
           },
           {
             "name": "environment",
@@ -1103,7 +1107,7 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 1000,
+              "maximum": 50,
               "minimum": 0,
               "description": "Maximum number of results to return",
               "default": 50,
@@ -1710,6 +1714,42 @@
         },
         "x-permissions": [
           "view_artefact"
+        ]
+      },
+      "delete": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Delete Artefact",
+        "operationId": "delete_artefact_v1_artefacts__artefact_id__delete",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "delete_artefact"
         ]
       },
       "patch": {
@@ -6630,6 +6670,21 @@
             ],
             "title": "Attributes"
           },
+          "expected_environments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ExpectedEnvironmentInput"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Environments",
+            "description": "Expected environments, replacing the current set. Each environment is identified by name and architecture."
+          },
           "assignee_id": {
             "anyOf": [
               {
@@ -6819,6 +6874,20 @@
             "type": "integer",
             "title": "Completed Environment Reviews Count"
           },
+          "expected_environments": {
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentResponse"
+            },
+            "type": "array",
+            "title": "Expected Environments"
+          },
+          "missing_expected_environments": {
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentResponse"
+            },
+            "type": "array",
+            "title": "Missing Expected Environments"
+          },
           "assignee": {
             "anyOf": [
               {
@@ -6861,6 +6930,8 @@
           "jira_issue",
           "all_environment_reviews_count",
           "completed_environment_reviews_count",
+          "expected_environments",
+          "missing_expected_environments",
           "assignee"
         ],
         "title": "ArtefactResponse"
@@ -7306,6 +7377,26 @@
           "execution_metadata"
         ],
         "title": "ExecutionMetadataGetResponse"
+      },
+      "ExpectedEnvironmentInput": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Name"
+          },
+          "architecture": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Architecture"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "architecture"
+        ],
+        "title": "ExpectedEnvironmentInput"
       },
       "FamilyName": {
         "type": "string",
@@ -8043,6 +8134,7 @@
           "change_rerun_bulk",
           "view_artefact",
           "change_artefact",
+          "delete_artefact",
           "view_environment_review",
           "change_environment_review",
           "view_report",
@@ -8339,6 +8431,15 @@
             "title": "Environment",
             "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
           },
+          "expected_environments": {
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "type": "array",
+            "title": "Expected Environments",
+            "description": "Environment names expected for this artefact, resolved using this request's architecture. Only applied when this request creates the artefact."
+          },
           "ci_link": {
             "anyOf": [
               {
@@ -8440,6 +8541,15 @@
             "type": "string",
             "title": "Environment",
             "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
+          },
+          "expected_environments": {
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "type": "array",
+            "title": "Expected Environments",
+            "description": "Environment names expected for this artefact, resolved using this request's architecture. Only applied when this request creates the artefact."
           },
           "ci_link": {
             "anyOf": [
@@ -8574,6 +8684,15 @@
             "type": "string",
             "title": "Environment",
             "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
+          },
+          "expected_environments": {
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "type": "array",
+            "title": "Expected Environments",
+            "description": "Environment names expected for this artefact, resolved using this request's architecture. Only applied when this request creates the artefact."
           },
           "ci_link": {
             "anyOf": [
@@ -8719,6 +8838,15 @@
             "title": "Environment",
             "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
           },
+          "expected_environments": {
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "type": "array",
+            "title": "Expected Environments",
+            "description": "Environment names expected for this artefact, resolved using this request's architecture. Only applied when this request creates the artefact."
+          },
           "ci_link": {
             "anyOf": [
               {
@@ -8827,6 +8955,15 @@
             "type": "string",
             "title": "Environment",
             "description": "Name of the test execution environment. This can identify the specific physical device, VM, or container where tests run or logical environment like a test lab or cloud region. Examples: 'cm3', 'rpi4', 'lxd-vm', 'aws-ec2'. The environment will be auto-created if it doesn't exist."
+          },
+          "expected_environments": {
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            },
+            "type": "array",
+            "title": "Expected Environments",
+            "description": "Environment names expected for this artefact, resolved using this request's architecture. Only applied when this request creates the artefact."
           },
           "ci_link": {
             "anyOf": [

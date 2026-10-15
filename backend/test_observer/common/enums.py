@@ -44,6 +44,7 @@ class Permission(StrEnum):
     # Artefacts
     view_artefact = auto()
     change_artefact = auto()
+    delete_artefact = auto()
 
     # Environment reviews
     view_environment_review = auto()

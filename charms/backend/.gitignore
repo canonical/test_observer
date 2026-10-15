@@ -24,3 +24,13 @@ build/
 __pycache__/
 *.py[cod]
 .idea
+
+# charmcraft build artifacts (e.g. from `charmcraft pack`)
+parts/
+stage/
+prime/
+
+# test / lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

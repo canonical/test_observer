@@ -20,10 +20,21 @@ from typing import Any
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import event
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models import Artefact, Notification, TestExecution
+from test_observer.data_access.models import (
+    Artefact,
+    ArtefactBuildEnvironmentReview,
+    IssueTestResultAttachment,
+    Notification,
+    TestEvent,
+    TestExecution,
+    TestExecutionMetadata,
+    TestExecutionRelevantLink,
+    TestResult,
+)
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
@@ -404,6 +415,129 @@ def test_patch_artefact_with_explicit_null_attributes_clears_them(
         Permission.view_artefact,
     )
     assert get_response.json()["attributes"] == {}
+
+
+def test_patch_artefact_replaces_expected_environments(test_client: TestClient, generator: DataGenerator):
+    old_environment = generator.gen_environment(name="old", architecture="amd64")
+    expected_environment = generator.gen_environment(name="expected", architecture="arm64")
+    artefact = generator.gen_artefact(expected_environments=[old_environment])
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"expected_environments": [{"name": "expected", "architecture": "arm64"}]},
+        ),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["expected_environments"] == [
+        {"id": expected_environment.id, "name": "expected", "architecture": "arm64"}
+    ]
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(f"/v1/artefacts/{artefact.id}", json={"expected_environments": []}),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["expected_environments"] == []
+    assert response.json()["missing_expected_environments"] == []
+
+
+@pytest.mark.parametrize(
+    ("name", "architecture"),
+    [
+        ("e" * 201, "amd64"),
+        ("expected", "a" * 101),
+    ],
+)
+def test_patch_artefact_rejects_overlong_expected_environment_fields(
+    test_client: TestClient,
+    generator: DataGenerator,
+    name: str,
+    architecture: str,
+):
+    artefact = generator.gen_artefact()
+
+    response = test_client.patch(
+        f"/v1/artefacts/{artefact.id}",
+        json={"expected_environments": [{"name": name, "architecture": architecture}]},
+    )
+
+    assert response.status_code == 422
+
+
+def test_missing_expected_environments_checks_latest_builds(test_client: TestClient, generator: DataGenerator):
+    latest_environment = generator.gen_environment(name="latest", architecture="amd64")
+    old_build_environment = generator.gen_environment(name="old-build", architecture="amd64")
+    artefact = generator.gen_artefact(expected_environments=[latest_environment, old_build_environment])
+    old_build = generator.gen_artefact_build(artefact, revision=1)
+    latest_build = generator.gen_artefact_build(artefact, revision=2)
+    generator.gen_test_execution(old_build, old_build_environment)
+    generator.gen_test_execution(latest_build, latest_environment)
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    assert [environment["name"] for environment in response.json()["missing_expected_environments"]] == ["old-build"]
+
+
+def test_missing_expected_environments_sorts_null_revision_after_zero(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    null_revision_environment = generator.gen_environment(name="null-revision")
+    zero_revision_environment = generator.gen_environment(name="zero-revision")
+    artefact = generator.gen_artefact(
+        family=FamilyName.deb,
+        expected_environments=[null_revision_environment, zero_revision_environment],
+    )
+    null_revision_build = generator.gen_artefact_build(artefact, revision=None)
+    zero_revision_build = generator.gen_artefact_build(artefact, revision=0)
+    generator.gen_test_execution(null_revision_build, null_revision_environment)
+    generator.gen_test_execution(zero_revision_build, zero_revision_environment)
+
+    response = make_authenticated_request(
+        lambda: test_client.get(f"/v1/artefacts/{artefact.id}"),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    assert [environment["name"] for environment in response.json()["missing_expected_environments"]] == [
+        "null-revision"
+    ]
+
+
+def test_get_artefacts_skips_execution_query_without_expected_environments(
+    test_client: TestClient,
+    generator: DataGenerator,
+    db_session: Session,
+):
+    artefact = generator.gen_artefact()
+    build = generator.gen_artefact_build(artefact)
+    generator.gen_test_execution(build, generator.gen_environment())
+    statements: list[str] = []
+    connection = db_session.connection()
+
+    def record(_connection: object, _cursor: object, statement: str, *_: object) -> None:
+        statements.append(statement)
+
+    event.listen(connection, "before_cursor_execute", record)
+    try:
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/artefacts", params={"family": "snap"}),
+            Permission.view_artefact,
+        )
+    finally:
+        event.remove(connection, "before_cursor_execute", record)
+
+    assert response.status_code == 200
+    assert next(item for item in response.json() if item["id"] == artefact.id)["missing_expected_environments"] == []
+    assert not any("from test_execution" in statement.lower() for statement in statements)
 
 
 def test_artefact_signoff_ignore_old_build_on_approve(test_client: TestClient, generator: DataGenerator):
@@ -1320,6 +1454,13 @@ def _assert_get_artefact_response(response: dict[str, Any], artefact: Artefact) 
         "jira_issue": artefact.jira_issue,
         "all_environment_reviews_count": artefact.all_environment_reviews_count,
         "completed_environment_reviews_count": artefact.completed_environment_reviews_count,  # noqa: E501
+        "expected_environments": [
+            {"id": env.id, "name": env.name, "architecture": env.architecture} for env in artefact.expected_environments
+        ],
+        "missing_expected_environments": [
+            {"id": env.id, "name": env.name, "architecture": env.architecture}
+            for env in artefact.missing_expected_environments
+        ],
         "created_at": artefact.created_at.isoformat(),
     }
     if artefact.reviewers:
@@ -1602,3 +1743,177 @@ class TestArtefactPatchAMRPermissions:
             assert response.json()["comment"] == "Updated despite no permissions"
         finally:
             del app.dependency_overrides[get_current_user]
+
+
+class TestArtefactDeletePermissions:
+    def test_delete_artefact_with_permission(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+        db_session: Session,
+    ):
+        artefact = generator.gen_artefact(stage=StageName.beta)
+
+        response = make_authenticated_request(
+            lambda: test_client.delete(f"/v1/artefacts/{artefact.id}"),
+            Permission.delete_artefact,
+        )
+
+        assert response.status_code == 204
+        db_session.expire_all()
+        assert db_session.get(Artefact, artefact.id) is None
+
+    def test_delete_artefact_with_environment_reviews(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+        db_session: Session,
+    ):
+        artefact = generator.gen_artefact(stage=StageName.beta)
+        build = generator.gen_artefact_build(artefact)
+        environment = generator.gen_environment()
+        review = generator.gen_artefact_build_environment_review(
+            build,
+            environment,
+            review_decision=[],
+        )
+        test_case = generator.gen_test_case()
+        test_execution = generator.gen_test_execution(
+            build,
+            environment,
+            execution_metadata={"hardware": ["delete-cascade-device"]},
+            relevant_links=[{"label": "logs", "url": "https://example.com/logs"}],
+        )
+        event = generator.gen_test_event(test_execution, "started")
+        test_result = generator.gen_test_result(test_case, test_execution)
+        issue = generator.gen_issue()
+        attachment = IssueTestResultAttachment(issue=issue, test_result=test_result)
+        generator._add_object(attachment)
+        test_execution_id = test_execution.id
+        event_id = event.id
+        test_result_id = test_result.id
+        relevant_link_id = test_execution.relevant_links[0].id
+        metadata_id = test_execution.execution_metadata[0].id
+        review_id = review.id
+        attachment_id = attachment.id
+
+        response = make_authenticated_request(
+            lambda: test_client.delete(f"/v1/artefacts/{artefact.id}"),
+            Permission.delete_artefact,
+        )
+
+        assert response.status_code == 204
+        db_session.expire_all()
+        assert db_session.get(ArtefactBuildEnvironmentReview, review_id) is None
+        assert db_session.get(IssueTestResultAttachment, attachment_id) is None
+        assert db_session.get(TestExecution, test_execution_id) is None
+        assert db_session.get(TestEvent, event_id) is None
+        assert db_session.get(TestResult, test_result_id) is None
+        assert db_session.get(TestExecutionRelevantLink, relevant_link_id) is None
+        assert db_session.get(TestExecutionMetadata, metadata_id) is None
+
+    def test_delete_artefact_preserves_shared_execution_metadata(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+        db_session: Session,
+    ):
+        first_artefact = generator.gen_artefact(name="first-artefact", stage=StageName.beta)
+        first_build = generator.gen_artefact_build(first_artefact)
+        second_artefact = generator.gen_artefact(name="second-artefact", stage=StageName.beta)
+        second_build = generator.gen_artefact_build(second_artefact)
+        environment = generator.gen_environment()
+        shared_values = {"hardware": ["shared-device"]}
+
+        deleted_execution = generator.gen_test_execution(first_build, environment, execution_metadata=shared_values)
+        retained_execution = generator.gen_test_execution(second_build, environment, execution_metadata=shared_values)
+        shared_metadata_id = deleted_execution.execution_metadata[0].id
+        retained_execution_id = retained_execution.id
+
+        response = make_authenticated_request(
+            lambda: test_client.delete(f"/v1/artefacts/{first_artefact.id}"),
+            Permission.delete_artefact,
+        )
+
+        assert response.status_code == 204
+        db_session.expire_all()
+        assert db_session.get(TestExecutionMetadata, shared_metadata_id) is not None
+        retained_execution_after_delete = db_session.get(TestExecution, retained_execution_id)
+        assert retained_execution_after_delete is not None
+        assert [(item.category, item.value) for item in retained_execution_after_delete.execution_metadata] == [
+            ("hardware", "shared-device")
+        ]
+
+    def test_delete_artefact_removes_unshared_execution_metadata(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+        db_session: Session,
+    ):
+        artefact = generator.gen_artefact(name="sole-owner-artefact", stage=StageName.beta)
+        build = generator.gen_artefact_build(artefact)
+        environment = generator.gen_environment()
+        execution = generator.gen_test_execution(
+            build,
+            environment,
+            execution_metadata={"hardware": ["sole-owner-device"]},
+        )
+        metadata_id = execution.execution_metadata[0].id
+
+        response = make_authenticated_request(
+            lambda: test_client.delete(f"/v1/artefacts/{artefact.id}"),
+            Permission.delete_artefact,
+        )
+
+        assert response.status_code == 204
+        db_session.expire_all()
+        assert db_session.get(TestExecutionMetadata, metadata_id) is None
+
+    def test_delete_artefact_with_team_permission(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(stage=StageName.beta)
+        team = generator.gen_team(name="deletion-team")
+        team.permissions = [Permission.delete_artefact]
+        user = generator.gen_user(name="authorized")
+        user.teams = [team]
+        user.is_admin = False
+        generator._add_object(user)
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.delete(f"/v1/artefacts/{artefact.id}")
+            assert response.status_code == 204
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_delete_artefact_without_permission_denied(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(stage=StageName.beta)
+        user = generator.gen_user(name="unauthorized")
+        user.teams = []
+        user.is_admin = False
+        generator._add_object(user)
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.delete(f"/v1/artefacts/{artefact.id}")
+            assert response.status_code == 403
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_delete_artefact_admin_bypasses_permission(self, test_client: TestClient, generator: DataGenerator):
+        artefact = generator.gen_artefact(stage=StageName.beta)
+        user = generator.gen_user(name="admin")
+        user.teams = []
+        user.is_admin = True
+        generator._add_object(user)
+        app.dependency_overrides[get_current_user] = lambda: user
+
+        try:
+            response = test_client.delete(f"/v1/artefacts/{artefact.id}")
+            assert response.status_code == 204
+        finally:
+            del app.dependency_overrides[get_current_user]
+
+    def test_delete_missing_artefact_returns_not_found(self, test_client: TestClient):
+        response = test_client.delete("/v1/artefacts/999999")
+
+        assert response.status_code == 404

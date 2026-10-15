@@ -21,7 +21,9 @@ from typing import Annotated, Literal, TypeVar
 from fastapi import Depends, HTTPException, Query, Security
 from sqlalchemy import and_, desc, exists, func, select
 from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm.attributes import set_committed_value
 
+from test_observer.common.config import MAX_EXECUTION_PAGE_LIMIT
 from test_observer.common.constants import QueryValue
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
@@ -32,38 +34,51 @@ from test_observer.controllers.test_executions.execution_filters import (
 )
 from test_observer.controllers.test_executions.shared_models import (
     TestExecutionSearchFilters,
-    TestResultResponse,
 )
 from test_observer.data_access.models import (
+    Artefact,
     ArtefactBuild,
+    IssueTestResultAttachment,
+    IssueTestResultAttachmentRule,
     TestExecution,
     TestExecutionMetadata,
     TestResult,
 )
 from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.repository import populate_expected_environment_status
 from test_observer.data_access.setup import get_db
 
 from .models import TestExecutionResponseWithContext, TestExecutionSearchResponse
 from .router import router
-from .test_execution import TEST_EXECUTION_OPTIONS
+from .test_execution import BASE_TEST_EXECUTION_OPTIONS
 
 T = TypeVar("T")
 
-# selectinload options used when querying from TestResult root (test_result=any/{ids})
+# The results are attached to executions the search has already loaded, so only
+# what TestResultResponse itself reads is loaded here. Loading each result's
+# execution, and through it every result of that execution again, would read
+# every io_log a second time.
 _TEST_RESULT_QUERY_OPTIONS = [
     selectinload(TestResult.test_case),
-    selectinload(TestResult.test_execution).selectinload(TestExecution.environment),
-    selectinload(TestResult.test_execution)
-    .selectinload(TestExecution.artefact_build)
-    .selectinload(ArtefactBuild.artefact),
-    selectinload(TestResult.issue_attachments),
-    selectinload(TestResult.test_execution).selectinload(TestExecution.execution_metadata),
-    selectinload(TestResult.test_execution).selectinload(TestExecution.relevant_links),
-    selectinload(TestResult.test_execution).selectinload(TestExecution.rerun_request),
-    selectinload(TestResult.test_execution).selectinload(TestExecution.test_plan),
-    selectinload(TestResult.test_execution)
-    .selectinload(TestExecution.test_results)
-    .selectinload(TestResult.issue_attachments),
+    selectinload(TestResult.issue_attachments).options(
+        selectinload(IssueTestResultAttachment.issue),
+        selectinload(IssueTestResultAttachment.attachment_rule).selectinload(
+            IssueTestResultAttachmentRule.execution_metadata
+        ),
+    ),
+]
+
+# TestExecutionResponseWithContext reads the build and artefact. Expected-environment
+# status is batch-populated before validation; reviews are preloaded for counts.
+# Reviewers stay lazy: the relationship has no order, and the legacy assignee field
+# is the first reviewer, so loading them another way could change which one that is.
+_TEST_EXECUTION_QUERY_OPTIONS = [
+    *BASE_TEST_EXECUTION_OPTIONS,
+    selectinload(TestExecution.artefact_build)
+    .selectinload(ArtefactBuild.artefact)
+    .options(
+        selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews),
+    ),
 ]
 
 
@@ -188,7 +203,9 @@ def _search_executions(
         total = db.execute(count_query).scalar() or 0
         return [], {}, total
 
-    data_query = select(TestExecution).options(*TEST_EXECUTION_OPTIONS)
+    # The options leave out TestExecution.test_results: the response carries
+    # the filtered results loaded below, not the relationship.
+    data_query = select(TestExecution).options(*_TEST_EXECUTION_QUERY_OPTIONS)
     data_query = data_query.where(TestExecution.id.in_(execution_ids))
     rows = db.execute(data_query).scalars().all()
 
@@ -204,6 +221,10 @@ def _search_executions(
 
     execution_by_id = {execution.id: execution for execution in rows}
     ordered_rows = [execution_by_id[execution_id] for execution_id in execution_ids if execution_id in execution_by_id]
+    populate_expected_environment_status(
+        db,
+        [execution.artefact_build.artefact for execution in ordered_rows],
+    )
 
     total = db.execute(count_query).scalar() or 0
     return ordered_rows, grouped_results, total
@@ -300,7 +321,9 @@ def search_test_executions(
         datetime | None,
         Query(description="Filter executions updated on or before this datetime"),
     ] = None,
-    limit: Annotated[int, Query(ge=0, le=1000, description="Maximum number of results to return")] = 50,
+    limit: Annotated[
+        int, Query(ge=0, le=MAX_EXECUTION_PAGE_LIMIT, description="Maximum number of results to return")
+    ] = 50,
     offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination")] = 0,
     db: Session = Depends(get_db),
 ) -> TestExecutionSearchResponse:
@@ -342,11 +365,11 @@ def search_test_executions(
     test_executions, grouped_results, total = _search_executions(filters, parsed_test_result, db)
     items = []
     for test_execution in test_executions:
-        filtered_results = grouped_results.get(test_execution.id, [])
-        item = TestExecutionResponseWithContext.model_validate(test_execution).model_copy(
-            update={"test_results": [TestResultResponse.model_validate(result) for result in filtered_results]}
-        )
-        items.append(item)
+        # Give the relationship the filtered results already loaded, so
+        # validation reads them instead of loading every result of the
+        # execution, io_logs included, one execution at a time.
+        set_committed_value(test_execution, "test_results", grouped_results.get(test_execution.id, []))
+        items.append(TestExecutionResponseWithContext.model_validate(test_execution))
 
     return TestExecutionSearchResponse(
         count=total,

@@ -21,6 +21,7 @@ from fastapi import APIRouter, Depends, HTTPException, Path, Query, Security
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker, requires_authentication
 from test_observer.controllers.applications.application_injection import get_current_application
@@ -58,7 +59,7 @@ def get_own_notifications(
         int,
         Query(
             ge=1,
-            le=1000,
+            le=MAX_LISTING_PAGE_LIMIT,
             description="Maximum number of results to return (default: 50)",
         ),
     ] = 50,
@@ -175,7 +176,7 @@ def get_notifications(
         int,
         Query(
             ge=1,
-            le=1000,
+            le=MAX_LISTING_PAGE_LIMIT,
             description="Maximum number of results to return (default: 50)",
         ),
     ] = 50,
