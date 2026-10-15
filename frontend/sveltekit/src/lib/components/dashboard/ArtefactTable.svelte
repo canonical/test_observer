@@ -16,8 +16,9 @@
     type GridColumns,
     type SvGridApi
   } from '@svgrid/grid';
-  import type { Artefact, Family } from '$lib/types';
+  import type { Artefact, ColumnSpec, Family } from '$lib/types';
   import { columnValue, columnColor, columnSortValue } from '$lib/artefactMetadata';
+  import { downloadCsv, toCsv } from '$lib/utils/csv';
   import ColouredCell from './ColouredCell.svelte';
   import {
     AUTOSAVE_SLOT,
@@ -36,11 +37,17 @@
     // that the default reaches the parent through the binding.
     // eslint-disable-next-line no-useless-assignment
     filtered = $bindable(false),
+    // The grid is unavailable while this component is mounting or between
+    // family changes, and the current view may have no exportable content.
+    // eslint-disable-next-line no-useless-assignment
+    exportAvailable = $bindable(false),
   }: {
     artefacts: Artefact[];
     family: Family;
     /** Whether the grid is filtered or sorted away from its defaults. */
     filtered?: boolean;
+    /** Whether the current view can be exported. */
+    exportAvailable?: boolean;
   } = $props();
 
   // Tagged with the family it belongs to: switching dashboards remounts the
@@ -62,7 +69,10 @@
   // this the header would keep offering to clear the previous family's filters
   // until the incoming grid reports its own state.
   $effect.pre(() => {
-    if (api && api.family !== family.name) filtered = false;
+    if (api && api.family !== family.name) {
+      filtered = false;
+      exportAvailable = false;
+    }
   });
 
   // Formats whose displayed text would sort and filter wrongly as a string
@@ -129,6 +139,22 @@
   }
 
   let detachAutosave: (() => void) | null = null;
+  let exportAvailabilityTimer: ReturnType<typeof setInterval> | null = null;
+
+  // If the grid later loads data incrementally (pagination or infinite
+  // scrolling), keep export disabled until the displayed dataset is complete.
+  function updateExportAvailability() {
+    if (!currentApi) {
+      exportAvailable = false;
+      return;
+    }
+
+    const specByKey = new Set(family.columns.map((col) => col.key));
+    const hasVisibleColumn = currentApi
+      .getColumns()
+      .some((col) => col.visible && specByKey.has(col.id));
+    exportAvailable = hasVisibleColumn && currentApi.getDisplayedRows().length > 0;
+  }
 
   function handleApiReady(ready: SvGridApi<never, Artefact>) {
     api = { family: family.name, handle: ready };
@@ -146,13 +172,20 @@
     const shared = decodeView(new URL(location.href).searchParams.get(VIEW_PARAM));
     if (shared) applySharedState(ready, shared);
     filtered = encodeView(sharedState(ready)) !== null;
+    updateExportAvailability();
+    if (exportAvailabilityTimer) clearInterval(exportAvailabilityTimer);
+    exportAvailabilityTimer = setInterval(updateExportAvailability, 250);
 
     // SvGrid has no column visibility or resize equivalent of onSortingChange,
     // so the manager polls getState() and saves when the snapshot changes.
     detachAutosave = attachAutoSavedView(ready, views, { skipRestore: true });
   }
 
-  onDestroy(() => detachAutosave?.());
+  onDestroy(() => {
+    exportAvailable = false;
+    if (exportAvailabilityTimer) clearInterval(exportAvailabilityTimer);
+    detachAutosave?.();
+  });
 
   // Mirror the grid's state into the URL so the current view is always the
   // thing the Share button hands out, and so a reload keeps it. location is the
@@ -189,6 +222,39 @@
   export function shareUrl(): string {
     syncUrl();
     return browser ? location.href : '';
+  }
+
+  type ExportResult =
+    | 'exported'
+    | 'unavailable'
+    | 'no-visible-columns'
+    | 'no-displayed-rows';
+
+  /**
+   * Downloads the rows the grid is currently showing as CSV, in the order and
+   * with the columns on screen.
+   */
+  export function exportCsv(): ExportResult {
+    if (!currentApi || !browser) return 'unavailable';
+    // getColumns() reports visible columns first, in their visual order, so the
+    // file matches the table even after the user reorders or hides columns.
+    const specByKey = new Map(family.columns.map((col) => [col.key, col]));
+    const columns = currentApi
+      .getColumns()
+      .filter((col) => col.visible)
+      .map((col) => ({ header: col.header, spec: specByKey.get(col.id) }))
+      .filter((col): col is { header: string; spec: ColumnSpec } => col.spec !== undefined);
+    const rows = currentApi.getDisplayedRows();
+    if (columns.length === 0) return 'no-visible-columns';
+    if (rows.length === 0) return 'no-displayed-rows';
+
+    const text = toCsv(
+      columns.map((col) => col.header),
+      rows.map((artefact) => columns.map((col) => columnValue(artefact, col.spec)))
+    );
+    const date = new Date().toISOString().slice(0, 10);
+    downloadCsv(`${family.name}-${date}.csv`, text);
+    return 'exported';
   }
 
   function openArtefact(id: string | number) {

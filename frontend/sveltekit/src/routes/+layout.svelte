@@ -83,7 +83,7 @@
 
     {#each data.artefactFamilies as family (family.name)}
       <SideNavigation.NavigationItem href={resolve(`/${family.name}`)} selected={pathname.startsWith(resolve(`/${family.name}`))}>
-        {family.friendly_name}
+        {family.name.charAt(0).toUpperCase() + family.name.slice(1)}
       </SideNavigation.NavigationItem>
     {/each}
 
@@ -190,6 +190,21 @@
     border: none;
     border-top: 1px solid rgba(0, 0, 0, 0.1);
     margin: 0.5rem 0;
+  }
+
+  /* Keep the indicator in the render tree so selecting an item cannot
+     change the navigation item's text or icon geometry. */
+  .app-shell :global(.ds.navigation-item.button-primitive)::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: var(--dimension-width-button-selected-indicator);
+    background-color: transparent;
+  }
+
+  .app-shell :global(.ds.navigation-item.button-primitive.selected)::before {
+    background-color: var(--lp-color-border-highlight);
   }
 
   .loading-overlay {

@@ -5,7 +5,7 @@
 <script lang="ts">
   import type { Family } from '$lib/types';
   import { Button } from '@canonical/svelte-ds-app-launchpad';
-  import { CheckmarkIcon, CloseIcon, ShareIcon } from '@canonical/svelte-icons';
+  import { CheckmarkIcon, CloseIcon, ExportIcon, ShareIcon } from '@canonical/svelte-icons';
   import { errorStore } from '$lib/stores/error.svelte';
 
   let {
@@ -14,12 +14,21 @@
     filtered,
     onClear,
     onShare,
+    onExport,
+    exportAvailable,
   }: {
     family: Family;
     count: number;
     filtered: boolean;
     onClear: () => void;
     onShare: () => string;
+    /** Exports the current view and identifies why it did not export. */
+    onExport: () =>
+      | 'exported'
+      | 'unavailable'
+      | 'no-visible-columns'
+      | 'no-displayed-rows';
+    exportAvailable: boolean;
   } = $props();
 
   const title = $derived(family.friendly_name);
@@ -46,6 +55,10 @@
   $effect(() => () => {
     clearTimeout(copiedTimer);
   });
+
+  function exportCsv() {
+    onExport();
+  }
 </script>
 
 <header class="dashboard-header">
@@ -64,6 +77,16 @@
     >
       {#snippet iconLeft()}<CloseIcon />{/snippet}
       Clear filters
+    </Button>
+    <Button
+      density="dense"
+      severity="base"
+      disabled={!exportAvailable}
+      onclick={exportCsv}
+      aria-label="Export the current view as a CSV file"
+    >
+      {#snippet iconLeft()}<ExportIcon />{/snippet}
+      Export
     </Button>
     <Button density="dense" severity="base" onclick={share} aria-label="Copy a link to this view">
       {#snippet iconLeft()}{#if copied}<CheckmarkIcon />{:else}<ShareIcon />{/if}{/snippet}

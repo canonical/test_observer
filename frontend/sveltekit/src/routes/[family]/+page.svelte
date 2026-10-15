@@ -26,6 +26,7 @@
 
   let table = $state<ReturnType<typeof ArtefactTable> | null>(null);
   let filtered = $state(false);
+  let exportAvailable = $state(false);
 
   const loginUrl = $derived(
     `${getApiRoot()}/v1/auth/saml/login?return_to=${encodeURIComponent(page.url.href)}`
@@ -37,8 +38,10 @@
     family={data.family}
     count={data.artefacts.length}
     {filtered}
+    {exportAvailable}
     onClear={() => table?.clearView()}
     onShare={() => table?.shareUrl() ?? page.url.href}
+    onExport={() => table?.exportCsv() ?? 'unavailable'}
   />
 
   {#if data.requiresLogin}
@@ -68,6 +71,7 @@
       <ArtefactTable
         bind:this={table}
         bind:filtered
+        bind:exportAvailable
         artefacts={data.artefacts}
         family={data.family}
       />
@@ -131,4 +135,3 @@
     min-height: 0;
   }
 </style>
-
