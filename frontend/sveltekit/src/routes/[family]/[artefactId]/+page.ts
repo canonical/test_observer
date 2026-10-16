@@ -16,7 +16,7 @@ export const load: PageLoad = async ({ parent, params }) => {
 
   const id = parseArtefactId(params.artefactId);
   if (id === null) {
-    redirect(307, resolve(`/${family.name}`));
+    redirect(307, resolve(family.name));
   }
 
   return { family, artefactId: id };

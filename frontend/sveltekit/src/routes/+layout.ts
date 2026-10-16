@@ -14,7 +14,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import type { LayoutLoad } from "./$types";
-import { resolve } from "$app/paths";
+import { asset } from "$app/paths";
 import { userStore } from "$lib/stores/user.svelte";
 import type { Family } from "$lib/types";
 
@@ -37,7 +37,7 @@ export const load: LayoutLoad = async ({ fetch }) => {
 const getFamilies = async (fetch: Parameters<LayoutLoad>[0]["fetch"]) => {
   let artefactFamilies: Family[] = [];
   try {
-    const resp = await fetch(resolve("/families.json"));
+    const resp = await fetch(asset("families.json"));
     if (!resp.ok) {
       throw new Error(
         `Failed to fetch families.json: ${resp.status} ${resp.statusText}`,

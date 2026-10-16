@@ -4,8 +4,8 @@
 -->
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { base } from '$app/paths';
-  import { browser } from '$app/environment';
+  import { resolve } from '$app/paths';
+  import { browser } from '$app/env';
   import { goto, replaceState } from '$app/navigation';
   import { page } from '$app/state';
   import {
@@ -204,7 +204,6 @@
     }
     if (url.href !== location.href) {
       // Built from location.href, so the base path is already applied.
-      // eslint-disable-next-line svelte/no-navigation-without-resolve
       replaceState(url, page.state);
     }
   }
@@ -258,9 +257,7 @@
   }
 
   function openArtefact(id: string | number) {
-    // The artefact detail route isn't implemented yet, so resolve() can't type it.
-    // eslint-disable-next-line svelte/no-navigation-without-resolve
-    void goto(`${base}/${family.name}/${id}`);
+    void goto(resolve(`${family.name}/${id}`));
   }
 </script>
 

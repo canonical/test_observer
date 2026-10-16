@@ -72,7 +72,7 @@
 <div class="app-shell">
   <SideNavigation {expanded}>
     {#snippet logo()}
-      <a href="{resolve('/')}" class="side-nav-logo" aria-label="Test Observer Home">
+      <a href="{resolve('')}" class="side-nav-logo" aria-label="Test Observer Home">
         <img src="{favicon}" alt="Test Observer Logo" class="logo-img" onerror={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
         <span class="logo-text">Test Observer</span>
       </a>
@@ -82,14 +82,14 @@
     {/snippet}
 
     {#each data.artefactFamilies as family (family.name)}
-      <SideNavigation.NavigationItem href={resolve(`/${family.name}`)} selected={pathname.startsWith(resolve(`/${family.name}`))}>
+      <SideNavigation.NavigationItem href={resolve(family.name)} selected={pathname.startsWith(resolve(family.name))}>
         {family.name.charAt(0).toUpperCase() + family.name.slice(1)}
       </SideNavigation.NavigationItem>
     {/each}
 
     <hr class="nav-divider" />
 
-    <SideNavigation.NavigationItem href={resolve('/test-results')} selected={pathname.startsWith(resolve('/test-results'))}>
+    <SideNavigation.NavigationItem href={resolve('test-results')} selected={pathname.startsWith(resolve('test-results'))}>
       {#snippet icon()}<SearchIcon />{/snippet}
       Search Results
     </SideNavigation.NavigationItem>
