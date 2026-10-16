@@ -62,7 +62,7 @@ RUN RANDOMVALUE=`tr -dc A-Za-z0-9 </dev/urandom | head -c 13` && \
 # To change the web root, update BASE_PATH here. It is the single source of
 # truth — svelte.config.js reads it via process.env.BASE_PATH at build time.
 # ---------------------------------------------------------------------------
-FROM node:20-alpine AS sveltekit-builder
+FROM node:22-alpine AS sveltekit-builder
 
 ENV TAR_OPTIONS="--no-same-owner"
 
