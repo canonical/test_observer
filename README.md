@@ -129,4 +129,3 @@ or don't support comments (e.g. JSON), so these are handled in the `REUSE.toml` 
 We also include auto-generated files in the `REUSE.toml`,
 since these would otherwise have the copyright values overwritten. Charm libraries (those fetched by `charmcraft fetch-libs`) and package locks are included in `REUSE.toml` for this reason.
 Furthermore, we use `REUSE.toml` to tag everything under `docs/`, because the process of building the docs inserts the copyright notice on each page, but the raw source pages do not include the copyright info.
- 

@@ -26,7 +26,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions: {}
+# Needed while this code is on an internal repo
+permissions:
+  contents: read
 
 jobs:
   analyze-workflows:

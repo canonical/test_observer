@@ -1,0 +1,52 @@
+# Copyright 2026 Canonical Ltd.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+# SPDX-License-Identifier: Apache-2.0
+
+name: Static Analysis - SvelteKit
+
+on:
+  pull_request:
+    paths:
+      - 'frontend/sveltekit/**'
+      - 'justfile'
+      - '.github/workflows/static-analysis-sveltekit.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Needed while this code is on an internal repo
+permissions:
+  contents: read
+
+jobs:
+  analyze-sveltekit:
+    name: Analyze SvelteKit
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+          cache-dependency-path: frontend/sveltekit/package-lock.json
+      - name: Install just
+        run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends just
+      - run: just sveltekit-install
+      - if: ${{ !cancelled() }}
+        run: just sveltekit-lint
