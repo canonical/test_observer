@@ -25,6 +25,21 @@ def nginx_config(base_uri: str) -> str:
         listen       80;
         server_name  localhost;
 
+        location = /wip {{
+            return 308 /wip/;
+        }}
+
+        location /wip/ {{
+            root   /usr/share/nginx/html;
+            index  200.html;
+            try_files $uri $uri/ /wip/200.html =404;
+
+            # SvelteKit embeds the API base URL in its JavaScript bundles.
+            sub_filter 'http://localhost:30000/' '{base_uri}';
+            sub_filter_once off;
+            sub_filter_types application/javascript text/javascript;
+        }}
+
         location / {{
             root   /usr/share/nginx/html;
             index  index.html index.htm;

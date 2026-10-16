@@ -61,6 +61,10 @@ class TestCharm(unittest.TestCase):
         )
 
         self.assertRegex(nginx_config, r"https:\/\/teh-backend")
+        self.assertIn("location /wip/", nginx_config)
+        self.assertIn("try_files $uri $uri/ /wip/200.html =404;", nginx_config)
+        self.assertIn("sub_filter_types application/javascript text/javascript;", nginx_config)
+        self.assertIn("sub_filter_once off;", nginx_config)
 
     def test_config_invalid_port(self):
         self.harness.set_can_connect("frontend", True)
