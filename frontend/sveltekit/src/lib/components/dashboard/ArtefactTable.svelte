@@ -4,9 +4,9 @@
 -->
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
-  import { base } from '$app/paths';
-  import { browser } from '$app/environment';
-  import { goto, replaceState } from '$app/navigation';
+  import { resolve } from '$app/paths';
+  import { browser } from '$app/env';
+  import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import {
     SvGrid,
@@ -57,7 +57,7 @@
   // Null while the incoming family's grid is still mounting, so the header's
   // actions cannot reach the dashboard the user has just navigated away from.
   const currentApi = $derived(api?.family === family.name ? api.handle : null);
-  // replaceState throws before the router has initialised, and restoring a
+  // Shallow goto throws before the router has initialised, and restoring a
   // shared view fires the grid's change callbacks while still mounting.
   let routerReady = $state(false);
 
@@ -190,7 +190,7 @@
   // Mirror the grid's state into the URL so the current view is always the
   // thing the Share button hands out, and so a reload keeps it. location is the
   // source of truth here rather than page.url, which does not react to the
-  // shallow replaceState below and would go stale after the first write.
+  // shallow goto below and would go stale after the first write.
   function syncUrl() {
     if (!currentApi) return;
     const encoded = encodeView(sharedState(currentApi));
@@ -204,8 +204,12 @@
     }
     if (url.href !== location.href) {
       // Built from location.href, so the base path is already applied.
-      // eslint-disable-next-line svelte/no-navigation-without-resolve
-      replaceState(url, page.state);
+      void goto(url, {
+        state: page.state,
+        shallow: true,
+        replace: true,
+        reset: false,
+      });
     }
   }
 
@@ -258,9 +262,7 @@
   }
 
   function openArtefact(id: string | number) {
-    // The artefact detail route isn't implemented yet, so resolve() can't type it.
-    // eslint-disable-next-line svelte/no-navigation-without-resolve
-    void goto(`${base}/${family.name}/${id}`);
+    void goto(resolve(`${family.name}/${id}`));
   }
 </script>
 

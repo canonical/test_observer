@@ -4,7 +4,7 @@
 -->
 <script lang="ts">
   import { Breadcrumbs, Select } from "@canonical/svelte-ds-app-launchpad";
-  import { base, resolve } from "$app/paths";
+  import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
   import type { Artefact, Family } from "$lib/types";
   import { formatDueDate } from "$lib/types";
@@ -26,7 +26,7 @@
   const dueDate = $derived(formatDueDate(artefact.due_date));
 
   const breadcrumbSegments = $derived([
-    { label: family.friendly_name, href: `${base}/${family.name}` },
+    { label: family.friendly_name, href: resolve(family.name) },
     { label: artefact.name },
   ]);
 
@@ -35,7 +35,7 @@
 
   function handleVersionChange(e: Event) {
     const id = (e.target as HTMLSelectElement).value;
-    if (id) goto(resolve(`/${family.name}/${id}`));
+    if (id) goto(resolve(`${family.name}/${id}`));
   }
 
   async function handleStatusChange(

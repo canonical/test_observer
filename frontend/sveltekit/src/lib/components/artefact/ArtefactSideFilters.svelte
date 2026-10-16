@@ -4,7 +4,6 @@
 -->
 <script lang="ts">
   import { goto } from "$app/navigation";
-  import { base, resolve } from "$app/paths";
   import { page } from "$app/state";
   import { Checkbox } from "@canonical/svelte-ds-app-launchpad";
   import type { ArtefactPageStore } from "$lib/stores/artefact-page.svelte";
@@ -64,18 +63,14 @@
   });
 
   function navigateToSearch(url: URL) {
-    const pathname =
-      base && url.pathname.startsWith(base)
-        ? url.pathname.slice(base.length) || "/"
-        : url.pathname;
-    goto(resolve(`${pathname}${url.search}${url.hash}` as `/${string}`), {
-      replaceState: true,
-      noScroll: true,
+    goto(url, {
+      replace: true,
+      reset: false,
     });
   }
 
   function updateFilter(key: string, values: string[]) {
-    const url = new URL(page.url);
+    const url = new URL(page.url.href);
     if (values.length === 0) {
       url.searchParams.delete(key);
     } else {
@@ -92,7 +87,7 @@
   }
 
   function toggleTriaged(value: string) {
-    const url = new URL(page.url);
+    const url = new URL(page.url.href);
     if (url.searchParams.get("triaged") === value)
       url.searchParams.delete("triaged");
     else url.searchParams.set("triaged", value);
@@ -100,7 +95,7 @@
   }
 
   function clearAll() {
-    const url = new URL(page.url);
+    const url = new URL(page.url.href);
     [
       "environment",
       "execution_status",

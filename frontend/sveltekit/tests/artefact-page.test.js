@@ -1796,8 +1796,8 @@ void test("version navigation resolves a base-independent artefact route", async
     "utf8",
   );
 
-  assert.match(source, /goto\(resolve\(`\/\$\{family\.name\}\/\$\{id\}`\)\)/);
-  assert.doesNotMatch(source, /resolve\(`\$\{base\}\/\$\{family\.name\}/);
+  assert.match(source, /goto\(resolve\(`\$\{family\.name\}\/\$\{id\}`\)\)/);
+  assert.doesNotMatch(source, /\$\{base\}/);
 });
 
 void test("test issue links render only when the API supplies a URL", () => {
