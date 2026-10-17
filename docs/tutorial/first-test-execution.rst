@@ -49,7 +49,7 @@ Set up your workspace
 
 Before starting, ensure you have the following prerequisites: 
 
-- Access to Test Observer instance (the Canonical production and staging instances require VPN access), including:
+- Access to Test Observer instance, including:
 
   - API server for submitting results (e.g. ``https://test-observer-api.example.com``)
   - Web dashboard for viewing results (e.g. ``https://test-observer.example.com``)

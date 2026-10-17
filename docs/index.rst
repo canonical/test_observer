@@ -55,7 +55,7 @@ Ubuntu's public Test Observer instance is available at:
 * https://tests.ubuntu.com/
 
 
-The following instances are deployed for Canonical to review Stable Release Updates (SRUs), Charm testing, and other internal testing purposes. These instances require Canonical VPN access:
+The following instances are deployed for Canonical to review Stable Release Updates (SRUs), Charm testing, and other internal testing purposes.
 
 * `Production instance <https://test-observer.canonical.com/>`_ • `Production API <https://test-observer-api.canonical.com/docs>`_
 * `Staging instance <https://test-observer-staging.canonical.com/>`_ • `Staging API <https://test-observer-api-staging.canonical.com/docs>`_
