@@ -98,8 +98,7 @@ class TestIntegrationValidation(unittest.TestCase):
         return relation_id
 
     def _run_update_status(self):
-        with patch.object(self.harness.charm, "_migrations_ready", return_value=True):
-            self.harness.charm.on.update_status.emit()
+        self.harness.charm.on.update_status.emit()
         self.harness.evaluate_status()
 
     def test_update_status_sets_blocked_on_failing_check(self):
@@ -150,12 +149,12 @@ class TestIntegrationValidation(unittest.TestCase):
         with patch("charm.run_simple_check", return_value=_results("FAIL")):
             self._run_update_status()
 
-        self.harness.model.unit.status = ops.WaitingStatus("Waiting for database migration")
+        self.harness.model.unit.status = ops.WaitingStatus("Waiting for Pebble for API")
         self.harness.evaluate_status()
 
         self.assertEqual(
             self.harness.model.unit.status,
-            ops.WaitingStatus("Waiting for database migration"),
+            ops.WaitingStatus("Waiting for Pebble for API"),
         )
 
     def test_update_status_skips_check_until_database_relation_ready(self):

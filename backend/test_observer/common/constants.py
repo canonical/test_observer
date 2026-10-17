@@ -13,10 +13,21 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import hashlib
 from enum import StrEnum
 
-PREVIOUS_TEST_RESULT_COUNT = 10
 
+def _lock_key() -> int:
+    """Generate a 64-bit integer key for advisory locking."""
+    digest = hashlib.sha256(b"test-observer-backend").digest()[:8]
+    return int.from_bytes(digest, "big", signed=True)
+
+
+# Shared by every process that migrates this database
+# Used to ensure only one unit migrates the database at a time
+MIGRATION_LOCK_ID = _lock_key()
+
+PREVIOUS_TEST_RESULT_COUNT = 10
 VALID_ISSUE_HOSTS = {"github.com", "warthogs.atlassian.net", "bugs.launchpad.net"}
 
 

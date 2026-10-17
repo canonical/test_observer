@@ -16,8 +16,9 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, text
 
+from test_observer.common.constants import MIGRATION_LOCK_ID
 from test_observer.data_access import Base
 from test_observer.data_access.setup import DB_URL
 
@@ -72,6 +73,11 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        # Session-level lock: it must outlive the per-migration transactions below.
+        # Unlocked when the session closes
+        connection.execute(text("SELECT pg_advisory_lock(:id)"), {"id": MIGRATION_LOCK_ID})
+        connection.commit()
+
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
