@@ -119,7 +119,7 @@ class Navbar extends ConsumerWidget {
                       _NavbarDropdownItem(
                         label: 'Docs',
                         onPressed: () => launchUrlString(
-                          'https://canonical-test-observer.readthedocs-hosted.com/en/latest/',
+                          'https://ubuntu.com/docs/test-observer/latest/',
                         ),
                       ),
                       _NavbarDropdownItem(
