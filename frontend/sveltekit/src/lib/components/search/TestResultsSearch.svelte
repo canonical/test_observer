@@ -11,24 +11,38 @@
     emptyFilters,
     parseSearch,
     searchParams,
+    searchQueryString,
     SEARCH_FILTERS,
   } from "$lib/testResultsSearch";
   import SearchResultsGrid from "./SearchResultsGrid.svelte";
   import SearchConditions from "./SearchConditions.svelte";
+  import { VIEW_PARAM } from "$lib/gridViewUrl";
 
   let {
     url,
     families,
     base,
     navigate,
+    replaceView,
   }: {
     url: URL;
     families: Family[];
     base: string;
     navigate: (url: URL) => Promise<unknown>;
+    replaceView: (
+      encoded: string | null,
+      sourceHref: string,
+    ) => Promise<unknown>;
   } = $props();
   const store = new TestResultsSearchStore();
-  const applied = $derived(parseSearch(url.searchParams, families));
+  let grid = $state<ReturnType<typeof SearchResultsGrid> | null>(null);
+  const queryString = $derived(searchQueryString(url.searchParams));
+  const applied = $derived(
+    parseSearch(new URLSearchParams(queryString), families),
+  );
+  const encodedView = $derived(url.searchParams.get(VIEW_PARAM));
+  let reapply = $state(0);
+  let editorRevision = $state(0);
   let drafts = $state(emptyFilters());
   let moving = $state(false);
   let navigationError = $state(false);
@@ -45,6 +59,7 @@
 
   $effect(() => {
     const query = applied;
+    void reapply;
     drafts = structuredClone(query.filters);
     untrack(() => {
       void store.search(query);
@@ -52,17 +67,34 @@
     return () => store.cancel();
   });
 
-  async function go(params: URLSearchParams) {
+  async function go(params: URLSearchParams, clearView = false) {
     if (moving) return;
     moving = true;
     navigationError = false;
     // One-off navigation target, not mutable reactive component state.
     // eslint-disable-next-line svelte/prefer-svelte-reactivity
     const next = new URL(url);
+    if (!clearView) {
+      if (grid) {
+        const view = grid.getSharedView();
+        if (view !== null) params.set(VIEW_PARAM, view);
+      } else {
+        for (const value of url.searchParams.getAll(VIEW_PARAM))
+          params.append(VIEW_PARAM, value);
+      }
+    }
     next.search = params.toString();
+    const sameQuery = searchQueryString(next.searchParams) === queryString;
     try {
-      if (next.href === url.href) await store.search(applied);
-      else await navigate(next);
+      // Explicit Search still reapplies/retries an identical query, including
+      // clearing transient editors. View-only URL changes never do this.
+      if (next.href === url.href) reapply++;
+      else {
+        await navigate(next);
+        // URLSearchParams can canonicalize encoding without changing backend
+        // identity (e.g. %20 to +). That explicit Search must still retry.
+        if (sameQuery && url.href === next.href) reapply++;
+      }
     } catch {
       navigationError = true;
     } finally {
@@ -72,6 +104,15 @@
 
   function apply() {
     void go(hasDrafts ? searchParams(drafts) : new URLSearchParams());
+  }
+
+  async function updateView(encoded: string | null, sourceHref = url.href) {
+    if (moving || sourceHref !== url.href) return;
+    try {
+      await replaceView(encoded, sourceHref);
+    } catch {
+      navigationError = true;
+    }
   }
 
   const response = $derived(store.response);
@@ -94,7 +135,7 @@
     different filters must all match.
   </p>
   <div class="filter-bar" role="group" aria-label="Test result filters">
-    {#key url.href}
+    {#key `${queryString}:${reapply}:${editorRevision}`}
       <SearchConditions bind:filters={drafts} {families} disabled={moving} />
     {/key}
     <form
@@ -113,11 +154,17 @@
           type="button"
           onclick={() => {
             drafts = emptyFilters();
-            void go(new URLSearchParams());
+            editorRevision++;
+            void go(new URLSearchParams(), true);
           }}
           disabled={moving}>Clear all</Button
         >
       {/if}
+      <Button
+        type="button"
+        disabled={moving || !encodedView}
+        onclick={() => updateView(null)}>Reset table view</Button
+      >
     </form>
   </div>
   {#if unapplied}
@@ -193,13 +240,16 @@
         total or other pages. Server pages are ordered newest first.
       </p>
       {#if response.test_results.length}
-        {#key url.search}
-          <SearchResultsGrid
-            results={response.test_results}
-            {families}
-            {base}
-          />
-        {/key}
+        <SearchResultsGrid
+          bind:this={grid}
+          results={response.test_results}
+          {families}
+          {base}
+          {encodedView}
+          sourceHref={url.href}
+          queryKey={`${url.origin}${url.pathname}?${queryString}`}
+          onViewChange={updateView}
+        />
       {:else if response.count === 0}
         <p>No test results match the applied filters.</p>
       {:else}
@@ -240,7 +290,20 @@
   .search-page {
     color: var(--lp-color-text-default);
     min-width: 0;
-    padding-bottom: 2rem;
+    height: calc(100vh - 3rem);
+    display: flex;
+    flex-direction: column;
+  }
+  .search-page > :not(.results),
+  .results > :not(:global(.results-grid)) {
+    flex-shrink: 0;
+  }
+  .results {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
   }
   h1 {
     font-size: 1.75rem;

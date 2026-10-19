@@ -1,16 +1,48 @@
 <!-- SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd. -->
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 <script lang="ts">
-  import { SvGrid, renderComponent, type GridColumns } from "@svgrid/grid";
+  import { onMount, untrack } from "svelte";
+  import {
+    SvGrid,
+    renderComponent,
+    ALL_FILTER_OPERATORS,
+    type GridColumns,
+    type SvGridApi,
+  } from "@svgrid/grid";
   import type { Family } from "$lib/types";
   import { viewRunPath, type SearchResult } from "$lib/testResultsSearch";
   import ViewRunLink from "./ViewRunLink.svelte";
+  import {
+    EMPTY_VIEW,
+    decodeView,
+    encodeView,
+    type SharedGridView,
+  } from "$lib/gridViewUrl";
 
   let {
     results,
     families,
     base,
-  }: { results: SearchResult[]; families: Family[]; base: string } = $props();
+    encodedView,
+    sourceHref,
+    queryKey,
+    onViewChange,
+  }: {
+    results: SearchResult[];
+    families: Family[];
+    base: string;
+    encodedView: string | null;
+    sourceHref: string;
+    queryKey: string;
+    onViewChange: (
+      encoded: string | null,
+      sourceHref: string,
+    ) => Promise<unknown>;
+  } = $props();
+  // The outgoing instance can receive new route props before its loading
+  // branch unmounts. Tag it with the backend query it actually rendered, not
+  // the latest href (which legitimately changes for presentation writes).
+  const ownerQuery = untrack(() => queryKey);
   const rows = $derived(
     results.map((result) => ({
       id: result.test_result.id,
@@ -64,6 +96,111 @@
     { id: "family", header: "Family", field: "family" },
     { id: "architecture", header: "Architecture", field: "architecture" },
   ];
+
+  let api = $state<SvGridApi<never, Row> | null>(null);
+  let restored = false;
+  let restoredParam: string | null = null;
+  let lastSnapshot: string | null = null;
+
+  // A dashboard's columns are not necessarily applicable to search results.
+  // Ignore unknown refs and the Run link's non-sortable/non-filterable column.
+  function applicableView(view: SharedGridView): SharedGridView {
+    const ids = new Set(columns.map((column) => column.id));
+    const sortable = new Set(
+      columns.filter((c) => c.sortable !== false).map((c) => c.id),
+    );
+    const filterable = new Set(
+      columns.filter((c) => c.filterable !== false).map((c) => c.id),
+    );
+    return {
+      ...EMPTY_VIEW,
+      ...view,
+      sorting: view.sorting?.filter((sort) => sortable.has(sort.id)) ?? [],
+      columnFilters: Object.fromEntries(
+        Object.entries(view.columnFilters ?? {}).filter(
+          ([id, filter]) =>
+            filterable.has(id) &&
+            ALL_FILTER_OPERATORS.includes(filter.operator),
+        ),
+      ),
+      facetFilters: Object.fromEntries(
+        Object.entries(view.facetFilters ?? {}).filter(([id]) =>
+          filterable.has(id),
+        ),
+      ),
+      hiddenColumns: view.hiddenColumns?.filter((id) => ids.has(id)) ?? [],
+      // All search columns are visible by default: there are no default-hidden
+      // columns to reveal. Widths, order and pinning never enter shared state.
+      shownColumns: [],
+    };
+  }
+
+  function sharedState(handle: SvGridApi<never, Row>): SharedGridView {
+    const {
+      sorting,
+      globalFilter,
+      columnFilters,
+      facetFilters,
+      hiddenColumns,
+    } = handle.getState();
+    return {
+      sorting,
+      globalFilter,
+      columnFilters,
+      facetFilters,
+      hiddenColumns,
+    };
+  }
+
+  $effect(() => {
+    const handle = api;
+    const param = encodedView;
+    if (!handle) return;
+    untrack(() => {
+      const view = applicableView(decodeView(param) ?? {});
+      lastSnapshot = encodeView(view);
+      // Missing/invalid params restore ALL shared defaults, not just the keys
+      // present in the link. Do not reset session-only widths/order/pinning.
+      if (encodeView(sharedState(handle)) !== lastSnapshot)
+        handle.setState(view);
+      restoredParam = param;
+      restored = true;
+    });
+  });
+
+  function syncView() {
+    // Grid callbacks run in effects. Do not subscribe those effects to our URL
+    // props, and never echo restoration (including a removed/invalid view).
+    untrack(() => {
+      if (
+        !api ||
+        !restored ||
+        ownerQuery !== queryKey ||
+        restoredParam !== encodedView
+      )
+        return;
+      const snapshot = encodeView(sharedState(api));
+      if (snapshot === lastSnapshot) return;
+      lastSnapshot = snapshot;
+      void onViewChange(snapshot, sourceHref);
+    });
+  }
+
+  // Search/pagination must capture even a visibility toggle made just before
+  // the next polling tick, rather than copying a slightly stale URL snapshot.
+  export function getSharedView(): string | null {
+    return api && ownerQuery === queryKey
+      ? encodeView(sharedState(api))
+      : encodedView;
+  }
+
+  onMount(() => {
+    // Installed SvGrid 3 has sorting/filter callbacks but no visibility-change
+    // callback. Poll only the shareable snapshot, as its autosave manager does;
+    // no storage or named views are enabled for search.
+    const timer = setInterval(syncView, 250);
+    return () => clearInterval(timer);
+  });
 </script>
 
 <div class="results-grid">
@@ -71,8 +208,8 @@
     data={rows}
     {columns}
     getRowId={(row) => String(row.id)}
-    containerHeight="32rem"
-    virtualization={false}
+    containerHeight="100%"
+    virtualization
     columnVirtualization={false}
     sortable
     filterable
@@ -82,11 +219,18 @@
     enableRowHover
     selectionMode="none"
     emptyMessage="No loaded results match the local grid filters."
+    onApiReady={(handle) => {
+      api = handle;
+    }}
+    onSortingChange={syncView}
+    onFiltersChange={syncView}
   />
 </div>
 
 <style>
   .results-grid {
+    flex: 1;
+    min-height: 0;
     min-width: 0;
     width: 100%;
   }

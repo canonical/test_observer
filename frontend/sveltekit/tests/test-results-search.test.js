@@ -347,7 +347,13 @@ void test("unsupported and invalid URL filters block instead of silently broaden
     assert.equal(store.response, null);
     assert.equal(store.loading, false);
   }
-  for (const query of ["", "limit=2&offset=3", "artefacts= , "]) {
+  for (const query of [
+    "",
+    "limit=2&offset=3",
+    "artefacts= , ",
+    "view=invalid",
+    "view=invalid&limit=2&offset=3",
+  ]) {
     await store.search(app.parseSearch(url(query).searchParams, families));
   }
   assert.equal(calls, 0);
@@ -1311,10 +1317,16 @@ void test("mounted grid filtering and sorting stay local without changing the ba
     sort.click();
     await flush();
     assert.deepEqual(cells(), ["case 1", "case 2"]);
+    assert.deepEqual(
+      app.decodeView(ui.handle.history.at(-1)?.searchParams.get("view") ?? null)
+        ?.sorting,
+      [{ id: "testCase", desc: false }],
+    );
     const local = /** @type {import('happy-dom').HTMLInputElement | null} */ (
       ui.target.querySelector(".sv-grid-global-filter input")
     );
     assert.ok(local);
+    local.focus();
     local.value = "no such case";
     local.dispatchEvent(new browser.Event("input", { bubbles: true }));
     await flush();
@@ -1328,6 +1340,504 @@ void test("mounted grid filtering and sorting stay local without changing the ba
       /12 matching test results on the server/,
     );
     assert.equal(calls, 1);
+    assert.equal(
+      ui.handle.history.length,
+      1,
+      "grid changes replace, not push history",
+    );
+    assert.equal(
+      app.decodeView(ui.handle.history[0].searchParams.get("view"))
+        ?.globalFilter,
+      "no such case",
+    );
+    assert.equal(
+      browser.document.activeElement,
+      local,
+      "automatic view writes preserve input focus",
+    );
+    // Return every customization to default using the grid itself (not Reset).
+    sort.click();
+    await flush();
+    sort.click();
+    await flush();
+    local.value = "";
+    local.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    await flush();
+    assert.equal(ui.handle.history[0].searchParams.has("view"), false);
+    assert.equal(calls, 1);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("view is presentation-only in query identity and never appears in API parameters", () => {
+  const params = url(
+    "artefacts=one&artefacts=two&limit=2&offset=2&view=invalid",
+  ).searchParams;
+  const applied = app.parseSearch(params, families);
+  assert.deepEqual(applied.problems, []);
+  assert.equal(
+    app
+      .searchParams(applied.filters, applied.limit, applied.offset)
+      .has("view"),
+    false,
+  );
+  assert.equal(
+    app.searchQueryString(params),
+    "artefacts=one&artefacts=two&limit=2&offset=2",
+  );
+  params.set("view", "different");
+  assert.equal(
+    app.searchQueryString(params),
+    "artefacts=one&artefacts=two&limit=2&offset=2",
+  );
+  params.append("unsupported", "still blocks");
+  assert.match(
+    app.parseSearch(params, families).problems[0],
+    /Unsupported URL filter/,
+  );
+});
+
+void test("explicit Search retries when URL encoding changes but backend query identity does not", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(response());
+  };
+  const ui = mounted("artefacts=one%20two&limit=50");
+  try {
+    await flush();
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls, 2);
+    assert.equal(
+      ui.handle.history.at(-1)?.searchParams.get("artefacts"),
+      "one two",
+    );
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls, 3);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("presentation history adapter preserves repeated queries, base, fragment and skips stale/outgoing writes", async () => {
+  let current = new URL(
+    `${url("artefacts=one&artefacts=two&limit=2&offset=4").href}#anchor`,
+  );
+  const initial = current.href;
+  let writes = 0;
+  const adapter = {
+    currentUrl: () => current,
+    /** @param {URL} next */
+    replace: (next) => {
+      current = next;
+      writes++;
+      return Promise.resolve();
+    },
+  };
+  await app.replaceSearchView("encoded-view", initial, adapter);
+  assert.equal(writes, 1);
+  assert.deepEqual(current.searchParams.getAll("artefacts"), ["one", "two"]);
+  assert.equal(current.pathname, "/custom/base/test-results");
+  assert.equal(current.hash, "#anchor");
+  assert.equal(current.searchParams.get("offset"), "4");
+  await app.replaceSearchView("old-grid", initial, adapter);
+  assert.equal(writes, 1);
+  await app.replaceSearchView("old-grid", current.href, {
+    ...adapter,
+    currentUrl: () => null,
+  });
+  assert.equal(writes, 1);
+  await app.replaceSearchView(null, current.href, adapter);
+  assert.equal(current.href, initial);
+});
+
+/** @param {import('happy-dom').HTMLElement} target */
+function gridCases(target) {
+  return Array.from(
+    target.querySelectorAll('tbody td[data-col-id="testCase"]'),
+  ).map((cell) => cell.textContent.trim());
+}
+
+void test("shared URL restores sorting, global, column, facet and visibility state; removing it restores defaults without remount/fetch", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(response([3, 2, 1], 12));
+  };
+  const view = app.encodeView({
+    sorting: [
+      { id: "testCase", desc: false },
+      { id: "missing", desc: true },
+      { id: "run", desc: true },
+    ],
+    globalFilter: "case",
+    columnFilters: {
+      testCase: { operator: "contains", value: "2" },
+      missing: { operator: "contains", value: "never" },
+      run: { operator: "contains", value: "never" },
+    },
+    facetFilters: { status: ["FAILED"], missing: ["never"], run: ["never"] },
+    hiddenColumns: ["version", "missing"],
+    shownColumns: ["missing", "version"],
+  });
+  const ui = mounted(`artefacts=one&view=${view}`);
+  try {
+    await flush();
+    const grid = ui.target.querySelector(".sv-grid-root");
+    assert.ok(grid);
+    assert.deepEqual(gridCases(ui.target), ["case 2"]);
+    assert.equal(
+      ui.target.querySelector('th[data-svgrid-header-col="version"]'),
+      null,
+    );
+    assert.equal(
+      ui.target.querySelector(".sv-grid-global-filter input")?.value,
+      "case",
+    );
+    assert.equal(
+      ui.handle.replacements.length,
+      0,
+      "restoring a URL must not echo a rewrite",
+    );
+    ui.handle.restore(url("artefacts=one"));
+    await flush();
+    assert.equal(ui.target.querySelector(".sv-grid-root"), grid);
+    assert.deepEqual(gridCases(ui.target), ["case 3", "case 2", "case 1"]);
+    assert.ok(ui.target.querySelector('th[data-svgrid-header-col="version"]'));
+    assert.equal(
+      ui.target.querySelector(".sv-grid-global-filter input")?.value,
+      "",
+    );
+    assert.equal(calls, 1);
+    assert.equal(ui.handle.replacements.length, 0);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("view history changes preserve confirmed drafts, active editor, grid identity and focus", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(response([2, 1]));
+  };
+  const ui = mounted("artefacts=one&artefacts=two");
+  try {
+    await flush();
+    await chooseFilter(ui.target, "Test cases");
+    await enter(ui.target, 'input[name="test_cases"]', "confirmed");
+    await confirmEditor(ui.target);
+    chip(ui.target, "Artefact names").click();
+    await flush();
+    const editor = await enter(
+      ui.target,
+      'input[name="artefacts"]',
+      "unconfirmed",
+    );
+    const grid = ui.target.querySelector(".sv-grid-root");
+    const view = app.encodeView({
+      sorting: [{ id: "testCase", desc: false }],
+      globalFilter: "case 1",
+    });
+    ui.handle.restore(url(`artefacts=one&artefacts=two&view=${view}`));
+    await flush();
+    assert.equal(ui.target.querySelector('input[name="artefacts"]'), editor);
+    assert.equal(editor.value, "unconfirmed");
+    assert.equal(browser.document.activeElement, editor);
+    assert.equal(chip(ui.target, "Test cases").title, "Test cases: confirmed");
+    assert.match(ui.target.textContent, /Changes not applied/);
+    assert.equal(ui.target.querySelector(".sv-grid-root"), grid);
+    assert.deepEqual(gridCases(ui.target), ["case 1"]);
+    ui.handle.restore(url("artefacts=one&artefacts=two"));
+    await flush();
+    assert.equal(browser.document.activeElement, editor);
+    assert.deepEqual(gridCases(ui.target), ["case 2", "case 1"]);
+    assert.equal(calls, 1);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("view-only updates do not cancel/refetch pending results or auth checks", async () => {
+  for (const auth of [false, true]) {
+    const pending = deferred();
+    /** @type {AbortSignal[]} */
+    const signals = [];
+    let calls = 0;
+    globalThis.fetch = (input, options) => {
+      calls++;
+      if (options?.signal) signals.push(options.signal);
+      const request = new URL(input instanceof Request ? input.url : input);
+      if (auth && !request.pathname.endsWith("/users/me"))
+        return Promise.resolve(json({}, 403));
+      return pending.promise;
+    };
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      const before = calls;
+      const view = app.encodeView({ globalFilter: "case 1" });
+      ui.handle.restore(url(`artefacts=one&view=${view}`));
+      await flush();
+      assert.equal(calls, before);
+      assert.ok(signals.length);
+      assert.ok(signals.every((signal) => !signal.aborted));
+      pending.resolve(auth ? json(null) : response([2, 1]));
+      await flush();
+      if (auth) assert.match(ui.target.textContent, /need to be logged in/);
+      else assert.deepEqual(gridCases(ui.target), ["case 1"]);
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("outgoing grid callbacks cannot write over a newer query or recreate view after clear", async () => {
+  const pending = deferred();
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return calls === 1 ? Promise.resolve(response([2, 1])) : pending.promise;
+  };
+  const ui = mounted("artefacts=old");
+  try {
+    await flush();
+    const sort = /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+      ui.target.querySelector(
+        '[data-svgrid-header-col="testCase"] button.sv-grid-header-sort',
+      )
+    );
+    assert.ok(sort);
+    sort.click();
+    // The grid's sort callback is effect-driven; navigate before it flushes.
+    ui.handle.restore(url("artefacts=new"));
+    await flush();
+    assert.equal(calls, 2);
+    assert.equal(ui.handle.currentUrl.search, "?artefacts=new");
+    assert.equal(ui.handle.replacements.length, 0);
+    pending.resolve(response([3]));
+    await flush();
+    const incomingSort =
+      /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+        ui.target.querySelector(
+          '[data-svgrid-header-col="testCase"] button.sv-grid-header-sort',
+        )
+      );
+    assert.ok(incomingSort);
+    incomingSort.click();
+    button(ui.target, "Clear all").click();
+    await flush();
+    assert.equal(ui.handle.currentUrl.search, "");
+    assert.equal(ui.target.querySelector(".sv-grid-root"), null);
+    assert.equal(calls, 2);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("table view survives pagination, changed Search and identical Search retry; reset only view and Clear all resets everything", async () => {
+  /** @type {URL[]} */
+  const calls = [];
+  globalThis.fetch = (input) => {
+    calls.push(new URL(input instanceof Request ? input.url : input));
+    return Promise.resolve(response([2, 1], 12, 2));
+  };
+  const view = app.encodeView({
+    sorting: [{ id: "testCase", desc: false }],
+    hiddenColumns: ["version"],
+  });
+  const ui = mounted(`artefacts=one&limit=2&view=${view}`);
+  try {
+    await flush();
+    assert.deepEqual(gridCases(ui.target), ["case 1", "case 2"]);
+    button(ui.target, "Next page").click();
+    await flush();
+    assert.equal(ui.handle.history.at(-1)?.searchParams.get("view"), view);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[1].searchParams.get("offset"), "2");
+    assert.deepEqual(gridCases(ui.target), ["case 1", "case 2"]);
+    assert.equal(
+      ui.target.querySelector('th[data-svgrid-header-col="version"]'),
+      null,
+    );
+    chip(ui.target, "Artefact names").click();
+    await flush();
+    await enter(ui.target, 'input[name="artefacts"]', "changed");
+    await confirmEditor(ui.target);
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls.length, 3);
+    assert.equal(calls[2].searchParams.get("artefacts"), "changed");
+    assert.equal(ui.handle.history.at(-1)?.searchParams.get("view"), view);
+    assert.deepEqual(gridCases(ui.target), ["case 1", "case 2"]);
+    // Identical explicit Search still retries, and discards unconfirmed edits.
+    chip(ui.target, "Artefact names").click();
+    await flush();
+    await enter(ui.target, 'input[name="artefacts"]', "unconfirmed");
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls.length, 4);
+    assert.equal(calls[3].searchParams.get("artefacts"), "changed");
+    assert.equal(ui.target.querySelector(".panel"), null);
+    assert.equal(ui.handle.history.at(-1)?.searchParams.get("view"), view);
+    const grid = ui.target.querySelector(".sv-grid-root");
+    button(ui.target, "Reset table view").click();
+    await flush();
+    assert.equal(calls.length, 4);
+    assert.equal(ui.target.querySelector(".sv-grid-root"), grid);
+    assert.equal(ui.handle.history.at(-1)?.searchParams.has("view"), false);
+    assert.deepEqual(gridCases(ui.target), ["case 2", "case 1"]);
+    assert.ok(ui.target.querySelector('th[data-svgrid-header-col="version"]'));
+    ui.handle.restore(url(`artefacts=changed&view=${view}`));
+    await flush();
+    const beforeClear = calls.length;
+    button(ui.target, "Clear all").click();
+    await flush();
+    assert.equal(calls.length, beforeClear);
+    assert.equal(ui.handle.history.at(-1)?.search, "");
+    assert.equal(ui.target.querySelector(".sv-grid-root"), null);
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 0);
+    assert.ok(calls.every((request) => !request.searchParams.has("view")));
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("malformed/oversized views and inapplicable column refs remain usable, and view-only URLs never fetch", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(response([2, 1]));
+  };
+  for (const view of [
+    "malformed",
+    "a".repeat(8193),
+    app.encodeView({
+      sorting: [{ id: "run", desc: true }],
+      facetFilters: { missing: ["never"] },
+    }),
+  ]) {
+    const ui = mounted(`artefacts=one&view=${view}`);
+    try {
+      await flush();
+      assert.deepEqual(gridCases(ui.target), ["case 2", "case 1"]);
+      const before = calls;
+      ui.handle.restore(url(`view=${view}&limit=2&offset=2`));
+      await flush();
+      assert.equal(calls, before);
+      assert.match(ui.target.textContent, /Choose at least one filter/);
+      await chooseFilter(ui.target, "Artefact names");
+      await enter(ui.target, 'input[name="artefacts"]', "draft");
+      await confirmEditor(ui.target);
+      chip(ui.target, "Artefact names").click();
+      await flush();
+      button(ui.target, "Clear all").click();
+      await flush();
+      assert.equal(ui.target.querySelector(".panel"), null);
+      assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 0);
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("actual grid column/facet filters and visibility controls update a shareable URL without fetching or closing menus", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(response([2, 1]));
+  };
+  const ui = mounted("artefacts=one&artefacts=two");
+  try {
+    await flush();
+    const filter = /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+      ui.target.querySelector('button[aria-label="Filter Test case"]')
+    );
+    assert.ok(filter);
+    filter.click();
+    await flush();
+    await enter(ui.target, ".sv-grid-menu-condition-value", "case");
+    let shared = app.decodeView(
+      ui.handle.history.at(-1)?.searchParams.get("view") ?? null,
+    );
+    assert.deepEqual(shared?.columnFilters, {
+      testCase: { operator: "contains", value: "case" },
+    });
+    const caseTwo = Array.from(
+      ui.target.querySelectorAll('.sv-grid-menu [role="option"]'),
+    ).find((option) => option.textContent.includes("case 2"));
+    assert.ok(
+      caseTwo,
+      ui.target.querySelector(".sv-grid-filter-menu")?.outerHTML,
+    );
+    caseTwo.dispatchEvent(new browser.MouseEvent("click", { bubbles: true }));
+    await flush();
+    shared = app.decodeView(
+      ui.handle.history.at(-1)?.searchParams.get("view") ?? null,
+    );
+    assert.deepEqual(shared?.facetFilters, { testCase: ["case 1"] });
+    assert.deepEqual(gridCases(ui.target), ["case 1"]);
+    assert.ok(
+      ui.target.querySelector(".sv-grid-filter-menu"),
+      "URL echo must not close the active menu",
+    );
+    // Dismiss via the grid's own backdrop, then use its built-in chooser.
+    const backdrop = /** @type {import('happy-dom').HTMLElement | null} */ (
+      ui.target.querySelector(".sv-grid-menu-backdrop")
+    );
+    assert.ok(backdrop);
+    backdrop.click();
+    await flush();
+    const menu = /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+      ui.target.querySelector('button[aria-label="Artefact column menu"]')
+    );
+    assert.ok(menu);
+    menu.click();
+    await flush();
+    button(ui.target, "Choose columns").click();
+    await flush();
+    const version = Array.from(
+      ui.target.querySelectorAll(
+        '.sv-grid-choose-columns-menu [role="option"]',
+      ),
+    ).find((option) => option.textContent.trim() === "Version");
+    assert.ok(version);
+    version.dispatchEvent(new browser.MouseEvent("click", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    shared = app.decodeView(
+      ui.handle.history.at(-1)?.searchParams.get("view") ?? null,
+    );
+    assert.deepEqual(shared?.hiddenColumns, ["version"]);
+    assert.equal(
+      ui.target.querySelector('th[data-svgrid-header-col="version"]'),
+      null,
+    );
+    assert.equal(calls, 1);
+    assert.equal(ui.handle.history.length, 1);
+    assert.deepEqual(ui.handle.history[0].searchParams.getAll("artefacts"), [
+      "one",
+      "two",
+    ]);
+    const track = Array.from(
+      ui.target.querySelectorAll(
+        '.sv-grid-choose-columns-menu [role="option"]',
+      ),
+    ).find((option) => option.textContent.trim() === "Track");
+    assert.ok(track);
+    track.dispatchEvent(new browser.MouseEvent("click", { bubbles: true }));
+    // Do not wait for the 250ms visibility tick before submitting Search.
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls, 2);
+    assert.deepEqual(
+      app
+        .decodeView(ui.handle.history.at(-1)?.searchParams.get("view") ?? null)
+        ?.hiddenColumns?.toSorted(),
+      ["track", "version"],
+    );
   } finally {
     await ui.destroy();
   }

@@ -3,9 +3,12 @@
 
 import { mount, unmount, flushSync } from "svelte";
 import TestResultsSearch from "../src/lib/components/search/TestResultsSearch.svelte";
+import { replaceSearchView } from "../src/lib/searchViewNavigation";
 export { TestResultsSearchStore } from "../src/lib/stores/test-results-search.svelte";
 export { userStore } from "../src/lib/stores/user.svelte";
 export * from "../src/lib/testResultsSearch";
+export { replaceSearchView } from "../src/lib/searchViewNavigation";
+export { encodeView, decodeView } from "../src/lib/gridViewUrl";
 
 /**
  * @param {HTMLElement} target
@@ -15,6 +18,7 @@ export * from "../src/lib/testResultsSearch";
 export function mountSearch(target, initialUrl, families) {
   let url = $state(initialUrl);
   const history = [initialUrl];
+  const replacements = [];
   const component = mount(TestResultsSearch, {
     target,
     props: {
@@ -29,11 +33,27 @@ export function mountSearch(target, initialUrl, families) {
         url = next;
         return Promise.resolve();
       },
+      /** @param {string | null} encoded @param {string} sourceHref */
+      replaceView(encoded, sourceHref) {
+        return replaceSearchView(encoded, sourceHref, {
+          currentUrl: () => url,
+          replace(next) {
+            replacements.push(next);
+            history[history.length - 1] = next;
+            url = next;
+            return Promise.resolve();
+          },
+        });
+      },
     },
   });
   flushSync();
   return {
     history,
+    replacements,
+    get currentUrl() {
+      return url;
+    },
     /** @param {URL} next */
     restore(next) {
       url = next;

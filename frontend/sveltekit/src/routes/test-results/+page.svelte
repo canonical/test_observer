@@ -16,17 +16,29 @@
 -->
 
 <script lang="ts">
-  import { page } from "$app/state";
-  import { goto } from "$app/navigation";
+  import { page, navigating } from "$app/state";
+  import { goto, replaceState } from "$app/navigation";
   import { resolve } from "$app/paths";
   import TestResultsSearch from "$lib/components/search/TestResultsSearch.svelte";
+  import { replaceSearchView } from "$lib/searchViewNavigation";
   let { data } = $props();
+
+  // SvelteKit 3 keeps the loaded page URL separate from shallow history.
+  // Use both for reloads, normal navigation AND browser back/forward.
+  const url = $derived(page.shallow?.url ?? page.url);
 </script>
 
 <svelte:head><title>Search test results — Test Observer</title></svelte:head>
 <TestResultsSearch
-  url={new URL(page.url.href)}
+  url={new URL(url.href)}
   families={data.artefactFamilies}
   base={resolve("").replace(/\/$/, "")}
   navigate={(url) => goto(url)}
+  replaceView={(encoded, sourceHref) =>
+    replaceSearchView(encoded, sourceHref, {
+      currentUrl: () => (navigating.to ? null : new URL(location.href)),
+      // replaceState updates history without starting a navigation. It
+      // retains scroll, focus and the page state.
+      replace: (next) => replaceState(next, page.state),
+    })}
 />

@@ -82,7 +82,14 @@ export function parseSearch(
 ): AppliedSearch {
   const filters = emptyFilters();
   const problems: string[] = [];
-  const supported = new Set<string>([...SEARCH_FILTERS, "limit", "offset"]);
+  // `view` is presentation only. It must never become an API filter or make
+  // an otherwise empty search eligible for an unfiltered backend request.
+  const supported = new Set<string>([
+    ...SEARCH_FILTERS,
+    "limit",
+    "offset",
+    "view",
+  ]);
   for (const key of new Set(params.keys())) {
     if (!supported.has(key)) problems.push(`Unsupported URL filter: ${key}.`);
   }
@@ -127,6 +134,13 @@ export function parseSearch(
     hasFilters: SEARCH_FILTERS.some((key) => filters[key].length > 0),
     problems,
   };
+}
+
+/** Preserve repeated params and validation identity, excluding presentation. */
+export function searchQueryString(params: URLSearchParams): string {
+  const query = new URLSearchParams(params);
+  query.delete("view");
+  return query.toString();
 }
 
 /** Also used for the applied URL, retaining supported Flutter query names. */
