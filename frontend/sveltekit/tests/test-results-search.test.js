@@ -26,6 +26,14 @@ const families = [
     columns: [],
     filters: [],
   },
+  {
+    name: "another-route",
+    api_name: "another-api-family",
+    friendly_name: "Another configured family",
+    stages: [],
+    columns: [],
+    filters: [],
+  },
 ];
 const url = (/** @type {string} */ query = "") =>
   new URL(
@@ -119,6 +127,7 @@ before(async () => {
     "Event",
     "KeyboardEvent",
     "MouseEvent",
+    "CSS",
     "ResizeObserver",
     "MutationObserver",
     "customElements",
@@ -132,6 +141,98 @@ before(async () => {
       value: name === "window" ? browser : Reflect.get(browser, name),
     });
   }
+  // Happy DOM does not implement the native Popover API used by Pragma. Model
+  // its beforetoggle/toggle, declarative triggers and auto light-dismiss here.
+  // Rendering can settle between beforetoggle and the native open transition;
+  // focus on a still-closed popover must be ignored, just like the browser.
+  // Real top-layer positioning and keyboard traversal still need browser QA.
+  /** @type {Set<import('happy-dom').HTMLElement>} */
+  const openPopovers = new Set();
+  /** @param {string} name @param {string} oldState @param {string} newState */
+  const toggleEvent = (name, oldState, newState) =>
+    Object.assign(new browser.Event(name), { oldState, newState });
+  /** @param {import('happy-dom').HTMLElement} element */
+  function hidePopover(element) {
+    if (!openPopovers.has(element)) return;
+    element.dispatchEvent(toggleEvent("beforetoggle", "open", "closed"));
+    openPopovers.delete(element);
+    element.removeAttribute("data-test-open");
+    element.dispatchEvent(toggleEvent("toggle", "open", "closed"));
+  }
+  /** @param {import('happy-dom').HTMLElement} element */
+  function showPopover(element) {
+    if (openPopovers.has(element)) return;
+    element.dispatchEvent(toggleEvent("beforetoggle", "closed", "open"));
+    for (const other of openPopovers) hidePopover(other);
+    setTimeout(() => {
+      if (!element.isConnected) return;
+      openPopovers.add(element);
+      element.setAttribute("data-test-open", "");
+      element.dispatchEvent(toggleEvent("toggle", "closed", "open"));
+    });
+  }
+  // Preserve the native methods' dynamic receivers; invoke only with .call().
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const originalFocus = browser.HTMLElement.prototype.focus;
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  const originalMatches = browser.Element.prototype.matches;
+  browser.Element.prototype.matches = function (selector) {
+    if (selector === ":popover-open")
+      return this.hasAttribute("data-test-open");
+    return originalMatches.call(this, selector);
+  };
+  browser.HTMLElement.prototype.focus = function () {
+    const containingPopover = this.closest("[popover]");
+    if (containingPopover && !containingPopover.hasAttribute("data-test-open"))
+      return;
+    originalFocus.call(this);
+  };
+  Object.defineProperties(browser.HTMLElement.prototype, {
+    showPopover: {
+      /** @this {import('happy-dom').HTMLElement} */
+      value() {
+        showPopover(this);
+      },
+    },
+    hidePopover: {
+      /** @this {import('happy-dom').HTMLElement} */
+      value() {
+        hidePopover(this);
+      },
+    },
+  });
+  browser.document.addEventListener("click", (event) => {
+    const target = /** @type {import('happy-dom').Element} */ (event.target);
+    const trigger =
+      /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+        target.closest("button[popovertarget]")
+      );
+    const popover = trigger
+      ? browser.document.getElementById(
+          trigger.getAttribute("popovertarget") ?? "",
+        )
+      : null;
+    if (popover) {
+      trigger?.focus();
+      if (openPopovers.has(popover)) hidePopover(popover);
+      else showPopover(popover);
+    } else {
+      for (const open of openPopovers)
+        if (!open.contains(target)) hidePopover(open);
+    }
+  });
+  // Model the browser's default Enter activation for native popover triggers.
+  browser.document.addEventListener("keydown", (event) => {
+    const target = /** @type {import('happy-dom').HTMLButtonElement} */ (
+      event.target
+    );
+    if (
+      event.key === "Enter" &&
+      !event.defaultPrevented &&
+      target.matches("button[popovertarget]")
+    )
+      target.click();
+  });
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   app = /** @type {typeof import('./test-results-search-entry.svelte.js')} */ (
     /** @type {unknown} */ (
@@ -438,6 +539,53 @@ function button(target, text) {
   return found;
 }
 
+/** @param {import('happy-dom').HTMLElement} target */
+function panel(target) {
+  const found = target.querySelector(".condition-popover .panel");
+  assert.ok(found, "An anchored picker/editor must be open");
+  return /** @type {import('happy-dom').HTMLElement} */ (found);
+}
+
+/** @param {import('happy-dom').HTMLElement} target @param {string} selector @param {string} value */
+async function enter(target, selector, value) {
+  const input = /** @type {import('happy-dom').HTMLInputElement | null} */ (
+    target.querySelector(selector)
+  );
+  assert.ok(input);
+  input.value = value;
+  input.dispatchEvent(new browser.Event("input", { bubbles: true }));
+  await flush();
+  return input;
+}
+
+/** @param {import('happy-dom').HTMLElement} target @param {string} label */
+async function chooseFilter(target, label) {
+  button(target, "+ Add filter").click();
+  await flush();
+  button(panel(target), label).click();
+  await flush();
+}
+
+/** @param {import('happy-dom').HTMLElement} target */
+async function confirmEditor(target) {
+  const form = panel(target).querySelector("form");
+  assert.ok(form);
+  form.dispatchEvent(
+    new browser.Event("submit", { bubbles: true, cancelable: true }),
+  );
+  await flush();
+}
+
+/** @param {import('happy-dom').HTMLElement} target @param {string} label */
+function chip(target, label) {
+  const found = Array.from(target.querySelectorAll("button.chip-trigger")).find(
+    (element) =>
+      element.getAttribute("aria-label")?.startsWith(`Edit ${label}:`),
+  );
+  assert.ok(found, `Missing ${label} chip`);
+  return /** @type {import('happy-dom').HTMLButtonElement} */ (found);
+}
+
 void test("mounted controls apply exact drafts, render SvGrid context and accessible base-aware links, restore history and clear", async () => {
   /** @type {URL[]} */
   const calls = [];
@@ -450,23 +598,24 @@ void test("mounted controls apply exact drafts, render SvGrid context and access
     await flush();
     assert.match(ui.target.textContent, /Choose at least one filter/);
     assert.equal(calls.length, 0);
-    const input = ui.target.querySelector('input[name="artefacts"]');
-    assert.ok(input);
+    assert.equal(ui.target.querySelector("input"), null);
+    assert.equal(ui.target.querySelector("fieldset"), null);
+    await chooseFilter(ui.target, "Artefact names");
+    const input = await enter(ui.target, 'input[name="artefacts"]', "one, two");
     assert.ok(ui.target.querySelector(`label[for="${input.id}"]`));
-    input.value = "one, two";
-    input.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    await confirmEditor(ui.target);
+    await chooseFilter(ui.target, "Families");
     const family = /** @type {import('happy-dom').HTMLInputElement | null} */ (
       ui.target.querySelector('input[value="snap"]')
     );
     assert.ok(family);
     family.click();
+    await flush();
+    await confirmEditor(ui.target);
     assert.equal(calls.length, 0, "draft edits do not fetch before applying");
-    const form = ui.target.querySelector("form");
-    assert.ok(form);
-    // Submit event is what both keyboard Enter and the submit button invoke.
-    form.dispatchEvent(
-      new browser.Event("submit", { bubbles: true, cancelable: true }),
-    );
+    assert.match(ui.target.textContent, /Changes not applied/);
+    assert.match(chip(ui.target, "Families").textContent, /Configured family/);
+    button(ui.target, "Search").click();
     await flush();
     assert.deepEqual(calls[0]?.searchParams.getAll("artefacts"), [
       "one",
@@ -510,8 +659,8 @@ void test("mounted controls apply exact drafts, render SvGrid context and access
     ui.handle.restore(applied);
     await flush();
     assert.equal(
-      ui.target.querySelector('input[name="artefacts"]')?.value,
-      "one, two",
+      chip(ui.target, "Artefact names").title,
+      "Artefact names: one, two",
     );
     assert.deepEqual(calls.at(-1)?.searchParams.getAll("artefacts"), [
       "one",
@@ -522,6 +671,581 @@ void test("mounted controls apply exact drafts, render SvGrid context and access
     assert.equal(ui.target.querySelector(".sv-grid-root"), null);
     assert.match(ui.target.textContent, /Choose at least one filter/);
     assert.equal(calls.length, 3, "clear must not fetch unfiltered results");
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("native post-opening focus works for pointer and Enter on picker, text and checkbox chips", async () => {
+  globalThis.fetch = () => Promise.resolve(response());
+  for (const [query, label] of [
+    ["", ""],
+    ["artefacts=known-value", "Artefact names"],
+    ["test_result_statuses=FAILED", "Test result statuses"],
+    ["families=snap", "Families"],
+  ]) {
+    for (const mode of ["pointer", "Enter"]) {
+      const ui = mounted(query);
+      try {
+        await flush();
+        const trigger = label
+          ? chip(ui.target, label)
+          : button(ui.target, "+ Add filter");
+        trigger.focus();
+        if (mode === "pointer") trigger.click();
+        else
+          trigger.dispatchEvent(
+            new browser.KeyboardEvent("keydown", {
+              key: "Enter",
+              bubbles: true,
+              cancelable: true,
+            }),
+          );
+        await flush();
+        const input = panel(ui.target).querySelector("input");
+        assert.ok(input);
+        assert.ok(
+          browser.document.activeElement === input,
+          `${mode} must focus ${label || "picker"} after native opening`,
+        );
+        if (!label) {
+          input.value = "environ";
+          input.dispatchEvent(new browser.Event("input", { bubbles: true }));
+          await flush();
+          assert.equal(
+            panel(ui.target).querySelectorAll("li button").length,
+            1,
+          );
+        }
+        input.dispatchEvent(
+          new browser.KeyboardEvent("keydown", {
+            key: "Escape",
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+        await flush();
+        assert.equal(ui.target.querySelector(".panel"), null);
+        assert.ok(
+          browser.document.activeElement === trigger,
+          "Escape must return focus to the opener",
+        );
+      } finally {
+        await ui.destroy();
+      }
+    }
+  }
+});
+
+void test("open overlays use visible viewport bounds rather than tall documents and follow resize/scroll", async () => {
+  globalThis.fetch = () => Promise.resolve(response());
+  const ui = mounted("test_result_statuses=FAILED");
+  const originalWidth = browser.innerWidth;
+  const originalHeight = browser.innerHeight;
+  const documentHeight = Object.getOwnPropertyDescriptor(
+    browser.document.documentElement,
+    "scrollHeight",
+  );
+  Object.defineProperty(browser.document.documentElement, "scrollHeight", {
+    configurable: true,
+    value: 1004,
+  });
+  try {
+    await flush();
+    const trigger = button(ui.target, "+ Add filter");
+    trigger.click();
+    await flush();
+    const content = panel(ui.target);
+    const overlay = /** @type {import('happy-dom').HTMLElement | null} */ (
+      content.parentElement
+    );
+    assert.ok(overlay);
+    // Happy DOM has no layout; supply the real QA geometry and verify the
+    // resulting viewport constraints, leaving scrollbar reachability to browser QA.
+    content.getBoundingClientRect = () => new browser.DOMRect(0, 0, 368, 375);
+    overlay.getBoundingClientRect = () => new browser.DOMRect(0, 0, 368, 375);
+    let anchorY = 132;
+    trigger.getBoundingClientRect = () =>
+      new browser.DOMRect(browser.innerWidth - 150, anchorY, 108, 26);
+    for (const [width, height] of [
+      [800, 480],
+      [1440, 500],
+      [800, 360],
+    ]) {
+      browser.happyDOM.setViewport({ width, height });
+      browser.dispatchEvent(new browser.Event("resize"));
+      await flush();
+      const top = Number.parseFloat(overlay.style.top);
+      const left = Number.parseFloat(overlay.style.left);
+      const maxHeight = Number.parseFloat(overlay.style.maxHeight);
+      assert.ok(
+        top >= 16 && top + Math.min(375, maxHeight) <= height - 16,
+        `${width}x${height} overlay must fit vertically`,
+      );
+      assert.ok(
+        left >= 16 && left + 368 <= width - 16,
+        `${width}x${height} overlay must fit horizontally`,
+      );
+      assert.ok(
+        maxHeight < height - 32,
+        "height must account for its anchor, not just the full viewport",
+      );
+    }
+    const previousTop = Number.parseFloat(overlay.style.top);
+    anchorY = 20;
+    browser.document.dispatchEvent(new browser.Event("scroll"));
+    await flush();
+    assert.ok(
+      Number.parseFloat(overlay.style.top) < previousTop,
+      "scrolling must retain the trigger anchor",
+    );
+    assert.ok(
+      browser.document.activeElement === content.querySelector("input"),
+      "repositioning must not disturb input focus",
+    );
+  } finally {
+    await ui.destroy();
+    browser.happyDOM.setViewport({
+      width: originalWidth,
+      height: originalHeight,
+    });
+    if (documentHeight)
+      Object.defineProperty(
+        browser.document.documentElement,
+        "scrollHeight",
+        documentHeight,
+      );
+    else
+      Reflect.deleteProperty(browser.document.documentElement, "scrollHeight");
+  }
+});
+
+void test("searchable picker offers only eight unused fields and never creates an empty chip", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(response());
+  };
+  const ui = mounted();
+  try {
+    await flush();
+    button(ui.target, "+ Add filter").click();
+    await flush();
+    const picker = panel(ui.target);
+    assert.equal(
+      picker.closest('[role="dialog"]')?.getAttribute("aria-label"),
+      "Add filter",
+    );
+    assert.ok(
+      browser.document.activeElement === picker.querySelector("input"),
+      "opening must focus the picker input after the native transition",
+    );
+    assert.deepEqual(
+      Array.from(picker.querySelectorAll("li button")).map((item) =>
+        item.textContent.trim(),
+      ),
+      [
+        "Families",
+        "Test result statuses",
+        "Artefact names",
+        "Versions",
+        "Tracks",
+        "Environments",
+        "Test plans",
+        "Test cases",
+      ],
+    );
+    await enter(picker, 'input[type="search"]', "  TEST  ");
+    assert.equal(picker.querySelectorAll("li button").length, 3);
+    await enter(picker, 'input[type="search"]', "not-a-filter");
+    assert.match(picker.textContent, /No matching filters/);
+    await enter(picker, 'input[type="search"]', "artefact");
+    button(picker, "Artefact names").click();
+    await flush();
+    assert.equal(button(panel(ui.target), "Add filter").disabled, true);
+    await enter(ui.target, 'input[name="artefacts"]', " , , ");
+    await confirmEditor(ui.target);
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 0);
+    assert.equal(calls, 0);
+    await enter(ui.target, 'input[name="artefacts"]', "alpha, beta,alpha");
+    await confirmEditor(ui.target);
+    const condition = chip(ui.target, "Artefact names");
+    assert.equal(browser.document.activeElement, condition);
+    assert.equal(
+      condition.querySelector("button"),
+      null,
+      "chip edit and remove cannot be nested buttons",
+    );
+    assert.match(condition.textContent, /alpha \+1/);
+    assert.equal(condition.title, "Artefact names: alpha, beta");
+    button(ui.target, "+ Add filter").click();
+    await flush();
+    await enter(panel(ui.target), 'input[type="search"]', "artefact");
+    assert.equal(
+      panel(ui.target).querySelectorAll("li button").length,
+      0,
+      "an existing field cannot be added twice",
+    );
+    button(panel(ui.target), "Cancel").click();
+    await flush();
+    const remove = /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+      ui.target.querySelector(
+        'button[aria-label="Remove Artefact names filter"]',
+      )
+    );
+    assert.ok(remove);
+    remove.click();
+    await flush();
+    assert.equal(
+      browser.document.activeElement,
+      button(ui.target, "+ Add filter"),
+    );
+    await chooseFilter(ui.target, "Artefact names");
+    assert.equal(ui.target.querySelector('input[name="artefacts"]')?.value, "");
+    assert.equal(calls, 0);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("all eight chip editors preserve configured families, checkbox statuses and exact comma values until Search", async () => {
+  /** @type {URL[]} */
+  const calls = [];
+  globalThis.fetch = (input) => {
+    calls.push(new URL(input instanceof Request ? input.url : input));
+    return Promise.resolve(response());
+  };
+  const ui = mounted();
+  try {
+    await flush();
+    await chooseFilter(ui.target, "Families");
+    for (const family of families) {
+      const checkbox =
+        /** @type {import('happy-dom').HTMLInputElement | null} */ (
+          panel(ui.target).querySelector(`input[value="${family.api_name}"]`)
+        );
+      assert.ok(checkbox);
+      checkbox.click();
+    }
+    await flush();
+    await confirmEditor(ui.target);
+    assert.match(
+      chip(ui.target, "Families").title,
+      /Configured family, Another configured family/,
+    );
+    await chooseFilter(ui.target, "Test result statuses");
+    assert.equal(
+      panel(ui.target).querySelectorAll('input[type="checkbox"]').length,
+      3,
+    );
+    for (const status of ["PASSED", "FAILED", "SKIPPED"]) {
+      const checkbox =
+        /** @type {import('happy-dom').HTMLInputElement | null} */ (
+          panel(ui.target).querySelector(`input[value="${status}"]`)
+        );
+      assert.ok(checkbox);
+      checkbox.click();
+    }
+    await flush();
+    await confirmEditor(ui.target);
+    for (const [key, label] of [
+      ["artefacts", "Artefact names"],
+      ["artefact_versions", "Versions"],
+      ["artefact_tracks", "Tracks"],
+      ["environments", "Environments"],
+      ["test_plans", "Test plans"],
+      ["test_cases", "Test cases"],
+    ]) {
+      await chooseFilter(ui.target, label);
+      await enter(
+        ui.target,
+        `input[name="${key}"]`,
+        ` first ${key}, second+${key}, first ${key}, `,
+      );
+      await confirmEditor(ui.target);
+      assert.equal(
+        chip(ui.target, label).title,
+        `${label}: first ${key}, second+${key}`,
+      );
+    }
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 8);
+    button(ui.target, "+ Add filter").click();
+    await flush();
+    assert.match(panel(ui.target).textContent, /All filters are in use/);
+    assert.equal(panel(ui.target).querySelectorAll("li").length, 0);
+    button(panel(ui.target), "Cancel").click();
+    await flush();
+    assert.equal(calls.length, 0);
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls.length, 1);
+    assert.deepEqual(
+      calls[0].searchParams.getAll("families"),
+      families.map((family) => family.api_name),
+    );
+    assert.deepEqual(calls[0].searchParams.getAll("test_result_statuses"), [
+      "PASSED",
+      "FAILED",
+      "SKIPPED",
+    ]);
+    for (const key of app.SEARCH_FILTERS.slice(2))
+      assert.deepEqual(calls[0].searchParams.getAll(key), [
+        `first ${key}`,
+        `second+${key}`,
+      ]);
+    assert.doesNotMatch(ui.target.textContent, /Changes not applied/);
+    assert.match(ui.target.textContent, /Results for applied query/);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("confirmed add/edit/remove drafts never fetch or replace applied results; Search applies the complete draft and resets pagination", async () => {
+  /** @type {URL[]} */
+  const calls = [];
+  globalThis.fetch = (input) => {
+    calls.push(new URL(input instanceof Request ? input.url : input));
+    return Promise.resolve(response([1, 2], 20, 2, 2));
+  };
+  const ui = mounted("artefacts=old&test_cases=applied&limit=2&offset=2");
+  try {
+    await flush();
+    chip(ui.target, "Artefact names").click();
+    await flush();
+    assert.equal(
+      ui.target.querySelector('input[name="artefacts"]')?.value,
+      "old",
+    );
+    await enter(ui.target, 'input[name="artefacts"]', "new, second");
+    await confirmEditor(ui.target);
+    const remove = /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+      ui.target.querySelector('button[aria-label="Remove Test cases filter"]')
+    );
+    assert.ok(remove);
+    remove.click();
+    await flush();
+    await chooseFilter(ui.target, "Environments");
+    await enter(ui.target, 'input[name="environments"]', "lab");
+    await confirmEditor(ui.target);
+    assert.equal(calls.length, 1);
+    assert.equal(ui.handle.history.length, 1);
+    assert.match(ui.target.textContent, /Changes not applied/);
+    assert.match(ui.target.textContent, /Results for previous query/);
+    assert.match(ui.target.textContent, /case 1/);
+    assert.equal(button(ui.target, "Next page").disabled, true);
+    assert.equal(button(ui.target, "Previous page").disabled, true);
+    button(ui.target, "Next page").click();
+    assert.equal(calls.length, 1);
+    chip(ui.target, "Artefact names").click();
+    await flush();
+    await enter(ui.target, 'input[name="artefacts"]', "unconfirmed");
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls.length, 2);
+    assert.deepEqual(calls[1].searchParams.getAll("artefacts"), [
+      "new",
+      "second",
+    ]);
+    assert.equal(calls[1].searchParams.get("environments"), "lab");
+    assert.equal(calls[1].searchParams.has("test_cases"), false);
+    assert.equal(calls[1].searchParams.has("offset"), false);
+    assert.equal(ui.target.querySelector(".panel"), null);
+    assert.doesNotMatch(ui.target.textContent, /Changes not applied/);
+    ui.handle.restore(url("artefacts=old&test_cases=applied&limit=2&offset=2"));
+    await flush();
+    chip(ui.target, "Artefact names").click();
+    await flush();
+    await enter(ui.target, 'input[name="artefacts"]', "old");
+    await confirmEditor(ui.target);
+    assert.doesNotMatch(ui.target.textContent, /Changes not applied/);
+    assert.equal(button(ui.target, "Next page").disabled, false);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("cancel, Escape, outside dismissal and switching popovers discard edits, with meaningful focus and intentional removal", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(response());
+  };
+  const ui = mounted("artefacts=original&test_result_statuses=FAILED");
+  const outside = browser.document.createElement("button");
+  outside.textContent = "Outside control";
+  browser.document.body.append(outside);
+  try {
+    await flush();
+    for (const dismissal of ["Cancel", "Escape", "outside"]) {
+      const trigger = chip(ui.target, "Artefact names");
+      trigger.click();
+      await flush();
+      const input = await enter(
+        ui.target,
+        'input[name="artefacts"]',
+        "discard me",
+      );
+      assert.ok(
+        browser.document.activeElement === input,
+        "opening must focus the editor input after the native transition",
+      );
+      const tab = new browser.KeyboardEvent("keydown", {
+        key: "Tab",
+        bubbles: true,
+        cancelable: true,
+      });
+      input.dispatchEvent(tab);
+      assert.equal(
+        tab.defaultPrevented,
+        false,
+        "Tab must retain normal browser navigation",
+      );
+      if (dismissal === "Cancel") button(panel(ui.target), "Cancel").click();
+      else if (dismissal === "Escape")
+        input.dispatchEvent(
+          new browser.KeyboardEvent("keydown", {
+            key: "Escape",
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      else {
+        outside.focus();
+        outside.click();
+      }
+      await flush();
+      assert.equal(ui.target.querySelector(".panel"), null);
+      assert.equal(
+        browser.document.activeElement,
+        dismissal === "outside" ? outside : trigger,
+      );
+      assert.equal(
+        chip(ui.target, "Artefact names").title,
+        "Artefact names: original",
+      );
+      assert.doesNotMatch(ui.target.textContent, /Changes not applied/);
+    }
+    chip(ui.target, "Test result statuses").click();
+    await flush();
+    const failed = /** @type {import('happy-dom').HTMLInputElement | null} */ (
+      panel(ui.target).querySelector('input[value="FAILED"]')
+    );
+    assert.ok(failed?.checked);
+    failed.click();
+    await flush();
+    assert.equal(button(panel(ui.target), "Save changes").disabled, true);
+    assert.match(panel(ui.target).textContent, /or remove this filter/);
+    button(ui.target, "+ Add filter").click();
+    await flush();
+    assert.equal(ui.target.querySelectorAll(".panel").length, 1);
+    assert.match(panel(ui.target).textContent, /Find a filter/);
+    button(panel(ui.target), "Cancel").click();
+    await flush();
+    chip(ui.target, "Test result statuses").click();
+    await flush();
+    assert.equal(
+      panel(ui.target).querySelector('input[value="FAILED"]')?.checked,
+      true,
+      "switching does not save cleared checkboxes",
+    );
+    button(panel(ui.target), "Remove filter").click();
+    await flush();
+    assert.equal(
+      browser.document.activeElement,
+      button(ui.target, "+ Add filter"),
+    );
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 1);
+    assert.equal(calls, 1);
+  } finally {
+    outside.remove();
+    await ui.destroy();
+  }
+});
+
+void test("URL restoration resets open editors and restores full long/repeated/comma values; removing the final chip and clearing never fetch unfiltered data", async () => {
+  /** @type {URL[]} */
+  const calls = [];
+  globalThis.fetch = (input) => {
+    calls.push(new URL(input instanceof Request ? input.url : input));
+    return Promise.resolve(response());
+  };
+  const long = "long-exact-artefact-name-".repeat(8);
+  const applied = url(
+    `artefacts=${long},second&artefacts=third&families=another-api-family`,
+  );
+  const ui = mounted(applied.search.slice(1));
+  try {
+    await flush();
+    const trigger = chip(ui.target, "Artefact names");
+    assert.match(trigger.textContent, /\+2/);
+    assert.equal(trigger.title, `Artefact names: ${long}, second, third`);
+    assert.equal(
+      trigger.getAttribute("aria-label"),
+      `Edit Artefact names: ${long}, second, third`,
+    );
+    assert.equal(
+      chip(ui.target, "Families").title,
+      "Families: Another configured family",
+    );
+    trigger.click();
+    await flush();
+    assert.equal(
+      ui.target.querySelector('input[name="artefacts"]')?.value,
+      `${long}, second, third`,
+    );
+    await enter(ui.target, 'input[name="artefacts"]', "transient");
+    ui.handle.restore(url("test_cases=restored"));
+    await flush();
+    assert.equal(ui.target.querySelector(".panel"), null);
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 1);
+    assert.equal(chip(ui.target, "Test cases").title, "Test cases: restored");
+    ui.handle.restore(applied);
+    await flush();
+    assert.equal(
+      chip(ui.target, "Artefact names").title,
+      `Artefact names: ${long}, second, third`,
+    );
+    assert.equal(calls.length, 3);
+    button(ui.target, "Clear all").click();
+    await flush();
+    assert.equal(ui.handle.history.at(-1)?.search, "");
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 0);
+    assert.equal(calls.length, 3);
+    await chooseFilter(ui.target, "Test cases");
+    await enter(ui.target, 'input[name="test_cases"]', "one");
+    await confirmEditor(ui.target);
+    button(ui.target, "Search").click();
+    await flush();
+    const remove = /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+      ui.target.querySelector('button[aria-label="Remove Test cases filter"]')
+    );
+    assert.ok(remove);
+    remove.click();
+    await flush();
+    assert.match(ui.target.textContent, /clear the previous query/);
+    assert.match(ui.target.textContent, /Results for previous query/);
+    assert.equal(calls.length, 4);
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(ui.handle.history.at(-1)?.search, "");
+    assert.equal(ui.target.querySelector(".sv-grid-root"), null);
+    assert.equal(calls.length, 4);
+    assert.ok(
+      calls.every((call) =>
+        app.SEARCH_FILTERS.some((key) => call.searchParams.has(key)),
+      ),
+    );
+    await chooseFilter(ui.target, "Test cases");
+    await enter(ui.target, 'input[name="test_cases"]', "draft only");
+    await confirmEditor(ui.target);
+    button(ui.target, "Clear all").click();
+    await flush();
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 0);
+    assert.equal(
+      calls.length,
+      4,
+      "clearing drafts on an already-empty URL is safe too",
+    );
   } finally {
     await ui.destroy();
   }
