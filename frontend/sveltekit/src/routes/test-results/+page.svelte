@@ -15,13 +15,18 @@
   SPDX-License-Identifier: GPL-3.0-only
 -->
 
-<div class="stub-page">
-  <h1 class="page-title">Search Results</h1>
-  <p class="stub-notice">Coming soon — this page is under active development.</p>
-</div>
+<script lang="ts">
+  import { page } from "$app/state";
+  import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
+  import TestResultsSearch from "$lib/components/search/TestResultsSearch.svelte";
+  let { data } = $props();
+</script>
 
-<style>
-  .stub-page { padding: 2rem 0; }
-  .page-title { font-size: 1.75rem; font-weight: 500; margin: 0 0 1rem; }
-  .stub-notice { color: #666; font-size: 1rem; margin: 0; }
-</style>
+<svelte:head><title>Search test results — Test Observer</title></svelte:head>
+<TestResultsSearch
+  url={new URL(page.url.href)}
+  families={data.artefactFamilies}
+  base={resolve("").replace(/\/$/, "")}
+  navigate={(url) => goto(url)}
+/>
