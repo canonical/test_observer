@@ -137,18 +137,24 @@
     {/snippet}
   </SideNavigation>
 
-  <main class="main-content">
-    {@render children()}
-  </main>
-
-  {#if navigating.to}
-    <div class="loading-overlay" role="status" aria-live="polite">
-      <div class="loading-box">
-        <Spinner class="loading-spinner" />
-        <span class="loading-text">Loading…</span>
+  <div class="content-region">
+    <main class="main-content" aria-busy={!!navigating.to}>
+      <div class="page-content" inert={!!navigating.to}>
+        {@render children()}
       </div>
-    </div>
-  {/if}
+    </main>
+
+    {#if navigating.to}
+      <div class="loading-overlay" role="status" aria-live="polite">
+        <div class="loading-viewport">
+          <div class="loading-box">
+            <Spinner class="loading-spinner" />
+            <span class="loading-text">Loading…</span>
+          </div>
+        </div>
+      </div>
+    {/if}
+  </div>
 
   <ErrorPopup />
 </div>
@@ -157,6 +163,13 @@
   .app-shell {
     display: flex;
     min-height: 100vh;
+  }
+
+  .content-region {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    display: flex;
   }
 
   .main-content {
@@ -208,9 +221,18 @@
   }
 
   .loading-overlay {
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: 1000;
+  }
+
+  .loading-viewport {
+    /* Keep the indicator in view on long, document-scrolled pages without
+       changing the main content's scrolling or clipping grid menus. The
+       content-region supplies the sidebar-independent overlay bounds. */
+    position: sticky;
+    top: 0;
+    height: 100dvh;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -225,7 +247,12 @@
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
-    padding: 1.5rem 2rem;
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+    /* Give the indicator room before adding the usual horizontal padding,
+       even when the expanded navigation leaves a very narrow content area. */
+    padding: 1.5rem clamp(0rem, calc(50% - 2.25rem), 2rem);
     border-radius: 0.5rem;
     background: var(--lp-color-background-default);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
@@ -233,11 +260,14 @@
 
   .loading-box :global(.loading-spinner) {
     width: 2rem;
+    max-width: 100%;
     height: 2rem;
     color: var(--lp-color-brand-default);
   }
 
   .loading-text {
+    max-width: 100%;
+    overflow-wrap: anywhere;
     font-size: 0.875rem;
     color: var(--lp-color-text-muted);
   }
