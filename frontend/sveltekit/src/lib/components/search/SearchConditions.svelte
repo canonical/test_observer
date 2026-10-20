@@ -52,6 +52,17 @@
   const id = $props.id();
   let active = $state<Source | null>(null);
   let opened = $state<Source | null>(null);
+  let suspended: Source | null = null;
+  // Hide the native popover before Details light-dismiss/showModal, but retain
+  // its mounted editor (including unconfirmed child input/suggestion state).
+  // Reopening that chip deliberately resumes it; ordinary dismissal still
+  // discards edits. No callback reopens/focuses it behind the native modal.
+  export function preserveEditor() {
+    if (!active) return;
+    suspended = active;
+    document.getElementById(`${id}-${active}`)?.hidePopover();
+    opened = null;
+  }
   let placement = $state("visibility: hidden;");
   let field = $state<EditableSearchFilter | null>(null);
   let query = $state("");
@@ -138,7 +149,11 @@
     if (!popover?.matches(":popover-open")) return;
     positionPanel(source);
     await tick();
-    if (active === source && popover.matches(":popover-open"))
+    if (
+      active === source &&
+      popover.matches(":popover-open") &&
+      !document.querySelector("dialog:modal")
+    )
       popover
         .querySelector<HTMLElement>("input, button")
         ?.focus({ preventScroll: true });
@@ -229,12 +244,27 @@
 
   function beforeToggle(event: ToggleEvent, source: Source) {
     if (event.newState === "open") {
+      if (suspended === source) {
+        // Another confirmed chip may have changed while this editor was hidden.
+        // Refresh cross-field validation/lookup context without remounting the
+        // child that owns pending text, including currently invalid date input.
+        editorDraft = field
+          ? {
+              ...cloneFilters(filters),
+              [field]: cloneFilters(editorDraft)[field],
+            }
+          : cloneFilters(filters);
+        suspended = null;
+        return;
+      }
+      suspended = null;
       active = source;
       placement = "visibility: hidden;";
       query = "";
       field = null;
       if (source !== "add") start(source, source);
     } else if (active === source) {
+      if (suspended === source) return;
       // Native light dismissal (outside click/Escape) never confirms an edit.
       active = null;
       opened = null;
@@ -252,7 +282,13 @@
     event.preventDefault();
     if (!field || !valid || !filterIsActive(field, editorDraft)) return;
     const key = field;
-    const next = cloneFilters(editorDraft);
+    // A Details-suspended editor can outlive removal of another chip. Commit
+    // only this field against the current confirmed filters, not its old whole
+    // snapshot, while retaining the mounted editor's unconfirmed input.
+    const next = {
+      ...cloneFilters(filters),
+      [key]: cloneFilters(editorDraft)[key],
+    };
     close(source, false);
     filters = next;
     onedit?.(key);

@@ -39,6 +39,10 @@ explicit Search to apply confirmed drafts, remote suggestions where supported,
 and a shareable local table view. It also supports ephemeral, ID-based result
 selection across backend pages and an explicit query-bound all-matches option
 with exclusions; no bulk actions or mutation workflows are enabled.
+The Details action opens one reusable Pragma modal from the already-loaded raw
+result (no new query), with execution metadata, attached issues and literal IO
+logs. Issue links intentionally use the future internal issue-detail route;
+that SvelteKit destination currently returns 404 and is not implemented here.
 
 See the canonical [SvelteKit search guide](sveltekit/SEARCH.md) for all field
 labels, editors, URL contracts and repair rules, selection scope/reset behavior,

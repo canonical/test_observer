@@ -188,6 +188,55 @@ View Run uses the configured family route and the SvelteKit
 `testExecutionId`/`testResultId` deep links (including the deployment base path).
 If a result's family has no configured route, the grid shows Run unavailable.
 
+## Loaded result details
+
+The native selection checkbox stays first, followed by **Run**, **Details**, and
+the result columns. Details is a dense, keyboard-accessible Pragma action, not a
+sortable/filterable data column. It does not select a row or change the search,
+table view, URL or selection. One reusable native Pragma modal displays the exact
+loaded result by test result ID, including after local sorting, filtering and
+virtual scrolling; opening/closing it makes **no API requests**. Raw detail
+context does not participate in the grid's global text filter.
+
+**Test result details** contains Test Case (name, category, template ID, status),
+Artefact (configured family display name, name, version, track, build architecture)
+and Test Execution (ID, test plan, environment, status, execution creation time).
+Created is the **execution's** timestamp, displayed in the browser's local time
+with a timezone label and the original timestamp on hover; it is not the result
+creation time used by the search date filters. Execution metadata categories and
+values are sorted and shown literally, with an explicit empty message. Missing
+optional values use an em dash. Every attached `test_result.issues` issue is
+shown when present, with source, project, key, title and status. Nonempty IO Log
+is full, selectable, escaped monospace text, with bounded scrolling and wrapping
+even for unbroken lines; it is never interpreted as HTML or silently truncated.
+
+Issue links intentionally target the **future internal** `${base}/issues/${id}`
+path in a new tab with `noopener noreferrer`. The SvelteKit issue detail route is
+not implemented yet: its current 404 is a known, accepted destination gap, not a
+fallback to an external tracker. No issue page, attachment rules or mutations
+are provided here. Footer **View Run** uses the same configured family route,
+deployment base and execution/result deep link as the grid. An unconfigured
+family has no guessed Run route, but its Details still works.
+
+The responsive modal is at most about 900px wide with viewport margins and an
+internally scrolling body; header and footer controls remain reachable in light
+and dark themes. Native modal focus containment, Escape, outside click, header X
+and footer Close apply. Closing restores the opening Details button, or the
+labelled grid region if that virtualized cell disappeared or was recycled for
+another record. Unmount removes the dialog/top-layer backdrop. Background body
+scrolling is locked only while the modal is open.
+
+Explicit/all-matches selection and exclusions, confirmed chip drafts and table
+sort/filter/visibility survive opening/closing. An open chip editor is suspended
+without discarding its unconfirmed input; reopening that same chip resumes it
+(ordinary Cancel/Escape/outside dismissal still discards edits). It is not
+automatically reopened or focused behind the modal. Pending suggestion/label
+responses and grid view polling do not move modal focus. View-only history keeps
+the same modal and focus. A meaningful query change, explicit Search/reapply,
+pagination, session/loading invalidation or leaving the route closes details
+safely; obsolete row callbacks cannot open a different dataset. Modal state is
+ephemeral, never a URL parameter or another server query.
+
 ## Result selection (no bulk actions)
 
 Native row checkboxes select by **test result ID**, not row position. The header
@@ -264,7 +313,7 @@ so visibility is checked every 250ms while the grid is mounted (with cleanup).
 
 ## Deliberately deferred
 
-Execution-status filtering; a result details modal; saved views and export.
+Execution-status filtering; saved views and export.
 All bulk operations, attachment rules,
 issue attach/detach, rerun creation/deletion, and other mutation workflows are
 excluded.
@@ -288,8 +337,15 @@ provenance and explicit repairs, debounce, keyboard/multi-select, draft family
 context, local failures, cancellation, late-body and session races. Selection
 tests cover ID-native page/header scope, query-bound all-matches/exclusions,
 reset/preserve rules and no selection traffic or persistence. Happy DOM lacks native
-popover support, so a test-only adapter models native toggle/light-dismiss
+popover and dialog/Invoker Commands support, so a test-only adapter models native toggle/light-dismiss
 events, including ignored focus attempts before native opening completes.
+Details regressions additionally cover actual column order, ID mapping after
+local sorting/filtering, all/empty sections, multiple internal issue links,
+execution timestamps/timezones, Unicode metadata, full malicious/large literal
+logs, missing configured families, selections, suspended drafts, pending lookup
+focus, view-only preservation, invalidation, recycled-cell focus fallback and
+unmount. The adapter is test-only, not an application dialog fallback or proof
+of real native focus containment.
 Mounted tests also verify viewport constraints with supplied geometry; real
 scrollbar reachability still needs browser QA. These tests use mocked API
 responses, not a live backend integration or
@@ -333,3 +389,31 @@ screenshot under `/tmp/opencode` by default, never credentials, cookies, tokens 
 storage state. Do not enable traces, HARs or login screenshots. Start/stop only
 your own stack with `docker compose down` **without `-v`**, preserving volumes and
 unrelated projects.
+
+### Native Details browser regression
+
+`tests/search-result-details.browser.js` is another opt-in regression using real
+Chromium, Vite, the locally seeded API and **required TEST SSO**. It does not
+intercept successful requests or modify seed data. Use the same external
+Playwright/Chromium and private credential environment as above, for example:
+
+```sh
+PLAYWRIGHT_MODULE=/tmp/opencode/svelte-search-qa-tools/node_modules/playwright-core/index.mjs \
+CHROMIUM_EXECUTABLE=/path/to/chromium \
+SEARCH_URL=http://localhost:30001/wip/test-results \
+QA_ARTIFACT_DIR=/tmp/opencode/search-details \
+PW_TEST_SCREENSHOT_NO_FONTS_READY=1 \
+node tests/search-result-details.browser.js
+```
+
+It checks 1440px, 960px and 800px in light/dark: real loaded row IDs after sorting,
+Run targets, native keyboard opening/Tab containment/Escape/backdrop/X/Close and
+focus restoration, viewport/body scroll/footer reachability, explicit selection
+and all-matches exclusions, no API or URL changes on open/close, confirmed and
+unconfirmed drafts, and native view-only Back/Forward modal/focus retention.
+Available real rows exercise populated/empty logs and issue hrefs without requiring
+the future issue destination to succeed. The JSON report explicitly notes live
+data gaps; huge/malicious logs, Unicode and unconfigured-family cases remain
+deterministic mounted fixtures, not claims about the seed. Reports/screenshots
+stay outside the repository under `/tmp/opencode`; no login screenshots, traces,
+HAR, credentials, cookies, tokens, personal `/me` payload or storage state.

@@ -97,6 +97,793 @@ function result(id = 1) {
 const response = (ids = [1], count = ids.length, limit = 50, offset = 0) =>
   json({ count, limit, offset, test_results: ids.map(result) });
 
+function detailedResult(id = 1) {
+  const row = result(id);
+  return {
+    ...row,
+    test_result: {
+      ...row.test_result,
+      category: `category ${id}`,
+      template_id: `template ${id}`,
+      io_log: "",
+      issues: [],
+    },
+    test_execution: {
+      ...row.test_execution,
+      created_at: "2026-02-03T12:34:56+05:30",
+      execution_metadata: { "ζ Unicode 🐧": ["二", "一"], Alpha: ["z", "a"] },
+    },
+  };
+}
+
+/** @param {import('happy-dom').HTMLElement} target @param {number} id */
+function detailsButton(target, id) {
+  const found = target.querySelector(
+    `button[aria-label="View details for case ${id}"]`,
+  );
+  assert.ok(found);
+  return /** @type {import('happy-dom').HTMLButtonElement} */ (found);
+}
+
+function detailsDialog() {
+  const dialog = browser.document.querySelector("dialog.search-result-details");
+  assert.ok(dialog);
+  return dialog;
+}
+
+void test("Details is the third native grid column and resolves raw IDs after local sort/filter without requests or selection", async () => {
+  let calls = 0;
+  const rows = [detailedResult(20), detailedResult(3), detailedResult(11)];
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(json({ count: 3, test_results: rows }));
+  };
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    const headers = [...ui.target.querySelectorAll("thead tr th")];
+    assert.ok(headers[0].classList.contains("sv-grid-selection-column"));
+    assert.deepEqual(
+      headers
+        .slice(1, 4)
+        .map((header) => header.getAttribute("data-svgrid-header-col")),
+      ["run", "details", "artefact"],
+    );
+    assert.equal(!!headers[2].querySelector(".sv-grid-filter-button"), false);
+    assert.equal(
+      browser.document.querySelectorAll("dialog.search-result-details").length,
+      1,
+    );
+    const sort = /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+      ui.target.querySelector(
+        '[data-svgrid-header-col="testCase"] button.sv-grid-header-sort',
+      )
+    );
+    assert.ok(sort);
+    sort.click();
+    await flush();
+    const renderedIds = [
+      ...ui.target.querySelectorAll("tbody button[data-test-result-id]"),
+    ].map((button) => button.getAttribute("data-test-result-id"));
+    assert.equal(
+      new Set(renderedIds).size,
+      renderedIds.length,
+      "no duplicate row artifacts after sorting",
+    );
+    await localSearch(ui.target, "case 11");
+    assert.equal(
+      ui.target.querySelectorAll("tbody button[data-test-result-id]").length,
+      1,
+    );
+    const before = ui.handle.currentUrl.href;
+    const writes = ui.handle.replacements.length;
+    const trigger = detailsButton(ui.target, 11);
+    trigger.dispatchEvent(
+      new browser.MouseEvent("pointerdown", { bubbles: true, shiftKey: true }),
+    );
+    trigger.dispatchEvent(
+      new browser.KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    await flush();
+    const dialog = detailsDialog();
+    assert.equal(dialog.open, true);
+    assert.match(dialog.textContent, /category 11/);
+    assert.match(dialog.textContent, /template 11/);
+    assert.equal(
+      dialog
+        .querySelector('a[aria-label="View Run for case 11"]')
+        ?.getAttribute("href"),
+      "/custom/base/configured-route/42?testExecutionId=7&testResultId=11",
+    );
+    assert.equal(ui.handle.currentUrl.href, before);
+    assert.equal(ui.handle.replacements.length, writes);
+    assert.equal(ui.target.querySelector(".selection-summary"), null);
+    assert.equal(ui.target.querySelector(".sv-grid-cell-selected"), null);
+    button(dialog, "Close").click();
+    await flush();
+    assert.equal(browser.document.activeElement, trigger);
+    assert.equal(calls, 1);
+    await localSearch(ui.target, "category 11");
+    assert.equal(
+      ui.target.querySelectorAll("tbody button[aria-haspopup=dialog]").length,
+      0,
+      "raw details must not participate in global filtering",
+    );
+    await localSearch(ui.target, "[object Object]");
+    assert.equal(
+      ui.target.querySelectorAll("tbody button[aria-haspopup=dialog]").length,
+      0,
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("loaded details show every Flutter-functional section, sorted Unicode metadata, execution timestamp and all future internal issues; logs stay literal and complete", async () => {
+  const row = detailedResult(1);
+  const log = `<script>globalThis.pwned=true</script>\n<img src=x onerror=alert(1)> & Ω\n  indented\n${"x".repeat(100_000)}\nEND`;
+  const populated = {
+    ...row,
+    test_result: {
+      ...row.test_result,
+      io_log: log,
+      issues: [
+        {
+          issue: {
+            id: 123,
+            source: "github",
+            project: "org/project",
+            key: "#123",
+            title: "First <b>literal</b>",
+            status: "open",
+            url: "https://tracker.invalid/not-used",
+          },
+        },
+        {
+          issue: {
+            id: 456,
+            source: "jira",
+            project: "Team",
+            key: "TEAM-456",
+            title: "Second 🐧",
+            status: "closed",
+            url: "javascript:alert(1)",
+          },
+        },
+      ],
+    },
+  };
+  globalThis.fetch = () =>
+    Promise.resolve(json({ count: 1, test_results: [populated] }));
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    detailsButton(ui.target, 1).click();
+    await flush();
+    const dialog = detailsDialog();
+    assert.equal(
+      dialog.querySelector("h2")?.textContent,
+      "Test result details",
+    );
+    assert.deepEqual(
+      [...dialog.querySelectorAll("h3")].map((heading) => heading.textContent),
+      ["Test Case", "Artefact", "Test Execution", "Issues", "IO Log"],
+    );
+    for (const text of [
+      "category 1",
+      "template 1",
+      "Configured-route",
+      "example artefact",
+      "1.2",
+      "stable",
+      "amd64",
+      "smoke",
+      "test lab",
+      "org/project",
+      "TEAM-456",
+      "Second 🐧",
+      "github",
+      "jira",
+      "open",
+      "closed",
+    ])
+      assert.ok(dialog.textContent.includes(text), text);
+    assert.deepEqual(
+      [...dialog.querySelectorAll(".execution-metadata dt")].map(
+        (node) => node.textContent,
+      ),
+      ["Alpha", "ζ Unicode 🐧"],
+    );
+    assert.deepEqual(
+      [...dialog.querySelectorAll(".execution-metadata li")].map(
+        (node) => node.textContent,
+      ),
+      ["a", "z", "一", "二"],
+    );
+    const time = dialog.querySelector("time");
+    assert.equal(time?.getAttribute("datetime"), "2026-02-03T07:04:56.000Z");
+    assert.equal(time.getAttribute("title"), row.test_execution.created_at);
+    assert.equal(
+      time.textContent,
+      new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "long",
+      }).format(new Date(row.test_execution.created_at)),
+    );
+    const links = [...dialog.querySelectorAll(".issues a")];
+    assert.deepEqual(
+      links.map((link) => link.getAttribute("href")),
+      ["/custom/base/issues/123", "/custom/base/issues/456"],
+    );
+    for (const link of links) {
+      assert.equal(link.getAttribute("target"), "_blank");
+      assert.equal(link.getAttribute("rel"), "noopener noreferrer");
+      assert.match(link.getAttribute("aria-label") ?? "", /View issue/);
+    }
+    assert.equal(dialog.querySelector("pre")?.textContent, log);
+    assert.equal(dialog.querySelector("script, img, b"), null);
+    assert.ok(dialog.querySelector("header, .dialog-content-header"));
+    assert.ok(dialog.querySelector("footer, .dialog-content-footer"));
+    assert.equal(dialog.querySelectorAll(".issues > li").length, 2);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("empty optional details use em dashes and explicit metadata empty state; unconfigured family still opens without guessed Run", async () => {
+  const row = detailedResult(1);
+  const empty = {
+    ...row,
+    artefact: {
+      ...row.artefact,
+      family: "unconfigured",
+      track: "",
+      version: "",
+    },
+    test_execution: {
+      ...row.test_execution,
+      execution_metadata: {},
+      created_at: "",
+      test_plan: "",
+    },
+    test_result: { ...row.test_result, category: "", template_id: "" },
+  };
+  globalThis.fetch = () =>
+    Promise.resolve(json({ count: 1, test_results: [empty] }));
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    detailsButton(ui.target, 1).click();
+    await flush();
+    const dialog = detailsDialog();
+    assert.match(dialog.textContent, /No execution metadata available\./);
+    assert.equal(dialog.querySelector("pre, time, .issues, a"), null);
+    assert.match(dialog.textContent, /Run unavailable/);
+    assert.equal(
+      [...dialog.querySelectorAll("dd")].filter(
+        (node) => node.textContent === "—",
+      ).length,
+      6,
+    );
+    assert.deepEqual(
+      [...dialog.querySelectorAll("h3")].map((node) => node.textContent),
+      ["Test Case", "Artefact", "Test Execution"],
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("Details retains explicit/all-matches exclusions, confirmed/unconfirmed drafts, grid identity and view-only history focus with no traffic", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(
+      json({ count: 19, test_results: [detailedResult(1), detailedResult(2)] }),
+    );
+  };
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    detailsButton(ui.target, 1).click();
+    await flush();
+    button(detailsDialog(), "Close").click();
+    await flush();
+    assert.match(ui.target.textContent, /1 selected by result ID/);
+    selectionHeader(ui.target).click();
+    await flush();
+    allMatchesCheckbox(ui.target)?.click();
+    await flush();
+    selectionRow(ui.target, 2).click();
+    await flush();
+    await chooseFilter(ui.target, "Template ID");
+    await enter(ui.target, 'input[name="template_ids"]', "confirmed draft");
+    await confirmEditor(ui.target);
+    chip(ui.target, "Template ID").click();
+    await flush();
+    const input = await enter(
+      ui.target,
+      'input[name="template_ids"]',
+      "unconfirmed 🐧",
+    );
+    const grid = ui.target.querySelector(".sv-grid-root");
+    const href = ui.handle.currentUrl.href;
+    const writes = ui.handle.replacements.length;
+    const trigger = detailsButton(ui.target, 1);
+    trigger.dispatchEvent(
+      new browser.MouseEvent("pointerdown", { bubbles: true }),
+    );
+    trigger.click();
+    await flush();
+    const dialog = detailsDialog();
+    assert.equal(dialog.open, true);
+    const focus = browser.document.activeElement;
+    const view = app.encodeView({ sorting: [{ id: "testCase", desc: true }] });
+    ui.handle.restore(url(`artefacts=one&view=${view}`));
+    await flush();
+    ui.handle.restore(url("artefacts=one"));
+    await flush();
+    assert.equal(detailsDialog(), dialog);
+    assert.equal(dialog.open, true);
+    assert.equal(browser.document.activeElement, focus);
+    assert.equal(ui.target.querySelector(".sv-grid-root"), grid);
+    assert.match(
+      ui.target.textContent,
+      /18 selected across the applied query \(1 excluded\)/,
+    );
+    assert.equal(
+      selectionRow(ui.target, 2).getAttribute("aria-checked"),
+      "false",
+    );
+    assert.equal(ui.handle.currentUrl.href, href);
+    assert.equal(ui.handle.replacements.length, writes);
+    const x = /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+      dialog.querySelector("button[aria-label='Close details']")
+    );
+    x?.click();
+    await flush();
+    assert.equal(browser.document.activeElement, trigger);
+    assert.equal(
+      chip(ui.target, "Template ID").getAttribute("title"),
+      "Template ID: confirmed draft",
+    );
+    chip(ui.target, "Template ID").click();
+    await flush();
+    assert.equal(ui.target.querySelector('input[name="template_ids"]'), input);
+    assert.equal(input.value, "unconfirmed 🐧");
+    assert.equal(calls, 1);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("saving a Details-suspended editor retains its unconfirmed field but cannot resurrect another removed confirmed filter", async () => {
+  /** @type {URL[]} */
+  const calls = [];
+  globalThis.fetch = (input) => {
+    calls.push(new URL(input instanceof Request ? input.url : input));
+    return Promise.resolve(
+      json({ count: 1, test_results: [detailedResult(1)] }),
+    );
+  };
+  // A and B are both confirmed; only A has unconfirmed edits.
+  const ui = mounted("template_ids=confirmed-A&artefacts=confirmed-B");
+  try {
+    await flush();
+    chip(ui.target, "Template ID").click();
+    await flush();
+    const input = await enter(
+      ui.target,
+      'input[name="template_ids"]',
+      "unconfirmed-A 🐧",
+    );
+    const trigger = detailsButton(ui.target, 1);
+    trigger.dispatchEvent(
+      new browser.MouseEvent("pointerdown", { bubbles: true }),
+    );
+    trigger.click();
+    await flush();
+    button(detailsDialog(), "Close").click();
+    await flush();
+    const removeB =
+      /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+        ui.target.querySelector('button[aria-label="Remove Artefact filter"]')
+      );
+    assert.ok(removeB);
+    removeB.click();
+    await flush();
+    assert.equal(
+      ui.target.querySelectorAll('.chip-trigger[aria-label^="Edit Artefact:"]')
+        .length,
+      0,
+    );
+    chip(ui.target, "Template ID").click();
+    await flush();
+    assert.equal(ui.target.querySelector('input[name="template_ids"]'), input);
+    assert.equal(input.value, "unconfirmed-A 🐧");
+    await confirmEditor(ui.target);
+    assert.equal(
+      chip(ui.target, "Template ID").getAttribute("title"),
+      "Template ID: unconfirmed-A 🐧",
+    );
+    assert.equal(
+      ui.target.querySelectorAll('.chip-trigger[aria-label^="Edit Artefact:"]')
+        .length,
+      0,
+      "saving A must not restore removed B from its suspended snapshot",
+    );
+    assert.equal(
+      calls.length,
+      1,
+      "Details, removing B and saving A do not search",
+    );
+    assert.equal(
+      ui.handle.currentUrl.searchParams.get("artefacts"),
+      "confirmed-B",
+      "applied URL stays unchanged until Search",
+    );
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls.length, 2);
+    assert.equal(calls[1].searchParams.get("template_ids"), "unconfirmed-A 🐧");
+    assert.equal(calls[1].searchParams.has("artefacts"), false);
+    assert.equal(ui.handle.currentUrl.searchParams.has("artefacts"), false);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("a resumed Details-suspended date editor revalidates pending From text after the confirmed Until chip is removed", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(
+      json({ count: 1, test_results: [detailedResult(1)] }),
+    );
+  };
+  const ui = mounted(
+    "from_date=2026-01-01T00:00:00Z&until_date=2026-01-10T00:00:00Z",
+  );
+  try {
+    await flush();
+    chip(ui.target, "From").click();
+    await flush();
+    const input = await enter(
+      ui.target,
+      'input[name="from_date"]',
+      "2026-01-15T00:00:00Z",
+    );
+    assert.equal(button(panel(ui.target), "Save changes").disabled, true);
+    assert.match(panel(ui.target).textContent, /From must not be after Until/);
+    const trigger = detailsButton(ui.target, 1);
+    trigger.dispatchEvent(
+      new browser.MouseEvent("pointerdown", { bubbles: true }),
+    );
+    trigger.click();
+    await flush();
+    button(detailsDialog(), "Close").click();
+    await flush();
+    const removeUntil =
+      /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+        ui.target.querySelector('button[aria-label="Remove Until filter"]')
+      );
+    assert.ok(removeUntil);
+    removeUntil.click();
+    await flush();
+    chip(ui.target, "From").click();
+    await flush();
+    assert.equal(
+      ui.target.querySelector('input[name="from_date"]'),
+      input,
+      "resume must retain the mounted child holding invalid pending text",
+    );
+    assert.equal(input.value, "2026-01-15T00:00:00Z");
+    assert.equal(
+      button(panel(ui.target), "Save changes").disabled,
+      false,
+      "removed Until must no longer constrain the pending From value",
+    );
+    assert.doesNotMatch(
+      panel(ui.target).textContent,
+      /From must not be after Until|Until: 2026-01-10/,
+    );
+    await confirmEditor(ui.target);
+    assert.equal(
+      chip(ui.target, "From").getAttribute("title"),
+      "From: 2026-01-15T00:00:00Z",
+    );
+    assert.equal(
+      ui.target.querySelectorAll('.chip-trigger[aria-label^="Edit Until:"]')
+        .length,
+      0,
+    );
+    assert.equal(calls, 1, "resume and saving the rebased draft do not search");
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls, 2);
+    assert.equal(
+      ui.handle.currentUrl.searchParams.get("from_date"),
+      "2026-01-15T00:00:00Z",
+    );
+    assert.equal(ui.handle.currentUrl.searchParams.has("until_date"), false);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("a resumed Details-suspended lookup rebases removed Family context, cancels stale bodies and retains mounted pending input and selections", async () => {
+  const late = deferred();
+  const old = json({});
+  old.json = async () => {
+    const response = await late.promise;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- Browser response parser.
+    return response.json();
+  };
+  const fresh = deferred();
+  /** @type {AbortSignal | null | undefined} */ let oldSignal;
+  /** @type {URL[]} */ const lookups = [];
+  let resultsCalls = 0;
+  globalThis.fetch = (input, options) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    if (request.pathname.endsWith("/test-results")) {
+      resultsCalls++;
+      return Promise.resolve(
+        json({ count: 1, test_results: [detailedResult(1)] }),
+      );
+    }
+    lookups.push(request);
+    if (request.searchParams.has("families")) {
+      oldSignal = options?.signal;
+      return Promise.resolve(old);
+    }
+    return fresh.promise;
+  };
+  const ui = mounted("families=snap&artefacts=confirmed");
+  try {
+    await flush();
+    chip(ui.target, "Artefact").click();
+    await flush();
+    await enter(ui.target, 'input[name="artefacts"]', "unconfirmed selected");
+    button(panel(ui.target), "Add exact value").click();
+    await flush();
+    const input = await enter(
+      ui.target,
+      'input[name="artefacts"]',
+      "pending lookup 🐧",
+    );
+    await settleSuggestions();
+    assert.equal(lookups.length, 1);
+    assert.deepEqual(lookups[0].searchParams.getAll("families"), ["snap"]);
+    const trigger = detailsButton(ui.target, 1);
+    trigger.dispatchEvent(
+      new browser.MouseEvent("pointerdown", { bubbles: true }),
+    );
+    trigger.click();
+    await flush();
+    assert.equal(
+      detailsDialog().contains(browser.document.activeElement),
+      true,
+    );
+    button(detailsDialog(), "Close").click();
+    await flush();
+    assert.equal(browser.document.activeElement, trigger);
+    const removeFamily =
+      /** @type {import('happy-dom').HTMLButtonElement | null} */ (
+        ui.target.querySelector('button[aria-label="Remove Family filter"]')
+      );
+    assert.ok(removeFamily);
+    removeFamily.click();
+    await flush();
+    chip(ui.target, "Artefact").click();
+    await flush();
+    assert.equal(ui.target.querySelector('input[name="artefacts"]'), input);
+    assert.equal(input.value, "pending lookup 🐧");
+    assert.equal(
+      oldSignal?.aborted,
+      true,
+      "resuming with the live Family context cancels the old restricted lookup",
+    );
+    assert.equal(browser.document.activeElement, input);
+    assert.match(panel(ui.target).textContent, /confirmed/);
+    assert.match(panel(ui.target).textContent, /unconfirmed selected/);
+    late.resolve(json({ artefacts: ["STALE FAMILY RESULT"] }));
+    await settleSuggestions();
+    assert.equal(lookups.length, 2);
+    assert.equal(lookups[1].searchParams.has("families"), false);
+    assert.equal(lookups[1].searchParams.get("q"), "pending lookup 🐧");
+    assert.doesNotMatch(panel(ui.target).textContent, /STALE FAMILY RESULT/);
+    assert.equal(browser.document.activeElement, input);
+    fresh.resolve(json({ artefacts: ["unrestricted fresh result"] }));
+    await flush();
+    assert.match(panel(ui.target).textContent, /unrestricted fresh result/);
+    assert.doesNotMatch(panel(ui.target).textContent, /STALE FAMILY RESULT/);
+    assert.equal(
+      browser.document.activeElement,
+      input,
+      "neither stale nor current replies may steal editor focus",
+    );
+    assert.equal(input.value, "pending lookup 🐧");
+    assert.equal(
+      button(panel(ui.target), "Save changes").disabled,
+      true,
+      "pending query text stays unconfirmed",
+    );
+    button(panel(ui.target), "Clear input").click();
+    await flush();
+    await confirmEditor(ui.target);
+    assert.equal(
+      chip(ui.target, "Artefact").getAttribute("title"),
+      "Artefact: confirmed, unconfirmed selected",
+    );
+    assert.equal(
+      ui.target.querySelectorAll('.chip-trigger[aria-label^="Edit Family:"]')
+        .length,
+      0,
+    );
+    assert.equal(resultsCalls, 1);
+    assert.equal(
+      lookups.length,
+      2,
+      "only the original and context-refreshed suggestion requests are sent",
+    );
+    assert.equal(
+      ui.handle.currentUrl.searchParams.get("families"),
+      "snap",
+      "draft changes still await explicit Search",
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("native close, filtered-away trigger fallback and dataset/unmount invalidation reject stale Details callbacks", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(
+      json({ count: 19, test_results: [detailedResult(1), detailedResult(2)] }),
+    );
+  };
+  const ui = mounted("artefacts=one&limit=2");
+  try {
+    await flush();
+    const oldTrigger = detailsButton(ui.target, 1);
+    oldTrigger.click();
+    await flush();
+    const dialog = detailsDialog();
+    dialog
+      .querySelector("button")
+      ?.dispatchEvent(
+        new browser.KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      );
+    await flush();
+    assert.equal(dialog.open, false);
+    assert.equal(browser.document.activeElement, oldTrigger);
+    oldTrigger.click();
+    await flush();
+    const encoded = app.encodeView({ globalFilter: "case 2" });
+    ui.handle.restore(url(`artefacts=one&limit=2&view=${encoded}`));
+    await flush();
+    assert.equal(dialog.open, true);
+    assert.notEqual(
+      oldTrigger.getAttribute("data-test-result-id"),
+      "1",
+      "SvGrid may recycle a still-connected cell for another result",
+    );
+    button(dialog, "Close").click();
+    await flush();
+    assert.equal(
+      browser.document.activeElement,
+      ui.target.querySelector(".results-grid"),
+    );
+    detailsButton(ui.target, 2).click();
+    await flush();
+    ui.handle.restore(url("artefacts=two&limit=2"));
+    await flush();
+    assert.equal(dialog.open, false);
+    oldTrigger.click();
+    await flush();
+    assert.equal(dialog.open, false);
+    detailsButton(ui.target, 1).click();
+    await flush();
+    button(ui.target, "Next page").click();
+    await flush();
+    assert.equal(dialog.open, false);
+    detailsButton(ui.target, 1).click();
+    await flush();
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(dialog.open, false);
+    assert.equal(
+      calls,
+      4,
+      "only initial/query/pagination/reapply request results",
+    );
+    detailsButton(ui.target, 1).click();
+    await flush();
+    assert.equal(dialog.open, true);
+  } finally {
+    await ui.destroy();
+  }
+  assert.equal(
+    browser.document.querySelector("dialog.search-result-details"),
+    null,
+  );
+});
+
+void test("pending suggestions/labels and view polling complete behind Details without moving modal focus or erasing suspended editor input", async () => {
+  const pending = deferred();
+  const pendingLabel = deferred();
+  let suggestions = 0;
+  let calls = 0;
+  globalThis.fetch = (input) => {
+    calls++;
+    const request = new URL(input instanceof Request ? input.url : input);
+    if (request.pathname.endsWith("/issues/990019"))
+      return pendingLabel.promise;
+    if (request.pathname.endsWith("/artefacts/search")) {
+      suggestions++;
+      return pending.promise;
+    }
+    return Promise.resolve(
+      json({ count: 1, test_results: [detailedResult(1)] }),
+    );
+  };
+  const ui = mounted("artefacts=one&issues=990019");
+  try {
+    await flush();
+    chip(ui.target, "Artefact").click();
+    await flush();
+    const input = await enter(
+      ui.target,
+      'input[name="artefacts"]',
+      "pending text",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 280));
+    assert.equal(suggestions, 1);
+    const trigger = detailsButton(ui.target, 1);
+    trigger.dispatchEvent(
+      new browser.MouseEvent("pointerdown", { bubbles: true }),
+    );
+    trigger.click();
+    await flush();
+    const focused = browser.document.activeElement;
+    pending.resolve(json([{ name: "pending text suggestion" }]));
+    pendingLabel.resolve(
+      json({
+        id: 990019,
+        source: "github",
+        project: "org",
+        key: "990019",
+        title: "Hydrated behind modal",
+      }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 280));
+    assert.equal(detailsDialog().open, true);
+    assert.equal(browser.document.activeElement, focused);
+    assert.match(
+      chip(ui.target, "Issues").getAttribute("title") ?? "",
+      /Hydrated behind modal/,
+    );
+    button(detailsDialog(), "Close").click();
+    await flush();
+    chip(ui.target, "Artefact").click();
+    await flush();
+    assert.equal(ui.target.querySelector('input[name="artefacts"]'), input);
+    assert.equal(input.value, "pending text");
+    assert.equal(suggestions, 1);
+    assert.equal(
+      calls,
+      3,
+      "only initial results, pending label and pending suggestion; Details/polling never fetch",
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
 /** @param {string} query */
 function selectionFor(query) {
   const selection = new app.TestResultsSelection();
@@ -173,6 +960,7 @@ before(async () => {
     "Node",
     "Element",
     "HTMLElement",
+    "HTMLDialogElement",
     "HTMLInputElement",
     "HTMLMediaElement",
     "HTMLSelectElement",
@@ -230,6 +1018,7 @@ before(async () => {
   // eslint-disable-next-line @typescript-eslint/unbound-method
   const originalMatches = browser.Element.prototype.matches;
   browser.Element.prototype.matches = function (selector) {
+    if (selector === ":modal") return this.hasAttribute("data-test-modal");
     if (selector === ":popover-open")
       return this.hasAttribute("data-test-open");
     return originalMatches.call(this, selector);
@@ -254,6 +1043,44 @@ before(async () => {
       },
     },
   });
+  // Happy DOM has no native dialog/Invoker Commands implementation. Model only
+  // open/close/toggle/focus restoration; actual top-layer, Tab containment,
+  // backdrop and layout are covered by the opt-in Chromium regression.
+  /** @type {WeakMap<import('happy-dom').HTMLDialogElement, import('happy-dom').HTMLElement | null>} */
+  const invokers = new WeakMap();
+  browser.HTMLDialogElement.prototype.showModal = function () {
+    if (this.open) return;
+    invokers.set(
+      this,
+      /** @type {import('happy-dom').HTMLElement | null} */ (
+        browser.document.activeElement
+      ),
+    );
+    for (const popover of openPopovers) hidePopover(popover);
+    this.open = true;
+    this.setAttribute("data-test-modal", "");
+    this.querySelector("button")?.focus();
+    this.dispatchEvent(toggleEvent("toggle", "closed", "open"));
+  };
+  browser.HTMLDialogElement.prototype.close = function () {
+    if (!this.open) return;
+    this.open = false;
+    this.removeAttribute("data-test-modal");
+    const invoker = invokers.get(this);
+    if (invoker?.isConnected) invoker.focus();
+    this.dispatchEvent(toggleEvent("toggle", "open", "closed"));
+    setTimeout(() => this.dispatchEvent(new browser.Event("close")));
+  };
+  browser.document.addEventListener("click", (event) => {
+    const target = /** @type {import('happy-dom').Element} */ (event.target);
+    const command = target.closest('button[command="close"]');
+    if (command) {
+      const dialog = browser.document.getElementById(
+        command.getAttribute("commandfor") ?? "",
+      );
+      if (dialog instanceof browser.HTMLDialogElement) dialog.close();
+    }
+  });
   browser.document.addEventListener("click", (event) => {
     const target = /** @type {import('happy-dom').Element} */ (event.target);
     const trigger =
@@ -275,17 +1102,30 @@ before(async () => {
     }
   });
   // Model the browser's default Enter activation for native buttons.
-  browser.document.addEventListener("keydown", (event) => {
-    const target = /** @type {import('happy-dom').HTMLButtonElement} */ (
-      event.target
-    );
-    if (
-      event.key === "Enter" &&
-      !event.defaultPrevented &&
-      target.matches("button")
-    )
-      target.click();
-  });
+  browser.document.addEventListener(
+    "keydown",
+    (event) => {
+      const target = /** @type {import('happy-dom').HTMLButtonElement} */ (
+        event.target
+      );
+      queueMicrotask(() => {
+        if (
+          event.key === "Enter" &&
+          !event.defaultPrevented &&
+          target.matches("button")
+        )
+          target.click();
+        if (event.key === "Escape" && !event.defaultPrevented) {
+          const dialog =
+            /** @type {import('happy-dom').HTMLDialogElement | null} */ (
+              browser.document.querySelector("dialog[open]")
+            );
+          dialog?.close();
+        }
+      });
+    },
+    true,
+  );
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   app = /** @type {typeof import('./test-results-search-entry.svelte.js')} */ (
     /** @type {unknown} */ (

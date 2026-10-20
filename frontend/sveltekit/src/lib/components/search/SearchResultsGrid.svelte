@@ -13,6 +13,7 @@
   import { familyDisplayName } from "$lib/types";
   import { viewRunPath, type SearchResult } from "$lib/testResultsSearch";
   import ViewRunLink from "./ViewRunLink.svelte";
+  import DetailsButton from "./DetailsButton.svelte";
   import type { SearchSelectionPage } from "$lib/testResultsSelection.svelte";
   import {
     EMPTY_VIEW,
@@ -31,6 +32,8 @@
     selection,
     selectedCount,
     onViewChange,
+    beforeDetails,
+    onDetails,
   }: {
     results: SearchResult[];
     families: Family[];
@@ -40,6 +43,8 @@
     queryKey: string;
     selection: SearchSelectionPage;
     selectedCount: number;
+    beforeDetails: () => void;
+    onDetails: (result: SearchResult, trigger: HTMLButtonElement) => void;
     onViewChange: (
       encoded: string | null,
       sourceHref: string,
@@ -49,6 +54,11 @@
   // branch unmounts. Tag it with the backend query it actually rendered, not
   // the latest href (which legitimately changes for presentation writes).
   const ownerQuery = untrack(() => queryKey);
+  const ownerResults = untrack(() => results);
+  // Raw context stays outside the small grid rows/global text search.
+  const rawById = new Map(
+    ownerResults.map((result) => [result.test_result.id, result]),
+  );
   let live = true;
   onDestroy(() => {
     live = false;
@@ -88,6 +98,26 @@
         renderComponent(ViewRunLink, {
           href: row.original.href,
           name: row.original.testCase,
+        }),
+    },
+    {
+      id: "details",
+      header: "Details",
+      sortable: false,
+      filterable: false,
+      width: 100,
+      cell: ({ row }) =>
+        renderComponent(DetailsButton, {
+          name: row.original.testCase,
+          resultId: row.original.id,
+          prepare: () => {
+            if (selectionEnabled()) beforeDetails();
+          },
+          show: (trigger: HTMLButtonElement) => {
+            if (!selectionEnabled() || results !== ownerResults) return;
+            const result = rawById.get(row.original.id);
+            if (result) onDetails(result, trigger);
+          },
         }),
     },
     { id: "artefact", header: "Artefact", field: "artefact" },
@@ -234,7 +264,12 @@
   });
 </script>
 
-<div class="results-grid">
+<div
+  class="results-grid"
+  role="region"
+  aria-label="Search results grid"
+  tabindex="-1"
+>
   <SvGrid
     data={rows}
     {columns}

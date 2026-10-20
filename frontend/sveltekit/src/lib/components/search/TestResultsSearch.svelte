@@ -18,9 +18,11 @@
     searchQueryString,
     SEARCH_FILTERS,
     type SearchFilter,
+    type SearchResult,
   } from "$lib/testResultsSearch";
   import SearchResultsGrid from "./SearchResultsGrid.svelte";
   import SearchConditions from "./SearchConditions.svelte";
+  import SearchResultDetails from "./SearchResultDetails.svelte";
   import { VIEW_PARAM } from "$lib/gridViewUrl";
   import {
     selectionQuery,
@@ -50,6 +52,13 @@
     live = false;
   });
   let grid = $state<ReturnType<typeof SearchResultsGrid> | null>(null);
+  let conditions = $state<ReturnType<typeof SearchConditions> | null>(null);
+  let selectedDetails = $state<{
+    result: SearchResult;
+    key: string;
+    trigger: HTMLButtonElement;
+  } | null>(null);
+  let pageElement: HTMLElement;
   const queryString = $derived(searchQueryString(url.searchParams));
   const applied = $derived(
     parseSearch(new URLSearchParams(queryString), families),
@@ -99,6 +108,43 @@
         datasetKey === key,
     );
   });
+
+  // Presentation-only history never changes datasetKey/selectionReady. Query,
+  // reapply, pagination, session/loading and route invalidation do.
+  $effect.pre(() => {
+    if (
+      selectedDetails &&
+      (!selectionReady || selectedDetails.key !== datasetKey)
+    )
+      selectedDetails = null;
+  });
+
+  function showDetails(result: SearchResult, trigger: HTMLButtonElement) {
+    if (
+      !live ||
+      !selectionReady ||
+      !store.response?.test_results.includes(result)
+    )
+      return;
+    trigger.focus({ preventScroll: true });
+    selectedDetails = { result, key: datasetKey, trigger };
+  }
+
+  function closeDetails() {
+    const previous = selectedDetails;
+    selectedDetails = null;
+    if (!previous || !live || !selectionReady || previous.key !== datasetKey)
+      return;
+    // Native dialog restores its invoker. A locally hidden/virtualized-away
+    // trigger needs a meaningful fallback, without focusing an outgoing route.
+    const target =
+      previous.trigger.isConnected &&
+      previous.trigger.dataset.testResultId ===
+        String(previous.result.test_result.id)
+        ? previous.trigger
+        : pageElement.querySelector<HTMLElement>(".results-grid");
+    target?.focus({ preventScroll: true });
+  }
 
   $effect.pre(() => {
     const snapshot = selectionSnapshot;
@@ -189,7 +235,11 @@
   );
 </script>
 
-<section class="search-page" aria-labelledby="search-heading">
+<section
+  class="search-page"
+  aria-labelledby="search-heading"
+  bind:this={pageElement}
+>
   <h1 id="search-heading">Search test results</h1>
   <p>
     Add exact-match conditions, then Search. Values within a filter match any;
@@ -198,6 +248,7 @@
   <div class="filter-bar" role="group" aria-label="Test result filters">
     {#key `${queryString}:${reapply}:${editorRevision}`}
       <SearchConditions
+        bind:this={conditions}
         bind:filters={drafts}
         {families}
         {invalidFields}
@@ -364,6 +415,8 @@
           selection={selectionPage}
           selectedCount={selection.selectedCount}
           onViewChange={updateView}
+          beforeDetails={() => conditions?.preserveEditor()}
+          onDetails={showDetails}
         />
       {:else if response.count === 0}
         <p>No test results match the applied filters.</p>
@@ -400,6 +453,13 @@
     {/if}
   </section>
 </section>
+
+<SearchResultDetails
+  result={selectedDetails?.result ?? null}
+  {families}
+  {base}
+  onclose={closeDetails}
+/>
 
 <style>
   .search-page {
