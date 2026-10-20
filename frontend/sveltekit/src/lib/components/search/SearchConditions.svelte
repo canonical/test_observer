@@ -28,6 +28,10 @@
     searchFilterLabelCache,
     type IdFilterKey,
   } from "$lib/searchFilterLabels";
+  import {
+    metadataSuggestions,
+    suggestionScope,
+  } from "$lib/searchFilterSuggestions";
 
   let {
     filters = $bindable(),
@@ -56,6 +60,11 @@
   let idLabels = $state<Record<string, string>>({});
   let labelGeneration = 0;
   let addButton: HTMLButtonElement | undefined = $state();
+  $effect(() => {
+    // Invalidate even while Metadata is closed (including logout/login as the
+    // same profile). No private options survive a different session context.
+    metadataSuggestions.setScope(suggestionScope());
+  });
   const available = $derived(
     EDITABLE_SEARCH_FILTERS.filter(
       (key) =>

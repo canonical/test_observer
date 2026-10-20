@@ -10,6 +10,37 @@ export const idLabelKey = (kind: IdFilterKey, id: number) => `${kind}:${id}`;
 export const loadingIdLabel = (id: number) => `#${id} loading…`;
 const unavailable = (id: number) => `#${id} details unavailable`;
 
+/** Shared by detail hydration and rich lookup results; IDs remain identity. */
+export function formatIdLabel(
+  kind: IdFilterKey,
+  id: number,
+  body: Record<string, unknown>,
+): string {
+  const text = (key: string) =>
+    typeof body[key] === "string" ? body[key].trim() : "";
+  const detail =
+    kind === "issues"
+      ? [
+          text("source"),
+          [text("project"), text("key")].filter(Boolean).join("/"),
+          text("title"),
+        ]
+          .filter(Boolean)
+          .join(" — ")
+      : [
+          [
+            text("name"),
+            text("launchpad_handle") ? `@${text("launchpad_handle")}` : "",
+          ]
+            .filter(Boolean)
+            .join(" "),
+          text("email"),
+        ]
+          .filter(Boolean)
+          .join(" — ");
+  return detail ? `#${id} ${detail}` : unavailable(id);
+}
+
 interface PendingLabel {
   controller: AbortController;
   consumers: Set<AbortSignal>;
@@ -25,6 +56,18 @@ export class SearchFilterLabelCache {
 
   peek(kind: IdFilterKey, id: number): string | undefined {
     return this.labels.get(idLabelKey(kind, id));
+  }
+
+  prime(kind: IdFilterKey, id: number, label: string): void {
+    const key = idLabelKey(kind, id);
+    // A lookup result is already a detail response. Do not fetch it again.
+    const pending = this.pending.get(key);
+    pending?.controller.abort();
+    this.pending.delete(key);
+    const oldest = this.labels.keys().next().value;
+    if (this.labels.size >= 500 && oldest !== undefined)
+      this.labels.delete(oldest);
+    this.labels.set(key, label);
   }
 
   clear(): void {
@@ -105,23 +148,7 @@ export class SearchFilterLabelCache {
         body.id !== id
       )
         return unavailable(id);
-      const text = (key: string) =>
-        key in body && typeof Reflect.get(body, key) === "string"
-          ? String(Reflect.get(body, key)).trim()
-          : "";
-      if (kind === "issues") {
-        const identity = [text("project"), text("key")]
-          .filter(Boolean)
-          .join("/");
-        const detail = [identity, text("title")].filter(Boolean).join(" — ");
-        return detail ? `#${id} ${detail}` : unavailable(id);
-      }
-      const name = text("name");
-      const handle = text("launchpad_handle");
-      const detail = [name, handle ? `@${handle}` : ""]
-        .filter(Boolean)
-        .join(" ");
-      return detail ? `#${id} ${detail}` : unavailable(id);
+      return formatIdLabel(kind, id, body);
     } catch {
       return unavailable(id);
     }

@@ -6,6 +6,12 @@
     validateMetadataPart,
     type MetadataCondition,
   } from "$lib/testResultsFilters";
+  import {
+    metadataSuggestions,
+    suggestionScope,
+    suggestionError,
+    type KnownMetadata,
+  } from "$lib/searchFilterSuggestions";
   let {
     value = $bindable(),
     // eslint-disable-next-line no-useless-assignment -- Bindable validation output is read by the owning form.
@@ -18,6 +24,47 @@
   let category = $state("");
   let text = $state("");
   let error = $state("");
+  let known = $state<KnownMetadata>({});
+  let loading = $state(false);
+  let lookupError = $state("");
+  let retry = $state(0);
+  let generation = 0;
+  const categories = $derived(
+    Object.keys(known)
+      .filter((key) => key.toLowerCase().includes(category.toLowerCase()))
+      .slice(0, 50),
+  );
+  const values = $derived(
+    (Object.hasOwn(known, category) ? known[category] : [])
+      .filter((item) => item.toLowerCase().includes(text.toLowerCase()))
+      .slice(0, 50),
+  );
+  $effect(() => {
+    const scope = suggestionScope();
+    void retry;
+    const current = ++generation;
+    const controller = new AbortController();
+    known = {};
+    loading = true;
+    lookupError = "";
+    const live = () =>
+      !controller.signal.aborted &&
+      current === generation &&
+      scope === suggestionScope();
+    void metadataSuggestions.load(scope, controller.signal).then(
+      (map) => {
+        if (!live()) return;
+        known = map;
+        loading = false;
+      },
+      (cause: unknown) => {
+        if (!live()) return;
+        loading = false;
+        lookupError = suggestionError(cause);
+      },
+    );
+    return () => controller.abort();
+  });
   $effect(() => {
     valid = value.length > 0 && !category && !text;
   });
@@ -80,9 +127,32 @@
   id={`${id}-category`}
   name="metadata-category"
   bind:value={category}
+  list={`${id}-categories`}
 />
+<datalist id={`${id}-categories`}>
+  {#each categories as item (item)}<option value={item}></option>{/each}
+</datalist>
 <label for={`${id}-value`}>Value</label>
-<TextInput id={`${id}-value`} name="metadata-value" bind:value={text} />
+<TextInput
+  id={`${id}-value`}
+  name="metadata-value"
+  bind:value={text}
+  list={`${id}-values`}
+/>
+<datalist id={`${id}-values`}>
+  {#each values as item (item)}<option value={item}></option>{/each}
+</datalist>
+<p class="hint" role="status">
+  {#if loading}Loading known metadata…
+  {:else if lookupError}{lookupError}
+  {:else}Known categories and values are suggested as you type (up to 50
+    matches). Choose a category for its values, or enter an exact pair. {#if !categories.length}No
+      matching known categories.{:else if category && !values.length}No matching
+      known values for this category.{/if}{/if}
+</p>
+{#if lookupError}<Button type="button" density="dense" onclick={() => retry++}
+    >Retry suggestions</Button
+  >{/if}
 <p class="hint">Each category and value must contain 1–200 characters.</p>
 <Button type="button" density="dense" onclick={add}>Add pair</Button>
 {#if category || text}<p class="hint">

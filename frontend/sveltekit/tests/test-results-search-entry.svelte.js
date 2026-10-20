@@ -3,6 +3,7 @@
 
 import { mount, unmount, flushSync } from "svelte";
 import TestResultsSearch from "../src/lib/components/search/TestResultsSearch.svelte";
+import ValueSuggestions from "../src/lib/components/search/ValueSuggestions.svelte";
 import { replaceSearchView } from "../src/lib/searchViewNavigation";
 export { TestResultsSearchStore } from "../src/lib/stores/test-results-search.svelte";
 export { userStore } from "../src/lib/stores/user.svelte";
@@ -15,6 +16,11 @@ export {
   searchFilterLabelCache,
 } from "../src/lib/searchFilterLabels";
 export { errorStore } from "../src/lib/stores/error.svelte";
+export {
+  lookupValues,
+  suggestionScope,
+  metadataSuggestions,
+} from "../src/lib/searchFilterSuggestions";
 
 /**
  * @param {HTMLElement} target
@@ -64,6 +70,42 @@ export function mountSearch(target, initialUrl, families) {
     restore(next) {
       url = next;
       flushSync();
+    },
+    destroy: () => unmount(component),
+  };
+}
+
+/** Mount the actual lookup child to exercise a family-context change without
+ * remounting the editor. The page normally changes family chips between opens.
+ * @param {HTMLElement} target
+ */
+export function mountSuggestions(target) {
+  let families = $state(["old-family"]);
+  let selected = $state(["retained"]);
+  const component = mount(ValueSuggestions, {
+    target,
+    props: {
+      field: "artefacts",
+      get draftFamilies() {
+        return families;
+      },
+      get selected() {
+        return selected;
+      },
+      set selected(value) {
+        selected = value;
+      },
+    },
+  });
+  flushSync();
+  return {
+    /** @param {string[]} value */
+    setFamilies(value) {
+      families = value;
+      flushSync();
+    },
+    get selected() {
+      return [...selected];
     },
     destroy: () => unmount(component),
   };

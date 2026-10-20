@@ -2,14 +2,10 @@
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 <script lang="ts">
   import { untrack } from "svelte";
-  import { TextInput } from "@canonical/svelte-ds-app-launchpad";
-  import { FILTER_DEFINITIONS, type IdFilter } from "$lib/testResultsFilters";
+  import { type IdFilter } from "$lib/testResultsFilters";
   import { ID_MODE_LABELS } from "$lib/searchFilterEditor";
-  import {
-    idLabelKey,
-    loadingIdLabel,
-    type IdFilterKey,
-  } from "$lib/searchFilterLabels";
+  import { type IdFilterKey } from "$lib/searchFilterLabels";
+  import ValueSuggestions from "./ValueSuggestions.svelte";
   let {
     field,
     value = $bindable(),
@@ -26,27 +22,18 @@
   let mode = $state<"ids" | "any" | "none">(
     untrack(() => (Array.isArray(value) ? "ids" : value)),
   );
-  let text = $state(
-    untrack(() => (Array.isArray(value) ? value.join(", ") : "")),
+  let selected = $state(
+    untrack(() => (Array.isArray(value) ? value.map(String) : [])),
   );
-  let error = $state("");
+  let pending = $state(false);
   $effect(() => {
-    error = "";
     if (mode !== "ids") {
       value = mode;
       valid = true;
       return;
     }
-    try {
-      const ids = text.trim() ? FILTER_DEFINITIONS[field].parse([text]) : [];
-      if (!Array.isArray(ids))
-        throw new Error("Enter specific IDs here, or choose a mode above.");
-      value = ids;
-      valid = ids.length > 0;
-    } catch (cause) {
-      valid = false;
-      error = cause instanceof Error ? cause.message : "Invalid IDs.";
-    }
+    value = selected.map(Number);
+    valid = selected.length > 0 && !pending;
   });
 </script>
 
@@ -78,26 +65,8 @@
   >
 </fieldset>
 {#if mode === "ids"}
-  <label for={id}>Specific IDs</label>
-  <TextInput
-    {id}
-    name={field}
-    bind:value={text}
-    aria-invalid={Boolean(error)}
-    aria-describedby={`${id}-hint`}
-  />
-  <p id={`${id}-hint`} class="hint">
-    Positive integer IDs, separated by commas. Match any selected ID.
-  </p>
-  {#if Array.isArray(value)}
-    <ul aria-label="Selected details">
-      {#each value as item (item)}<li>
-          {labels[idLabelKey(field, item)] ?? loadingIdLabel(item)}
-        </li>{/each}
-    </ul>
-  {/if}
+  <ValueSuggestions {field} bind:selected bind:pending {labels} />
 {/if}
-{#if error}<p role="alert">{error}</p>{/if}
 
 <style>
   fieldset {
@@ -113,13 +82,5 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-  }
-  ul {
-    padding-left: 1.25rem;
-    overflow-wrap: anywhere;
-  }
-  .hint {
-    color: var(--lp-color-text-muted);
-    font-size: 0.875rem;
   }
 </style>

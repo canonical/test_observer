@@ -30,7 +30,13 @@
 </script>
 
 {#if isListFilter(field)}
-  <ListFilterEditor {field} bind:value={filters[field]} bind:valid {families} />
+  <ListFilterEditor
+    {field}
+    bind:value={filters[field]}
+    bind:valid
+    {families}
+    draftFamilies={filters.families}
+  />
 {:else if isBooleanFilter(field)}
   <BooleanFilterEditor {field} bind:value={filters[field]} bind:valid />
 {:else if isIdFilter(field)}

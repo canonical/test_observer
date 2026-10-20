@@ -229,7 +229,7 @@ before(async () => {
         if (!open.contains(target)) hidePopover(open);
     }
   });
-  // Model the browser's default Enter activation for native popover triggers.
+  // Model the browser's default Enter activation for native buttons.
   browser.document.addEventListener("keydown", (event) => {
     const target = /** @type {import('happy-dom').HTMLButtonElement} */ (
       event.target
@@ -237,7 +237,7 @@ before(async () => {
     if (
       event.key === "Enter" &&
       !event.defaultPrevented &&
-      target.matches("button[popovertarget]")
+      target.matches("button")
     )
       target.click();
   });
@@ -639,6 +639,36 @@ async function enter(target, selector, value) {
   return input;
 }
 
+/** Use the explicit manual path when these tests are about confirmed exact
+ * conditions, rather than unconfirmed suggestion query text. Existing comma
+ * links still restore; new lookup values are added one at a time deliberately.
+ * @param {import('happy-dom').HTMLElement} target
+ * @param {string} selector @param {string} value
+ */
+async function replaceExact(target, selector, value) {
+  const editor =
+    target.closest(".panel") ?? target.querySelector(".panel") ?? target;
+  const exact = Array.from(editor.querySelectorAll("button")).find((b) =>
+    b.textContent.includes("Add exact"),
+  );
+  if (!exact) return enter(target, selector, value);
+  for (const remove of editor.querySelectorAll("button"))
+    if (remove.getAttribute("aria-label")?.startsWith("Remove selected "))
+      remove.click();
+  await flush();
+  let input;
+  for (const part of value
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean)) {
+    input = await enter(target, selector, part);
+    exact.click();
+    await flush();
+  }
+  assert.ok(input);
+  return input;
+}
+
 /** @param {import('happy-dom').HTMLElement} target @param {string} label */
 async function chooseFilter(target, label) {
   button(target, "+ Add filter").click();
@@ -728,7 +758,7 @@ void test("mounted restored typed conditions become chips and survive edits, vie
     assert.match(chip(ui.target, "Metadata").title, /c:at,🐧.*one,two:三/);
     chip(ui.target, "Artefact").click();
     await flush();
-    await enter(ui.target, 'input[name="artefacts"]', "new");
+    await replaceExact(ui.target, 'input[name="artefacts"]', "new");
     await confirmEditor(ui.target);
     const viewOnly = new URL(ui.handle.currentUrl);
     viewOnly.searchParams.set("view", "invalid-view");
@@ -823,7 +853,7 @@ void test("mounted invalid URL-only constraints visibly block and cannot be sile
       );
       chip(ui.target, "Artefact").click();
       await flush();
-      await enter(ui.target, 'input[name="artefacts"]', "new");
+      await replaceExact(ui.target, 'input[name="artefacts"]', "new");
       await confirmEditor(ui.target);
       button(ui.target, "Search").click();
       await flush();
@@ -947,7 +977,11 @@ void test("mounted controls apply exact drafts, render SvGrid context and access
     assert.equal(ui.target.querySelector("input"), null);
     assert.equal(ui.target.querySelector("fieldset"), null);
     await chooseFilter(ui.target, "Artefact");
-    const input = await enter(ui.target, 'input[name="artefacts"]', "one, two");
+    const input = await replaceExact(
+      ui.target,
+      'input[name="artefacts"]',
+      "one, two",
+    );
     assert.ok(ui.target.querySelector(`label[for="${input.id}"]`));
     await confirmEditor(ui.target);
     await chooseFilter(ui.target, "Family");
@@ -1230,7 +1264,11 @@ void test("searchable picker offers all eighteen unused fields and never creates
     await confirmEditor(ui.target);
     assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 0);
     assert.equal(calls, 0);
-    await enter(ui.target, 'input[name="artefacts"]', "alpha, beta,alpha");
+    await replaceExact(
+      ui.target,
+      'input[name="artefacts"]',
+      "alpha, beta,alpha",
+    );
     await confirmEditor(ui.target);
     const condition = chip(ui.target, "Artefact");
     assert.equal(browser.document.activeElement, condition);
@@ -1319,7 +1357,7 @@ void test("all eight chip editors preserve configured families, checkbox statuse
       ["test_cases", "Test Case"],
     ]) {
       await chooseFilter(ui.target, label);
-      await enter(
+      await replaceExact(
         ui.target,
         `input[name="${key}"]`,
         ` first ${key}, second+${key}, first ${key}, `,
@@ -1373,11 +1411,13 @@ void test("confirmed add/edit/remove drafts never fetch or replace applied resul
     await flush();
     chip(ui.target, "Artefact").click();
     await flush();
-    assert.equal(
-      ui.target.querySelector('input[name="artefacts"]')?.value,
-      "old",
+    assert.match(
+      panel(ui.target).querySelector('[aria-label="Selected details"]')
+        ?.textContent ?? "",
+      /old/,
     );
-    await enter(ui.target, 'input[name="artefacts"]', "new, second");
+    assert.equal(ui.target.querySelector('input[name="artefacts"]')?.value, "");
+    await replaceExact(ui.target, 'input[name="artefacts"]', "new, second");
     await confirmEditor(ui.target);
     const remove = /** @type {import('happy-dom').HTMLButtonElement | null} */ (
       ui.target.querySelector('button[aria-label="Remove Test Case filter"]')
@@ -1386,7 +1426,7 @@ void test("confirmed add/edit/remove drafts never fetch or replace applied resul
     remove.click();
     await flush();
     await chooseFilter(ui.target, "Environment");
-    await enter(ui.target, 'input[name="environments"]', "lab");
+    await replaceExact(ui.target, 'input[name="environments"]', "lab");
     await confirmEditor(ui.target);
     assert.equal(calls.length, 1);
     assert.equal(ui.handle.history.length, 1);
@@ -1416,7 +1456,7 @@ void test("confirmed add/edit/remove drafts never fetch or replace applied resul
     await flush();
     chip(ui.target, "Artefact").click();
     await flush();
-    await enter(ui.target, 'input[name="artefacts"]', "old");
+    await replaceExact(ui.target, 'input[name="artefacts"]', "old");
     await confirmEditor(ui.target);
     assert.doesNotMatch(ui.target.textContent, /Changes not applied/);
     assert.equal(button(ui.target, "Next page").disabled, false);
@@ -1544,9 +1584,12 @@ void test("URL restoration resets open editors and restores full long/repeated/c
     assert.equal(chip(ui.target, "Family").title, "Family: Another-route");
     trigger.click();
     await flush();
-    assert.equal(
-      ui.target.querySelector('input[name="artefacts"]')?.value,
-      `${long}, second, third`,
+    assert.equal(ui.target.querySelector('input[name="artefacts"]')?.value, "");
+    assert.deepEqual(
+      Array.from(panel(ui.target).querySelectorAll(".selected li > span")).map(
+        (item) => item.textContent,
+      ),
+      [long, "second", "third"],
     );
     await enter(ui.target, 'input[name="artefacts"]', "transient");
     ui.handle.restore(url("test_cases=restored"));
@@ -1567,7 +1610,7 @@ void test("URL restoration resets open editors and restores full long/repeated/c
     assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 0);
     assert.equal(calls.length, 3);
     await chooseFilter(ui.target, "Test Case");
-    await enter(ui.target, 'input[name="test_cases"]', "one");
+    await replaceExact(ui.target, 'input[name="test_cases"]', "one");
     await confirmEditor(ui.target);
     button(ui.target, "Search").click();
     await flush();
@@ -1591,7 +1634,7 @@ void test("URL restoration resets open editors and restores full long/repeated/c
       ),
     );
     await chooseFilter(ui.target, "Test Case");
-    await enter(ui.target, 'input[name="test_cases"]', "draft only");
+    await replaceExact(ui.target, 'input[name="test_cases"]', "draft only");
     await confirmEditor(ui.target);
     button(ui.target, "Clear all").click();
     await flush();
@@ -1877,7 +1920,7 @@ void test("view history changes preserve confirmed drafts, active editor, grid i
   try {
     await flush();
     await chooseFilter(ui.target, "Test Case");
-    await enter(ui.target, 'input[name="test_cases"]', "confirmed");
+    await replaceExact(ui.target, 'input[name="test_cases"]', "confirmed");
     await confirmEditor(ui.target);
     chip(ui.target, "Artefact").click();
     await flush();
@@ -2014,7 +2057,7 @@ void test("table view survives pagination, changed Search and identical Search r
     );
     chip(ui.target, "Artefact").click();
     await flush();
-    await enter(ui.target, 'input[name="artefacts"]', "changed");
+    await replaceExact(ui.target, 'input[name="artefacts"]', "changed");
     await confirmEditor(ui.target);
     button(ui.target, "Search").click();
     await flush();
@@ -2079,7 +2122,7 @@ void test("malformed/oversized views and inapplicable column refs remain usable,
       assert.equal(calls, before);
       assert.match(ui.target.textContent, /Choose at least one filter/);
       await chooseFilter(ui.target, "Artefact");
-      await enter(ui.target, 'input[name="artefacts"]', "draft");
+      await replaceExact(ui.target, 'input[name="artefacts"]', "draft");
       await confirmEditor(ui.target);
       chip(ui.target, "Artefact").click();
       await flush();
@@ -2309,6 +2352,8 @@ void test("all eighteen compact editors confirm typed values, meaningful labels 
         json({ id: 42, name: "A Reviewer", launchpad_handle: "reviewer" }),
       );
     }
+    if (request.pathname.endsWith("/execution-metadata"))
+      return Promise.resolve(json({ execution_metadata: {} }));
     calls.push(request);
     return Promise.resolve(response());
   };
@@ -2328,7 +2373,7 @@ void test("all eighteen compact editors confirm typed values, meaningful labels 
       ["reviewer_ids", "Reviewers"],
     ]) {
       await chooseFilter(ui.target, label);
-      await enter(
+      await replaceExact(
         panel(ui.target),
         `input[name="${field}"]`,
         field === "issues" ? "41,41" : "42",
@@ -2353,7 +2398,7 @@ void test("all eighteen compact editors confirm typed values, meaningful labels 
       ["template_ids", "Template ID"],
     ]) {
       await chooseFilter(ui.target, label);
-      await enter(
+      await replaceExact(
         panel(ui.target),
         `input[name="${field}"]`,
         " first,second, first, ",
@@ -2509,7 +2554,11 @@ void test("single-choice booleans and ID modes cannot contradict one another; re
       await clickInput(panel(ui.target), 'input[value="ids"]');
       await enter(panel(ui.target), `input[name="${field}"]`, "any,1");
       assert.equal(button(panel(ui.target), "Save changes").disabled, true);
-      await enter(panel(ui.target), `input[name="${field}"]`, "51, 52,51");
+      await replaceExact(
+        panel(ui.target),
+        `input[name="${field}"]`,
+        "51, 52,51",
+      );
       await confirmEditor(ui.target);
       assert.match(
         chip(ui.target, label).title,
@@ -2872,7 +2921,7 @@ void test("hydration cancels obsolete typed/restored selections and ignores late
     assert.equal(app.searchFilterLabelCache().peek("issues", 81), undefined);
     chip(ui.target, "Issues").click();
     await flush();
-    await enter(panel(ui.target), 'input[name="issues"]', "81");
+    await replaceExact(panel(ui.target), 'input[name="issues"]', "81");
     button(panel(ui.target), "Cancel").click();
     await flush();
     assert.match(chip(ui.target, "Issues").title, /Latest issue/);
@@ -2918,7 +2967,13 @@ void test("label cache deduplicates pending requests and only aborts when its la
 
 void test("new typed editor kinds retain cancellation/Escape/outside semantics and never save temporary edits", async () => {
   let calls = 0;
-  globalThis.fetch = () => {
+  globalThis.fetch = (input) => {
+    if (
+      new URL(input instanceof Request ? input.url : input).pathname.endsWith(
+        "/execution-metadata",
+      )
+    )
+      return Promise.resolve(json({ execution_metadata: {} }));
     calls++;
     return Promise.resolve(response());
   };
@@ -2984,5 +3039,862 @@ void test("new typed editor kinds retain cancellation/Escape/outside semantics a
   } finally {
     outside.remove();
     await ui.destroy();
+  }
+});
+
+const settleSuggestions = () =>
+  new Promise((resolve) => setTimeout(resolve, 290));
+
+/** @param {import('happy-dom').HTMLElement} target @param {string} key */
+async function press(target, key) {
+  const event = new browser.KeyboardEvent("keydown", {
+    key,
+    bubbles: true,
+    cancelable: true,
+  });
+  target.dispatchEvent(event);
+  await flush();
+  return event;
+}
+
+/** @param {import('happy-dom').HTMLElement} target */
+function suggestionButtons(target) {
+  return Array.from(target.querySelectorAll("button")).filter((button) =>
+    button.closest(".suggestions"),
+  );
+}
+
+void test("lookup contracts use the actual six endpoints, trimmed q, bounded replies and draft family parameters only for name lookups", async () => {
+  /** @type {{url: URL; options: RequestInit}[]} */ const calls = [];
+  globalThis.fetch = (input, options = {}) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    calls.push({ url: request, options });
+    const path = request.pathname;
+    return Promise.resolve(
+      json(
+        path.endsWith("/test-cases")
+          ? {
+              test_cases: [
+                { test_case: "a case", template_id: "template1" },
+                { test_case: "a case", template_id: "template2" },
+                { test_case: "comma,case", template_id: "template3" },
+              ],
+            }
+          : path.endsWith("/issues")
+            ? {
+                issues: [
+                  {
+                    id: 204,
+                    source: "jira",
+                    project: "generic",
+                    key: "BUG-4",
+                    title: "A failure",
+                  },
+                  { id: -1 },
+                ],
+              }
+            : path.endsWith("/users")
+              ? {
+                  users: [
+                    {
+                      id: 205,
+                      name: "A Reviewer",
+                      launchpad_handle: "review",
+                      email: "review@example.test",
+                    },
+                  ],
+                }
+              : path.endsWith("/environments")
+                ? { environments: ["a lab", "a lab"] }
+                : path.endsWith("/test-plans")
+                  ? { test_plans: ["a plan"] }
+                  : {
+                      artefacts: Array.from(
+                        { length: 70 },
+                        (_, i) => `artefact${i}`,
+                      ),
+                    },
+      ),
+    );
+  };
+  const fields = /** @type {const} */ ([
+    "artefacts",
+    "environments",
+    "test_plans",
+    "test_cases",
+    "issues",
+    "reviewer_ids",
+  ]);
+  const paths = [
+    "artefacts/search",
+    "environments",
+    "test-plans",
+    "test-cases",
+    "issues",
+    "users",
+  ];
+  for (const [index, field] of fields.entries()) {
+    assert.deepEqual(
+      await app.lookupValues(
+        field,
+        " a ",
+        ["custom-family"],
+        new AbortController().signal,
+      ),
+      [],
+    );
+    assert.equal(calls.length, index);
+    const values = await app.lookupValues(
+      field,
+      "  a query 🐧  ",
+      ["z-family", "a-family", "z-family"],
+      new AbortController().signal,
+    );
+    const call = calls[index];
+    assert.equal(call.url.pathname, `/v1/${paths[index]}`);
+    assert.equal(call.url.searchParams.get("q"), "a query 🐧");
+    assert.equal(call.url.searchParams.get("limit"), index < 4 ? "50" : "10");
+    assert.deepEqual(
+      call.url.searchParams.getAll("families"),
+      index < 4 ? ["a-family", "z-family"] : [],
+    );
+    assert.equal(call.options.credentials, "include");
+    assert.equal(new Headers(call.options.headers).get("X-CSRF-Token"), "1");
+    if (field === "artefacts") assert.equal(values.length, 50);
+    if (field === "environments") assert.equal(values.length, 1);
+    if (field === "test_cases") {
+      assert.equal(
+        values.length,
+        2,
+        "duplicate case names with different template IDs are one choice",
+      );
+      assert.equal(values[0].value, "a case");
+      assert.match(values[1].unavailable ?? "", /commas/);
+    }
+    if (field === "issues")
+      assert.match(values[0].label, /#204 jira — generic\/BUG-4 — A failure/);
+    if (field === "reviewer_ids")
+      assert.match(values[0].label, /A Reviewer @review — review@example.test/);
+  }
+  assert.match(app.suggestionScope(), /^http:\/\/localhost:30000:/);
+});
+
+void test("mounted name suggestions debounce, separate selected values from query, support keyboard/multi-select/exact/removal and apply only on Search", async () => {
+  /** @type {URL[]} */ const calls = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    calls.push(request);
+    return Promise.resolve(
+      request.pathname.endsWith("/test-results")
+        ? response()
+        : json({ artefacts: ["alpha", "alpine", "alpha"] }),
+    );
+  };
+  const ui = mounted();
+  try {
+    await flush();
+    await chooseFilter(ui.target, "Artefact");
+    assert.equal(calls.length, 0);
+    assert.match(panel(ui.target).textContent, /at least 2 characters/);
+    const input = await enter(ui.target, 'input[name="artefacts"]', " a ");
+    await settleSuggestions();
+    assert.equal(calls.length, 0);
+    await enter(ui.target, 'input[name="artefacts"]', "al");
+    await enter(ui.target, 'input[name="artefacts"]', "alp");
+    assert.equal(calls.length, 0, "no request on each keystroke");
+    assert.match(panel(ui.target).textContent, /Loading suggestions/);
+    await settleSuggestions();
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].searchParams.get("q"), "alp");
+    assert.equal(button(panel(ui.target), "Add filter").disabled, true);
+    assert.equal(ui.handle.currentUrl.search, "");
+    assert.equal((await press(input, "Enter")).defaultPrevented, true);
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 0);
+    assert.equal(panel(ui.target).querySelector('[role="combobox"]'), null);
+    await press(input, "ArrowDown");
+    assert.equal(
+      browser.document.activeElement,
+      suggestionButtons(panel(ui.target))[0],
+    );
+    await press(suggestionButtons(panel(ui.target))[0], "ArrowDown");
+    assert.equal(
+      browser.document.activeElement,
+      suggestionButtons(panel(ui.target))[1],
+    );
+    await press(suggestionButtons(panel(ui.target))[1], "ArrowUp");
+    await press(suggestionButtons(panel(ui.target))[0], "Enter");
+    assert.equal(input.value, "");
+    assert.equal(browser.document.activeElement, input);
+    assert.match(
+      panel(ui.target).querySelector(".selected")?.textContent ?? "",
+      /alpha/,
+    );
+    await enter(ui.target, 'input[name="artefacts"]', "al");
+    await settleSuggestions();
+    assert.deepEqual(
+      suggestionButtons(panel(ui.target)).map((b) => b.textContent.trim()),
+      ["alpine"],
+    );
+    suggestionButtons(panel(ui.target))[0].click();
+    await flush();
+    await enter(ui.target, 'input[name="artefacts"]', "al");
+    await settleSuggestions();
+    assert.match(panel(ui.target).textContent, /No unselected matches/);
+    assert.equal(button(panel(ui.target), "Add filter").disabled, true);
+    button(panel(ui.target), "Clear input").click();
+    await flush();
+    await enter(ui.target, 'input[name="artefacts"]', "alpha");
+    button(panel(ui.target), "Add exact value").click();
+    await flush();
+    assert.equal(
+      panel(ui.target).querySelectorAll(".selected li").length,
+      2,
+      "exact duplicates cannot duplicate a selection",
+    );
+    await enter(ui.target, 'input[name="artefacts"]', "new exact");
+    assert.equal(
+      button(panel(ui.target), "Add filter").disabled,
+      true,
+      "pending text cannot be lost on Save",
+    );
+    button(panel(ui.target), "Add exact value").click();
+    await flush();
+    button(panel(ui.target), "Remove").click();
+    await flush();
+    assert.deepEqual(
+      Array.from(panel(ui.target).querySelectorAll(".selected li > span")).map(
+        (n) => n.textContent,
+      ),
+      ["alpine", "new exact"],
+    );
+    await confirmEditor(ui.target);
+    assert.equal(
+      chip(ui.target, "Artefact").title,
+      "Artefact: alpine, new exact",
+    );
+    assert.equal(ui.handle.currentUrl.search, "");
+    assert.equal(
+      calls.filter((c) => c.pathname.endsWith("/test-results")).length,
+      0,
+    );
+    button(ui.target, "Search").click();
+    await flush();
+    assert.deepEqual(calls.at(-1)?.searchParams.getAll("artefacts"), [
+      "alpine",
+      "new exact",
+    ]);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("confirmed draft family chips scope suggestions without searching results or dropping values unavailable in the new context", async () => {
+  /** @type {URL[]} */ const calls = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    calls.push(request);
+    return Promise.resolve(
+      request.pathname.endsWith("/test-results")
+        ? response()
+        : json({ environments: ["current lab"] }),
+    );
+  };
+  const ui = mounted("families=snap&environments=retained");
+  try {
+    await flush();
+    chip(ui.target, "Family").click();
+    await flush();
+    await clickInput(panel(ui.target), 'input[value="snap"]');
+    await clickInput(panel(ui.target), 'input[value="another-api-family"]');
+    await confirmEditor(ui.target);
+    chip(ui.target, "Environment").click();
+    await flush();
+    await enter(ui.target, 'input[name="environments"]', "la");
+    await settleSuggestions();
+    assert.deepEqual(calls.at(-1)?.searchParams.getAll("families"), [
+      "another-api-family",
+    ]);
+    assert.equal(
+      ui.handle.currentUrl.searchParams.get("families"),
+      "snap",
+      "applied URL is not the draft lookup context",
+    );
+    assert.equal(
+      calls.filter((c) => c.pathname.endsWith("/test-results")).length,
+      1,
+    );
+    assert.match(
+      panel(ui.target).querySelector(".selected")?.textContent ?? "",
+      /retained/,
+    );
+    suggestionButtons(panel(ui.target))[0].click();
+    await flush();
+    await confirmEditor(ui.target);
+    assert.equal(
+      chip(ui.target, "Environment").title,
+      "Environment: retained, current lab",
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("rich issue/reviewer suggestions prime selected labels, keep exclusive modes and exact-ID fallback without extra detail requests", async () => {
+  app.searchFilterLabelCache().clear();
+  /** @type {URL[]} */ const calls = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    calls.push(request);
+    return Promise.resolve(
+      json(
+        request.pathname.endsWith("/issues")
+          ? {
+              issues: [
+                {
+                  id: 330,
+                  project: "Generic",
+                  key: "BUG-1",
+                  title: "Issue title",
+                  source: "github",
+                },
+              ],
+            }
+          : request.pathname.endsWith("/users")
+            ? {
+                users: [
+                  {
+                    id: 331,
+                    name: "Person",
+                    launchpad_handle: "person",
+                    email: "person@example.test",
+                  },
+                ],
+              }
+            : {},
+      ),
+    );
+  };
+  const ui = mounted();
+  try {
+    await flush();
+    for (const [label, field, rich] of [
+      ["Issues", "issues", "Issue title"],
+      ["Reviewers", "reviewer_ids", "person@example.test"],
+    ]) {
+      await chooseFilter(ui.target, label);
+      await enter(ui.target, `input[name="${field}"]`, "pe");
+      await settleSuggestions();
+      assert.match(
+        suggestionButtons(panel(ui.target))[0].textContent,
+        new RegExp(rich),
+      );
+      suggestionButtons(panel(ui.target))[0].click();
+      await flush();
+      assert.match(
+        panel(ui.target).querySelector(".selected")?.textContent ?? "",
+        new RegExp(rich),
+      );
+      await confirmEditor(ui.target);
+      assert.match(chip(ui.target, label).title, new RegExp(rich));
+    }
+    assert.equal(
+      calls.length,
+      2,
+      "lookup records are sufficient labels; no redundant /id GET",
+    );
+    assert.ok(calls.every((c) => !c.searchParams.has("families")));
+    chip(ui.target, "Issues").click();
+    await flush();
+    await enter(ui.target, 'input[name="issues"]', "any,1");
+    button(panel(ui.target), "Add exact IDs").click();
+    await flush();
+    assert.equal(button(panel(ui.target), "Save changes").disabled, true);
+    assert.ok(panel(ui.target).querySelector('[role="alert"]'));
+    await enter(ui.target, 'input[name="issues"]', "330,330");
+    button(panel(ui.target), "Add exact IDs").click();
+    await flush();
+    assert.equal(panel(ui.target).querySelectorAll(".selected li").length, 1);
+    await clickInput(panel(ui.target), 'input[value="none"]');
+    await confirmEditor(ui.target);
+    assert.equal(chip(ui.target, "Issues").title, "Issues: Has no issues");
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("an in-flight draft family-context change aborts old parsed suggestions and refreshes without wiping selections", async () => {
+  const late = deferred();
+  const old = json({});
+  old.json = async () => {
+    const response = await late.promise;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- Browser response parser.
+    return response.json();
+  };
+  /** @type {AbortSignal | null | undefined} */ let oldSignal;
+  /** @type {URL[]} */ const calls = [];
+  globalThis.fetch = (input, options) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    calls.push(request);
+    if (request.searchParams.get("families") === "old-family") {
+      oldSignal = options?.signal;
+      return Promise.resolve(old);
+    }
+    return Promise.resolve(json({ artefacts: ["new-family result"] }));
+  };
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const handle = app.mountSuggestions(
+    /** @type {HTMLElement} */ (/** @type {unknown} */ (target)),
+  );
+  try {
+    await enter(target, 'input[name="artefacts"]', "same query");
+    await settleSuggestions();
+    handle.setFamilies(["new-family"]);
+    await flush();
+    assert.equal(oldSignal?.aborted, true);
+    assert.deepEqual(handle.selected, ["retained"]);
+    assert.equal(suggestionButtons(target).length, 0);
+    late.resolve(json({ artefacts: ["STALE FAMILY"] }));
+    await settleSuggestions();
+    assert.equal(calls.length, 2);
+    assert.deepEqual(calls[1].searchParams.getAll("families"), ["new-family"]);
+    assert.doesNotMatch(target.textContent, /STALE FAMILY/);
+    assert.match(target.textContent, /new-family result/);
+    assert.deepEqual(handle.selected, ["retained"]);
+  } finally {
+    await handle.destroy();
+    target.remove();
+  }
+});
+
+void test("unsupported comma/whitespace names are honestly disabled and manual exact commas are not silently split", async () => {
+  globalThis.fetch = () =>
+    Promise.resolve(
+      json({
+        test_cases: [
+          { test_case: "case,one", template_id: "template" },
+          { test_case: " surrounded ", template_id: "other" },
+        ],
+      }),
+    );
+  const ui = mounted();
+  try {
+    await flush();
+    await chooseFilter(ui.target, "Test Case");
+    await enter(ui.target, 'input[name="test_cases"]', "ca");
+    await settleSuggestions();
+    assert.ok(suggestionButtons(panel(ui.target)).every((b) => b.disabled));
+    assert.match(
+      panel(ui.target).textContent,
+      /commas.*comma-separated|surrounding whitespace/,
+    );
+    await enter(ui.target, 'input[name="test_cases"]', "case,one");
+    button(panel(ui.target), "Add exact value").click();
+    await flush();
+    assert.match(
+      panel(ui.target).querySelector('[role="alert"]')?.textContent ?? "",
+      /commas/,
+    );
+    assert.equal(panel(ui.target).querySelectorAll(".selected li").length, 0);
+    button(panel(ui.target), "Clear input").click();
+    await flush();
+    assert.equal(button(panel(ui.target), "Add filter").disabled, true);
+    assert.match(panel(ui.target).textContent, /No selected values/);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("lookup failures remain local, retain selected values, offer retry/exact and distinguish auth/permission errors", async () => {
+  app.errorStore.clear();
+  for (const [status, message] of [
+    [401, /Sign in/],
+    [403, /permission/],
+    [500, /could not be loaded/],
+  ]) {
+    let fail = true;
+    let calls = 0;
+    globalThis.fetch = (input) => {
+      const request = new URL(input instanceof Request ? input.url : input);
+      if (request.pathname.endsWith("/test-results"))
+        return Promise.resolve(response());
+      calls++;
+      return Promise.resolve(
+        fail
+          ? json({}, /** @type {number} */ (status))
+          : json({ test_plans: ["plan"] }),
+      );
+    };
+    const ui = mounted("test_plans=retained");
+    try {
+      await flush();
+      chip(ui.target, "Test Plan").click();
+      await flush();
+      await enter(ui.target, 'input[name="test_plans"]', "pl");
+      await settleSuggestions();
+      assert.match(
+        panel(ui.target).textContent,
+        /** @type {RegExp} */ (message),
+      );
+      assert.match(
+        panel(ui.target).querySelector(".selected")?.textContent ?? "",
+        /retained/,
+      );
+      assert.equal(app.errorStore.message, null);
+      fail = false;
+      button(panel(ui.target), "Retry suggestions").click();
+      await settleSuggestions();
+      assert.equal(calls, 2);
+      suggestionButtons(panel(ui.target))[0].click();
+      await flush();
+      await confirmEditor(ui.target);
+      assert.equal(
+        chip(ui.target, "Test Plan").title,
+        "Test Plan: retained, plan",
+      );
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("latest query wins over delayed response bodies and stale 500 errors, with abort on below-threshold/close/field switch", async () => {
+  for (const oldStatus of [200, 500]) {
+    const late = deferred();
+    /** @type {AbortSignal | null | undefined} */ let oldSignal;
+    let reading = false;
+    const oldResponse = json({}, oldStatus);
+    if (oldStatus === 200)
+      oldResponse.json = async () => {
+        reading = true;
+        const response = await late.promise;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- Browser response parser.
+        return response.json();
+      };
+    globalThis.fetch = (input, options) => {
+      const request = new URL(input instanceof Request ? input.url : input);
+      if (request.searchParams.get("q") === "old") {
+        oldSignal = options?.signal;
+        return oldStatus === 200 ? Promise.resolve(oldResponse) : late.promise;
+      }
+      return Promise.resolve(json({ artefacts: ["new result"] }));
+    };
+    const ui = mounted();
+    try {
+      await flush();
+      await chooseFilter(ui.target, "Artefact");
+      await enter(ui.target, 'input[name="artefacts"]', "old");
+      await settleSuggestions();
+      assert.ok(oldSignal);
+      if (oldStatus === 200) assert.equal(reading, true);
+      await enter(ui.target, 'input[name="artefacts"]', "new");
+      await settleSuggestions();
+      assert.equal(oldSignal.aborted, true);
+      late.resolve(
+        oldStatus === 200 ? json({ artefacts: ["STALE"] }) : oldResponse,
+      );
+      await flush();
+      assert.deepEqual(
+        suggestionButtons(panel(ui.target)).map((b) => b.textContent.trim()),
+        ["new result"],
+      );
+      assert.doesNotMatch(
+        panel(ui.target).textContent,
+        /STALE|could not be loaded/,
+      );
+    } finally {
+      await ui.destroy();
+    }
+  }
+  /** @type {AbortSignal[]} */ const signals = [];
+  const late = deferred();
+  globalThis.fetch = (_input, options) => {
+    if (options?.signal) signals.push(options.signal);
+    return late.promise;
+  };
+  const ui = mounted();
+  try {
+    await flush();
+    await chooseFilter(ui.target, "Artefact");
+    await enter(ui.target, 'input[name="artefacts"]', "first");
+    await settleSuggestions();
+    await enter(ui.target, 'input[name="artefacts"]', "a");
+    assert.equal(signals[0].aborted, true);
+    await enter(ui.target, 'input[name="artefacts"]', "second");
+    await settleSuggestions();
+    button(panel(ui.target), "Cancel").click();
+    await flush();
+    assert.equal(signals[1].aborted, true);
+    await chooseFilter(ui.target, "Environment");
+    await enter(ui.target, 'input[name="environments"]', "third");
+    await settleSuggestions();
+    button(ui.target, "+ Add filter").click();
+    await flush();
+    assert.equal(signals[2].aborted, true);
+    late.resolve(json({ artefacts: ["STALE"], environments: ["STALE"] }));
+    await flush();
+    assert.doesNotMatch(ui.target.textContent, /STALE/);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("auth changes abort lookup bodies and clear prior suggestions before loading the new context", async () => {
+  await app.userStore.refresh(() =>
+    Promise.resolve(
+      json({ id: 410, name: "First", teams: [], is_admin: false }),
+    ),
+  );
+  const late = deferred();
+  /** @type {AbortSignal | null | undefined} */ let oldSignal;
+  let first = true;
+  const old = json({});
+  old.json = async () => {
+    const response = await late.promise;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- Browser response parser.
+    return response.json();
+  };
+  globalThis.fetch = (_input, options) => {
+    if (first) {
+      first = false;
+      oldSignal = options?.signal;
+      return Promise.resolve(old);
+    }
+    return Promise.resolve(json({ artefacts: ["Anonymous result"] }));
+  };
+  const ui = mounted();
+  try {
+    await flush();
+    await chooseFilter(ui.target, "Artefact");
+    await enter(ui.target, 'input[name="artefacts"]', "query");
+    await settleSuggestions();
+    await app.userStore.refresh(() => Promise.resolve(json(null)));
+    await flush();
+    assert.equal(oldSignal?.aborted, true);
+    assert.equal(suggestionButtons(panel(ui.target)).length, 0);
+    late.resolve(json({ artefacts: ["PRIVATE OLD RESULT"] }));
+    await settleSuggestions();
+    assert.doesNotMatch(ui.target.textContent, /PRIVATE OLD RESULT/);
+    assert.match(panel(ui.target).textContent, /Anonymous result/);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("metadata suggestions load lazily once per session context, filter locally, preserve raw manual punctuation and group pairs", async () => {
+  await app.userStore.refresh(() =>
+    Promise.resolve(json({ id: 420, teams: [], is_admin: false })),
+  );
+  /** @type {URL[]} */ const calls = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    calls.push(request);
+    return Promise.resolve(
+      json({
+        execution_metadata: {
+          "c:at,🐧": ["one,two:三", "other"],
+          another: ["elsewhere"],
+          ["__proto__"]: ["literal"],
+        },
+      }),
+    );
+  };
+  const ui = mounted();
+  try {
+    await flush();
+    assert.equal(calls.length, 0);
+    await chooseFilter(ui.target, "Metadata");
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].pathname, "/v1/execution-metadata");
+    assert.equal(calls[0].search, "");
+    const categoryInput = await enter(
+      ui.target,
+      'input[name="metadata-category"]',
+      "c:",
+    );
+    const categories = ui.target.querySelector(
+      `#${categoryInput.getAttribute("list")}`,
+    );
+    assert.deepEqual(
+      Array.from(categories?.querySelectorAll("option") ?? []).map(
+        (item) => item.value,
+      ),
+      ["c:at,🐧"],
+    );
+    await enter(ui.target, 'input[name="metadata-category"]', "c:at,🐧");
+    const valueInput = await enter(
+      ui.target,
+      'input[name="metadata-value"]',
+      "one,",
+    );
+    const values = ui.target.querySelector(
+      `#${valueInput.getAttribute("list")}`,
+    );
+    assert.deepEqual(
+      Array.from(values?.querySelectorAll("option") ?? []).map(
+        (item) => item.value,
+      ),
+      ["one,two:三"],
+    );
+    await enter(ui.target, 'input[name="metadata-value"]', "one,two:三");
+    assert.equal(
+      (await press(valueInput, "Enter")).defaultPrevented,
+      false,
+      "native datalist selection must not be cancelled",
+    );
+    await confirmEditor(ui.target);
+    assert.equal(
+      ui.target.querySelectorAll(".chip-trigger").length,
+      0,
+      "pending pair blocks implicit form confirmation",
+    );
+    button(panel(ui.target), "Add pair").click();
+    await flush();
+    await enter(ui.target, 'input[name="metadata-category"]', "c:at,🐧");
+    await enter(ui.target, 'input[name="metadata-value"]', "manual:comma,🐧");
+    button(panel(ui.target), "Add pair").click();
+    await flush();
+    await confirmEditor(ui.target);
+    assert.equal(
+      chip(ui.target, "Metadata").title,
+      'Metadata: "c:at,🐧" = "one,two:三", "c:at,🐧" = "manual:comma,🐧"',
+    );
+    chip(ui.target, "Metadata").click();
+    await flush();
+    await enter(ui.target, 'input[name="metadata-category"]', "unknown");
+    assert.match(
+      panel(ui.target).textContent,
+      /No\s+matching known categories/,
+    );
+    await enter(ui.target, 'input[name="metadata-category"]', "__proto__");
+    assert.deepEqual(
+      Array.from(panel(ui.target).querySelectorAll("option")).map(
+        (item) => item.value,
+      ),
+      ["__proto__", "literal"],
+      "category keys are literal data, not object prototype members",
+    );
+    assert.equal(
+      calls.length,
+      1,
+      "neither typing nor reopening refetches the full map",
+    );
+    assert.equal(ui.handle.currentUrl.search, "");
+    button(panel(ui.target), "Cancel").click();
+    await flush();
+    await app.userStore.refresh(() => Promise.resolve(json(null)));
+    await flush();
+    await app.userStore.refresh(() =>
+      Promise.resolve(json({ id: 420, teams: [], is_admin: false })),
+    );
+    await flush();
+    chip(ui.target, "Metadata").click();
+    await flush();
+    assert.equal(
+      calls.length,
+      2,
+      "logout while closed invalidates even a subsequent identical profile",
+    );
+  } finally {
+    await ui.destroy();
+    await app.userStore.refresh(() => Promise.resolve(json(null)));
+  }
+});
+
+void test("metadata ignores cancelled parsed bodies, keeps failures local and permits exact pairs plus explicit retry", async () => {
+  await app.userStore.refresh(() =>
+    Promise.resolve(json({ id: 430, teams: [], is_admin: false })),
+  );
+  app.errorStore.clear();
+  const late = deferred();
+  const old = json({});
+  old.json = async () => {
+    const response = await late.promise;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- Browser response parser.
+    return response.json();
+  };
+  let count = 0;
+  /** @type {AbortSignal | null | undefined} */ let oldSignal;
+  globalThis.fetch = (_input, options) => {
+    count++;
+    if (count === 1) {
+      oldSignal = options?.signal;
+      return Promise.resolve(old);
+    }
+    return Promise.resolve(
+      count === 2
+        ? json({}, 403)
+        : json({ execution_metadata: { latest: ["value"] } }),
+    );
+  };
+  const ui = mounted();
+  try {
+    await flush();
+    await chooseFilter(ui.target, "Metadata");
+    button(panel(ui.target), "Cancel").click();
+    await flush();
+    assert.equal(oldSignal?.aborted, true);
+    late.resolve(json({ execution_metadata: { PRIVATE: ["OLD"] } }));
+    await flush();
+    await chooseFilter(ui.target, "Metadata");
+    assert.match(panel(ui.target).textContent, /permission/);
+    assert.equal(app.errorStore.message, null);
+    await enter(ui.target, 'input[name="metadata-category"]', "manual:🐧");
+    await enter(ui.target, 'input[name="metadata-value"]', "value,exact");
+    button(panel(ui.target), "Add pair").click();
+    await flush();
+    button(panel(ui.target), "Retry suggestions").click();
+    await flush();
+    assert.equal(count, 3);
+    const options = Array.from(panel(ui.target).querySelectorAll("option")).map(
+      (item) => item.value,
+    );
+    assert.deepEqual(options, ["latest"]);
+    await confirmEditor(ui.target);
+    assert.equal(
+      chip(ui.target, "Metadata").title,
+      'Metadata: "manual:🐧" = "value,exact"',
+    );
+  } finally {
+    await ui.destroy();
+    await app.userStore.refresh(() => Promise.resolve(json(null)));
+  }
+});
+
+void test("known metadata cache has a bounded lifetime rather than persisting stale options indefinitely", async () => {
+  await app.userStore.refresh(() =>
+    Promise.resolve(json({ id: 440, teams: [], is_admin: false })),
+  );
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(
+      json({ execution_metadata: { category: [`generation${calls}`] } }),
+    );
+  };
+  const now = Date.now;
+  try {
+    const scope = app.suggestionScope();
+    const first = await app.metadataSuggestions.load(
+      scope,
+      new AbortController().signal,
+    );
+    const cached = await app.metadataSuggestions.load(
+      scope,
+      new AbortController().signal,
+    );
+    assert.deepEqual(first, { category: ["generation1"] });
+    assert.deepEqual(cached, first);
+    assert.equal(calls, 1);
+    Date.now = () => now() + 6 * 60_000;
+    const refreshed = await app.metadataSuggestions.load(
+      scope,
+      new AbortController().signal,
+    );
+    assert.deepEqual(refreshed, { category: ["generation2"] });
+    assert.equal(calls, 2);
+  } finally {
+    Date.now = now;
+    await app.userStore.refresh(() => Promise.resolve(json(null)));
   }
 });

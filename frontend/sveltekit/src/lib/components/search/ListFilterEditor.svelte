@@ -9,6 +9,8 @@
   import { statusDisplayName } from "$lib/searchFilterEditor";
   import type { Family } from "$lib/types";
   import { familyDisplayName } from "$lib/types";
+  import { isLookupList } from "$lib/searchFilterSuggestions";
+  import ValueSuggestions from "./ValueSuggestions.svelte";
 
   let {
     field,
@@ -16,11 +18,13 @@
     // eslint-disable-next-line no-useless-assignment -- Bindable validation output is read by the owning form.
     valid = $bindable(false),
     families,
+    draftFamilies,
   }: {
     field: ListFilterKey;
     value: string[];
     valid?: boolean;
     families: Family[];
+    draftFamilies: string[];
   } = $props();
   const id = $props.id();
   const choice = $derived(
@@ -29,6 +33,7 @@
       field === "artefact_stages",
   );
   let text = $state(untrack(() => value.join(", ")));
+  let pending = $state(false);
   const configured = $derived(
     field === "families"
       ? families.map((family) => ({
@@ -51,10 +56,10 @@
     value.filter((item) => !configured.some((option) => option.value === item)),
   );
   $effect(() => {
-    if (!choice) value = listValues([text]);
+    if (!choice && !isLookupList(field)) value = listValues([text]);
   });
   $effect(() => {
-    valid = value.length > 0;
+    valid = value.length > 0 && !pending;
   });
 </script>
 
@@ -88,6 +93,13 @@
         Family configuration unavailable.
       </p>{/if}
   </fieldset>
+{:else if isLookupList(field)}
+  <ValueSuggestions
+    {field}
+    bind:selected={value}
+    bind:pending
+    {draftFamilies}
+  />
 {:else}
   <label for={id}>Exact values</label>
   <TextInput
