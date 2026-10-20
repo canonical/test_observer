@@ -178,6 +178,12 @@ void test("Details is the third native grid column and resolves raw IDs after lo
     const before = ui.handle.currentUrl.href;
     const writes = ui.handle.replacements.length;
     const trigger = detailsButton(ui.target, 11);
+    assert.ok(trigger.classList.contains("details-button"));
+    assert.ok(
+      trigger.querySelector(".icon.left svg"),
+      "Details has an always-visible icon in Pragma's icon slot",
+    );
+    assert.equal(trigger.querySelector(".text")?.textContent.trim(), "Details");
     trigger.dispatchEvent(
       new browser.MouseEvent("pointerdown", { bubbles: true, shiftKey: true }),
     );

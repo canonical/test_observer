@@ -2,6 +2,7 @@
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 <script lang="ts">
   import { Button } from "@canonical/svelte-ds-app-launchpad";
+  import { ShowIcon } from "@canonical/svelte-icons";
 
   let {
     name,
@@ -17,6 +18,7 @@
 </script>
 
 <Button
+  class="details-button"
   type="button"
   density="dense"
   severity="base"
@@ -33,5 +35,21 @@
     event.stopPropagation();
     prepare();
     show(event.currentTarget);
-  }}>Details</Button
+  }}>
+  {#snippet iconLeft()}<ShowIcon />{/snippet}
+  Details</Button
 >
+
+<style>
+  :global(.details-button) {
+    --lp-color-text-context: var(--lp-color-text-link-default);
+    --lp-dimension-padding-inline-context: var(--lp-dimension-spacing-inline-xs);
+    white-space: nowrap;
+  }
+
+  :global(.details-button:hover .text),
+  :global(.details-button:focus-visible .text) {
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+</style>
