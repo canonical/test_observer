@@ -57,7 +57,8 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
     enable_kernel_swm = environ.get("ENABLE_KERNEL_SWM", "true").lower() == "true"
     enable_artefact_promotion = environ.get("ENABLE_ARTEFACT_PROMOTION", "true").lower() == "true"
     enable_user_session_cleanup = environ.get("ENABLE_USER_SESSION_CLEANUP", "true").lower() == "true"
-    enable_issue_sync = environ.get("ENABLE_ISSUE_SYNC", "true").lower() == "true"
+    # Default to false since this involves external API calls
+    enable_issue_sync = environ.get("ENABLE_ISSUE_SYNC", "false").lower() == "true"
 
     logger.info("ENABLE_PERIODIC_TASKS=%s", enable_periodic_tasks)
     logger.info("ENABLE_KERNEL_SWM=%s", enable_kernel_swm)
