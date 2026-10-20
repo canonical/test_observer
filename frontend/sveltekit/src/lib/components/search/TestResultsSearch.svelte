@@ -146,12 +146,19 @@
         apply();
       }}
     >
-      <Button type="submit" severity="brand" disabled={moving}
-        ><SearchIcon /> Search</Button
+      <Button
+        type="submit"
+        severity="brand"
+        density="dense"
+        disabled={moving}
       >
+        {#snippet iconLeft()}<SearchIcon />{/snippet}
+        Search
+      </Button>
       {#if hasDrafts || url.search}
         <Button
           type="button"
+          density="dense"
           onclick={() => {
             drafts = emptyFilters();
             editorRevision++;
@@ -162,6 +169,7 @@
       {/if}
       <Button
         type="button"
+        density="dense"
         disabled={moving || !encodedView}
         onclick={() => updateView(null)}>Reset table view</Button
       >

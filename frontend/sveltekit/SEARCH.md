@@ -12,8 +12,10 @@ The compact condition bar starts with **+ Add filter** and **Search**. Add filte
 opens an anchored, searchable picker containing only the eight supported fields
 below. A field already represented by a chip is omitted from the picker; select
 its chip to edit it instead. Families and result statuses use multi-checkbox
-editors; the other six fields accept comma-separated exact values. Configured
-family friendly names are displayed, while their API names are submitted.
+editors; the other six fields accept comma-separated exact values. Family labels
+use the configured route name with only its first character capitalized, matching
+the sidebar, dashboard titles and artefact breadcrumbs. API names are submitted
+unchanged.
 
 **Add filter** or **Save changes** confirms an editor into the chip draft, but
 does not fetch results or change the URL. At least one value is required: empty

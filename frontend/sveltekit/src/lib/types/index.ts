@@ -24,7 +24,6 @@ export interface User {
 
 export interface Family {
   name: string;
-  friendly_name: string;
   api_name: string;
   stages: string[];
   columns: ColumnSpec[];
@@ -108,6 +107,10 @@ export function formatDueDate(isoDate: string | null): string | null {
   const d = new Date(isoDate);
   const month = d.toLocaleString("en-US", { month: "long" });
   return `${month} ${d.getDate()}`;
+}
+
+export function familyDisplayName(family: Family): string {
+  return family.name.charAt(0).toUpperCase() + family.name.slice(1);
 }
 
 export function stageDisplayName(stage: string): string {

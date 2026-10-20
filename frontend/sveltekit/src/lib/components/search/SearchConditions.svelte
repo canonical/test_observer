@@ -11,6 +11,7 @@
   } from "@canonical/svelte-ds-app-launchpad";
   import { CloseIcon } from "@canonical/svelte-icons";
   import type { Family } from "$lib/types";
+  import { familyDisplayName } from "$lib/types";
   import {
     SEARCH_FILTERS,
     RESULT_STATUSES,
@@ -63,12 +64,11 @@
   );
 
   function valueLabels(key: SearchFilter) {
-    return filters[key].map((value) =>
-      key === "families"
-        ? (families.find((family) => family.api_name === value)
-            ?.friendly_name ?? value)
-        : value,
-    );
+    return filters[key].map((value) => {
+      if (key !== "families") return value;
+      const family = families.find((family) => family.api_name === value);
+      return family ? familyDisplayName(family) : value;
+    });
   }
 
   function summary(key: SearchFilter) {
@@ -293,7 +293,7 @@
                           bind:group={selected}
                           value={family.api_name}
                         />
-                        {family.friendly_name}
+                        {familyDisplayName(family)}
                       </label>
                     {/each}
                     {#if !families.length}
@@ -394,8 +394,10 @@
         {disabled}
         aria-label={`Remove ${labels[key]} filter`}
         title={`Remove ${labels[key]} filter`}
-        onclick={() => remove(key)}><CloseIcon /></Button
+        onclick={() => remove(key)}
       >
+        {#snippet iconLeft()}<CloseIcon />{/snippet}
+      </Button>
     </div>
   {/each}
   {@render condition("add")}

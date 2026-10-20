@@ -38,6 +38,7 @@
   import { notificationsStore } from '$lib/stores/notifications.svelte';
   import { themeStore } from '$lib/stores/theme.svelte';
   import { VIEW_PARAM } from '$lib/gridViewUrl';
+  import { familyDisplayName } from '$lib/types';
   import '../app.css';
 
   let { data, children } = $props();
@@ -102,7 +103,7 @@
 
     {#each data.artefactFamilies as family (family.name)}
       <SideNavigation.NavigationItem href={resolve(family.name)} selected={pathname.startsWith(resolve(family.name))}>
-        {family.name.charAt(0).toUpperCase() + family.name.slice(1)}
+        {familyDisplayName(family)}
       </SideNavigation.NavigationItem>
     {/each}
 

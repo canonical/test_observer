@@ -10,6 +10,7 @@
     type SvGridApi,
   } from "@svgrid/grid";
   import type { Family } from "$lib/types";
+  import { familyDisplayName } from "$lib/types";
   import { viewRunPath, type SearchResult } from "$lib/testResultsSearch";
   import ViewRunLink from "./ViewRunLink.svelte";
   import {
@@ -44,23 +45,24 @@
   // the latest href (which legitimately changes for presentation writes).
   const ownerQuery = untrack(() => queryKey);
   const rows = $derived(
-    results.map((result) => ({
-      id: result.test_result.id,
-      artefact: result.artefact.name,
-      family:
-        families.find((f) => f.api_name === result.artefact.family)
-          ?.friendly_name ?? result.artefact.family,
-      testCase: result.test_result.name,
-      status: result.test_result.status,
-      execution: result.test_execution.id,
-      executionStatus: result.test_execution.status,
-      version: result.artefact.version,
-      track: result.artefact.track,
-      environment: result.test_execution.environment.name,
-      testPlan: result.test_execution.test_plan,
-      architecture: result.artefact_build.architecture,
-      href: viewRunPath(result, families, base),
-    })),
+    results.map((result) => {
+      const family = families.find((f) => f.api_name === result.artefact.family);
+      return {
+        id: result.test_result.id,
+        artefact: result.artefact.name,
+        family: family ? familyDisplayName(family) : result.artefact.family,
+        testCase: result.test_result.name,
+        status: result.test_result.status,
+        execution: result.test_execution.id,
+        executionStatus: result.test_execution.status,
+        version: result.artefact.version,
+        track: result.artefact.track,
+        environment: result.test_execution.environment.name,
+        testPlan: result.test_execution.test_plan,
+        architecture: result.artefact_build.architecture,
+        href: viewRunPath(result, families, base),
+      };
+    }),
   );
   type Row = (typeof rows)[number];
   const columns: GridColumns<Row> = [

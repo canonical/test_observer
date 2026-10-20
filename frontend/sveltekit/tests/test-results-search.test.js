@@ -21,7 +21,6 @@ const families = [
   {
     name: "configured-route",
     api_name: "snap",
-    friendly_name: "Configured family",
     stages: [],
     columns: [],
     filters: [],
@@ -29,7 +28,6 @@ const families = [
   {
     name: "another-route",
     api_name: "another-api-family",
-    friendly_name: "Another configured family",
     stages: [],
     columns: [],
     filters: [],
@@ -249,6 +247,22 @@ after(async () => {
   for (const [name, descriptor] of globals) {
     if (descriptor) Object.defineProperty(globalThis, name, descriptor);
     else Reflect.deleteProperty(globalThis, name);
+  }
+});
+
+void test("family display names capitalize only the first route-name character, independently of API names", () => {
+  for (const [name, expected] of [
+    ["configured-route", "Configured-route"],
+    ["customWidgets", "CustomWidgets"],
+    ["aPI-bundles", "API-bundles"],
+    ["Already-Mixed", "Already-Mixed"],
+    [" spaced", " spaced"],
+    ["", ""],
+  ]) {
+    const family = { ...families[0], name, api_name: "unrelated-api-family" };
+    assert.equal(app.familyDisplayName(family), expected);
+    assert.equal(family.name, name);
+    assert.equal(family.api_name, "unrelated-api-family");
   }
 });
 
@@ -592,6 +606,29 @@ function chip(target, label) {
   return /** @type {import('happy-dom').HTMLButtonElement} */ (found);
 }
 
+void test("search actions use dense Pragma buttons with separate icon and text slots", async () => {
+  const ui = mounted("view=invalid");
+  try {
+    await flush();
+    const search = button(ui.target, "Search");
+    assert.ok(search.querySelector(".button-content > .icon.left svg"));
+    assert.equal(search.querySelector(".button-content > .text svg"), null);
+    assert.equal(
+      search.querySelector(".button-content > .text")?.textContent.trim(),
+      "Search",
+    );
+    for (const label of [
+      "+ Add filter",
+      "Search",
+      "Clear all",
+      "Reset table view",
+    ])
+      assert.ok(button(ui.target, label).classList.contains("dense"), label);
+  } finally {
+    await ui.destroy();
+  }
+});
+
 void test("mounted controls apply exact drafts, render SvGrid context and accessible base-aware links, restore history and clear", async () => {
   /** @type {URL[]} */
   const calls = [];
@@ -615,12 +652,16 @@ void test("mounted controls apply exact drafts, render SvGrid context and access
       ui.target.querySelector('input[value="snap"]')
     );
     assert.ok(family);
+    assert.equal(
+      family.closest("label")?.textContent.trim(),
+      "Configured-route",
+    );
     family.click();
     await flush();
     await confirmEditor(ui.target);
     assert.equal(calls.length, 0, "draft edits do not fetch before applying");
     assert.match(ui.target.textContent, /Changes not applied/);
-    assert.match(chip(ui.target, "Families").textContent, /Configured family/);
+    assert.match(chip(ui.target, "Families").textContent, /Configured-route/);
     button(ui.target, "Search").click();
     await flush();
     assert.deepEqual(calls[0]?.searchParams.getAll("artefacts"), [
@@ -638,6 +679,12 @@ void test("mounted controls apply exact drafts, render SvGrid context and access
       /1 matching test results on the server/,
     );
     assert.match(ui.target.textContent, /only this loaded page/);
+    assert.equal(
+      ui.target
+        .querySelector('tbody td[data-col-id="family"]')
+        ?.textContent.trim(),
+      "Configured-route",
+    );
     for (const text of [
       "example artefact",
       "case 1",
@@ -900,6 +947,7 @@ void test("searchable picker offers only eight unused fields and never creates a
       )
     );
     assert.ok(remove);
+    assert.ok(remove.querySelector(".button-content > .icon.left svg"));
     remove.click();
     await flush();
     assert.equal(
@@ -937,7 +985,7 @@ void test("all eight chip editors preserve configured families, checkbox statuse
     await confirmEditor(ui.target);
     assert.match(
       chip(ui.target, "Families").title,
-      /Configured family, Another configured family/,
+      /Configured-route, Another-route/,
     );
     await chooseFilter(ui.target, "Test result statuses");
     assert.equal(
@@ -1189,10 +1237,7 @@ void test("URL restoration resets open editors and restores full long/repeated/c
       trigger.getAttribute("aria-label"),
       `Edit Artefact names: ${long}, second, third`,
     );
-    assert.equal(
-      chip(ui.target, "Families").title,
-      "Families: Another configured family",
-    );
+    assert.equal(chip(ui.target, "Families").title, "Families: Another-route");
     trigger.click();
     await flush();
     assert.equal(

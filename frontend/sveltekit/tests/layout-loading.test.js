@@ -135,6 +135,7 @@ void test("navigation makes only the page inert and keeps status and shell contr
     // a navigation lock or click interception while another request is pending.
     const link = sidebar.querySelector('a[href="/alpha"]');
     assert.ok(link);
+    assert.equal(link.textContent.trim(), "Alpha");
     const click = new browserWindow.MouseEvent("click", {
       bubbles: true,
       cancelable: true,

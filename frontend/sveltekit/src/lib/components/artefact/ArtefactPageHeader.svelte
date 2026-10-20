@@ -7,7 +7,7 @@
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
   import type { Artefact, Family } from "$lib/types";
-  import { formatDueDate } from "$lib/types";
+  import { familyDisplayName, formatDueDate } from "$lib/types";
   import type { ArtefactVersion } from "$lib/types/artefact-page";
   import type { ArtefactPageStore } from "$lib/stores/artefact-page.svelte";
   import StagesBreadcrumb from "./StagesBreadcrumb.svelte";
@@ -26,7 +26,7 @@
   const dueDate = $derived(formatDueDate(artefact.due_date));
 
   const breadcrumbSegments = $derived([
-    { label: family.friendly_name, href: resolve(family.name) },
+    { label: familyDisplayName(family), href: resolve(family.name) },
     { label: artefact.name },
   ]);
 

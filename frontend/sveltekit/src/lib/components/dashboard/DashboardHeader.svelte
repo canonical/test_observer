@@ -4,6 +4,7 @@
 -->
 <script lang="ts">
   import type { Family } from '$lib/types';
+  import { familyDisplayName } from '$lib/types';
   import { Button } from '@canonical/svelte-ds-app-launchpad';
   import { CheckmarkIcon, CloseIcon, ExportIcon, ShareIcon } from '@canonical/svelte-icons';
   import { errorStore } from '$lib/stores/error.svelte';
@@ -31,7 +32,7 @@
     exportAvailable: boolean;
   } = $props();
 
-  const title = $derived(family.friendly_name);
+  const title = $derived(familyDisplayName(family));
   const countText = $derived(`${count} artifacts`);
 
   let copied = $state(false);
