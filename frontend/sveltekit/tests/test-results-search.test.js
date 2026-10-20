@@ -183,6 +183,10 @@ void test("Details is the third native grid column and resolves raw IDs after lo
       trigger.querySelector(".icon.left svg"),
       "Details has an always-visible icon in Pragma's icon slot",
     );
+    assert.ok(
+      trigger.querySelector('.details-icon[aria-hidden="true"]'),
+      "the decorative eye has its own non-shrinking size container",
+    );
     assert.equal(trigger.querySelector(".text")?.textContent.trim(), "Details");
     trigger.dispatchEvent(
       new browser.MouseEvent("pointerdown", { bubbles: true, shiftKey: true }),

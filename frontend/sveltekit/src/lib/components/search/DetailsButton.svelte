@@ -36,15 +36,31 @@
     prepare();
     show(event.currentTarget);
   }}>
-  {#snippet iconLeft()}<ShowIcon />{/snippet}
+  {#snippet iconLeft()}
+    <span class="details-icon" aria-hidden="true">
+      <ShowIcon style="width: 100%; height: 100%;" />
+    </span>
+  {/snippet}
   Details</Button
 >
 
 <style>
   :global(.details-button) {
     --lp-color-text-context: var(--lp-color-text-link-default);
-    --lp-dimension-padding-inline-context: var(--lp-dimension-spacing-inline-xs);
+    --lp-dimension-padding-inline-context: 0.25rem;
     white-space: nowrap;
+  }
+
+  :global(.details-button .button-content) {
+    column-gap: 0.25rem;
+  }
+
+  .details-icon {
+    display: inline-flex;
+    width: 1rem;
+    min-width: 1rem;
+    height: 1rem;
+    flex: none;
   }
 
   :global(.details-button:hover .text),

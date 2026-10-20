@@ -248,7 +248,7 @@ try {
   assert.match(String(selected), /1 excluded/);
   const selectedId = String(await trigger.getAttribute("data-test-result-id"));
 
-  for (const width of [1440, 960, 800]) {
+  for (const width of [1920, 1440, 960, 800]) {
     await page.setViewportSize({ width, height: 900 });
     for (const theme of ["light", "dark"]) {
       for (
@@ -271,6 +271,24 @@ try {
       await settle();
       const stableTrigger = page.locator(
         `button[data-test-result-id="${selectedId}"]`,
+      );
+      const iconGeometry = await stableTrigger.evaluate((element) => {
+        const icon = element.querySelector(".details-icon svg");
+        const bounds = icon.getBoundingClientRect();
+        const button = element.getBoundingClientRect();
+        const cell = element.closest("td").getBoundingClientRect();
+        return {
+          width: bounds.width,
+          height: bounds.height,
+          buttonRight: button.right,
+          cellRight: cell.right,
+        };
+      });
+      assert.ok(Math.abs(iconGeometry.width - 16) < 0.1);
+      assert.ok(Math.abs(iconGeometry.height - 16) < 0.1);
+      assert.ok(
+        iconGeometry.buttonRight < iconGeometry.cellRight,
+        "Details keeps its eye and label inside the column at every typography breakpoint",
       );
       await stableTrigger.focus();
       const before = requests.length;
