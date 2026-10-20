@@ -9,6 +9,13 @@
   import { TestResultsSearchStore } from "$lib/stores/test-results-search.svelte";
   import {
     emptyFilters,
+    cloneFilters,
+    filtersEqual,
+    hasFilters,
+    filterIsActive,
+    FILTER_DEFINITIONS,
+    EDITABLE_SEARCH_FILTERS,
+    editedSearchParams,
     parseSearch,
     searchParams,
     searchQueryString,
@@ -46,21 +53,20 @@
   let drafts = $state(emptyFilters());
   let moving = $state(false);
   let navigationError = $state(false);
-  const unapplied = $derived(
-    SEARCH_FILTERS.some(
+  const unapplied = $derived(!filtersEqual(drafts, applied.filters));
+  const hasDrafts = $derived(hasFilters(drafts));
+  const urlOnlyFilters = $derived(
+    SEARCH_FILTERS.filter(
       (key) =>
-        drafts[key].length !== applied.filters[key].length ||
-        drafts[key].some((value) => !applied.filters[key].includes(value)),
-    ),
-  );
-  const hasDrafts = $derived(
-    SEARCH_FILTERS.some((key) => drafts[key].length > 0),
+        !EDITABLE_SEARCH_FILTERS.some((editable) => editable === key) &&
+        filterIsActive(key, drafts),
+    ).map((key) => FILTER_DEFINITIONS[key].label),
   );
 
   $effect(() => {
     const query = applied;
     void reapply;
-    drafts = structuredClone(query.filters);
+    drafts = cloneFilters(query.filters);
     untrack(() => {
       void store.search(query);
     });
@@ -103,7 +109,7 @@
   }
 
   function apply() {
-    void go(hasDrafts ? searchParams(drafts) : new URLSearchParams());
+    void go(editedSearchParams(drafts, url.searchParams));
   }
 
   async function updateView(encoded: string | null, sourceHref = url.href) {
@@ -146,12 +152,7 @@
         apply();
       }}
     >
-      <Button
-        type="submit"
-        severity="brand"
-        density="dense"
-        disabled={moving}
-      >
+      <Button type="submit" severity="brand" density="dense" disabled={moving}>
         {#snippet iconLeft()}<SearchIcon />{/snippet}
         Search
       </Button>
@@ -175,6 +176,13 @@
       >
     </form>
   </div>
+  {#if urlOnlyFilters.length}
+    <p class="draft-notice" role="status">
+      Additional URL filters: {urlOnlyFilters.join(", ")}. These conditions are
+      preserved when searching. Editing them here is not available yet; change
+      the URL or use Clear all to remove them.
+    </p>
+  {/if}
   {#if unapplied}
     <p class="draft-notice" role="status">
       Changes not applied. Search to update results{!hasDrafts
@@ -203,8 +211,8 @@
           {#each applied.problems as problem (problem)}<li>{problem}</li>{/each}
         </ul>
         <p>
-          No request was sent. Correct the URL, Search with supported filters to
-          replace it, or clear all filters.
+          No request was sent. Correct the invalid filters or URL, or clear all
+          filters. Conditions without editors are preserved when searching.
         </p>
       </div>
     {:else if !applied.hasFilters}

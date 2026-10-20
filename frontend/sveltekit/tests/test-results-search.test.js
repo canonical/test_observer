@@ -286,7 +286,7 @@ void test("all eight list filters match OpenAPI names, repeated parameters, and 
     ),
     "utf8",
   );
-  for (const key of app.SEARCH_FILTERS) {
+  for (const key of app.EDITABLE_SEARCH_FILTERS) {
     assert.ok(
       parameters
         .find((parameter) => parameter.name === key)
@@ -347,7 +347,7 @@ void test("unsupported and invalid URL filters block instead of silently broaden
   };
   const store = new app.TestResultsSearchStore();
   for (const query of [
-    "artefacts=ok&issues=1",
+    "artefacts=ok&test_execution_statuses=FAILED",
     "families=unknown",
     "test_result_statuses=UNKNOWN",
     "artefacts=ok&offset=-1",
@@ -411,6 +411,57 @@ void test("search uses configured API defaults and replaces pages, safely ending
     assert.equal(new Headers(call.options.headers).get("X-CSRF-Token"), "1");
     assert.equal(call.options.method ?? "GET", "GET");
   }
+});
+
+void test("typed date-only, false-only and none-stage searches fetch, while every malformed condition blocks the store", async () => {
+  /** @type {URL[]} */
+  const calls = [];
+  globalThis.fetch = (input) => {
+    calls.push(new URL(input instanceof Request ? input.url : input));
+    return Promise.resolve(response());
+  };
+  const store = new app.TestResultsSearchStore();
+  for (const input of [
+    "from_date=2026-01-01T00:00:00Z",
+    "until_date=2026-01-01T00:00:00Z",
+    "artefact_is_archived=false",
+    "rerun_is_requested=false",
+    "execution_is_latest=false",
+    "artefact_stages=",
+    "issues=none",
+    "assignee_ids=1,2",
+  ]) {
+    await store.search(app.parseSearch(url(input).searchParams, families));
+    assert.ok(store.response, input);
+  }
+  assert.equal(calls.length, 8);
+  assert.deepEqual(calls.at(-1)?.searchParams.getAll("reviewer_ids"), [
+    "1",
+    "2",
+  ]);
+  assert.equal(calls.at(-1)?.searchParams.has("assignee_ids"), false);
+  for (const input of [
+    "issues=1,any",
+    "reviewer_ids=9007199254740992",
+    "execution_metadata=broken",
+    "artefact_is_archived=maybe",
+    "rerun_is_requested=",
+    "execution_is_latest=null",
+    "from_date=2026-02-30T00:00:00Z",
+    "until_date=2026-01-01",
+    "from_date=2026-02-01T00:00:00Z&until_date=2026-01-01T00:00:00Z",
+  ]) {
+    await store.search(
+      app.parseSearch(url(`artefacts=valid&${input}`).searchParams, families),
+    );
+    assert.equal(store.response, null, input);
+    assert.equal(store.loading, false, input);
+  }
+  assert.equal(
+    calls.length,
+    8,
+    "partial valid filters never make an invalid search eligible",
+  );
 });
 
 void test("old results, errors and session checks cannot replace a newer query or a cleared search", async () => {
@@ -605,6 +656,235 @@ function chip(target, label) {
   assert.ok(found, `Missing ${label} chip`);
   return /** @type {import('happy-dom').HTMLButtonElement} */ (found);
 }
+
+void test("mounted URL-only typed conditions remain visible and survive edits, view changes, pagination, history and clear", async () => {
+  /** @type {URL[]} */
+  const calls = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    calls.push(request);
+    const limit = Number(request.searchParams.get("limit") ?? 50);
+    return Promise.resolve(
+      response(
+        Array.from({ length: limit }, (_, i) => i + 1),
+        200,
+        limit,
+      ),
+    );
+  };
+  const params = new URLSearchParams({
+    artefacts: "old",
+    artefact_stages: "",
+    artefact_is_archived: "false",
+    rerun_is_requested: "false",
+    execution_is_latest: "true",
+    issues: "any",
+    assignee_ids: "2,3",
+    template_ids: "template-1,template-2",
+    execution_metadata: `${Buffer.from("c:at,🐧").toString("base64")}:${Buffer.from("one,two:三").toString("base64")}`,
+    from_date: "2024-02-29T00:00:00.123456Z",
+    until_date: "2026-10-20T00:00:00+01:00",
+    limit: "2",
+  });
+  const ui = mounted(params.toString());
+  try {
+    await flush();
+    assert.equal(calls.length, 1);
+    assert.match(
+      ui.target.textContent,
+      /Additional URL filters: Stages, Archived artefacts/,
+    );
+    assert.match(
+      ui.target.textContent,
+      /Editing them here is not available yet/,
+    );
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 1);
+    chip(ui.target, "Artefact names").click();
+    await flush();
+    await enter(ui.target, 'input[name="artefacts"]', "new");
+    await confirmEditor(ui.target);
+    const viewOnly = new URL(ui.handle.currentUrl);
+    viewOnly.searchParams.set("view", "invalid-view");
+    ui.handle.restore(viewOnly);
+    await flush();
+    assert.equal(
+      calls.length,
+      1,
+      "view-only replacement cannot refetch or discard drafts",
+    );
+    assert.equal(
+      chip(ui.target, "Artefact names").title,
+      "Artefact names: new",
+    );
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls.length, 2);
+    assert.equal(calls[1].searchParams.get("artefacts"), "new");
+    assert.equal(calls[1].searchParams.has("view"), false);
+    assert.deepEqual(calls[1].searchParams.getAll("reviewer_ids"), ["2", "3"]);
+    assert.equal(calls[1].searchParams.has("assignee_ids"), false);
+    for (const key of [
+      "artefact_stages",
+      "artefact_is_archived",
+      "rerun_is_requested",
+      "execution_is_latest",
+      "issues",
+      "execution_metadata",
+      "from_date",
+      "until_date",
+    ])
+      assert.deepEqual(
+        calls[1].searchParams.getAll(key),
+        params.getAll(key),
+        key,
+      );
+    assert.deepEqual(calls[1].searchParams.getAll("template_ids"), [
+      "template-1",
+      "template-2",
+    ]);
+    button(ui.target, "Next page").click();
+    await flush();
+    assert.equal(calls.length, 3);
+    assert.equal(calls[2].searchParams.get("offset"), "50");
+    assert.deepEqual(calls[2].searchParams.getAll("reviewer_ids"), ["2", "3"]);
+    assert.deepEqual(
+      calls[2].searchParams.getAll("execution_metadata"),
+      calls[1].searchParams.getAll("execution_metadata"),
+    );
+    ui.handle.restore(url(params.toString()));
+    await flush();
+    assert.equal(calls.length, 4);
+    assert.equal(
+      chip(ui.target, "Artefact names").title,
+      "Artefact names: old",
+    );
+    // A date alone is a meaningful Flutter search, not an unfiltered request.
+    ui.handle.restore(url("until_date=2026-01-01T00:00:00Z"));
+    await flush();
+    assert.equal(calls.length, 5);
+    assert.match(
+      ui.target.textContent,
+      /Additional URL filters: Results until/,
+    );
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 0);
+    button(ui.target, "Clear all").click();
+    await flush();
+    assert.equal(ui.handle.currentUrl.search, "");
+    assert.equal(calls.length, 5);
+    assert.doesNotMatch(ui.target.textContent, /Additional URL filters/);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("mounted invalid URL-only constraints visibly block and cannot be silently removed by unrelated Search edits", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(response());
+  };
+  for (const invalid of [
+    "issues=any,1",
+    "reviewer_ids=bad",
+    "execution_metadata=broken",
+    "from_date=2026-02-30T00:00:00Z",
+    "from_date=2026-01-01T00:00:00.0000001Z",
+    "unknown=blocked",
+  ]) {
+    const ui = mounted(`artefacts=old&${invalid}`);
+    try {
+      await flush();
+      assert.match(
+        ui.target.querySelector('[role="alert"]')?.textContent ?? "",
+        /Search not applied/,
+      );
+      chip(ui.target, "Artefact names").click();
+      await flush();
+      await enter(ui.target, 'input[name="artefacts"]', "new");
+      await confirmEditor(ui.target);
+      button(ui.target, "Search").click();
+      await flush();
+      assert.match(
+        ui.target.querySelector('[role="alert"]')?.textContent ?? "",
+        /No request was sent/,
+      );
+      const original = new URLSearchParams(invalid);
+      for (const [key, value] of original)
+        assert.equal(ui.handle.currentUrl.searchParams.get(key), value);
+      assert.equal(calls, 0, invalid);
+      button(ui.target, "Clear all").click();
+      await flush();
+      assert.equal(ui.target.querySelector('[role="alert"]'), null);
+      assert.equal(calls, 0);
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("mounted sub-microsecond lower bounds visibly block without fetching, and representable bounds retain exact microsecond ordering", async () => {
+  /** @type {URL[]} */
+  const calls = [];
+  globalThis.fetch = (input) => {
+    calls.push(new URL(input instanceof Request ? input.url : input));
+    return Promise.resolve(response());
+  };
+  const unrepresentable = "2026-01-01T00:00:00.0000001Z";
+  const ui = mounted(`from_date=${unrepresentable}`);
+  try {
+    await flush();
+    const alert = ui.target.querySelector('[role="alert"]');
+    assert.match(alert?.textContent ?? "", /Invalid from_date:.*microsecond/);
+    assert.match(alert?.textContent ?? "", /No request was sent/);
+    assert.equal(calls.length, 0);
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(
+      ui.handle.currentUrl.searchParams.get("from_date"),
+      unrepresentable,
+    );
+    assert.equal(
+      calls.length,
+      0,
+      "Search cannot replace an invalid lower bound with a truncated or unfiltered request",
+    );
+
+    ui.handle.restore(
+      url(
+        "from_date=2026-01-01T00:00:00.000001Z&until_date=2026-01-01T00:00:00.000000Z",
+      ),
+    );
+    await flush();
+    assert.match(
+      ui.target.querySelector('[role="alert"]')?.textContent ?? "",
+      /Invalid date range/,
+    );
+    assert.equal(
+      calls.length,
+      0,
+      "six-digit inverted bounds must not collapse to the same millisecond",
+    );
+
+    ui.handle.restore(
+      url(
+        "from_date=2026-01-01T00:00:00.000001Z&until_date=2026-01-01T00:00:00.000002000Z",
+      ),
+    );
+    await flush();
+    assert.equal(ui.target.querySelector('[role="alert"]'), null);
+    assert.equal(calls.length, 1);
+    assert.equal(
+      calls[0].searchParams.get("from_date"),
+      "2026-01-01T00:00:00.000001Z",
+    );
+    assert.equal(
+      calls[0].searchParams.get("until_date"),
+      "2026-01-01T00:00:00.000002000Z",
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
 
 void test("search actions use dense Pragma buttons with separate icon and text slots", async () => {
   const ui = mounted("view=invalid");
@@ -1042,7 +1322,7 @@ void test("all eight chip editors preserve configured families, checkbox statuse
       "FAILED",
       "SKIPPED",
     ]);
-    for (const key of app.SEARCH_FILTERS.slice(2))
+    for (const key of app.EDITABLE_SEARCH_FILTERS.slice(2))
       assert.deepEqual(calls[0].searchParams.getAll(key), [
         `first ${key}`,
         `second+${key}`,
@@ -1897,7 +2177,7 @@ void test("mounted initial/pagination-only/invalid, no-match, retry and access s
       noFetch: true,
     },
     {
-      query: "artefacts=one&issues=1",
+      query: "artefacts=one&issues=any,1",
       text: /Search not applied/,
       noFetch: true,
     },

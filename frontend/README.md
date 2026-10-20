@@ -32,6 +32,53 @@ just up       # start the frontend container
 just down     # stop the frontend container
 ```
 
+### SvelteKit search filter foundation
+
+The test-results search currently provides compact editors for eight fields:
+families, result statuses, artefact names, versions, tracks, environments, test
+plans and test cases. `sveltekit/src/lib/testResultsFilters.ts` defines the typed
+backend contracts and shared empty/active/clone/equality operations independently
+of that editor list. Other supported URL filters are stages, archived artefacts,
+rerun requested, latest execution, issues, reviewers, execution metadata,
+from/until timestamps and template IDs. Their editors are not implemented yet.
+The page identifies active URL-only filters and preserves all URL-only conditions
+when editing the eight current fields, including malformed/unknown conditions
+that must continue to block requests. Correct the URL or use Clear all to remove
+these conditions; an unrelated edit never silently removes them.
+
+Page links accept repeated or comma-separated lists; API requests emit repeated
+keys. Boolean filters are `true`/`false` (absence is unrestricted), and an empty
+`artefact_stages=` explicitly matches the empty stage, not an unrestricted search.
+Issues and reviewers accept positive safe integer IDs, `any`, or `none`, without
+mixing modes. Legacy `assignee_ids` is used only when `reviewer_ids` is absent;
+explicit canonical presence wins, as in Flutter. Empty/invalid canonical IDs
+block instead of falling back to the alias (the backend falls back only for an
+empty canonical list). Requests always emit only canonical `reviewer_ids`.
+
+Execution metadata is structured as categories with alternative values: AND
+across categories, OR within a category. On the wire each pair is
+`Base64(UTF8(category)):Base64(UTF8(value))`, repeated for each value, using standard
+padded Base64, not the table view's base64url. Decoded punctuation and Unicode are
+preserved. Invalid encoding or UTF-8 blocks the search locally.
+
+Date bounds apply inclusively to `TestResult.created_at`. Timestamps must be valid
+Gregorian ISO instants (`YYYY-MM-DDTHH:mm:ss[.fraction]Z` or an explicit `±HH:MM`
+offset), with no rollover or assumed local timezone. Bounds may be one-sided;
+from must not exceed until, comparing offsets and fractional precision without
+JavaScript millisecond truncation. Bounds must be exactly representable at the
+backend's microsecond precision: nonzero fractional digits beyond six are
+rejected; additional trailing zeros are allowed. Input timestamps are retained,
+never rounded or silently normalized. Dates alone count as meaningful frontend
+filters, matching Flutter.
+`view` remains presentation-only: it is never an API filter and cannot enable an
+unfiltered fetch. Unknown filter names and invalid conditions visibly block
+requests. Hydrated issue/reviewer labels are not part of filter identity.
+
+For local SvelteKit checks, run `npm run check`, `npm run build`, `npm test` and
+`npm run lint` from `frontend/sveltekit` (dependencies: `npm ci`). The search tests
+include isolated model/URL/API contracts and the actual mounted eight-field UI;
+they do not stand in for live backend/browser testing.
+
 ## Setup
 
 Install flutter snap:

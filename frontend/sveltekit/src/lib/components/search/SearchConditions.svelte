@@ -13,10 +13,12 @@
   import type { Family } from "$lib/types";
   import { familyDisplayName } from "$lib/types";
   import {
-    SEARCH_FILTERS,
+    EDITABLE_SEARCH_FILTERS,
+    FILTER_DEFINITIONS,
+    clearFilter,
     RESULT_STATUSES,
     listValues,
-    type SearchFilter,
+    type EditableSearchFilter,
     type SearchFilters,
   } from "$lib/testResultsSearch";
 
@@ -30,31 +32,22 @@
     disabled?: boolean;
   } = $props();
 
-  const labels: Record<SearchFilter, string> = {
-    families: "Families",
-    test_result_statuses: "Test result statuses",
-    artefacts: "Artefact names",
-    artefact_versions: "Versions",
-    artefact_tracks: "Tracks",
-    environments: "Environments",
-    test_plans: "Test plans",
-    test_cases: "Test cases",
-  };
-  type Source = SearchFilter | "add";
+  const label = (key: EditableSearchFilter) => FILTER_DEFINITIONS[key].label;
+  type Source = EditableSearchFilter | "add";
   const id = $props.id();
   let active = $state<Source | null>(null);
   let opened = $state<Source | null>(null);
   let placement = $state("visibility: hidden;");
-  let field = $state<SearchFilter | null>(null);
+  let field = $state<EditableSearchFilter | null>(null);
   let query = $state("");
   let text = $state("");
   let selected = $state<string[]>([]);
   let addButton: HTMLButtonElement | undefined = $state();
   const available = $derived(
-    SEARCH_FILTERS.filter(
+    EDITABLE_SEARCH_FILTERS.filter(
       (key) =>
         !filters[key].length &&
-        labels[key].toLowerCase().includes(query.trim().toLowerCase()),
+        label(key).toLowerCase().includes(query.trim().toLowerCase()),
     ),
   );
   const values = $derived(
@@ -63,7 +56,7 @@
       : listValues([text]),
   );
 
-  function valueLabels(key: SearchFilter) {
+  function valueLabels(key: EditableSearchFilter) {
     return filters[key].map((value) => {
       if (key !== "families") return value;
       const family = families.find((family) => family.api_name === value);
@@ -71,14 +64,14 @@
     });
   }
 
-  function summary(key: SearchFilter) {
+  function summary(key: EditableSearchFilter) {
     const names = valueLabels(key);
     const first = names[0];
     return names.length > 1 ? `${first} +${names.length - 1}` : first;
   }
 
-  function fullLabel(key: SearchFilter) {
-    return `${labels[key]}: ${valueLabels(key).join(", ")}`;
+  function fullLabel(key: EditableSearchFilter) {
+    return `${label(key)}: ${valueLabels(key).join(", ")}`;
   }
 
   async function focusPanel(source: Source) {
@@ -170,7 +163,7 @@
     void focusPanel(source);
   }
 
-  function start(key: SearchFilter, source: Source) {
+  function start(key: EditableSearchFilter, source: Source) {
     field = key;
     text = filters[key].join(", ");
     selected = [...filters[key]];
@@ -213,9 +206,9 @@
     document.getElementById(`${id}-trigger-${key}`)?.focus();
   }
 
-  async function remove(key: SearchFilter) {
+  async function remove(key: EditableSearchFilter) {
     if (active) close(active, false);
-    filters = { ...filters, [key]: [] };
+    filters = clearFilter(filters, key);
     await tick();
     addButton?.focus();
   }
@@ -234,7 +227,7 @@
     class="condition-popover"
     role="dialog"
     aria-label={field && active === source
-      ? `Edit ${labels[field]}`
+      ? `Edit ${label(field)}`
       : "Add filter"}
     style={`position: fixed; position-area: none; inset: auto; margin: 0; ${placement}`}
     onbeforetoggle={(event) => beforeToggle(event, source)}
@@ -266,7 +259,7 @@
           title={fullLabel(source)}
         >
           <Chip
-            lead={labels[source]}
+            lead={label(source)}
             value={summary(source)}
             readonly
             density="dense"
@@ -278,10 +271,10 @@
       <div class="panel">
         {#if field}
           <form
-            aria-label={`Edit ${labels[field]}`}
+            aria-label={`Edit ${label(field)}`}
             onsubmit={(event) => confirm(event, source)}
           >
-            <h2>{labels[field]}</h2>
+            <h2>{label(field)}</h2>
             {#if field === "families" || field === "test_result_statuses"}
               <fieldset>
                 <legend>Match any selected value</legend>
@@ -362,14 +355,14 @@
                 <Button
                   type="button"
                   density="dense"
-                  onclick={() => start(key, source)}>{labels[key]}</Button
+                  onclick={() => start(key, source)}>{label(key)}</Button
                 >
               </li>
             {/each}
           </ul>
           {#if !available.length}
             <p class="hint">
-              {SEARCH_FILTERS.every((key) => filters[key].length)
+              {EDITABLE_SEARCH_FILTERS.every((key) => filters[key].length)
                 ? "All filters are in use. Select a chip to edit it."
                 : "No matching filters."}
             </p>
@@ -384,7 +377,7 @@
 {/snippet}
 
 <div class="conditions" role="group" aria-label="Confirmed search filters">
-  {#each SEARCH_FILTERS.filter((key) => filters[key].length) as key (key)}
+  {#each EDITABLE_SEARCH_FILTERS.filter((key) => filters[key].length) as key (key)}
     <div class="condition">
       {@render condition(key)}
       <Button
@@ -392,8 +385,8 @@
         class="remove-condition"
         density="dense"
         {disabled}
-        aria-label={`Remove ${labels[key]} filter`}
-        title={`Remove ${labels[key]} filter`}
+        aria-label={`Remove ${label(key)} filter`}
+        title={`Remove ${label(key)} filter`}
         onclick={() => remove(key)}
       >
         {#snippet iconLeft()}<CloseIcon />{/snippet}

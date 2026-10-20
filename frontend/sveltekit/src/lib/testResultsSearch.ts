@@ -9,19 +9,16 @@ import type {
   TestExecutionResponse,
   TestResultStatus,
 } from "$lib/types/openapi";
+import {
+  SEARCH_FILTERS,
+  EDITABLE_SEARCH_FILTERS,
+  filterValues,
+  hasFilters,
+  parseFilters,
+  type SearchFilters,
+} from "$lib/testResultsFilters";
+export * from "$lib/testResultsFilters";
 
-export const SEARCH_FILTERS = [
-  "families",
-  "test_result_statuses",
-  "artefacts",
-  "artefact_versions",
-  "artefact_tracks",
-  "environments",
-  "test_plans",
-  "test_cases",
-] as const;
-export type SearchFilter = (typeof SEARCH_FILTERS)[number];
-export type SearchFilters = Record<SearchFilter, string[]>;
 export const RESULT_STATUSES: TestResultStatus[] = [
   "PASSED",
   "FAILED",
@@ -51,41 +48,16 @@ export interface SearchResponse {
   test_results: SearchResult[];
 }
 
-/** Flutter-compatible URL lists; API requests use repeated keys instead. */
-export function listValues(values: string[]): string[] {
-  return [
-    ...new Set(
-      values
-        .flatMap((v) => v.split(","))
-        .map((v) => v.trim())
-        .filter(Boolean),
-    ),
-  ];
-}
-
-export function emptyFilters(): SearchFilters {
-  return {
-    families: [],
-    test_result_statuses: [],
-    artefacts: [],
-    artefact_versions: [],
-    artefact_tracks: [],
-    environments: [],
-    test_plans: [],
-    test_cases: [],
-  };
-}
-
 export function parseSearch(
   params: URLSearchParams,
   families: Family[],
 ): AppliedSearch {
-  const filters = emptyFilters();
-  const problems: string[] = [];
+  const { filters, problems } = parseFilters(params);
   // `view` is presentation only. It must never become an API filter or make
   // an otherwise empty search eligible for an unfiltered backend request.
   const supported = new Set<string>([
     ...SEARCH_FILTERS,
+    "assignee_ids",
     "limit",
     "offset",
     "view",
@@ -93,8 +65,6 @@ export function parseSearch(
   for (const key of new Set(params.keys())) {
     if (!supported.has(key)) problems.push(`Unsupported URL filter: ${key}.`);
   }
-  for (const key of SEARCH_FILTERS)
-    filters[key] = listValues(params.getAll(key));
   for (const value of filters.families) {
     if (!families.some((f) => f.api_name === value)) {
       problems.push(`Unknown or unavailable family: ${value}.`);
@@ -131,7 +101,7 @@ export function parseSearch(
     filters,
     limit: integer("limit", DEFAULT_LIMIT, 1, 1000),
     offset: integer("offset", 0, 0, Number.MAX_SAFE_INTEGER),
-    hasFilters: SEARCH_FILTERS.some((key) => filters[key].length > 0),
+    hasFilters: hasFilters(filters),
     problems,
   };
 }
@@ -151,10 +121,27 @@ export function searchParams(
 ): URLSearchParams {
   const params = new URLSearchParams();
   for (const key of SEARCH_FILTERS) {
-    for (const value of filters[key]) params.append(key, value);
+    for (const value of filterValues(key, filters)) params.append(key, value);
   }
   params.set("limit", String(limit));
   if (offset > 0) params.set("offset", String(offset));
+  return params;
+}
+
+/** The compact editor owns only eight fields. Preserve all other raw URL
+ * conditions, even malformed/unknown ones, so an unrelated edit cannot silently
+ * remove a constraint. Clear all or correcting the URL is the explicit escape.
+ * API/pagination serialization still uses the canonical typed model above. */
+export function editedSearchParams(
+  filters: SearchFilters,
+  source: URLSearchParams,
+): URLSearchParams {
+  const params = new URLSearchParams(source);
+  for (const key of [...EDITABLE_SEARCH_FILTERS, "limit", "offset", "view"])
+    params.delete(key);
+  for (const key of EDITABLE_SEARCH_FILTERS)
+    for (const value of filterValues(key, filters)) params.append(key, value);
+  if (params.size) params.set("limit", String(DEFAULT_LIMIT));
   return params;
 }
 
