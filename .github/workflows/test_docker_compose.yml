@@ -52,7 +52,7 @@ jobs:
       - name: Build and start services
         env:
           SEED_DATA: "true"  # Enable seeding to test full application setup
-          DISABLE_PERIODIC_TASKS: "true"  # Disable external API calls in CI
+          ENABLE_PERIODIC_TASKS: "false"  # Disable external API calls in CI
         run: |
           docker compose build
           # Use --wait flag to wait for services to be healthy before returning

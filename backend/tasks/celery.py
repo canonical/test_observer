@@ -53,18 +53,31 @@ logger = logging.getLogger(__name__)
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):  # noqa
-    # Skip periodic tasks optionally for envs like docker-compose on github
-    if environ.get("DISABLE_PERIODIC_TASKS", "false").lower() == "true":
-        logger.info("Periodic tasks disabled via DISABLE_PERIODIC_TASKS env vars")
+
+    ENABLE_PERIODIC_TASKS = environ.get("ENABLE_PERIODIC_TASKS", "true").lower() == "true"
+    ENABLE_KERNEL_SWM = environ.get("ENABLE_KERNEL_SWM", "true").lower() == "true"
+    ENABLE_ARTEFACT_PROMOTION = environ.get("ENABLE_ARTEFACT_PROMOTION", "true").lower() == "true"
+    ENABLE_USER_SESSION_CLEANUP = environ.get("ENABLE_USER_SESSION_CLEANUP", "true").lower() == "true"
+    ENABLE_ISSUE_SYNC = environ.get("ENABLE_ISSUE_SYNC", "true").lower() == "true"
+
+    logger.info("ENABLE_PERIODIC_TASKS=%s", ENABLE_PERIODIC_TASKS)
+    logger.info("ENABLE_KERNEL_SWM=%s", ENABLE_KERNEL_SWM)
+    logger.info("ENABLE_ARTEFACT_PROMOTION=%s", ENABLE_ARTEFACT_PROMOTION)
+    logger.info("ENABLE_USER_SESSION_CLEANUP=%s", ENABLE_USER_SESSION_CLEANUP)
+    logger.info("ENABLE_ISSUE_SYNC=%s", ENABLE_ISSUE_SYNC)
+
+    if not ENABLE_PERIODIC_TASKS:
         return
 
-    sender.add_periodic_task(300, integrate_with_kernel_swm.s())
-    sender.add_periodic_task(600, run_promote_artefacts.s())
-    sender.add_periodic_task(600, clean_user_sessions.s())
+    if ENABLE_KERNEL_SWM:
+        sender.add_periodic_task(300, integrate_with_kernel_swm.s())
+    if ENABLE_ARTEFACT_PROMOTION:
+        sender.add_periodic_task(600, run_promote_artefacts.s())
+    if ENABLE_USER_SESSION_CLEANUP:
+        sender.add_periodic_task(600, clean_user_sessions.s())
 
     # Staggered sync tasks
-    if environ.get("ENABLE_ISSUE_SYNC", "false").lower() == "true":
-        logger.info("Issue synchronization tasks enabled")
+    if ENABLE_ISSUE_SYNC:
         sender.add_periodic_task(SyncConfig.OPEN_ISSUE_INTERVAL, sync_high_priority_issues.s())
         sender.add_periodic_task(SyncConfig.RECENT_CLOSED_INTERVAL, sync_medium_priority_issues.s())
         sender.add_periodic_task(SyncConfig.OLD_CLOSED_INTERVAL, sync_low_priority_issues.s())

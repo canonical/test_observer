@@ -99,10 +99,26 @@ config:
     ignore_permissions:
       description: Comma separated list of API permissions to ignore for all requests
       type: string
+    enable_periodic_tasks:
+      description: Whether to enable periodic tasks such as syncing issues, integrating with kernel SWM, promoting artefacts, and cleaning user sessions.
+      type: boolean
+      default: true
+    enable_kernel_swm:
+      description: Whether to enable periodic integration with the kernel SWM.
+      type: boolean
+      default: true
+    enable_artefact_promotion:
+      description: Whether to enable periodic promotion of artefacts.
+      type: boolean
+      default: true
+    enable_user_session_cleanup:
+      description: Whether to enable periodic cleanup of user sessions.
+      type: boolean
+      default: true
     enable_issue_sync:
       description: Whether to enable periodic syncing of issues from GitHub, Jira, and Launchpad
       type: boolean
-      default: false
+      default: true
     metrics_init_days:
       description: Number of days of historical data to load when initializing metrics on startup. Use 0 to load all historical data.
       type: int
