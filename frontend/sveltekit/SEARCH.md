@@ -1,20 +1,22 @@
 <!-- SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd. -->
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 
-# Basic test result search
+# Test result search
 
-`/test-results` is a read-only search page. Its applied query lives in the URL,
-so direct links, reloads, and browser back/forward restore the search.
+`/test-results` is a read-only search page with ephemeral result selection. Its
+applied query lives in the URL, so direct links, reloads, and browser back/forward
+restore the search. Selection is not encoded in links; view-only history changes
+preserve the current selection. This is the canonical SvelteKit search guide.
 
 ## Conditions and applying a search
 
 The compact condition bar starts with **+ Add filter** and **Search**. Add filter
-opens an anchored, searchable picker containing only the eight supported fields
-below. A field already represented by a chip is omitted from the picker; select
-its chip to edit it instead. Families and result statuses use multi-checkbox
-editors; the other six fields accept comma-separated exact values. Family labels
-use the configured route name with only its first character capitalized, matching
-the sidebar, dashboard titles and artefact breadcrumbs. API names are submitted
+opens an anchored, searchable picker containing the 18 fields below. Unused
+fields stay hidden until added. A field already represented by a chip is omitted
+from the picker; select its chip to edit it instead. Labels match Flutter's 17
+rendered fields, plus the approved extra **Template ID**. Family labels use the
+configured route name with only its first character capitalized, matching the
+sidebar, dashboard titles and artefact breadcrumbs. API names are submitted
 unchanged.
 
 **Add filter** or **Save changes** confirms an editor into the chip draft, but
@@ -33,12 +35,13 @@ without an extra Tab. Cancel or Escape discards unconfirmed
 edits and returns focus to the trigger; outside click discards edits without
 stealing focus from the clicked control. Confirming focuses the resulting chip,
 and removing a condition focuses Add filter. Tab follows normal browser order;
-Enter submits an editor's values or activates a focused button. Backend query or
+Enter activates a focused button or submits a valid editor, except that Enter
+in a suggestion query never saves. Backend query or
 pagination URL changes close and reset transient editors; table-view-only URL
 changes preserve the confirmed drafts, open editor and keyboard focus.
 
-**Search** applies the entire confirmed chip draft, updates the URL, and starts
-again at the first page. Chip configuration and removal never fetch. **Changes
+**Search** applies the entire confirmed chip draft, updates the URL, and resets
+valid pagination to the first page. Chip configuration and removal never fetch. **Changes
 not applied** marks a draft that differs from the URL, and existing results are
 labelled as belonging to the previous query. Pagination is disabled until the
 draft is applied or restored to the applied values, so it cannot accidentally
@@ -50,36 +53,130 @@ is selected; Search then clears the applied query and results. Neither action
 requests unfiltered results. Empty and pagination-only URLs never request
 unfiltered test results.
 
+## Fields and editors
+
+| Label             | URL/API key            | Editor and contract                                                                                                                                                                    |
+| ----------------- | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Family            | `families`             | Multiple configured family checkboxes; API names, not display labels.                                                                                                                  |
+| Status            | `test_result_statuses` | Multiple checkboxes: Passed, Failed, Skipped (`PASSED`, `FAILED`, `SKIPPED`).                                                                                                          |
+| Issues            | `issues`               | Specific positive safe integer IDs with rich suggestions/manual IDs, **Has any issue** (`any`), or **Has no issues** (`none`).                                                         |
+| Reviewers         | `reviewer_ids`         | Specific positive safe integer IDs with rich suggestions/manual IDs, **Has any reviewer** (`any`), or **Has no reviewer** (`none`).                                                    |
+| Artefact          | `artefacts`            | Exact names with remote suggestions and manual exact-value entry.                                                                                                                      |
+| Artefact Version  | `artefact_versions`    | Manual comma-separated exact values; no remote lookup.                                                                                                                                 |
+| Artefact Stage    | `artefact_stages`      | Multiple checkboxes from the union of all configured families' stages, plus **(none)** for an explicitly empty stage. Unconfigured selections are retained until explicitly unchecked. |
+| Artefact Track    | `artefact_tracks`      | Manual comma-separated exact values; no remote lookup.                                                                                                                                 |
+| Archived          | `artefact_is_archived` | Single choice: **Non archived only** (`false`) or **Archived only** (`true`).                                                                                                          |
+| Rerun Requested   | `rerun_is_requested`   | Single choice: **No rerun requested** (`false`) or **Rerun requested** (`true`).                                                                                                       |
+| Execution Version | `execution_is_latest`  | Single choice: **Older executions only** (`false`) or **Latest execution only** (`true`).                                                                                              |
+| Environment       | `environments`         | Exact names with remote suggestions and manual exact-value entry.                                                                                                                      |
+| Test Case         | `test_cases`           | Exact names with remote suggestions and manual exact-value entry.                                                                                                                      |
+| Test Plan         | `test_plans`           | Exact names with remote suggestions and manual exact-value entry.                                                                                                                      |
+| Template ID       | `template_ids`         | Manual comma-separated exact values; no remote lookup.                                                                                                                                 |
+| Metadata          | `execution_metadata`   | Literal category/value pairs, with native datalist suggestions and individual pair removal.                                                                                            |
+| From              | `from_date`            | Inclusive lower bound on result creation time; UTC date/time picker and exact timestamp input.                                                                                         |
+| Until             | `until_date`           | Inclusive upper bound on result creation time; UTC date/time picker and exact timestamp input.                                                                                         |
+
+Boolean absence is unrestricted; `false` is an active condition, not an empty
+filter. Issues and Reviewers have mutually exclusive specific IDs / any / none
+modes: IDs cannot be mixed with `any` or `none`. Legacy `assignee_ids` is read only
+when `reviewer_ids` is absent. Explicit canonical presence wins, as in Flutter;
+an empty/invalid canonical value blocks instead of falling back to the alias
+(the backend falls back for an empty canonical list). API requests emit only
+canonical `reviewer_ids`. Hydrated issue/reviewer labels are display-only and are
+not part of filter identity. Detail labels use a bounded in-memory session cache,
+invalidated on session/profile/permission or API-root changes; lookup failures
+never drop selected IDs or block other editors.
+
+### Suggestions and manual values
+
+Artefact, Environment, Test Plan and Test Case suggestions use the **confirmed
+draft Family chips**, not the applied results query. Issues and Reviewers offer
+rich issue/project/title/source and name/handle/email suggestions without a family
+restriction, matching Flutter. Lookups use existing `GET /v1/artefacts/search`,
+`/v1/environments`, `/v1/test-plans`, `/v1/test-cases`, `/v1/issues` and `/v1/users`
+contracts. They start after two trimmed characters and a 250 ms debounce, capped
+at 50 names or 10 IDs. Query replies are not cached. Requests are aborted and late
+bodies/errors ignored when query, family, field, editor or session context changes.
+Failures, including authentication/permission errors, stay local with retry and a
+manual exact-value path, not global error toasts.
+
+Typing **Find Artefact** (or another lookup query) never selects a value. Choose a
+suggestion or **Add exact value / Add exact IDs** to add to the selected list and
+clear the query. Selected values remain visible and individually removable even
+when absent from suggestions. Pending text must be selected, explicitly added, or
+cleared before saving the chip. Tab/Enter activate ordinary result buttons;
+Arrow Down/Up moves between the input and results. Enter in the query input does
+not submit the editor; Escape discards it. Suggestions are inline in the same
+popover, not a second overlay.
+
+Name options containing literal commas or surrounding whitespace cannot
+round-trip through the comma-list link contract and are visibly unavailable.
+Manual exact-name entry trims surrounding whitespace and rejects commas instead
+of silently splitting them. Existing comma/repeated links still restore.
+Artefact Version, Artefact Track and Template ID remain manual exact lists,
+trimming and deduplicating comma-separated values: no complete lookup endpoint
+exists for them (test-case search matches case names, not template IDs).
+
+Metadata lazily loads `GET /v1/execution-metadata` when its editor opens. Native
+category/value datalists filter this known map locally (up to 50 matches), with
+values grouped by the exact category. The map is cached only in memory for five
+minutes in the current API/session/profile/permission context. Reopening can
+reuse it; typing never refetches it, and cancelled replies cannot fill the cache.
+Manual literal pairs remain available. **Add pair** adds the pair and clears its
+inputs; pending category/value text must be added or cleared before confirming.
+Suggestion selection and chip confirmation never fetch test results.
+
+### Metadata and date wire contracts
+
+Metadata is AND across categories and OR within each category. Each wire pair is
+`Base64(UTF8(category)):Base64(UTF8(value))`, repeated for each value, using standard
+padded Base64, not the table view's base64url. Comma-separated encoded pairs also
+restore. Decoded Unicode, punctuation, commas, colons and spaces remain literal.
+The editor accepts separate category/value inputs, not wire encoding or delimiter
+parsing. Categories and values each require 1–200 Unicode characters. Invalid
+encoding, UTF-8 or lengths block the search locally.
+
+From/Until apply inclusively to `TestResult.created_at`. Timestamps must be valid
+Gregorian ISO instants (`YYYY-MM-DDTHH:mm:ss[.fraction]Z` or an explicit `±HH:MM`
+offset), with no rollover or assumed local timezone. Bounds may be one-sided;
+From must not exceed Until, comparing offsets and fractional precision without
+JavaScript millisecond truncation. Bounds must be exactly representable at backend
+microsecond precision: nonzero digits beyond six fractional places are rejected;
+additional trailing zeros are allowed. Input timestamps are retained, never
+rounded or silently normalized. Changing the clearly labelled UTC picker
+deliberately selects second precision; an unchanged save retains the original
+timestamp text. Dates alone count as meaningful frontend filters, matching Flutter.
+
 ## URL and result contract
 
-Supported query keys:
-
-- `families` (API names from the layout's configured families)
-- `test_result_statuses` (`PASSED`, `FAILED`, `SKIPPED`)
-- `artefacts` (artefact names)
-- `artefact_versions`
-- `artefact_tracks`
-- `environments` (environment names)
-- `test_plans` (test plan names)
-- `test_cases` (test case names)
-
-All eight use the backend's **exact-match** semantics, not substring search.
-Values are ORed within one key, and keys are ANDed together. URL values can be
-comma-separated, repeated, or both, matching Flutter's list parsing. Whitespace
-is trimmed and empty entries removed. Commas delimit values and cannot be used
-as literal characters within a value in this basic UI. API calls use repeated
-parameters. For example, `?artefacts=one,two&test_result_statuses=FAILED` requests
+Lists use backend **exact-match** semantics, not substring search. Alternatives
+within one list are ORed; different filters are ANDed. Page URL lists can be
+comma-separated, repeated, or both, matching Flutter. Whitespace is trimmed and
+values deduplicated; empty entries are removed except for `artefact_stages=`,
+which explicitly matches an empty stage, not an unrestricted search. Commas
+delimit list values and cannot be literal characters in names. API calls use
+repeated parameters. For example,
+`?artefacts=one,two&test_result_statuses=FAILED` requests
 `artefacts=one&artefacts=two&test_result_statuses=FAILED` from `/v1/test-results`.
 
 The additional `view` parameter carries only the local grid presentation (see
 below). It is never sent to the API and cannot make an empty/pagination-only
-search request unfiltered results. Other unknown URL keys, unknown/unavailable families, invalid result statuses, and
-invalid pagination block the request with a visible notice, rather than silently
-broadening the applied query. Search replaces unsupported URL keys with the
-supported confirmed draft; Clear all removes everything. `limit` defaults to 50 and
-accepts integers from 1 to the API's default maximum of 1000; `offset` is a
-nonnegative safe integer. A deployment may configure a lower API maximum; such a
-request displays the retryable API error.
+search request unfiltered results. Unknown URL keys, unknown/unavailable families,
+invalid result statuses, malformed typed conditions and invalid pagination block
+the request with a visible notice rather than silently broadening the query.
+Raw malformed/unknown URL provenance is preserved across unrelated edits and
+Search, including repeated parameters and invalid pagination. Search does **not**
+silently drop unsupported constraints. Known malformed fields have explicit
+replacement/removal controls; invalid family/status selections can be explicitly
+unchecked or their chip removed. Confirming a repair/removal remains a draft until
+Search. Unsupported names and invalid pagination must be corrected/removed in the
+URL, or removed with **Clear all**. Cancellation, Escape and outside dismissal
+never save a repair.
+
+`limit` defaults to 50 and accepts integers from 1 to the API's default maximum of
+1000; `offset` is a nonnegative safe integer. Valid pagination resets on Search;
+invalid pagination remains blocking until explicitly repaired. A deployment may
+configure a lower API maximum; such a request displays the retryable API error.
 
 Pagination replaces pages; it never appends or mixes datasets. Server order is
 newest result first (created time, then ID). The count is the backend's total,
@@ -90,6 +187,38 @@ can shift offset boundaries; refreshing or reapplying starts a fresh search.
 View Run uses the configured family route and the SvelteKit
 `testExecutionId`/`testResultId` deep links (including the deployment base path).
 If a result's family has no configured route, the grid shows Run unavailable.
+
+## Result selection (no bulk actions)
+
+Native row checkboxes select by **test result ID**, not row position. The header
+checkbox acts on the entire displayed, post-local-filter/sort backend page,
+including virtualized rows not currently in the DOM. It does not select locally
+hidden rows, other backend pages or all server matches. Explicit selected IDs
+survive pagination and local filtering/sorting, so selections on other pages
+remain counted even when not visible.
+
+Only after **all IDs on the entire loaded backend page** are selected (not just
+locally displayed rows) is the separate checkbox offered, labelled
+`Apply bulk options to all ${MATCH_COUNT} matches`. Opting in creates a rule bound
+to the normalized applied backend filters, excluding pagination and `view`, not
+an enumerated/frozen result set. Unchecking individual rows adds exclusions;
+checking them again removes exclusions. The selected count uses the latest
+server match count minus exclusions, floored at zero, so concurrent changes can
+change the count. Local grid filters and unapplied drafts never narrow this rule.
+
+Turning the header off affects only displayed rows; it does not exit all-matches
+mode or clear other pages. **Clear selection** clears everything globally.
+Turning the all-matches option off drops the rule, exclusions and off-page
+selection, retaining explicit selected IDs from the **entire current loaded
+backend page**, including locally hidden rows (but not excluded rows).
+
+Explicit **Search**, including reapplying unchanged filters, a new applied query,
+**Clear all**, leaving the route or reloading reset selection. Draft/editor edits,
+pagination and table-view changes preserve it. Selection is ephemeral per-route
+state: nothing is written to the URL, storage or shared view, and selection sends
+no network requests or mutations. There are no bulk actions, edit/selection
+action bar, context menu or mutation workflows; the all-matches wording reserves
+scope for future bulk options only.
 
 ## Table layout and shareable views
 
@@ -135,9 +264,8 @@ so visibility is checked every 250ms while the grid is mounted (with cleanup).
 
 ## Deliberately deferred
 
-Archived/latest/rerun boolean selectors; date bounds; `artefact_stages`;
-`template_ids`; execution statuses and metadata; issues and reviewers; a result
-details modal; saved views and export. All bulk operations, attachment rules,
+Execution-status filtering; a result details modal; saved views and export.
+All bulk operations, attachment rules,
 issue attach/detach, rerun creation/deletion, and other mutation workflows are
 excluded.
 
@@ -148,13 +276,18 @@ From `frontend/sveltekit`, install locked dependencies with `npm ci`, then run
 `tests/test-results-search.test.js` tests the backend/OpenAPI and URL contracts,
 request defaults, races, auth revalidation, and actual mounted Pragma controls
 and SvGrid rendering/interactions in Happy DOM. Mounted regressions cover the
-searchable eight-field picker, duplicate/empty prevention, all editor types,
+searchable 18-field picker, duplicate/empty prevention, all editor types,
 confirmed drafts versus applied queries, cancellation/dismissal and focus,
 URL restoration, long values, clear and pagination. Additional regressions cover
 shareable sort/global/column/facet/visibility state, replace-only history writes,
 restoring/removing invalid views, repeated parameters, drafts/editor/focus and
 grid identity across view-only changes, pending result/auth requests, retained
-views through Search/pagination, and resetting the table independently. Happy DOM lacks native
+views through Search/pagination, and resetting the table independently. Typed
+contract and suggestion tests cover metadata/date/ID modes, malformed URL
+provenance and explicit repairs, debounce, keyboard/multi-select, draft family
+context, local failures, cancellation, late-body and session races. Selection
+tests cover ID-native page/header scope, query-bound all-matches/exclusions,
+reset/preserve rules and no selection traffic or persistence. Happy DOM lacks native
 popover support, so a test-only adapter models native toggle/light-dismiss
 events, including ignored focus attempts before native opening completes.
 Mounted tests also verify viewport constraints with supplied geometry; real
@@ -169,9 +302,12 @@ desktop/800px screenshots require separate browser QA.
 running Vite frontend and real seeded API/SSO stack, not part of the mocked
 `npm test` suite. It uses SvelteKit's actual public `replaceState`/`pushState`
 APIs and native browser Back/Forward, twice each. It asserts focus never leaves
-the editor, no transient `inert` appears, the grid/editor/popover and confirmed
+the editor, no transient `inert` or loading overlay appears, the same
+grid/editor/popover/input and confirmed
 and unconfirmed drafts survive, page state survives, the table view restores,
-and traversal sends zero API requests. No requests are intercepted or mocked.
+and traversal sends zero API requests. The real debounced suggestion request
+finishes before traversal measurement begins; it is not exempted from the
+zero-traffic assertion during traversal. No requests are intercepted or mocked.
 
 Use an externally installed Playwright Core and Chromium (no project dependency
 or lockfile changes), supply test SSO credentials privately through
@@ -187,6 +323,13 @@ node tests/search-view-history.browser.js
 ```
 
 The script expects real loaded rows and a Vite dev server so it can resolve the
-public SvelteKit modules. It writes only an assertion report and search-page
-screenshot under `/tmp/opencode` by default, never credentials, cookies or
-storage state. Start/stop only your own stack and preserve Docker volumes.
+public SvelteKit modules. Supplying credentials forces the real public SAML login
+flow even if development permits anonymous result reads; the script checks
+`GET /v1/users/me` using the browser session and reports only status and an
+authenticated boolean, never the personal payload. Without credentials it can
+also run against a development stack permitting anonymous reads, but that is not
+authenticated SSO evidence. It writes only an assertion report and search-page
+screenshot under `/tmp/opencode` by default, never credentials, cookies, tokens or
+storage state. Do not enable traces, HARs or login screenshots. Start/stop only
+your own stack with `docker compose down` **without `-v`**, preserving volumes and
+unrelated projects.
