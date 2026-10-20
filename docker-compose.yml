@@ -33,6 +33,10 @@ services:
       SAML_IDP_METADATA_URL: "http://saml-idp/simplesaml/saml2/idp/metadata.php"
       SEED_DATA: "true"
       ENABLE_PERIODIC_TASKS: "${ENABLE_PERIODIC_TASKS:-false}"
+      ENABLE_KERNEL_SWM: "${ENABLE_KERNEL_SWM:-false}"
+      ENABLE_ARTEFACT_PROMOTION: "${ENABLE_ARTEFACT_PROMOTION:-false}"
+      ENABLE_USER_SESSION_CLEANUP: "${ENABLE_USER_SESSION_CLEANUP:-false}"
+      ENABLE_ISSUE_SYNC: "${ENABLE_ISSUE_SYNC:-false}"
       UV_DYNAMIC_VERSIONING_BYPASS: "0.0.0" # this is to be set at image build time for production images
       PYTHONDONTWRITEBYTECODE: "1" # Prevent .pyc files in development
       SESSIONS_HTTPS_ONLY: "false"
