@@ -679,7 +679,11 @@ class TestObserverBackendCharm(CharmBase):
             "FRONTEND_URL": self._get_frontend_url(),
             "SESSIONS_SECRET": str(self.config["sessions_secret"]),
             "IGNORE_PERMISSIONS": str(self.config.get("ignore_permissions", "")),
-            "ENABLE_ISSUE_SYNC": str(self.config.get("enable_issue_sync", "false")),
+            "ENABLE_PERIODIC_TASKS": str(self.config["enable_periodic_tasks"]),
+            "ENABLE_KERNEL_SWM": str(self.config["enable_kernel_swm"]),
+            "ENABLE_ARTEFACT_PROMOTION": str(self.config["enable_artefact_promotion"]),
+            "ENABLE_USER_SESSION_CLEANUP": str(self.config["enable_user_session_cleanup"]),
+            "ENABLE_ISSUE_SYNC": str(self.config["enable_issue_sync"]),
             "METRICS_INIT_DAYS": str(self.config.get("metrics_init_days", 30)),
             "METRICS_INIT_ENABLED": str(self.config.get("metrics_init_enabled", True)).lower(),
             "REQUIRE_AUTHENTICATION": str(
