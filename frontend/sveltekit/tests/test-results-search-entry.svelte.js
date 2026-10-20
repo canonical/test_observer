@@ -10,6 +10,11 @@ export * from "../src/lib/testResultsSearch";
 export { replaceSearchView } from "../src/lib/searchViewNavigation";
 export { encodeView, decodeView } from "../src/lib/gridViewUrl";
 export { familyDisplayName } from "../src/lib/types";
+export {
+  SearchFilterLabelCache,
+  searchFilterLabelCache,
+} from "../src/lib/searchFilterLabels";
+export { errorStore } from "../src/lib/stores/error.svelte";
 
 /**
  * @param {HTMLElement} target

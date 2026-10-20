@@ -35,16 +35,26 @@ export interface SearchFilters {
 }
 export type SearchFilter = keyof SearchFilters;
 
-/** Only these fields have editors today. The other contracts are URL-only. */
+/** Compact picker order; unused fields stay hidden until explicitly added. */
 export const EDITABLE_SEARCH_FILTERS = [
   "families",
   "test_result_statuses",
+  "issues",
+  "reviewer_ids",
   "artefacts",
   "artefact_versions",
+  "artefact_stages",
   "artefact_tracks",
+  "artefact_is_archived",
+  "rerun_is_requested",
+  "execution_is_latest",
   "environments",
-  "test_plans",
   "test_cases",
+  "test_plans",
+  "template_ids",
+  "execution_metadata",
+  "from_date",
+  "until_date",
 ] as const satisfies readonly SearchFilter[];
 export type EditableSearchFilter = (typeof EDITABLE_SEARCH_FILTERS)[number];
 
@@ -147,7 +157,7 @@ function decodeMetadataPart(value: string): string {
 }
 
 const metadata: FilterDefinition<MetadataCondition[]> = {
-  label: "Execution metadata",
+  label: "Metadata",
   kind: "metadata",
   empty: () => [],
   parse(input) {
@@ -160,6 +170,8 @@ const metadata: FilterDefinition<MetadataCondition[]> = {
         throw new Error("Expected Base64 category:value pairs.");
       const category = decodeMetadataPart(parts[0]);
       const value = decodeMetadataPart(parts[1]);
+      validateMetadataPart(category);
+      validateMetadataPart(value);
       const values = categories.get(category) ?? new Set<string>();
       values.add(value);
       categories.set(category, values);
@@ -182,6 +194,15 @@ const metadata: FilterDefinition<MetadataCondition[]> = {
       values: [...values],
     })),
 };
+
+/** Match backend Unicode character limits, not UTF-16 code units. */
+export function validateMetadataPart(value: string): void {
+  const length = Array.from(value).length;
+  if (length < 1 || length > 200)
+    throw new Error(
+      "Metadata categories and values must contain 1–200 characters.",
+    );
+}
 
 /** Validate calendar components and backend microsecond precision before
  * constructing an instant: no rollover, timezone assumptions or truncation. */
@@ -264,24 +285,24 @@ function instant(label: string): FilterDefinition<IsoInstant | null> {
 export const FILTER_DEFINITIONS: {
   [K in SearchFilter]: FilterDefinition<SearchFilters[K]>;
 } = {
-  families: list("Families"),
-  test_result_statuses: list("Test result statuses"),
-  artefacts: list("Artefact names"),
-  artefact_versions: list("Versions"),
-  artefact_tracks: list("Tracks"),
-  environments: list("Environments"),
-  test_plans: list("Test plans"),
-  test_cases: list("Test cases"),
-  artefact_stages: list("Stages", true),
-  artefact_is_archived: boolean("Archived artefacts"),
-  rerun_is_requested: boolean("Rerun requested"),
-  execution_is_latest: boolean("Latest execution"),
+  families: list("Family"),
+  test_result_statuses: list("Status"),
+  artefacts: list("Artefact"),
+  artefact_versions: list("Artefact Version"),
+  artefact_tracks: list("Artefact Track"),
+  environments: list("Environment"),
+  test_plans: list("Test Plan"),
+  test_cases: list("Test Case"),
+  artefact_stages: list("Artefact Stage", true),
+  artefact_is_archived: boolean("Archived"),
+  rerun_is_requested: boolean("Rerun Requested"),
+  execution_is_latest: boolean("Execution Version"),
   issues: ids("Issues"),
   reviewer_ids: ids("Reviewers"),
   execution_metadata: metadata,
-  from_date: instant("Results from"),
-  until_date: instant("Results until"),
-  template_ids: list("Template IDs"),
+  from_date: instant("From"),
+  until_date: instant("Until"),
+  template_ids: list("Template ID"),
 };
 export const SEARCH_FILTERS = Object.keys(FILTER_DEFINITIONS) as SearchFilter[];
 
@@ -335,13 +356,17 @@ export function filtersEqual(
   left: SearchFilters,
   right: SearchFilters,
 ): boolean {
-  return SEARCH_FILTERS.every((key) => {
-    const a = [...new Set(filterValues(key, left))].sort();
-    const b = [...new Set(filterValues(key, right))].sort();
-    return (
-      a.length === b.length && a.every((value, index) => value === b[index])
-    );
-  });
+  return SEARCH_FILTERS.every((key) => filterEqual(key, left, right));
+}
+
+export function filterEqual(
+  key: SearchFilter,
+  left: SearchFilters,
+  right: SearchFilters,
+): boolean {
+  const a = [...new Set(filterValues(key, left))].sort();
+  const b = [...new Set(filterValues(key, right))].sort();
+  return a.length === b.length && a.every((value, index) => value === b[index]);
 }
 
 export function parseFilters(params: URLSearchParams): {

@@ -46,7 +46,7 @@ before(async () => {
   );
 });
 
-void test("all typed filter definitions match the existing GET contract, without exposing deferred editors", async () => {
+void test("all eighteen typed filter definitions match the existing GET contract and expose compact editors", async () => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const schema =
     /** @type {{paths: Record<string, {get: {parameters: {name: string}[]}}>}} */ (
@@ -62,7 +62,7 @@ void test("all typed filter definitions match the existing GET contract, without
   );
   for (const key of model.SEARCH_FILTERS) assert.ok(names.includes(key), key);
   assert.equal(model.SEARCH_FILTERS.length, 18);
-  assert.equal(model.EDITABLE_SEARCH_FILTERS.length, 8);
+  assert.equal(model.EDITABLE_SEARCH_FILTERS.length, 18);
   assert.ok(
     !model.SEARCH_FILTERS.includes(
       /** @type {never} */ ("test_execution_statuses"),
@@ -260,6 +260,40 @@ void test("metadata is strict UTF-8 standard Base64, safely groups categories, a
     assert.ok(
       query.problems.some((problem) => problem.includes("execution_metadata")),
       invalid,
+    );
+  }
+});
+
+void test("metadata length validation uses Unicode characters and rejects oversized restored conditions instead of dropping them", () => {
+  for (const [category, value] of [
+    ["🐧".repeat(200), "🐧".repeat(200)],
+    [" ", " "],
+  ]) {
+    const query = parse(
+      new URLSearchParams({ execution_metadata: pair(category, value) }),
+    );
+    assert.deepEqual(query.problems, []);
+    assert.deepEqual(query.filters.execution_metadata, [
+      { category, values: [value] },
+    ]);
+  }
+  for (const [category, value] of [
+    ["x".repeat(201), "valid"],
+    ["valid", "🐧".repeat(201)],
+  ]) {
+    const source = new URLSearchParams({
+      execution_metadata: pair(category, value),
+      artefacts: "old",
+    });
+    const query = parse(source);
+    assert.match(
+      query.problems.join(" "),
+      /execution_metadata:.*1–200 characters/,
+    );
+    query.filters.artefacts = ["new"];
+    assert.equal(
+      model.editedSearchParams(query.filters, source).get("execution_metadata"),
+      source.get("execution_metadata"),
     );
   }
 });
@@ -504,4 +538,22 @@ void test("compact-editor URL replacement retains every URL-only constraint, inc
   assert.equal(model.searchQueryString(source), identity);
   source.set("issues", "1");
   assert.notEqual(model.searchQueryString(source), identity);
+});
+
+void test("explicit invalid-field clears/fixes replace only authorized fields, canonicalize reviewer aliases and retain invalid pagination", () => {
+  const source = new URLSearchParams(
+    "reviewer_ids=bad&assignee_ids=1&from_date=bad&issues=bad&limit=0&offset=-1&unknown=blocked",
+  );
+  const draft = parse(source).filters;
+  draft.from_date = model.parseIsoInstant("2026-01-01T00:00:00Z");
+  const params = model.editedSearchParams(draft, source, [
+    "reviewer_ids",
+    "from_date",
+  ]);
+  assert.equal(params.has("reviewer_ids"), false);
+  assert.equal(params.has("assignee_ids"), false);
+  assert.equal(params.get("from_date"), "2026-01-01T00:00:00Z");
+  for (const key of ["issues", "limit", "offset", "unknown"])
+    assert.equal(params.get(key), source.get(key));
+  assert.ok(parse(params).problems.length);
 });

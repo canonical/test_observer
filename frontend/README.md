@@ -34,17 +34,32 @@ just down     # stop the frontend container
 
 ### SvelteKit search filter foundation
 
-The test-results search currently provides compact editors for eight fields:
-families, result statuses, artefact names, versions, tracks, environments, test
-plans and test cases. `sveltekit/src/lib/testResultsFilters.ts` defines the typed
-backend contracts and shared empty/active/clone/equality operations independently
-of that editor list. Other supported URL filters are stages, archived artefacts,
-rerun requested, latest execution, issues, reviewers, execution metadata,
-from/until timestamps and template IDs. Their editors are not implemented yet.
-The page identifies active URL-only filters and preserves all URL-only conditions
-when editing the eight current fields, including malformed/unknown conditions
-that must continue to block requests. Correct the URL or use Clear all to remove
-these conditions; an unrelated edit never silently removes them.
+The test-results search provides compact chip editors for all 18 typed fields:
+Family, Status, Issues, Reviewers, Artefact, Artefact Version, Artefact Stage,
+Artefact Track, Archived, Rerun Requested, Execution Version, Environment, Test
+Case, Test Plan, Metadata, From, Until, and Template ID. Labels match Flutter;
+Template ID is an approved extra whose filter was not originally rendered by
+Flutter. Unused fields stay hidden in the searchable Add filter picker. Edits are
+confirmed locally; only explicit Search applies the complete draft to the URL and
+fetches results. Table view changes remain independent.
+
+`sveltekit/src/lib/testResultsFilters.ts` defines typed backend contracts and
+shared empty/active/clone/equality operations. `FilterEditor.svelte` dispatches to
+small kind-specific editors rather than a schema engine. Exact-value lists trim
+and deduplicate comma-separated values; stages use the configured union across
+families, including explicit `(none)` and retained unconfigured selections.
+Nullable booleans use a single choice, including active false. Issues and
+Reviewers have mutually exclusive specific IDs / has any / has none modes.
+Detail labels hydrate through a bounded in-memory session cache (invalidated on
+session/profile/permission or API-root changes). Lookup failures stay local and
+never drop conditions, block other editors or create global error toasts. There
+are no remote search suggestions yet.
+
+Unrelated edits preserve malformed/unknown raw URL constraints, including invalid
+pagination; they continue to block requests instead of silently broadening a
+search. Known malformed fields have explicit replacement/removal controls. Use
+the URL or Clear all for unsupported names. Editor cancellation, Escape and
+outside dismissal never save an edit.
 
 Page links accept repeated or comma-separated lists; API requests emit repeated
 keys. Boolean filters are `true`/`false` (absence is unrestricted), and an empty
@@ -59,7 +74,9 @@ Execution metadata is structured as categories with alternative values: AND
 across categories, OR within a category. On the wire each pair is
 `Base64(UTF8(category)):Base64(UTF8(value))`, repeated for each value, using standard
 padded Base64, not the table view's base64url. Decoded punctuation and Unicode are
-preserved. Invalid encoding or UTF-8 blocks the search locally.
+preserved. The editor uses separate literal category/value inputs, not wire
+encoding or delimiter parsing. Categories and values each require 1–200 Unicode
+characters. Invalid encoding, UTF-8 or lengths block the search locally.
 
 Date bounds apply inclusively to `TestResult.created_at`. Timestamps must be valid
 Gregorian ISO instants (`YYYY-MM-DDTHH:mm:ss[.fraction]Z` or an explicit `±HH:MM`
@@ -68,15 +85,18 @@ from must not exceed until, comparing offsets and fractional precision without
 JavaScript millisecond truncation. Bounds must be exactly representable at the
 backend's microsecond precision: nonzero fractional digits beyond six are
 rejected; additional trailing zeros are allowed. Input timestamps are retained,
-never rounded or silently normalized. Dates alone count as meaningful frontend
-filters, matching Flutter.
+never rounded or silently normalized. The From/Until editors offer a clearly UTC
+date/time picker and an exact timestamp input; changing the picker deliberately
+selects second precision, while unchanged saves retain the original instant
+text. Dates alone count as meaningful frontend filters, matching Flutter.
 `view` remains presentation-only: it is never an API filter and cannot enable an
 unfiltered fetch. Unknown filter names and invalid conditions visibly block
 requests. Hydrated issue/reviewer labels are not part of filter identity.
 
 For local SvelteKit checks, run `npm run check`, `npm run build`, `npm test` and
 `npm run lint` from `frontend/sveltekit` (dependencies: `npm ci`). The search tests
-include isolated model/URL/API contracts and the actual mounted eight-field UI;
+include isolated model/URL/API contracts and the actual mounted 18-field UI,
+including detail hydration failures, cancellation and cache races;
 they do not stand in for live backend/browser testing.
 
 ## Setup

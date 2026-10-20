@@ -4,32 +4,43 @@
   import { tick } from "svelte";
   import {
     Button,
-    Checkbox,
     Chip,
     Popover,
     TextInput,
   } from "@canonical/svelte-ds-app-launchpad";
   import { CloseIcon } from "@canonical/svelte-icons";
   import type { Family } from "$lib/types";
-  import { familyDisplayName } from "$lib/types";
   import {
     EDITABLE_SEARCH_FILTERS,
     FILTER_DEFINITIONS,
     clearFilter,
-    RESULT_STATUSES,
-    listValues,
+    cloneFilters,
+    emptyFilters,
+    filterIsActive,
     type EditableSearchFilter,
     type SearchFilters,
   } from "$lib/testResultsSearch";
+  import FilterEditor from "./FilterEditor.svelte";
+  import { filterValueLabels } from "$lib/searchFilterEditor";
+  import {
+    idLabelKey,
+    loadingIdLabel,
+    searchFilterLabelCache,
+    type IdFilterKey,
+  } from "$lib/searchFilterLabels";
 
   let {
     filters = $bindable(),
     families,
     disabled = false,
+    invalidFields = [],
+    onedit,
   }: {
     filters: SearchFilters;
     families: Family[];
     disabled?: boolean;
+    invalidFields?: EditableSearchFilter[];
+    onedit?: (key: EditableSearchFilter) => void;
   } = $props();
 
   const label = (key: EditableSearchFilter) => FILTER_DEFINITIONS[key].label;
@@ -40,28 +51,65 @@
   let placement = $state("visibility: hidden;");
   let field = $state<EditableSearchFilter | null>(null);
   let query = $state("");
-  let text = $state("");
-  let selected = $state<string[]>([]);
+  let editorDraft = $state(emptyFilters());
+  let valid = $state(false);
+  let idLabels = $state<Record<string, string>>({});
+  let labelGeneration = 0;
   let addButton: HTMLButtonElement | undefined = $state();
   const available = $derived(
     EDITABLE_SEARCH_FILTERS.filter(
       (key) =>
-        !filters[key].length &&
+        !isActive(key) &&
         label(key).toLowerCase().includes(query.trim().toLowerCase()),
     ),
   );
-  const values = $derived(
-    field === "families" || field === "test_result_statuses"
-      ? selected
-      : listValues([text]),
-  );
+  const isActive = (key: EditableSearchFilter) =>
+    filterIsActive(key, filters) || invalidFields.includes(key);
+
+  const hydrationTargets = $derived.by(() => {
+    const targets: [IdFilterKey, number][] = [];
+    for (const key of ["issues", "reviewer_ids"] as const) {
+      const confirmed = filters[key];
+      const editing = field === key ? editorDraft[key] : [];
+      const ids = [
+        ...new Set([
+          ...(Array.isArray(confirmed) ? confirmed : []),
+          ...(Array.isArray(editing) ? editing : []),
+        ]),
+      ];
+      targets.push(...ids.map((id): [IdFilterKey, number] => [key, id]));
+    }
+    // Identity, not array allocation/editor opening, controls request lifetime.
+    return JSON.stringify(targets);
+  });
+  $effect(() => {
+    const cache = searchFilterLabelCache();
+    const generation = ++labelGeneration;
+    const controller = new AbortController();
+    const targets = JSON.parse(hydrationTargets) as [IdFilterKey, number][];
+    idLabels = Object.fromEntries(
+      targets.map(([key, id]) => [
+        idLabelKey(key, id),
+        cache.peek(key, id) ?? loadingIdLabel(id),
+      ]),
+    );
+    for (const [key, id] of targets) {
+      void cache.load(key, id, controller.signal).then((value) => {
+        if (
+          value !== undefined &&
+          !controller.signal.aborted &&
+          generation === labelGeneration
+        )
+          idLabels[idLabelKey(key, id)] = value;
+      });
+    }
+    return () => controller.abort();
+  });
 
   function valueLabels(key: EditableSearchFilter) {
-    return filters[key].map((value) => {
-      if (key !== "families") return value;
-      const family = families.find((family) => family.api_name === value);
-      return family ? familyDisplayName(family) : value;
-    });
+    return invalidFields.includes(key)
+      ? ["Invalid URL value"]
+      : filterValueLabels(key, filters, families, idLabels);
   }
 
   function summary(key: EditableSearchFilter) {
@@ -165,8 +213,8 @@
 
   function start(key: EditableSearchFilter, source: Source) {
     field = key;
-    text = filters[key].join(", ");
-    selected = [...filters[key]];
+    editorDraft = cloneFilters(filters);
+    valid = false;
     if (opened === source) void focusPanel(source);
   }
 
@@ -176,16 +224,12 @@
       placement = "visibility: hidden;";
       query = "";
       field = null;
-      text = "";
-      selected = [];
       if (source !== "add") start(source, source);
     } else if (active === source) {
       // Native light dismissal (outside click/Escape) never confirms an edit.
       active = null;
       opened = null;
       field = null;
-      text = "";
-      selected = [];
     }
   }
 
@@ -197,11 +241,12 @@
 
   async function confirm(event: SubmitEvent, source: Source) {
     event.preventDefault();
-    if (!field || !values.length) return;
+    if (!field || !valid || !filterIsActive(field, editorDraft)) return;
     const key = field;
-    const next = [...values];
+    const next = cloneFilters(editorDraft);
     close(source, false);
-    filters = { ...filters, [key]: next };
+    filters = next;
+    onedit?.(key);
     await tick();
     document.getElementById(`${id}-trigger-${key}`)?.focus();
   }
@@ -209,6 +254,7 @@
   async function remove(key: EditableSearchFilter) {
     if (active) close(active, false);
     filters = clearFilter(filters, key);
+    onedit?.(key);
     await tick();
     addButton?.focus();
   }
@@ -275,50 +321,24 @@
             onsubmit={(event) => confirm(event, source)}
           >
             <h2>{label(field)}</h2>
-            {#if field === "families" || field === "test_result_statuses"}
-              <fieldset>
-                <legend>Match any selected value</legend>
-                <div class="options">
-                  {#if field === "families"}
-                    {#each families as family (family.api_name)}
-                      <label>
-                        <Checkbox
-                          bind:group={selected}
-                          value={family.api_name}
-                        />
-                        {familyDisplayName(family)}
-                      </label>
-                    {/each}
-                    {#if !families.length}
-                      <p>Family configuration unavailable.</p>
-                    {/if}
-                  {:else}
-                    {#each RESULT_STATUSES as status (status)}
-                      <label>
-                        <Checkbox bind:group={selected} value={status} />
-                        {status}
-                      </label>
-                    {/each}
-                  {/if}
-                </div>
-              </fieldset>
-            {:else}
-              <label class="input-label" for={`${id}-values`}
-                >Exact values</label
-              >
-              <TextInput
-                id={`${id}-values`}
-                name={field}
-                bind:value={text}
-                aria-describedby={`${id}-hint`}
-              />
-              <p id={`${id}-hint`} class="hint">
-                Separate values with commas. Match any value, exactly.
+            {#if invalidFields.includes(field)}
+              <p class="hint">
+                The original URL value is invalid. Save an explicit replacement
+                or remove this filter. Unrelated edits preserve it.
               </p>
             {/if}
-            {#if !values.length}
+            {#key field}
+              <FilterEditor
+                {field}
+                bind:filters={editorDraft}
+                bind:valid
+                {families}
+                labels={idLabels}
+              />
+            {/key}
+            {#if !valid}
               <p class="hint">
-                {filters[field].length
+                {isActive(field)
                   ? "Select a value to save, or remove this filter."
                   : "Choose at least one value to add this filter."}
               </p>
@@ -328,7 +348,7 @@
                 type="submit"
                 severity="brand"
                 density="dense"
-                disabled={!values.length}
+                disabled={!valid}
                 >{source === "add" ? "Add filter" : "Save changes"}</Button
               >
               <Button
@@ -336,7 +356,7 @@
                 density="dense"
                 onclick={() => close(source)}>Cancel</Button
               >
-              {#if filters[field].length}
+              {#if isActive(field)}
                 <Button
                   type="button"
                   density="dense"
@@ -362,7 +382,7 @@
           </ul>
           {#if !available.length}
             <p class="hint">
-              {EDITABLE_SEARCH_FILTERS.every((key) => filters[key].length)
+              {EDITABLE_SEARCH_FILTERS.every(isActive)
                 ? "All filters are in use. Select a chip to edit it."
                 : "No matching filters."}
             </p>
@@ -377,7 +397,7 @@
 {/snippet}
 
 <div class="conditions" role="group" aria-label="Confirmed search filters">
-  {#each EDITABLE_SEARCH_FILTERS.filter((key) => filters[key].length) as key (key)}
+  {#each EDITABLE_SEARCH_FILTERS.filter(isActive) as key (key)}
     <div class="condition">
       {@render condition(key)}
       <Button
@@ -475,28 +495,13 @@
     font-size: 1rem;
     font-weight: 550;
   }
-  fieldset {
-    border: 0;
-    padding: 0;
-    margin: 0 0 1rem;
-    min-width: 0;
-  }
-  legend,
   .input-label {
     display: block;
     margin-bottom: 0.5rem;
   }
-  .options,
   .filter-list {
     max-height: min(17rem, 40dvh);
     overflow: auto;
-  }
-  .options label {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.4rem 0;
-    overflow-wrap: anywhere;
   }
   .panel :global(.text-input) {
     width: 100%;

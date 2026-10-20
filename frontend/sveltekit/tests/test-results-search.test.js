@@ -16,19 +16,29 @@ let browser;
 /** @type {Map<string, PropertyDescriptor | undefined>} */
 const globals = new Map();
 const originalFetch = globalThis.fetch;
+const ORIGINAL_LIST_FILTERS = [
+  "families",
+  "test_result_statuses",
+  "artefacts",
+  "artefact_versions",
+  "artefact_tracks",
+  "environments",
+  "test_plans",
+  "test_cases",
+];
 
 const families = [
   {
     name: "configured-route",
     api_name: "snap",
-    stages: [],
+    stages: ["alpha", "shared"],
     columns: [],
     filters: [],
   },
   {
     name: "another-route",
     api_name: "another-api-family",
-    stages: [],
+    stages: ["beta", "shared"],
     columns: [],
     filters: [],
   },
@@ -286,7 +296,7 @@ void test("all eight list filters match OpenAPI names, repeated parameters, and 
     ),
     "utf8",
   );
-  for (const key of app.EDITABLE_SEARCH_FILTERS) {
+  for (const key of ORIGINAL_LIST_FILTERS) {
     assert.ok(
       parameters
         .find((parameter) => parameter.name === key)
@@ -645,6 +655,11 @@ async function confirmEditor(target) {
     new browser.Event("submit", { bubbles: true, cancelable: true }),
   );
   await flush();
+  if (!target.querySelector(".panel"))
+    assert.ok(
+      browser.document.activeElement.matches(".chip-trigger"),
+      "confirming an editor returns focus to its chip",
+    );
 }
 
 /** @param {import('happy-dom').HTMLElement} target @param {string} label */
@@ -657,11 +672,18 @@ function chip(target, label) {
   return /** @type {import('happy-dom').HTMLButtonElement} */ (found);
 }
 
-void test("mounted URL-only typed conditions remain visible and survive edits, view changes, pagination, history and clear", async () => {
+void test("mounted restored typed conditions become chips and survive edits, view changes, pagination, history and clear", async () => {
   /** @type {URL[]} */
   const calls = [];
   globalThis.fetch = (input) => {
     const request = new URL(input instanceof Request ? input.url : input);
+    if (request.pathname.includes("/users/"))
+      return Promise.resolve(
+        json({
+          id: Number(request.pathname.split("/").at(-1)),
+          name: "Reviewer",
+        }),
+      );
     calls.push(request);
     const limit = Number(request.searchParams.get("limit") ?? 50);
     return Promise.resolve(
@@ -690,16 +712,21 @@ void test("mounted URL-only typed conditions remain visible and survive edits, v
   try {
     await flush();
     assert.equal(calls.length, 1);
-    assert.match(
+    assert.doesNotMatch(
       ui.target.textContent,
-      /Additional URL filters: Stages, Archived artefacts/,
+      /Additional URL filters|not available yet/,
     );
-    assert.match(
-      ui.target.textContent,
-      /Editing them here is not available yet/,
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 11);
+    assert.equal(
+      chip(ui.target, "Artefact Stage").title,
+      "Artefact Stage: (none)",
     );
-    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 1);
-    chip(ui.target, "Artefact names").click();
+    assert.equal(
+      chip(ui.target, "Archived").title,
+      "Archived: Non archived only",
+    );
+    assert.match(chip(ui.target, "Metadata").title, /c:at,🐧.*one,two:三/);
+    chip(ui.target, "Artefact").click();
     await flush();
     await enter(ui.target, 'input[name="artefacts"]', "new");
     await confirmEditor(ui.target);
@@ -712,10 +739,7 @@ void test("mounted URL-only typed conditions remain visible and survive edits, v
       1,
       "view-only replacement cannot refetch or discard drafts",
     );
-    assert.equal(
-      chip(ui.target, "Artefact names").title,
-      "Artefact names: new",
-    );
+    assert.equal(chip(ui.target, "Artefact").title, "Artefact: new");
     button(ui.target, "Search").click();
     await flush();
     assert.equal(calls.length, 2);
@@ -754,19 +778,13 @@ void test("mounted URL-only typed conditions remain visible and survive edits, v
     ui.handle.restore(url(params.toString()));
     await flush();
     assert.equal(calls.length, 4);
-    assert.equal(
-      chip(ui.target, "Artefact names").title,
-      "Artefact names: old",
-    );
+    assert.equal(chip(ui.target, "Artefact").title, "Artefact: old");
     // A date alone is a meaningful Flutter search, not an unfiltered request.
     ui.handle.restore(url("until_date=2026-01-01T00:00:00Z"));
     await flush();
     assert.equal(calls.length, 5);
-    assert.match(
-      ui.target.textContent,
-      /Additional URL filters: Results until/,
-    );
-    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 0);
+    assert.equal(chip(ui.target, "Until").title, "Until: 2026-01-01T00:00:00Z");
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 1);
     button(ui.target, "Clear all").click();
     await flush();
     assert.equal(ui.handle.currentUrl.search, "");
@@ -789,6 +807,11 @@ void test("mounted invalid URL-only constraints visibly block and cannot be sile
     "execution_metadata=broken",
     "from_date=2026-02-30T00:00:00Z",
     "from_date=2026-01-01T00:00:00.0000001Z",
+    "artefact_is_archived=bad",
+    "test_result_statuses=BAD",
+    "families=unknown",
+    "limit=0",
+    "offset=-1",
     "unknown=blocked",
   ]) {
     const ui = mounted(`artefacts=old&${invalid}`);
@@ -798,7 +821,7 @@ void test("mounted invalid URL-only constraints visibly block and cannot be sile
         ui.target.querySelector('[role="alert"]')?.textContent ?? "",
         /Search not applied/,
       );
-      chip(ui.target, "Artefact names").click();
+      chip(ui.target, "Artefact").click();
       await flush();
       await enter(ui.target, 'input[name="artefacts"]', "new");
       await confirmEditor(ui.target);
@@ -923,11 +946,11 @@ void test("mounted controls apply exact drafts, render SvGrid context and access
     assert.equal(calls.length, 0);
     assert.equal(ui.target.querySelector("input"), null);
     assert.equal(ui.target.querySelector("fieldset"), null);
-    await chooseFilter(ui.target, "Artefact names");
+    await chooseFilter(ui.target, "Artefact");
     const input = await enter(ui.target, 'input[name="artefacts"]', "one, two");
     assert.ok(ui.target.querySelector(`label[for="${input.id}"]`));
     await confirmEditor(ui.target);
-    await chooseFilter(ui.target, "Families");
+    await chooseFilter(ui.target, "Family");
     const family = /** @type {import('happy-dom').HTMLInputElement | null} */ (
       ui.target.querySelector('input[value="snap"]')
     );
@@ -941,7 +964,7 @@ void test("mounted controls apply exact drafts, render SvGrid context and access
     await confirmEditor(ui.target);
     assert.equal(calls.length, 0, "draft edits do not fetch before applying");
     assert.match(ui.target.textContent, /Changes not applied/);
-    assert.match(chip(ui.target, "Families").textContent, /Configured-route/);
+    assert.match(chip(ui.target, "Family").textContent, /Configured-route/);
     button(ui.target, "Search").click();
     await flush();
     assert.deepEqual(calls[0]?.searchParams.getAll("artefacts"), [
@@ -991,10 +1014,7 @@ void test("mounted controls apply exact drafts, render SvGrid context and access
     assert.equal(calls.at(-1)?.searchParams.get("test_cases"), "restored");
     ui.handle.restore(applied);
     await flush();
-    assert.equal(
-      chip(ui.target, "Artefact names").title,
-      "Artefact names: one, two",
-    );
+    assert.equal(chip(ui.target, "Artefact").title, "Artefact: one, two");
     assert.deepEqual(calls.at(-1)?.searchParams.getAll("artefacts"), [
       "one",
       "two",
@@ -1013,9 +1033,9 @@ void test("native post-opening focus works for pointer and Enter on picker, text
   globalThis.fetch = () => Promise.resolve(response());
   for (const [query, label] of [
     ["", ""],
-    ["artefacts=known-value", "Artefact names"],
-    ["test_result_statuses=FAILED", "Test result statuses"],
-    ["families=snap", "Families"],
+    ["artefacts=known-value", "Artefact"],
+    ["test_result_statuses=FAILED", "Status"],
+    ["families=snap", "Family"],
   ]) {
     for (const mode of ["pointer", "Enter"]) {
       const ui = mounted(query);
@@ -1153,7 +1173,7 @@ void test("open overlays use visible viewport bounds rather than tall documents 
   }
 });
 
-void test("searchable picker offers only eight unused fields and never creates an empty chip", async () => {
+void test("searchable picker offers all eighteen unused fields and never creates an empty chip", async () => {
   let calls = 0;
   globalThis.fetch = () => {
     calls++;
@@ -1178,22 +1198,32 @@ void test("searchable picker offers only eight unused fields and never creates a
         item.textContent.trim(),
       ),
       [
-        "Families",
-        "Test result statuses",
-        "Artefact names",
-        "Versions",
-        "Tracks",
-        "Environments",
-        "Test plans",
-        "Test cases",
+        "Family",
+        "Status",
+        "Issues",
+        "Reviewers",
+        "Artefact",
+        "Artefact Version",
+        "Artefact Stage",
+        "Artefact Track",
+        "Archived",
+        "Rerun Requested",
+        "Execution Version",
+        "Environment",
+        "Test Case",
+        "Test Plan",
+        "Template ID",
+        "Metadata",
+        "From",
+        "Until",
       ],
     );
     await enter(picker, 'input[type="search"]', "  TEST  ");
-    assert.equal(picker.querySelectorAll("li button").length, 3);
+    assert.equal(picker.querySelectorAll("li button").length, 2);
     await enter(picker, 'input[type="search"]', "not-a-filter");
     assert.match(picker.textContent, /No matching filters/);
     await enter(picker, 'input[type="search"]', "artefact");
-    button(picker, "Artefact names").click();
+    button(picker, "Artefact").click();
     await flush();
     assert.equal(button(panel(ui.target), "Add filter").disabled, true);
     await enter(ui.target, 'input[name="artefacts"]', " , , ");
@@ -1202,7 +1232,7 @@ void test("searchable picker offers only eight unused fields and never creates a
     assert.equal(calls, 0);
     await enter(ui.target, 'input[name="artefacts"]', "alpha, beta,alpha");
     await confirmEditor(ui.target);
-    const condition = chip(ui.target, "Artefact names");
+    const condition = chip(ui.target, "Artefact");
     assert.equal(browser.document.activeElement, condition);
     assert.equal(
       condition.querySelector("button"),
@@ -1210,21 +1240,19 @@ void test("searchable picker offers only eight unused fields and never creates a
       "chip edit and remove cannot be nested buttons",
     );
     assert.match(condition.textContent, /alpha \+1/);
-    assert.equal(condition.title, "Artefact names: alpha, beta");
+    assert.equal(condition.title, "Artefact: alpha, beta");
     button(ui.target, "+ Add filter").click();
     await flush();
     await enter(panel(ui.target), 'input[type="search"]', "artefact");
     assert.equal(
       panel(ui.target).querySelectorAll("li button").length,
-      0,
+      3,
       "an existing field cannot be added twice",
     );
     button(panel(ui.target), "Cancel").click();
     await flush();
     const remove = /** @type {import('happy-dom').HTMLButtonElement | null} */ (
-      ui.target.querySelector(
-        'button[aria-label="Remove Artefact names filter"]',
-      )
+      ui.target.querySelector('button[aria-label="Remove Artefact filter"]')
     );
     assert.ok(remove);
     assert.ok(remove.querySelector(".button-content > .icon.left svg"));
@@ -1234,7 +1262,7 @@ void test("searchable picker offers only eight unused fields and never creates a
       browser.document.activeElement,
       button(ui.target, "+ Add filter"),
     );
-    await chooseFilter(ui.target, "Artefact names");
+    await chooseFilter(ui.target, "Artefact");
     assert.equal(ui.target.querySelector('input[name="artefacts"]')?.value, "");
     assert.equal(calls, 0);
   } finally {
@@ -1252,7 +1280,7 @@ void test("all eight chip editors preserve configured families, checkbox statuse
   const ui = mounted();
   try {
     await flush();
-    await chooseFilter(ui.target, "Families");
+    await chooseFilter(ui.target, "Family");
     for (const family of families) {
       const checkbox =
         /** @type {import('happy-dom').HTMLInputElement | null} */ (
@@ -1264,10 +1292,10 @@ void test("all eight chip editors preserve configured families, checkbox statuse
     await flush();
     await confirmEditor(ui.target);
     assert.match(
-      chip(ui.target, "Families").title,
+      chip(ui.target, "Family").title,
       /Configured-route, Another-route/,
     );
-    await chooseFilter(ui.target, "Test result statuses");
+    await chooseFilter(ui.target, "Status");
     assert.equal(
       panel(ui.target).querySelectorAll('input[type="checkbox"]').length,
       3,
@@ -1283,12 +1311,12 @@ void test("all eight chip editors preserve configured families, checkbox statuse
     await flush();
     await confirmEditor(ui.target);
     for (const [key, label] of [
-      ["artefacts", "Artefact names"],
-      ["artefact_versions", "Versions"],
-      ["artefact_tracks", "Tracks"],
-      ["environments", "Environments"],
-      ["test_plans", "Test plans"],
-      ["test_cases", "Test cases"],
+      ["artefacts", "Artefact"],
+      ["artefact_versions", "Artefact Version"],
+      ["artefact_tracks", "Artefact Track"],
+      ["environments", "Environment"],
+      ["test_plans", "Test Plan"],
+      ["test_cases", "Test Case"],
     ]) {
       await chooseFilter(ui.target, label);
       await enter(
@@ -1305,8 +1333,7 @@ void test("all eight chip editors preserve configured families, checkbox statuse
     assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 8);
     button(ui.target, "+ Add filter").click();
     await flush();
-    assert.match(panel(ui.target).textContent, /All filters are in use/);
-    assert.equal(panel(ui.target).querySelectorAll("li").length, 0);
+    assert.equal(panel(ui.target).querySelectorAll("li").length, 10);
     button(panel(ui.target), "Cancel").click();
     await flush();
     assert.equal(calls.length, 0);
@@ -1322,7 +1349,7 @@ void test("all eight chip editors preserve configured families, checkbox statuse
       "FAILED",
       "SKIPPED",
     ]);
-    for (const key of app.EDITABLE_SEARCH_FILTERS.slice(2))
+    for (const key of ORIGINAL_LIST_FILTERS.slice(2))
       assert.deepEqual(calls[0].searchParams.getAll(key), [
         `first ${key}`,
         `second+${key}`,
@@ -1344,7 +1371,7 @@ void test("confirmed add/edit/remove drafts never fetch or replace applied resul
   const ui = mounted("artefacts=old&test_cases=applied&limit=2&offset=2");
   try {
     await flush();
-    chip(ui.target, "Artefact names").click();
+    chip(ui.target, "Artefact").click();
     await flush();
     assert.equal(
       ui.target.querySelector('input[name="artefacts"]')?.value,
@@ -1353,12 +1380,12 @@ void test("confirmed add/edit/remove drafts never fetch or replace applied resul
     await enter(ui.target, 'input[name="artefacts"]', "new, second");
     await confirmEditor(ui.target);
     const remove = /** @type {import('happy-dom').HTMLButtonElement | null} */ (
-      ui.target.querySelector('button[aria-label="Remove Test cases filter"]')
+      ui.target.querySelector('button[aria-label="Remove Test Case filter"]')
     );
     assert.ok(remove);
     remove.click();
     await flush();
-    await chooseFilter(ui.target, "Environments");
+    await chooseFilter(ui.target, "Environment");
     await enter(ui.target, 'input[name="environments"]', "lab");
     await confirmEditor(ui.target);
     assert.equal(calls.length, 1);
@@ -1370,7 +1397,7 @@ void test("confirmed add/edit/remove drafts never fetch or replace applied resul
     assert.equal(button(ui.target, "Previous page").disabled, true);
     button(ui.target, "Next page").click();
     assert.equal(calls.length, 1);
-    chip(ui.target, "Artefact names").click();
+    chip(ui.target, "Artefact").click();
     await flush();
     await enter(ui.target, 'input[name="artefacts"]', "unconfirmed");
     button(ui.target, "Search").click();
@@ -1387,7 +1414,7 @@ void test("confirmed add/edit/remove drafts never fetch or replace applied resul
     assert.doesNotMatch(ui.target.textContent, /Changes not applied/);
     ui.handle.restore(url("artefacts=old&test_cases=applied&limit=2&offset=2"));
     await flush();
-    chip(ui.target, "Artefact names").click();
+    chip(ui.target, "Artefact").click();
     await flush();
     await enter(ui.target, 'input[name="artefacts"]', "old");
     await confirmEditor(ui.target);
@@ -1411,7 +1438,7 @@ void test("cancel, Escape, outside dismissal and switching popovers discard edit
   try {
     await flush();
     for (const dismissal of ["Cancel", "Escape", "outside"]) {
-      const trigger = chip(ui.target, "Artefact names");
+      const trigger = chip(ui.target, "Artefact");
       trigger.click();
       await flush();
       const input = await enter(
@@ -1453,13 +1480,10 @@ void test("cancel, Escape, outside dismissal and switching popovers discard edit
         browser.document.activeElement,
         dismissal === "outside" ? outside : trigger,
       );
-      assert.equal(
-        chip(ui.target, "Artefact names").title,
-        "Artefact names: original",
-      );
+      assert.equal(chip(ui.target, "Artefact").title, "Artefact: original");
       assert.doesNotMatch(ui.target.textContent, /Changes not applied/);
     }
-    chip(ui.target, "Test result statuses").click();
+    chip(ui.target, "Status").click();
     await flush();
     const failed = /** @type {import('happy-dom').HTMLInputElement | null} */ (
       panel(ui.target).querySelector('input[value="FAILED"]')
@@ -1475,7 +1499,7 @@ void test("cancel, Escape, outside dismissal and switching popovers discard edit
     assert.match(panel(ui.target).textContent, /Find a filter/);
     button(panel(ui.target), "Cancel").click();
     await flush();
-    chip(ui.target, "Test result statuses").click();
+    chip(ui.target, "Status").click();
     await flush();
     assert.equal(
       panel(ui.target).querySelector('input[value="FAILED"]')?.checked,
@@ -1510,14 +1534,14 @@ void test("URL restoration resets open editors and restores full long/repeated/c
   const ui = mounted(applied.search.slice(1));
   try {
     await flush();
-    const trigger = chip(ui.target, "Artefact names");
+    const trigger = chip(ui.target, "Artefact");
     assert.match(trigger.textContent, /\+2/);
-    assert.equal(trigger.title, `Artefact names: ${long}, second, third`);
+    assert.equal(trigger.title, `Artefact: ${long}, second, third`);
     assert.equal(
       trigger.getAttribute("aria-label"),
-      `Edit Artefact names: ${long}, second, third`,
+      `Edit Artefact: ${long}, second, third`,
     );
-    assert.equal(chip(ui.target, "Families").title, "Families: Another-route");
+    assert.equal(chip(ui.target, "Family").title, "Family: Another-route");
     trigger.click();
     await flush();
     assert.equal(
@@ -1529,12 +1553,12 @@ void test("URL restoration resets open editors and restores full long/repeated/c
     await flush();
     assert.equal(ui.target.querySelector(".panel"), null);
     assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 1);
-    assert.equal(chip(ui.target, "Test cases").title, "Test cases: restored");
+    assert.equal(chip(ui.target, "Test Case").title, "Test Case: restored");
     ui.handle.restore(applied);
     await flush();
     assert.equal(
-      chip(ui.target, "Artefact names").title,
-      `Artefact names: ${long}, second, third`,
+      chip(ui.target, "Artefact").title,
+      `Artefact: ${long}, second, third`,
     );
     assert.equal(calls.length, 3);
     button(ui.target, "Clear all").click();
@@ -1542,13 +1566,13 @@ void test("URL restoration resets open editors and restores full long/repeated/c
     assert.equal(ui.handle.history.at(-1)?.search, "");
     assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 0);
     assert.equal(calls.length, 3);
-    await chooseFilter(ui.target, "Test cases");
+    await chooseFilter(ui.target, "Test Case");
     await enter(ui.target, 'input[name="test_cases"]', "one");
     await confirmEditor(ui.target);
     button(ui.target, "Search").click();
     await flush();
     const remove = /** @type {import('happy-dom').HTMLButtonElement | null} */ (
-      ui.target.querySelector('button[aria-label="Remove Test cases filter"]')
+      ui.target.querySelector('button[aria-label="Remove Test Case filter"]')
     );
     assert.ok(remove);
     remove.click();
@@ -1566,7 +1590,7 @@ void test("URL restoration resets open editors and restores full long/repeated/c
         app.SEARCH_FILTERS.some((key) => call.searchParams.has(key)),
       ),
     );
-    await chooseFilter(ui.target, "Test cases");
+    await chooseFilter(ui.target, "Test Case");
     await enter(ui.target, 'input[name="test_cases"]', "draft only");
     await confirmEditor(ui.target);
     button(ui.target, "Clear all").click();
@@ -1852,10 +1876,10 @@ void test("view history changes preserve confirmed drafts, active editor, grid i
   const ui = mounted("artefacts=one&artefacts=two");
   try {
     await flush();
-    await chooseFilter(ui.target, "Test cases");
+    await chooseFilter(ui.target, "Test Case");
     await enter(ui.target, 'input[name="test_cases"]', "confirmed");
     await confirmEditor(ui.target);
-    chip(ui.target, "Artefact names").click();
+    chip(ui.target, "Artefact").click();
     await flush();
     const editor = await enter(
       ui.target,
@@ -1872,7 +1896,7 @@ void test("view history changes preserve confirmed drafts, active editor, grid i
     assert.equal(ui.target.querySelector('input[name="artefacts"]'), editor);
     assert.equal(editor.value, "unconfirmed");
     assert.equal(browser.document.activeElement, editor);
-    assert.equal(chip(ui.target, "Test cases").title, "Test cases: confirmed");
+    assert.equal(chip(ui.target, "Test Case").title, "Test Case: confirmed");
     assert.match(ui.target.textContent, /Changes not applied/);
     assert.equal(ui.target.querySelector(".sv-grid-root"), grid);
     assert.deepEqual(gridCases(ui.target), ["case 1"]);
@@ -1988,7 +2012,7 @@ void test("table view survives pagination, changed Search and identical Search r
       ui.target.querySelector('th[data-svgrid-header-col="version"]'),
       null,
     );
-    chip(ui.target, "Artefact names").click();
+    chip(ui.target, "Artefact").click();
     await flush();
     await enter(ui.target, 'input[name="artefacts"]', "changed");
     await confirmEditor(ui.target);
@@ -1999,7 +2023,7 @@ void test("table view survives pagination, changed Search and identical Search r
     assert.equal(ui.handle.history.at(-1)?.searchParams.get("view"), view);
     assert.deepEqual(gridCases(ui.target), ["case 1", "case 2"]);
     // Identical explicit Search still retries, and discards unconfirmed edits.
-    chip(ui.target, "Artefact names").click();
+    chip(ui.target, "Artefact").click();
     await flush();
     await enter(ui.target, 'input[name="artefacts"]', "unconfirmed");
     button(ui.target, "Search").click();
@@ -2054,10 +2078,10 @@ void test("malformed/oversized views and inapplicable column refs remain usable,
       await flush();
       assert.equal(calls, before);
       assert.match(ui.target.textContent, /Choose at least one filter/);
-      await chooseFilter(ui.target, "Artefact names");
+      await chooseFilter(ui.target, "Artefact");
       await enter(ui.target, 'input[name="artefacts"]', "draft");
       await confirmEditor(ui.target);
-      chip(ui.target, "Artefact names").click();
+      chip(ui.target, "Artefact").click();
       await flush();
       button(ui.target, "Clear all").click();
       await flush();
@@ -2246,5 +2270,719 @@ void test("mounted initial/pagination-only/invalid, no-match, retry and access s
     } finally {
       await ui.destroy();
     }
+  }
+});
+
+/** @param {import('happy-dom').HTMLElement} target @param {string} selector */
+async function clickInput(target, selector) {
+  const input = /** @type {import('happy-dom').HTMLInputElement | null} */ (
+    target.querySelector(selector)
+  );
+  assert.ok(input, selector);
+  input.click();
+  await flush();
+  return input;
+}
+
+void test("all eighteen compact editors confirm typed values, meaningful labels and complete repeated API conditions only on Search", async () => {
+  app.searchFilterLabelCache().clear();
+  /** @type {URL[]} */
+  const calls = [];
+  /** @type {string[]} */
+  const details = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    if (request.pathname.includes("/issues/")) {
+      details.push(request.pathname);
+      return Promise.resolve(
+        json({
+          id: 41,
+          project: "project",
+          key: "BUG-7",
+          title: "Unicode 🐧 failure",
+        }),
+      );
+    }
+    if (request.pathname.includes("/users/")) {
+      details.push(request.pathname);
+      return Promise.resolve(
+        json({ id: 42, name: "A Reviewer", launchpad_handle: "reviewer" }),
+      );
+    }
+    calls.push(request);
+    return Promise.resolve(response());
+  };
+  const ui = mounted();
+  try {
+    await flush();
+    await chooseFilter(ui.target, "Family");
+    await clickInput(panel(ui.target), 'input[value="snap"]');
+    await confirmEditor(ui.target);
+    await chooseFilter(ui.target, "Status");
+    const status = await clickInput(panel(ui.target), 'input[value="FAILED"]');
+    assert.equal(status.closest("label")?.textContent.trim(), "Failed");
+    await confirmEditor(ui.target);
+    assert.equal(chip(ui.target, "Status").title, "Status: Failed");
+    for (const [field, label] of [
+      ["issues", "Issues"],
+      ["reviewer_ids", "Reviewers"],
+    ]) {
+      await chooseFilter(ui.target, label);
+      await enter(
+        panel(ui.target),
+        `input[name="${field}"]`,
+        field === "issues" ? "41,41" : "42",
+      );
+      await confirmEditor(ui.target);
+    }
+    assert.match(
+      chip(ui.target, "Issues").title,
+      /#41 project\/BUG-7 — Unicode 🐧 failure/,
+    );
+    assert.match(
+      chip(ui.target, "Reviewers").title,
+      /#42 A Reviewer @reviewer/,
+    );
+    for (const [field, label] of [
+      ["artefacts", "Artefact"],
+      ["artefact_versions", "Artefact Version"],
+      ["artefact_tracks", "Artefact Track"],
+      ["environments", "Environment"],
+      ["test_cases", "Test Case"],
+      ["test_plans", "Test Plan"],
+      ["template_ids", "Template ID"],
+    ]) {
+      await chooseFilter(ui.target, label);
+      await enter(
+        panel(ui.target),
+        `input[name="${field}"]`,
+        " first,second, first, ",
+      );
+      await confirmEditor(ui.target);
+      assert.equal(chip(ui.target, label).title, `${label}: first, second`);
+    }
+    await chooseFilter(ui.target, "Artefact Stage");
+    assert.deepEqual(
+      Array.from(panel(ui.target).querySelectorAll("input")).map(
+        (input) => input.value,
+      ),
+      ["", "alpha", "shared", "beta"],
+    );
+    await clickInput(panel(ui.target), 'input[value=""]');
+    await clickInput(panel(ui.target), 'input[value="beta"]');
+    await confirmEditor(ui.target);
+    assert.equal(
+      chip(ui.target, "Artefact Stage").title,
+      "Artefact Stage: (none), beta",
+    );
+    for (const label of ["Archived", "Rerun Requested", "Execution Version"]) {
+      await chooseFilter(ui.target, label);
+      assert.equal(button(panel(ui.target), "Add filter").disabled, true);
+      await clickInput(panel(ui.target), 'input[value="false"]');
+      await confirmEditor(ui.target);
+    }
+    assert.equal(
+      chip(ui.target, "Archived").title,
+      "Archived: Non archived only",
+    );
+    assert.equal(
+      chip(ui.target, "Rerun Requested").title,
+      "Rerun Requested: No rerun requested",
+    );
+    assert.equal(
+      chip(ui.target, "Execution Version").title,
+      "Execution Version: Older executions only",
+    );
+    await chooseFilter(ui.target, "Metadata");
+    assert.match(
+      panel(ui.target).textContent,
+      /all categories \(AND\).*any value \(OR\)/,
+    );
+    for (const [category, value] of [
+      ["c:at,🐧", "one,two:三"],
+      ["c:at,🐧", "alternative"],
+      ["second", " exact whitespace "],
+    ]) {
+      await enter(
+        panel(ui.target),
+        'input[name="metadata-category"]',
+        category,
+      );
+      await enter(panel(ui.target), 'input[name="metadata-value"]', value);
+      assert.equal(button(panel(ui.target), "Add filter").disabled, true);
+      button(panel(ui.target), "Add pair").click();
+      await flush();
+    }
+    await confirmEditor(ui.target);
+    assert.equal(
+      chip(ui.target, "Metadata").title,
+      'Metadata: "c:at,🐧" = "one,two:三", "c:at,🐧" = "alternative", "second" = " exact whitespace "',
+    );
+    await chooseFilter(ui.target, "From");
+    assert.match(panel(ui.target).textContent, /Date and time \(UTC\)/);
+    await enter(
+      panel(ui.target),
+      'input[type="datetime-local"]',
+      "2026-01-01T12:30:00",
+    );
+    await confirmEditor(ui.target);
+    assert.equal(chip(ui.target, "From").title, "From: 2026-01-01T12:30:00Z");
+    await chooseFilter(ui.target, "Until");
+    await enter(
+      panel(ui.target),
+      'input[name="until_date"]',
+      "2026-02-01T12:30:00.123456+01:30",
+    );
+    await confirmEditor(ui.target);
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 18);
+    assert.equal(calls.length, 0);
+    button(ui.target, "+ Add filter").click();
+    await flush();
+    assert.match(panel(ui.target).textContent, /All filters are in use/);
+    assert.equal(panel(ui.target).querySelectorAll("li").length, 0);
+    button(panel(ui.target), "Cancel").click();
+    await flush();
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls.length, 1);
+    const params = calls[0].searchParams;
+    for (const key of app.EDITABLE_SEARCH_FILTERS)
+      assert.ok(params.has(key), key);
+    assert.deepEqual(params.getAll("artefact_stages"), ["", "beta"]);
+    for (const key of [
+      "artefact_is_archived",
+      "rerun_is_requested",
+      "execution_is_latest",
+    ])
+      assert.equal(params.get(key), "false");
+    assert.equal(params.get("issues"), "41");
+    assert.equal(params.get("reviewer_ids"), "42");
+    assert.deepEqual(
+      app.parseSearch(params, families).filters.execution_metadata,
+      [
+        { category: "c:at,🐧", values: ["one,two:三", "alternative"] },
+        { category: "second", values: [" exact whitespace "] },
+      ],
+    );
+    assert.equal(params.get("until_date"), "2026-02-01T12:30:00.123456+01:30");
+    assert.equal(new Set(details).size, 2);
+    assert.doesNotMatch(ui.target.textContent, /Changes not applied/);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("single-choice booleans and ID modes cannot contradict one another; removing unknown stages is explicit", async () => {
+  globalThis.fetch = (input) =>
+    Promise.resolve(
+      new URL(input instanceof Request ? input.url : input).pathname.includes(
+        "/test-results",
+      )
+        ? response()
+        : json({}, 403),
+    );
+  const ui = mounted(
+    "artefact_is_archived=false&rerun_is_requested=false&execution_is_latest=false&issues=none&reviewer_ids=any&artefact_stages=unknown,alpha&families=snap",
+  );
+  try {
+    await flush();
+    for (const label of ["Archived", "Rerun Requested", "Execution Version"]) {
+      chip(ui.target, label).click();
+      await flush();
+      assert.equal(
+        panel(ui.target).querySelector('input[value="false"]')?.checked,
+        true,
+      );
+      await clickInput(panel(ui.target), 'input[value="true"]');
+      assert.equal(
+        panel(ui.target).querySelectorAll("input:checked").length,
+        1,
+      );
+      await confirmEditor(ui.target);
+    }
+    for (const [label, field, any, none] of [
+      ["Issues", "issues", "Has any issue", "Has no issues"],
+      ["Reviewers", "reviewer_ids", "Has any reviewer", "Has no reviewer"],
+    ]) {
+      chip(ui.target, label).click();
+      await flush();
+      await clickInput(panel(ui.target), 'input[value="ids"]');
+      await enter(panel(ui.target), `input[name="${field}"]`, "any,1");
+      assert.equal(button(panel(ui.target), "Save changes").disabled, true);
+      await enter(panel(ui.target), `input[name="${field}"]`, "51, 52,51");
+      await confirmEditor(ui.target);
+      assert.match(
+        chip(ui.target, label).title,
+        /#51 details unavailable, #52 details unavailable/,
+      );
+      chip(ui.target, label).click();
+      await flush();
+      await clickInput(panel(ui.target), 'input[value="any"]');
+      assert.equal(
+        panel(ui.target).querySelectorAll("input:checked").length,
+        1,
+      );
+      assert.equal(
+        panel(ui.target).querySelector(`input[name="${field}"]`),
+        null,
+      );
+      await confirmEditor(ui.target);
+      assert.equal(chip(ui.target, label).title, `${label}: ${any}`);
+      chip(ui.target, label).click();
+      await flush();
+      await clickInput(panel(ui.target), 'input[value="none"]');
+      await confirmEditor(ui.target);
+      assert.equal(chip(ui.target, label).title, `${label}: ${none}`);
+    }
+    chip(ui.target, "Family").click();
+    await flush();
+    await clickInput(panel(ui.target), 'input[value="snap"]');
+    await clickInput(panel(ui.target), 'input[value="another-api-family"]');
+    await confirmEditor(ui.target);
+    assert.equal(
+      chip(ui.target, "Artefact Stage").title,
+      "Artefact Stage: unknown, alpha",
+    );
+    chip(ui.target, "Artefact Stage").click();
+    await flush();
+    assert.match(panel(ui.target).textContent, /unknown \(not configured\)/);
+    await clickInput(panel(ui.target), 'input[value="unknown"]');
+    await confirmEditor(ui.target);
+    button(ui.target, "Search").click();
+    await flush();
+    assert.deepEqual(
+      ui.handle.currentUrl.searchParams.getAll("artefact_stages"),
+      ["alpha"],
+    );
+    assert.equal(ui.handle.currentUrl.searchParams.get("issues"), "none");
+    assert.equal(ui.handle.currentUrl.searchParams.get("reviewer_ids"), "none");
+    assert.equal(
+      ui.handle.currentUrl.searchParams.get("execution_is_latest"),
+      "true",
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("metadata validates Unicode character limits and pending pairs, groups categories, and removes pairs without delimiter loss", async () => {
+  globalThis.fetch = () => Promise.resolve(response());
+  const ui = mounted();
+  try {
+    await flush();
+    await chooseFilter(ui.target, "Metadata");
+    for (const [category, value] of [
+      ["", "value"],
+      ["category", ""],
+      ["🐧".repeat(201), "value"],
+      ["category", "x".repeat(201)],
+    ]) {
+      await enter(
+        panel(ui.target),
+        'input[name="metadata-category"]',
+        category,
+      );
+      await enter(panel(ui.target), 'input[name="metadata-value"]', value);
+      button(panel(ui.target), "Add pair").click();
+      await flush();
+      assert.match(
+        panel(ui.target).querySelector('[role="alert"]')?.textContent ?? "",
+        /1–200 characters/,
+      );
+      assert.equal(button(panel(ui.target), "Add filter").disabled, true);
+    }
+    for (const [category, value] of [
+      ["🐧".repeat(200), "🐧".repeat(200)],
+      ["category:1,2", "value:1,2"],
+      ["category:1,2", "value:1,2"],
+      ["category:1,2", "other"],
+    ]) {
+      await enter(
+        panel(ui.target),
+        'input[name="metadata-category"]',
+        category,
+      );
+      await enter(panel(ui.target), 'input[name="metadata-value"]', value);
+      button(panel(ui.target), "Add pair").click();
+      await flush();
+    }
+    assert.equal(
+      panel(ui.target).querySelectorAll('button[aria-label^="Remove metadata"]')
+        .length,
+      3,
+    );
+    button(panel(ui.target), "Remove pair").click();
+    await flush();
+    await confirmEditor(ui.target);
+    assert.equal(
+      chip(ui.target, "Metadata").title,
+      'Metadata: "category:1,2" = "value:1,2", "category:1,2" = "other"',
+    );
+    chip(ui.target, "Metadata").click();
+    await flush();
+    button(panel(ui.target), "Remove pair").click();
+    await flush();
+    button(panel(ui.target), "Remove pair").click();
+    await flush();
+    assert.equal(button(panel(ui.target), "Save changes").disabled, true);
+    button(panel(ui.target), "Remove filter").click();
+    await flush();
+    assert.equal(ui.target.querySelectorAll(".chip-trigger").length, 0);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("date editors retain offset/microseconds on unchanged save, reject invalid or inverted bounds, and intentionally apply new UTC picker precision", async () => {
+  /** @type {URL[]} */ const calls = [];
+  globalThis.fetch = (input) => {
+    calls.push(new URL(input instanceof Request ? input.url : input));
+    return Promise.resolve(response());
+  };
+  const from = "2026-01-01T01:30:00.123456000+01:30";
+  const until = "2026-01-01T00:00:00.123457Z";
+  const ui = mounted(
+    new URLSearchParams({ from_date: from, until_date: until }).toString(),
+  );
+  try {
+    await flush();
+    chip(ui.target, "From").click();
+    await flush();
+    assert.equal(
+      panel(ui.target).querySelector('input[name="from_date"]')?.value,
+      from,
+    );
+    assert.match(
+      /** @type {import('happy-dom').HTMLInputElement | null} */ (
+        panel(ui.target).querySelector('input[type="datetime-local"]')
+      )?.value ?? "",
+      /^2026-01-01T00:00(?::00)?$/,
+    );
+    await confirmEditor(ui.target);
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls.at(-1)?.searchParams.get("from_date"), from);
+    chip(ui.target, "Until").click();
+    await flush();
+    for (const invalid of [
+      "2026-02-30T00:00:00Z",
+      "2026-01-01T00:00:00",
+      "2026-01-01T00:00:00.0000001Z",
+      "2026-01-01T00:00:00.123455Z",
+    ]) {
+      await enter(panel(ui.target), 'input[name="until_date"]', invalid);
+      assert.ok(panel(ui.target).querySelector('[role="alert"]'));
+      assert.equal(button(panel(ui.target), "Save changes").disabled, true);
+      await confirmEditor(ui.target);
+      assert.equal(calls.length, 2, "invalid editor cannot confirm or fetch");
+      assert.equal(chip(ui.target, "Until").title, `Until: ${until}`);
+    }
+    await enter(
+      panel(ui.target),
+      'input[type="datetime-local"]',
+      "2026-02-01T10:20:30",
+    );
+    await confirmEditor(ui.target);
+    assert.equal(chip(ui.target, "Until").title, "Until: 2026-02-01T10:20:30Z");
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls.at(-1)?.searchParams.get("from_date"), from);
+    assert.equal(
+      calls.at(-1)?.searchParams.get("until_date"),
+      "2026-02-01T10:20:30Z",
+    );
+    chip(ui.target, "From").click();
+    await flush();
+    button(panel(ui.target), "Remove filter").click();
+    await flush();
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls.at(-1)?.searchParams.has("from_date"), false);
+    assert.equal(
+      calls.at(-1)?.searchParams.get("until_date"),
+      "2026-02-01T10:20:30Z",
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("invalid raw fields can be explicitly replaced or cleared while unknown constraints survive and block unrelated edits", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(response());
+  };
+  const ui = mounted(
+    "artefacts=kept&artefact_is_archived=bad&issues=any,1&from_date=bad&unknown=kept&offset=-1",
+  );
+  try {
+    await flush();
+    for (const label of ["Archived", "Issues", "From"])
+      assert.match(chip(ui.target, label).title, /Invalid URL value/);
+    chip(ui.target, "Archived").click();
+    await flush();
+    assert.match(panel(ui.target).textContent, /original URL value is invalid/);
+    await clickInput(panel(ui.target), 'input[value="false"]');
+    await confirmEditor(ui.target);
+    chip(ui.target, "Issues").click();
+    await flush();
+    button(panel(ui.target), "Remove filter").click();
+    await flush();
+    chip(ui.target, "From").click();
+    await flush();
+    await enter(
+      panel(ui.target),
+      'input[name="from_date"]',
+      "2026-01-01T00:00:00Z",
+    );
+    await confirmEditor(ui.target);
+    assert.match(ui.target.textContent, /Changes not applied/);
+    button(ui.target, "Search").click();
+    await flush();
+    const params = ui.handle.currentUrl.searchParams;
+    assert.equal(params.get("artefact_is_archived"), "false");
+    assert.equal(params.has("issues"), false);
+    assert.equal(params.get("from_date"), "2026-01-01T00:00:00Z");
+    assert.equal(params.get("unknown"), "kept");
+    assert.equal(params.get("offset"), "-1");
+    assert.equal(calls, 0);
+    assert.match(ui.target.textContent, /Unsupported URL filter: unknown/);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("hydration caches permission/unavailable outcomes without toasts, preserves IDs, and isolates session changes", async () => {
+  app.searchFilterLabelCache().clear();
+  app.errorStore.clear();
+  /** @type {string[]} */ const details = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    if (request.pathname.includes("/test-results"))
+      return Promise.resolve(response());
+    details.push(request.pathname);
+    const id = Number(request.pathname.split("/").at(-1));
+    if (id === 71) return Promise.resolve(json({}, 403));
+    if (id === 72) return Promise.resolve(json({}, 404));
+    if (id === 73) return Promise.reject(new Error("offline"));
+    if (id === 74)
+      return Promise.resolve(json({ id: 999, name: "Wrong identity" }));
+    return Promise.resolve(
+      json({ id, name: "Session reviewer", launchpad_handle: "handle" }),
+    );
+  };
+  const ui = mounted("issues=71,72,73&reviewer_ids=74,75");
+  try {
+    await flush();
+    await flush();
+    assert.equal(details.length, 5);
+    assert.equal(
+      chip(ui.target, "Issues").title,
+      "Issues: #71 details unavailable, #72 details unavailable, #73 details unavailable",
+    );
+    assert.match(
+      chip(ui.target, "Reviewers").title,
+      /#74 details unavailable, #75 Session reviewer @handle/,
+    );
+    chip(ui.target, "Issues").click();
+    await flush();
+    assert.match(panel(ui.target).textContent, /#71 details unavailable/);
+    button(panel(ui.target), "Cancel").click();
+    await flush();
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(
+      details.length,
+      5,
+      "remount/save/retry must use session cache including failures",
+    );
+    assert.deepEqual(ui.handle.currentUrl.searchParams.getAll("issues"), [
+      "71,72,73",
+    ]);
+    assert.equal(app.errorStore.message, null);
+    await app.userStore.refresh(() =>
+      Promise.resolve(
+        json({ id: 1234, name: "New session", teams: [], is_admin: false }),
+      ),
+    );
+    await flush();
+    assert.equal(
+      details.length,
+      10,
+      "changed session invalidates private label cache once",
+    );
+    assert.equal(app.errorStore.message, null);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("hydration cancels obsolete typed/restored selections and ignores late response bodies without poisoning session cache", async () => {
+  app.searchFilterLabelCache().clear();
+  const late = deferred();
+  const old = json({});
+  let reading = false;
+  old.json = async () => {
+    reading = true;
+    const response = await late.promise;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return -- Response.json is the browser's untyped body parser.
+    return response.json();
+  };
+  /** @type {AbortSignal[]} */ const oldSignals = [];
+  let oldCalls = 0;
+  globalThis.fetch = (input, options) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    if (request.pathname.endsWith("/issues/81")) {
+      oldCalls++;
+      if (options?.signal) oldSignals.push(options.signal);
+      return Promise.resolve(old);
+    }
+    if (request.pathname.endsWith("/issues/82"))
+      return Promise.resolve(
+        json({ id: 82, project: "new", key: "82", title: "Latest issue" }),
+      );
+    return Promise.resolve(response());
+  };
+  const ui = mounted("issues=81");
+  try {
+    await flush();
+    assert.equal(reading, true);
+    const initialCalls = oldCalls;
+    assert.equal(
+      initialCalls,
+      1,
+      "initial draft synchronization must not duplicate hydration",
+    );
+    assert.equal(chip(ui.target, "Issues").title, "Issues: #81 loading…");
+    ui.handle.restore(url("issues=82"));
+    await flush();
+    assert.ok(oldSignals.every((signal) => signal.aborted));
+    assert.equal(
+      oldCalls,
+      initialCalls,
+      "newly mounted editors must not hydrate outgoing URL IDs",
+    );
+    assert.match(chip(ui.target, "Issues").title, /Latest issue/);
+    late.resolve(
+      json({ id: 81, project: "stale", key: "81", title: "Stale issue" }),
+    );
+    await flush();
+    assert.doesNotMatch(ui.target.textContent, /Stale issue/);
+    assert.equal(app.searchFilterLabelCache().peek("issues", 81), undefined);
+    chip(ui.target, "Issues").click();
+    await flush();
+    await enter(panel(ui.target), 'input[name="issues"]', "81");
+    button(panel(ui.target), "Cancel").click();
+    await flush();
+    assert.match(chip(ui.target, "Issues").title, /Latest issue/);
+    assert.equal(
+      oldCalls,
+      initialCalls + 1,
+      "a cancelled lookup is not a cached failure",
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("label cache deduplicates pending requests and only aborts when its last consumer leaves", async () => {
+  const cache = new app.SearchFilterLabelCache();
+  const pending = deferred();
+  let calls = 0;
+  /** @type {AbortSignal | null | undefined} */ let requestSignal;
+  globalThis.fetch = (_input, options) => {
+    calls++;
+    requestSignal = options?.signal;
+    return pending.promise;
+  };
+  const first = new AbortController();
+  const second = new AbortController();
+  const a = cache.load("reviewer_ids", 91, first.signal);
+  const b = cache.load("reviewer_ids", 91, second.signal);
+  assert.equal(calls, 1);
+  first.abort();
+  assert.equal(requestSignal?.aborted, false);
+  pending.resolve(
+    json({ id: 91, name: "Shared reviewer", launchpad_handle: null }),
+  );
+  assert.equal(await a, undefined);
+  assert.equal(await b, "#91 Shared reviewer");
+  assert.equal(cache.peek("reviewer_ids", 91), "#91 Shared reviewer");
+  assert.equal(
+    await cache.load("reviewer_ids", 91, new AbortController().signal),
+    "#91 Shared reviewer",
+  );
+  assert.equal(calls, 1);
+});
+
+void test("new typed editor kinds retain cancellation/Escape/outside semantics and never save temporary edits", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(response());
+  };
+  const metadata = `${Buffer.from("category").toString("base64")}:${Buffer.from("value").toString("base64")}`;
+  const ui = mounted(
+    `artefact_is_archived=false&issues=none&execution_metadata=${metadata}&from_date=2026-01-01T00:00:00.123456Z`,
+  );
+  const outside = browser.document.createElement("button");
+  outside.textContent = "Outside";
+  browser.document.body.append(outside);
+  try {
+    await flush();
+    for (const label of ["Archived", "Issues", "Metadata", "From"]) {
+      for (const dismissal of ["Cancel", "Escape", "outside"]) {
+        const trigger = chip(ui.target, label);
+        const original = trigger.title;
+        trigger.click();
+        await flush();
+        assert.ok(
+          panel(ui.target).contains(browser.document.activeElement),
+          "typed editor receives focus after opening",
+        );
+        if (label === "Archived")
+          await clickInput(panel(ui.target), 'input[value="true"]');
+        else if (label === "Issues")
+          await clickInput(panel(ui.target), 'input[value="any"]');
+        else if (label === "Metadata")
+          await enter(
+            panel(ui.target),
+            'input[name="metadata-category"]',
+            "discard me",
+          );
+        else
+          await enter(
+            panel(ui.target),
+            'input[name="from_date"]',
+            "2027-01-01T00:00:00Z",
+          );
+        if (dismissal === "Cancel") button(panel(ui.target), "Cancel").click();
+        else if (dismissal === "Escape")
+          panel(ui.target).dispatchEvent(
+            new browser.KeyboardEvent("keydown", {
+              key: "Escape",
+              bubbles: true,
+              cancelable: true,
+            }),
+          );
+        else {
+          outside.focus();
+          outside.click();
+        }
+        await flush();
+        assert.equal(ui.target.querySelector(".panel"), null);
+        assert.equal(chip(ui.target, label).title, original);
+        assert.equal(
+          browser.document.activeElement,
+          dismissal === "outside" ? outside : trigger,
+        );
+        assert.doesNotMatch(ui.target.textContent, /Changes not applied/);
+      }
+    }
+    assert.equal(calls, 1);
+  } finally {
+    outside.remove();
+    await ui.destroy();
   }
 });

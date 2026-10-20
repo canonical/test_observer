@@ -12,14 +12,12 @@
     cloneFilters,
     filtersEqual,
     hasFilters,
-    filterIsActive,
-    FILTER_DEFINITIONS,
-    EDITABLE_SEARCH_FILTERS,
     editedSearchParams,
     parseSearch,
     searchParams,
     searchQueryString,
     SEARCH_FILTERS,
+    type SearchFilter,
   } from "$lib/testResultsSearch";
   import SearchResultsGrid from "./SearchResultsGrid.svelte";
   import SearchConditions from "./SearchConditions.svelte";
@@ -51,22 +49,34 @@
   let reapply = $state(0);
   let editorRevision = $state(0);
   let drafts = $state(emptyFilters());
+  let editedFields = $state<SearchFilter[]>([]);
   let moving = $state(false);
   let navigationError = $state(false);
-  const unapplied = $derived(!filtersEqual(drafts, applied.filters));
+  const unapplied = $derived(
+    !filtersEqual(drafts, applied.filters) ||
+      editedFields.some((key) => invalidAppliedFields.includes(key)),
+  );
   const hasDrafts = $derived(hasFilters(drafts));
-  const urlOnlyFilters = $derived(
-    SEARCH_FILTERS.filter(
-      (key) =>
-        !EDITABLE_SEARCH_FILTERS.some((editable) => editable === key) &&
-        filterIsActive(key, drafts),
-    ).map((key) => FILTER_DEFINITIONS[key].label),
+  const invalidAppliedFields = $derived(
+    SEARCH_FILTERS.filter((key) =>
+      applied.problems.some((problem) => problem.startsWith(`Invalid ${key}:`)),
+    ),
+  );
+  const invalidFields = $derived(
+    invalidAppliedFields.filter((key) => !editedFields.includes(key)),
   );
 
-  $effect(() => {
+  // Synchronize before the keyed editors mount on navigation. Otherwise a new
+  // editor can briefly hydrate the outgoing draft's IDs before this reset runs.
+  $effect.pre(() => {
     const query = applied;
     void reapply;
     drafts = cloneFilters(query.filters);
+    editedFields = [];
+  });
+  $effect(() => {
+    const query = applied;
+    void reapply;
     untrack(() => {
       void store.search(query);
     });
@@ -109,7 +119,7 @@
   }
 
   function apply() {
-    void go(editedSearchParams(drafts, url.searchParams));
+    void go(editedSearchParams(drafts, url.searchParams, editedFields));
   }
 
   async function updateView(encoded: string | null, sourceHref = url.href) {
@@ -142,7 +152,16 @@
   </p>
   <div class="filter-bar" role="group" aria-label="Test result filters">
     {#key `${queryString}:${reapply}:${editorRevision}`}
-      <SearchConditions bind:filters={drafts} {families} disabled={moving} />
+      <SearchConditions
+        bind:filters={drafts}
+        {families}
+        {invalidFields}
+        onedit={(key) => {
+          if (!editedFields.includes(key))
+            editedFields = [...editedFields, key];
+        }}
+        disabled={moving}
+      />
     {/key}
     <form
       class="actions"
@@ -176,13 +195,6 @@
       >
     </form>
   </div>
-  {#if urlOnlyFilters.length}
-    <p class="draft-notice" role="status">
-      Additional URL filters: {urlOnlyFilters.join(", ")}. These conditions are
-      preserved when searching. Editing them here is not available yet; change
-      the URL or use Clear all to remove them.
-    </p>
-  {/if}
   {#if unapplied}
     <p class="draft-notice" role="status">
       Changes not applied. Search to update results{!hasDrafts
@@ -212,7 +224,8 @@
         </ul>
         <p>
           No request was sent. Correct the invalid filters or URL, or clear all
-          filters. Conditions without editors are preserved when searching.
+          filters. Untouched invalid or unknown URL conditions are preserved
+          when searching.
         </p>
       </div>
     {:else if !applied.hasFilters}

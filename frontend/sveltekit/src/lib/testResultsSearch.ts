@@ -11,11 +11,12 @@ import type {
 } from "$lib/types/openapi";
 import {
   SEARCH_FILTERS,
-  EDITABLE_SEARCH_FILTERS,
+  filterEqual,
   filterValues,
   hasFilters,
   parseFilters,
   type SearchFilters,
+  type SearchFilter,
 } from "$lib/testResultsFilters";
 export * from "$lib/testResultsFilters";
 
@@ -128,20 +129,43 @@ export function searchParams(
   return params;
 }
 
-/** The compact editor owns only eight fields. Preserve all other raw URL
- * conditions, even malformed/unknown ones, so an unrelated edit cannot silently
- * remove a constraint. Clear all or correcting the URL is the explicit escape.
- * API/pagination serialization still uses the canonical typed model above. */
+/** Replace only explicitly edited fields (or typed differences for non-UI
+ * callers). Untouched malformed/unknown raw constraints must keep blocking.
+ * Explicit fixes/clears can replace a malformed field whose typed value is empty. */
 export function editedSearchParams(
   filters: SearchFilters,
   source: URLSearchParams,
+  editedFields?: readonly SearchFilter[],
 ): URLSearchParams {
   const params = new URLSearchParams(source);
-  for (const key of [...EDITABLE_SEARCH_FILTERS, "limit", "offset", "view"])
+  const restored = parseFilters(source).filters;
+  const changed =
+    editedFields ??
+    SEARCH_FILTERS.filter((key) => !filterEqual(key, filters, restored));
+  params.delete("view");
+  for (const key of changed) {
     params.delete(key);
-  for (const key of EDITABLE_SEARCH_FILTERS)
+    if (key === "reviewer_ids") params.delete("assignee_ids");
     for (const value of filterValues(key, filters)) params.append(key, value);
-  if (params.size) params.set("limit", String(DEFAULT_LIMIT));
+  }
+  // Reset valid pagination only. Invalid pagination is also a raw URL constraint,
+  // not an implicit permission to broaden the search when another field changes.
+  function validPagination(key: string, min: number, max: number) {
+    const values = params.getAll(key);
+    return (
+      !values.length ||
+      (values.length === 1 &&
+        /^\d+$/.test(values[0]) &&
+        Number.isSafeInteger(Number(values[0])) &&
+        Number(values[0]) >= min &&
+        Number(values[0]) <= max)
+    );
+  }
+  if (validPagination("offset", 0, Number.MAX_SAFE_INTEGER))
+    params.delete("offset");
+  if (validPagination("limit", 1, 1000)) params.delete("limit");
+  if (params.size && !params.has("limit"))
+    params.set("limit", String(DEFAULT_LIMIT));
   return params;
 }
 
