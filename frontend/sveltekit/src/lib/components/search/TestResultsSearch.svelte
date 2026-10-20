@@ -1,7 +1,7 @@
 <!-- SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd. -->
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 <script lang="ts">
-  import { untrack } from "svelte";
+  import { onDestroy, untrack } from "svelte";
   import { Button, Spinner, Link } from "@canonical/svelte-ds-app-launchpad";
   import { SearchIcon } from "@canonical/svelte-icons";
   import type { Family } from "$lib/types";
@@ -22,6 +22,10 @@
   import SearchResultsGrid from "./SearchResultsGrid.svelte";
   import SearchConditions from "./SearchConditions.svelte";
   import { VIEW_PARAM } from "$lib/gridViewUrl";
+  import {
+    selectionQuery,
+    TestResultsSelection,
+  } from "$lib/testResultsSelection.svelte";
 
   let {
     url,
@@ -40,6 +44,11 @@
     ) => Promise<unknown>;
   } = $props();
   const store = new TestResultsSearchStore();
+  const selection = new TestResultsSelection();
+  let live = true;
+  onDestroy(() => {
+    live = false;
+  });
   let grid = $state<ReturnType<typeof SearchResultsGrid> | null>(null);
   const queryString = $derived(searchQueryString(url.searchParams));
   const applied = $derived(
@@ -65,6 +74,40 @@
   const invalidFields = $derived(
     invalidAppliedFields.filter((key) => !editedFields.includes(key)),
   );
+  const selectionSnapshot = $derived(selectionQuery(applied));
+  const datasetKey = $derived(
+    `${url.origin}${url.pathname}?${queryString}:${reapply}`,
+  );
+  const selectionReady = $derived(
+    !moving &&
+      !store.loading &&
+      !store.error &&
+      !store.accessError &&
+      store.responseQuery === applied &&
+      selectionSnapshot !== null,
+  );
+  const selectionPage = $derived.by(() => {
+    const owner = store.response;
+    const key = datasetKey;
+    if (!owner) return null;
+    return selection.page(
+      owner.test_results.map((result) => result.test_result.id),
+      () =>
+        live &&
+        selectionReady &&
+        store.response === owner &&
+        datasetKey === key,
+    );
+  });
+
+  $effect.pre(() => {
+    const snapshot = selectionSnapshot;
+    const count = selectionReady ? store.response?.count : undefined;
+    untrack(() => {
+      selection.setQuery(snapshot);
+      if (count !== undefined) selection.updateCount(count);
+    });
+  });
 
   // Synchronize before the keyed editors mount on navigation. Otherwise a new
   // editor can briefly hydrate the outgoing draft's IDs before this reset runs.
@@ -119,6 +162,8 @@
   }
 
   function apply() {
+    if (moving) return;
+    selection.clear();
     void go(editedSearchParams(drafts, url.searchParams, editedFields));
   }
 
@@ -180,6 +225,7 @@
           type="button"
           density="dense"
           onclick={() => {
+            selection.clear();
             drafts = emptyFilters();
             editorRevision++;
             void go(new URLSearchParams(), true);
@@ -268,7 +314,45 @@
         Grid filtering and sorting affect only this loaded page, not the server
         total or other pages. Server pages are ordered newest first.
       </p>
-      {#if response.test_results.length}
+      {#if selectionPage && (selection.selectedCount > 0 || selection.allMatches)}
+        <div
+          class="selection-summary"
+          role="group"
+          aria-label="Result selection"
+        >
+          <p role="status">
+            {selection.selectedCount} selected{selection.allMatches
+              ? ` across the applied query (${selection.exclusions.size} excluded)`
+              : " by result ID"}.
+          </p>
+          {#if selection.allMatches || (selection.matchCount > 0 && selectionPage.allLoadedSelected())}
+            <label class="all-matches">
+              <input
+                type="checkbox"
+                checked={selection.allMatches}
+                disabled={!selectionPage.enabled()}
+                onchange={selectionPage.toggleAllMatches}
+                aria-describedby="selection-scope"
+              />
+              Apply bulk options to all {selection.matchCount} matches
+            </label>
+          {/if}
+          <Button
+            type="button"
+            density="dense"
+            disabled={!selectionPage.enabled()}
+            onclick={selectionPage.clear}>Clear selection</Button
+          >
+          <p id="selection-scope" class="muted">
+            Selection uses the applied backend query, not local grid filters or
+            unapplied drafts. All-matches counts use the last server total, not
+            a frozen snapshot; results may change. Turning all matches off keeps
+            selected rows on this loaded backend page only. The header changes
+            only displayed rows; Clear selection clears every page.
+          </p>
+        </div>
+      {/if}
+      {#if response.test_results.length && selectionPage}
         <SearchResultsGrid
           bind:this={grid}
           results={response.test_results}
@@ -276,7 +360,9 @@
           {base}
           {encodedView}
           sourceHref={url.href}
-          queryKey={`${url.origin}${url.pathname}?${queryString}`}
+          queryKey={datasetKey}
+          selection={selectionPage}
+          selectedCount={selection.selectedCount}
           onViewChange={updateView}
         />
       {:else if response.count === 0}
@@ -365,6 +451,25 @@
   }
   .muted {
     color: var(--lp-color-text-muted);
+  }
+  .selection-summary {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .selection-summary p {
+    margin: 0;
+  }
+  .selection-summary .muted {
+    flex-basis: 100%;
+    font-size: 0.875rem;
+  }
+  .all-matches {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
   .pagination {
     margin-top: 1rem;

@@ -6,6 +6,10 @@ import TestResultsSearch from "../src/lib/components/search/TestResultsSearch.sv
 import ValueSuggestions from "../src/lib/components/search/ValueSuggestions.svelte";
 import { replaceSearchView } from "../src/lib/searchViewNavigation";
 export { TestResultsSearchStore } from "../src/lib/stores/test-results-search.svelte";
+export {
+  selectionQuery,
+  TestResultsSelection,
+} from "../src/lib/testResultsSelection.svelte";
 export { userStore } from "../src/lib/stores/user.svelte";
 export * from "../src/lib/testResultsSearch";
 export { replaceSearchView } from "../src/lib/searchViewNavigation";

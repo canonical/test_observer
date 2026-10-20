@@ -16,6 +16,7 @@ export type SearchAccessError =
 export class TestResultsSearchStore {
   loading = $state(false);
   response = $state<SearchResponse | null>(null);
+  responseQuery = $state.raw<AppliedSearch | null>(null);
   error = $state<string | null>(null);
   accessError = $state<SearchAccessError | null>(null);
   private generation = 0;
@@ -32,6 +33,7 @@ export class TestResultsSearchStore {
     this.cancel();
     const generation = this.generation;
     this.response = null;
+    this.responseQuery = null;
     this.error = null;
     this.accessError = null;
     if (!query.hasFilters || query.problems.length > 0) return;
@@ -48,6 +50,7 @@ export class TestResultsSearchStore {
       if (!current()) return;
       if (!response) throw new Error("Empty response");
       this.response = response;
+      this.responseQuery = query;
     } catch (error) {
       if (!current()) return;
       if (

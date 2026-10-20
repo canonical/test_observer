@@ -97,6 +97,51 @@ function result(id = 1) {
 const response = (ids = [1], count = ids.length, limit = 50, offset = 0) =>
   json({ count, limit, offset, test_results: ids.map(result) });
 
+/** @param {string} query */
+function selectionFor(query) {
+  const selection = new app.TestResultsSelection();
+  selection.setQuery(
+    app.selectionQuery(app.parseSearch(url(query).searchParams, families)),
+  );
+  return selection;
+}
+
+/** Actual SvGrid accessible checkboxes, not custom stand-ins.
+ * @param {import('happy-dom').HTMLElement} target */
+function selectionHeader(target) {
+  const header = target.querySelector(
+    'button[role="checkbox"][aria-label="Select all rows"]',
+  );
+  assert.ok(header);
+  return /** @type {import('happy-dom').HTMLButtonElement} */ (header);
+}
+
+/** @param {import('happy-dom').HTMLElement} target @param {number} id */
+function selectionRow(target, id) {
+  const row = Array.from(target.querySelectorAll("tbody tr")).find(
+    (row) =>
+      row.querySelector('[data-col-id="testCase"]')?.textContent.trim() ===
+      `case ${id}`,
+  );
+  const checkbox = row?.querySelector(
+    'button[role="checkbox"][aria-label="Select row"]',
+  );
+  assert.ok(checkbox, `Missing real grid checkbox for result ${id}`);
+  return /** @type {import('happy-dom').HTMLButtonElement} */ (checkbox);
+}
+
+/** @param {import('happy-dom').HTMLElement} target */
+function allMatchesCheckbox(target) {
+  return /** @type {import('happy-dom').HTMLInputElement | null} */ (
+    target.querySelector('.selection-summary input[type="checkbox"]')
+  );
+}
+
+/** @param {import('happy-dom').HTMLElement} target @param {string} value */
+async function localSearch(target, value) {
+  return enter(target, ".sv-grid-global-filter input", value);
+}
+
 before(async () => {
   const built = /** @type {{output: {type: string; code: string}[]}[]} */ (
     /** @type {unknown} */ (
@@ -3896,5 +3941,777 @@ void test("known metadata cache has a bounded lifetime rather than persisting st
   } finally {
     Date.now = now;
     await app.userStore.refresh(() => Promise.resolve(json(null)));
+  }
+});
+
+void test("selection snapshot normalizes all typed predicates, never paging/view, and keeps validation and microseconds", () => {
+  const params = new URLSearchParams({
+    families: "snap",
+    test_result_statuses: "FAILED,PASSED",
+    artefacts: "two,one,one",
+    artefact_versions: "1,2",
+    artefact_tracks: "stable",
+    environments: "lab",
+    test_plans: "smoke",
+    test_cases: "case",
+    artefact_stages: "",
+    artefact_is_archived: "false",
+    rerun_is_requested: "false",
+    execution_is_latest: "false",
+    issues: "none",
+    reviewer_ids: "any",
+    template_ids: "b,a",
+    from_date: "2026-01-01T01:00:00.123456+01:00",
+    until_date: "2026-02-01T00:00:00Z",
+    limit: "2",
+    offset: "4",
+    view: "local-only",
+  });
+  const pair = (/** @type {string} */ category, /** @type {string} */ value) =>
+    `${app.encodeMetadataPart(category)}:${app.encodeMetadataPart(value)}`;
+  params.append("execution_metadata", pair("punctuation:,", "value:,"));
+  params.append("execution_metadata", pair("punctuation:,", "other"));
+  const query = app.parseSearch(params, families);
+  assert.deepEqual(query.problems, []);
+  const snapshot = app.selectionQuery(query);
+  assert.ok(snapshot);
+  const equivalent = new URLSearchParams(params);
+  equivalent.set("artefacts", "one,two");
+  equivalent.set("test_result_statuses", "PASSED,FAILED");
+  equivalent.set("template_ids", "a,b");
+  equivalent.set("from_date", "2026-01-01T00:00:00.1234560Z");
+  equivalent.set("until_date", "2026-02-01T00:00:00.000000Z");
+  equivalent.set(
+    "execution_metadata",
+    [
+      pair("punctuation:,", "other"),
+      pair("punctuation:,", "value:,"),
+      pair("punctuation:,", "other"),
+    ].join(","),
+  );
+  equivalent.set("limit", "1000");
+  equivalent.delete("offset");
+  equivalent.delete("view");
+  assert.equal(
+    app.selectionQuery(app.parseSearch(equivalent, families))?.key,
+    snapshot.key,
+  );
+  for (const [key, replacement] of [
+    ["artefact_stages", "alpha"],
+    ["artefact_is_archived", "true"],
+    ["rerun_is_requested", "true"],
+    ["execution_is_latest", "true"],
+    ["issues", "any"],
+    ["reviewer_ids", "none"],
+    ["from_date", "2026-01-01T00:00:00.123457Z"],
+  ]) {
+    const changed = new URLSearchParams(equivalent);
+    changed.set(key, replacement);
+    assert.notEqual(
+      app.selectionQuery(app.parseSearch(changed, families))?.key,
+      snapshot.key,
+      key,
+    );
+  }
+  for (const suffix of [
+    "issues=0",
+    "unknown=x",
+    "limit=0",
+    "from_date=not-a-date",
+    "families=unavailable",
+  ]) {
+    const invalid = app.parseSearch(
+      url(`artefacts=one&${suffix}`).searchParams,
+      families,
+    );
+    assert.ok(invalid.problems.length);
+    assert.equal(app.selectionQuery(invalid), null);
+  }
+  assert.equal(
+    app.selectionQuery(
+      app.parseSearch(url("view=x&offset=2").searchParams, families),
+    ),
+    null,
+  );
+  query.filters.artefacts.push("draft-mutation");
+  query.filters.execution_metadata[0].values.push("draft-mutation");
+  assert.deepEqual(snapshot.filters.artefacts, ["two", "one"]);
+  assert.deepEqual(snapshot.filters.execution_metadata[0].values, [
+    "value:,",
+    "other",
+  ]);
+  assert.equal(snapshot.filters.artefact_is_archived, false);
+  assert.deepEqual(snapshot.filters.artefact_stages, [""]);
+});
+
+void test("selection rule counts unique explicit IDs across pages, all exclusions and million matches without enumerating", () => {
+  const selection = selectionFor("artefacts=one");
+  selection.updateCount(1_000_000);
+  const first = selection.page([1, 2, 2], () => true);
+  assert.equal(first.headerState([1, 2]), "none");
+  first.toggle([1, 1, 999, -1, 1.5], true);
+  assert.equal(selection.selectedCount, 1);
+  assert.equal(first.headerState([1, 2, 2]), "some");
+  first.toggleAllMatches();
+  assert.equal(selection.allMatches, false, "partial page is not eligible");
+  first.toggle([2], true);
+  assert.equal(first.allLoadedSelected(), true);
+  const second = selection.page([2, 3, 4], () => true);
+  second.toggle([3], true);
+  assert.deepEqual([...selection.explicitIds], [1, 2, 3]);
+  first.toggleAllMatches();
+  assert.equal(selection.selectedCount, 1_000_000);
+  assert.equal(selection.explicitIds.size, 0);
+  second.toggle([3, 3, 4, 999], false);
+  assert.equal(selection.selectedCount, 999_998);
+  assert.deepEqual([...selection.exclusions], [3, 4]);
+  assert.equal(first.headerState([1, 2]), "all");
+  assert.equal(second.headerState([2, 3, 4]), "some");
+  second.toggle([3], true);
+  assert.equal(selection.selectedCount, 999_999);
+  selection.updateCount(19);
+  assert.equal(
+    selection.selectedCount,
+    18,
+    "last count, not an invented snapshot total",
+  );
+  selection.updateCount(0);
+  assert.equal(
+    selection.selectedCount,
+    0,
+    "never negative after server deletions",
+  );
+  assert.equal(
+    selection.allMatches,
+    true,
+    "active rule survives zero count/exclusions",
+  );
+});
+
+void test("all-mode off keeps selected loaded backend-page rows (even locally hidden), header off is not global Clear", () => {
+  const selection = selectionFor("test_result_statuses=FAILED");
+  selection.updateCount(19);
+  const first = selection.page([1, 2], () => true);
+  first.toggle([1, 2], true);
+  first.toggleAllMatches();
+  const second = selection.page([3, 4, 5, 5], () => true);
+  second.toggle([4], false);
+  // A local filter displays only row 3; header off excludes only row 3.
+  second.toggle([3], false);
+  assert.equal(selection.allMatches, true);
+  assert.equal(selection.selectedCount, 17);
+  assert.equal(first.headerState([1, 2]), "all");
+  assert.equal(second.headerState([3]), "none");
+  assert.equal(second.headerState([]), "none");
+  second.toggleAllMatches();
+  assert.equal(selection.allMatches, false);
+  assert.deepEqual([...selection.explicitIds], [5]);
+  assert.equal(selection.exclusions.size, 0);
+  assert.equal(first.isSelected(1), false);
+  second.clear();
+  assert.equal(selection.selectedCount, 0);
+  assert.equal(selection.explicitIds.size, 0);
+});
+
+void test("page selection capabilities reject stale/loading callbacks, invalid queries, unknown IDs and empty-page opt-in", () => {
+  const selection = selectionFor("artefacts=one");
+  selection.updateCount(19);
+  let current = true;
+  const first = selection.page([1, 2], () => current);
+  first.toggle([1, 2], true);
+  current = false;
+  first.toggleAllMatches();
+  first.clear();
+  first.toggle([1], false);
+  assert.equal(selection.selectedCount, 2);
+  assert.equal(first.headerState([1, 2]), "none");
+  assert.equal(first.allLoadedSelected(), false);
+  current = true;
+  const equivalent = app.selectionQuery(
+    app.parseSearch(
+      url("offset=4&artefacts=one&limit=2&view=x").searchParams,
+      families,
+    ),
+  );
+  selection.setQuery(equivalent);
+  assert.equal(selection.selectedCount, 2);
+  selection.setQuery(
+    app.selectionQuery(
+      app.parseSearch(url("artefacts=two").searchParams, families),
+    ),
+  );
+  first.toggle([1, 2], true);
+  first.toggleAllMatches();
+  assert.equal(selection.selectedCount, 0);
+  const empty = selection.page([], () => true);
+  empty.toggleAllMatches();
+  assert.equal(selection.allMatches, false);
+  selection.setQuery(null);
+  empty.toggleAllMatches();
+  assert.equal(empty.enabled(), false);
+  assert.equal(selection.matchCount, 0);
+});
+
+void test("actual grid row/header accessible selection and all-mode persist across server pages, with no selection API/view leakage", async () => {
+  /** @type {URL[]} */
+  const calls = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    calls.push(request);
+    return Promise.resolve(
+      request.searchParams.get("offset") === "2"
+        ? response([3, 4], 19, 2, 2)
+        : response([1, 2], 19, 2),
+    );
+  };
+  const ui = mounted("test_result_statuses=PASSED,FAILED,SKIPPED&limit=2");
+  try {
+    await flush();
+    const originalUrl = ui.handle.currentUrl.href;
+    assert.equal(
+      ui.target
+        .querySelector("thead tr th")
+        ?.classList.contains("sv-grid-selection-column"),
+      true,
+    );
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "false",
+    );
+    selectionRow(ui.target, 1).click();
+    await flush();
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "mixed",
+    );
+    assert.match(ui.target.textContent, /1 selected by result ID/);
+    assert.equal(allMatchesCheckbox(ui.target), null);
+    selectionHeader(ui.target).dispatchEvent(
+      new browser.KeyboardEvent("keydown", { key: " ", bubbles: true }),
+    );
+    await flush();
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "true",
+    );
+    let all = allMatchesCheckbox(ui.target);
+    assert.ok(all);
+    assert.equal(
+      all.closest("label")?.textContent.trim(),
+      "Apply bulk options to all 19 matches",
+    );
+    all.click();
+    await flush();
+    assert.match(
+      ui.target.textContent,
+      /19 selected across the applied query \(0 excluded\)/,
+    );
+    assert.match(
+      ui.target.textContent,
+      /last server total, not\s+a\s+frozen snapshot/,
+    );
+    assert.equal(ui.handle.currentUrl.href, originalUrl);
+    assert.equal(ui.handle.replacements.length, 0);
+    assert.equal(calls.length, 1, "selection is entirely network-free");
+    button(ui.target, "Next page").click();
+    await flush();
+    assert.equal(
+      selectionRow(ui.target, 3).getAttribute("aria-checked"),
+      "true",
+    );
+    selectionRow(ui.target, 3).click();
+    await flush();
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "mixed",
+    );
+    assert.match(
+      ui.target.textContent,
+      /18 selected across the applied query \(1 excluded\)/,
+    );
+    all = allMatchesCheckbox(ui.target);
+    assert.ok(all?.checked, "active all control survives an exclusion");
+    button(ui.target, "Previous page").click();
+    await flush();
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "true",
+    );
+    assert.match(ui.target.textContent, /18 selected across/);
+    button(ui.target, "Next page").click();
+    await flush();
+    assert.equal(
+      selectionRow(ui.target, 3).getAttribute("aria-checked"),
+      "false",
+    );
+    allMatchesCheckbox(ui.target)?.click();
+    await flush();
+    assert.match(ui.target.textContent, /1 selected by result ID/);
+    assert.equal(
+      selectionRow(ui.target, 4).getAttribute("aria-checked"),
+      "true",
+    );
+    assert.equal(allMatchesCheckbox(ui.target), null);
+    button(ui.target, "Clear selection").click();
+    await flush();
+    assert.equal(ui.target.querySelector(".selection-summary"), null);
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "false",
+    );
+    assert.equal(calls.length, 4);
+    assert.ok(
+      calls.every((request) =>
+        [...request.searchParams.keys()].every((key) =>
+          ["test_result_statuses", "limit", "offset"].includes(key),
+        ),
+      ),
+    );
+    assert.ok(
+      ui.handle.history.every(
+        (entry) => !/select|exclude|allMatches/i.test(entry.search),
+      ),
+    );
+    assert.equal(
+      ui.target.querySelector(".sv-grid-selection-bar, .sv-grid-bulk-edit"),
+      null,
+    );
+    assert.equal(ui.target.querySelector(".sv-grid-cell-selected"), null);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("explicit result IDs survive pagination and limit changes within a normalized applied query", async () => {
+  let calls = 0;
+  globalThis.fetch = (input) => {
+    calls++;
+    const request = new URL(input instanceof Request ? input.url : input);
+    return Promise.resolve(
+      request.searchParams.get("offset") === "2"
+        ? response([3, 4], 19, 2, 2)
+        : response([1, 2], 19, 2),
+    );
+  };
+  const ui = mounted("artefacts=one,two&limit=2");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    button(ui.target, "Next page").click();
+    await flush();
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "false",
+    );
+    assert.match(ui.target.textContent, /1 selected by result ID/);
+    selectionRow(ui.target, 3).click();
+    await flush();
+    assert.match(ui.target.textContent, /2 selected by result ID/);
+    button(ui.target, "Previous page").click();
+    await flush();
+    assert.equal(
+      selectionRow(ui.target, 1).getAttribute("aria-checked"),
+      "true",
+    );
+    assert.equal(
+      selectionRow(ui.target, 2).getAttribute("aria-checked"),
+      "false",
+    );
+    ui.handle.restore(url("artefacts=two&artefacts=one&artefacts=one&limit=3"));
+    await flush();
+    assert.match(ui.target.textContent, /2 selected by result ID/);
+    assert.equal(
+      selectionRow(ui.target, 1).getAttribute("aria-checked"),
+      "true",
+    );
+    button(ui.target, "Clear selection").click();
+    await flush();
+    ui.handle.restore(url("artefacts=one,two&limit=2&offset=2"));
+    await flush();
+    assert.equal(
+      selectionRow(ui.target, 3).getAttribute("aria-checked"),
+      "false",
+      "Clear is global, including unloaded explicit IDs",
+    );
+    assert.equal(calls, 5);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("local-filtered subsets cannot offer all matches; header targets full displayed rows and all-mode exclusions persist locally", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(response([1, 2], 19, 2));
+  };
+  const ui = mounted("artefacts=one&limit=2");
+  try {
+    await flush();
+    await localSearch(ui.target, "case 1");
+    selectionHeader(ui.target).click();
+    await flush();
+    assert.match(ui.target.textContent, /1 selected by result ID/);
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "true",
+    );
+    assert.equal(
+      allMatchesCheckbox(ui.target),
+      null,
+      "local subset is not the entire backend page",
+    );
+    await localSearch(ui.target, "");
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "mixed",
+    );
+    selectionRow(ui.target, 2).click();
+    await flush();
+    assert.ok(allMatchesCheckbox(ui.target));
+    allMatchesCheckbox(ui.target)?.click();
+    await flush();
+    await localSearch(ui.target, "case 1");
+    selectionHeader(ui.target).click();
+    await flush();
+    assert.match(
+      ui.target.textContent,
+      /18 selected across the applied query \(1 excluded\)/,
+    );
+    assert.ok(allMatchesCheckbox(ui.target)?.checked);
+    await localSearch(ui.target, "no rows");
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "false",
+    );
+    selectionHeader(ui.target).click();
+    await flush();
+    assert.match(ui.target.textContent, /18 selected across/);
+    assert.ok(
+      allMatchesCheckbox(ui.target)?.checked,
+      "active control remains with no displayed rows",
+    );
+    allMatchesCheckbox(ui.target)?.click();
+    await flush();
+    assert.match(
+      ui.target.textContent,
+      /1 selected by result ID/,
+      "opting out keeps selected row 2 despite local hiding",
+    );
+    await localSearch(ui.target, "");
+    assert.equal(
+      selectionRow(ui.target, 1).getAttribute("aria-checked"),
+      "false",
+    );
+    assert.equal(
+      selectionRow(ui.target, 2).getAttribute("aria-checked"),
+      "true",
+    );
+    button(ui.target, "Clear selection").click();
+    await flush();
+    await localSearch(ui.target, "no rows");
+    selectionHeader(ui.target).click();
+    await flush();
+    assert.equal(allMatchesCheckbox(ui.target), null);
+    assert.equal(ui.target.querySelector(".selection-summary"), null);
+    assert.equal(calls, 1);
+    const view = app.decodeView(ui.handle.currentUrl.searchParams.get("view"));
+    assert.deepEqual(
+      Object.keys(view ?? {}).filter((key) => /select|exclude/i.test(key)),
+      [],
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("virtualized actual-grid header selects every displayed loaded row, not just mounted DOM rows", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(
+      response(
+        Array.from({ length: 120 }, (_, i) => i + 1),
+        1_000_000,
+        200,
+      ),
+    );
+  };
+  const ui = mounted("artefacts=one&limit=200");
+  try {
+    await flush();
+    const rendered = ui.target.querySelectorAll(
+      'tbody button[aria-label="Select row"]',
+    ).length;
+    assert.ok(
+      rendered > 0 && rendered < 120,
+      `virtualization must be active (${rendered} mounted rows)`,
+    );
+    selectionHeader(ui.target).click();
+    await flush();
+    assert.match(ui.target.textContent, /120 selected by result ID/);
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "true",
+    );
+    const all = allMatchesCheckbox(ui.target);
+    assert.ok(all);
+    assert.equal(
+      all.closest("label")?.textContent.trim(),
+      "Apply bulk options to all 1000000 matches",
+    );
+    all.click();
+    await flush();
+    assert.match(ui.target.textContent, /1000000 selected across/);
+    selectionHeader(ui.target).click();
+    await flush();
+    assert.match(
+      ui.target.textContent,
+      /999880 selected across the applied query \(120 excluded\)/,
+    );
+    assert.ok(allMatchesCheckbox(ui.target)?.checked);
+    button(ui.target, "Clear selection").click();
+    await flush();
+    assert.equal(ui.target.querySelector(".selection-summary"), null);
+    assert.equal(calls, 1);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("selection survives draft/editor, sort, visibility and view/reset/history without serialization or requests", async () => {
+  let calls = 0;
+  globalThis.fetch = () => {
+    calls++;
+    return Promise.resolve(response([2, 1], 19, 2));
+  };
+  const ui = mounted("artefacts=one&limit=2");
+  try {
+    await flush();
+    selectionHeader(ui.target).click();
+    await flush();
+    allMatchesCheckbox(ui.target)?.click();
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    chip(ui.target, "Artefact").click();
+    await flush();
+    await replaceExact(ui.target, 'input[name="artefacts"]', "draft");
+    await confirmEditor(ui.target);
+    assert.match(ui.target.textContent, /Changes not applied/);
+    assert.match(ui.target.textContent, /18 selected across/);
+    assert.match(
+      ui.target.textContent,
+      /not local grid filters or\s+unapplied drafts/,
+    );
+    const grid = ui.target.querySelector(".sv-grid-root");
+    const view = app.encodeView({
+      sorting: [{ id: "testCase", desc: false }],
+      hiddenColumns: ["version"],
+      globalFilter: "case 2",
+    });
+    ui.handle.restore(url(`artefacts=one&limit=2&view=${view}`));
+    await flush();
+    assert.equal(ui.target.querySelector(".sv-grid-root"), grid);
+    assert.deepEqual(gridCases(ui.target), ["case 2"]);
+    assert.equal(
+      ui.target.querySelector('th[data-svgrid-header-col="version"]'),
+      null,
+    );
+    assert.match(ui.target.textContent, /18 selected across/);
+    assert.ok(allMatchesCheckbox(ui.target)?.checked);
+    button(ui.target, "Reset table view").click();
+    await flush();
+    assert.deepEqual(gridCases(ui.target), ["case 2", "case 1"]);
+    assert.equal(
+      selectionRow(ui.target, 1).getAttribute("aria-checked"),
+      "false",
+    );
+    assert.equal(
+      selectionRow(ui.target, 2).getAttribute("aria-checked"),
+      "true",
+    );
+    assert.match(ui.target.textContent, /Changes not applied/);
+    assert.equal(chip(ui.target, "Artefact").title, "Artefact: draft");
+    assert.equal(calls, 1);
+    assert.equal(ui.handle.currentUrl.searchParams.has("view"), false);
+    assert.ok(
+      ui.handle.history.every(
+        (entry) => !/select|exclude|allMatches/i.test(entry.search),
+      ),
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("new/identical Search, Clear all, meaningful history and remount reset selection; stale native callbacks cannot change incoming datasets", async () => {
+  let calls = 0;
+  let next = deferred();
+  let pending = false;
+  globalThis.fetch = () => {
+    calls++;
+    return pending ? next.promise : Promise.resolve(response([1, 2], 19, 2));
+  };
+  const ui = mounted("artefacts=one&limit=2");
+  try {
+    await flush();
+    selectionHeader(ui.target).click();
+    await flush();
+    const oldHeader = selectionHeader(ui.target);
+    const oldAll = allMatchesCheckbox(ui.target);
+    const oldClear = button(ui.target, "Clear selection");
+    assert.ok(oldAll);
+    pending = true;
+    button(ui.target, "Search").click();
+    await flush();
+    assert.match(ui.target.textContent, /Loading test results/);
+    assert.equal(ui.target.querySelector('.results [role="checkbox"]'), null);
+    assert.equal(allMatchesCheckbox(ui.target), null);
+    oldHeader.click();
+    oldAll.click();
+    oldClear.click();
+    next.resolve(response([1, 2], 19));
+    await flush();
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "false",
+    );
+    selectionHeader(ui.target).click();
+    await flush();
+    oldClear.click();
+    oldAll.click();
+    oldHeader.click();
+    await flush();
+    assert.match(
+      ui.target.textContent,
+      /2 selected by result ID/,
+      "detached old page cannot clear or enable all on new results",
+    );
+    pending = false;
+    const beforeIdentical = calls;
+    button(ui.target, "Search").click();
+    await flush();
+    assert.equal(calls, beforeIdentical + 1);
+    assert.equal(ui.target.querySelector(".selection-summary"), null);
+    selectionHeader(ui.target).click();
+    await flush();
+    next = deferred();
+    pending = true;
+    ui.handle.restore(url("artefacts=different&limit=2"));
+    await flush();
+    assert.equal(
+      ui.target.querySelector(".selection-summary"),
+      null,
+      "new criteria clear promptly before response",
+    );
+    next.resolve(response([3, 4], 19, 2));
+    await flush();
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "false",
+    );
+    selectionHeader(ui.target).click();
+    await flush();
+    pending = false;
+    ui.handle.restore(url("artefacts=one&limit=2"));
+    await flush();
+    assert.equal(
+      ui.target.querySelector(".selection-summary"),
+      null,
+      "Back to different criteria does not restore selection",
+    );
+    selectionHeader(ui.target).click();
+    await flush();
+    button(ui.target, "Clear all").click();
+    await flush();
+    assert.equal(ui.target.querySelector(".sv-grid-root"), null);
+    ui.handle.restore(url("artefacts=one&limit=2"));
+    await flush();
+    assert.equal(
+      selectionHeader(ui.target).getAttribute("aria-checked"),
+      "false",
+    );
+    selectionHeader(ui.target).click();
+    await flush();
+  } finally {
+    await ui.destroy();
+  }
+  pending = false;
+  const fresh = mounted("artefacts=one&limit=2");
+  try {
+    await flush();
+    assert.equal(
+      selectionHeader(fresh.target).getAttribute("aria-checked"),
+      "false",
+      "route remount/reload never rehydrates selection",
+    );
+    assert.equal(fresh.target.querySelector(".selection-summary"), null);
+  } finally {
+    await fresh.destroy();
+  }
+});
+
+void test("selection controls disappear on errors/invalid criteria and never offer bogus all prompts on empty or out-of-range pages", async () => {
+  for (const failure of [401, 403, 500, "invalid"]) {
+    let failing = false;
+    globalThis.fetch = (input) => {
+      const request = new URL(input instanceof Request ? input.url : input);
+      if (request.pathname.endsWith("/users/me"))
+        return Promise.resolve(json(null));
+      return Promise.resolve(
+        failing && typeof failure === "number"
+          ? json({}, failure)
+          : response([1, 2], 19, 2),
+      );
+    };
+    const ui = mounted("artefacts=one&limit=2");
+    try {
+      await flush();
+      selectionHeader(ui.target).click();
+      await flush();
+      allMatchesCheckbox(ui.target)?.click();
+      await flush();
+      const oldHeader = selectionHeader(ui.target);
+      const oldAll = allMatchesCheckbox(ui.target);
+      assert.ok(oldAll);
+      failing = true;
+      ui.handle.restore(
+        url(
+          failure === "invalid"
+            ? "artefacts=one&issues=0"
+            : "artefacts=one&limit=2&offset=2",
+        ),
+      );
+      await flush();
+      assert.equal(ui.target.querySelector('.results [role="checkbox"]'), null);
+      assert.equal(allMatchesCheckbox(ui.target), null);
+      oldHeader.click();
+      oldAll.click();
+      failing = false;
+      ui.handle.restore(url("artefacts=one&limit=2"));
+      await flush();
+      assert.equal(
+        selectionHeader(ui.target).getAttribute("aria-checked"),
+        failure === "invalid" ? "false" : "true",
+      );
+      if (failure !== "invalid")
+        assert.match(ui.target.textContent, /19 selected across/);
+    } finally {
+      await ui.destroy();
+    }
+  }
+  for (const count of [0, 19]) {
+    globalThis.fetch = () => Promise.resolve(response([], count, 2, 100));
+    const ui = mounted("artefacts=one&limit=2&offset=100");
+    try {
+      await flush();
+      assert.equal(ui.target.querySelector(".sv-grid-root"), null);
+      assert.equal(allMatchesCheckbox(ui.target), null);
+      assert.equal(ui.target.querySelector(".selection-summary"), null);
+    } finally {
+      await ui.destroy();
+    }
   }
 });

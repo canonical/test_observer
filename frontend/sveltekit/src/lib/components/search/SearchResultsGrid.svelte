@@ -1,7 +1,7 @@
 <!-- SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd. -->
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 <script lang="ts">
-  import { onMount, untrack } from "svelte";
+  import { onDestroy, onMount, untrack } from "svelte";
   import {
     SvGrid,
     renderComponent,
@@ -13,6 +13,7 @@
   import { familyDisplayName } from "$lib/types";
   import { viewRunPath, type SearchResult } from "$lib/testResultsSearch";
   import ViewRunLink from "./ViewRunLink.svelte";
+  import type { SearchSelectionPage } from "$lib/testResultsSelection.svelte";
   import {
     EMPTY_VIEW,
     decodeView,
@@ -27,6 +28,8 @@
     encodedView,
     sourceHref,
     queryKey,
+    selection,
+    selectedCount,
     onViewChange,
   }: {
     results: SearchResult[];
@@ -35,6 +38,8 @@
     encodedView: string | null;
     sourceHref: string;
     queryKey: string;
+    selection: SearchSelectionPage;
+    selectedCount: number;
     onViewChange: (
       encoded: string | null,
       sourceHref: string,
@@ -44,9 +49,17 @@
   // branch unmounts. Tag it with the backend query it actually rendered, not
   // the latest href (which legitimately changes for presentation writes).
   const ownerQuery = untrack(() => queryKey);
+  let live = true;
+  onDestroy(() => {
+    live = false;
+  });
+  const selectionEnabled = () =>
+    live && ownerQuery === queryKey && selection.enabled();
   const rows = $derived(
     results.map((result) => {
-      const family = families.find((f) => f.api_name === result.artefact.family);
+      const family = families.find(
+        (f) => f.api_name === result.artefact.family,
+      );
       return {
         id: result.test_result.id,
         artefact: result.artefact.name,
@@ -100,6 +113,22 @@
   ];
 
   let api = $state<SvGridApi<never, Row> | null>(null);
+  // getDisplayedRows is the grid's complete post-filter/sort list, not its
+  // virtual DOM window. Header intent never opts in to all server matches.
+  const displayedIds = () => api?.getDisplayedRows().map((row) => row.id) ?? [];
+  const rowSelectionModel = {
+    isSelected: (_id: string, row: Row) =>
+      selectionEnabled() && selection.isSelected(row.id),
+    headerState: () =>
+      selectionEnabled() ? selection.headerState(displayedIds()) : "none",
+    toggle: (_id: string, row: Row, next: boolean) => {
+      if (selectionEnabled()) selection.toggle([row.id], next);
+    },
+    toggleAll: (next: boolean) => {
+      if (selectionEnabled()) selection.toggle(displayedIds(), next);
+    },
+    selectedCount: () => (selectionEnabled() ? selectedCount : 0),
+  };
   let restored = false;
   let restoredParam: string | null = null;
   let lastSnapshot: string | null = null;
@@ -219,7 +248,11 @@
     showGlobalFilter
     columnResize
     enableRowHover
-    selectionMode="none"
+    selectionMode="row"
+    showRowSelection={selectionEnabled()}
+    {rowSelectionModel}
+    selectionBar={false}
+    contextMenu={false}
     emptyMessage="No loaded results match the local grid filters."
     onApiReady={(handle) => {
       api = handle;
