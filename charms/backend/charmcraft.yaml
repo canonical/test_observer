@@ -118,7 +118,8 @@ config:
     enable_issue_sync:
       description: Whether to enable periodic syncing of issues from GitHub, Jira, and Launchpad
       type: boolean
-      default: true
+      # Default to false since this involves external API calls
+      default: false
     metrics_init_days:
       description: Number of days of historical data to load when initializing metrics on startup. Use 0 to load all historical data.
       type: int

@@ -53,31 +53,30 @@ logger = logging.getLogger(__name__)
 
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):  # noqa
+    enable_periodic_tasks = environ.get("ENABLE_PERIODIC_TASKS", "true").lower() == "true"
+    enable_kernel_swm = environ.get("ENABLE_KERNEL_SWM", "true").lower() == "true"
+    enable_artefact_promotion = environ.get("ENABLE_ARTEFACT_PROMOTION", "true").lower() == "true"
+    enable_user_session_cleanup = environ.get("ENABLE_USER_SESSION_CLEANUP", "true").lower() == "true"
+    enable_issue_sync = environ.get("ENABLE_ISSUE_SYNC", "true").lower() == "true"
 
-    ENABLE_PERIODIC_TASKS = environ.get("ENABLE_PERIODIC_TASKS", "true").lower() == "true"
-    ENABLE_KERNEL_SWM = environ.get("ENABLE_KERNEL_SWM", "true").lower() == "true"
-    ENABLE_ARTEFACT_PROMOTION = environ.get("ENABLE_ARTEFACT_PROMOTION", "true").lower() == "true"
-    ENABLE_USER_SESSION_CLEANUP = environ.get("ENABLE_USER_SESSION_CLEANUP", "true").lower() == "true"
-    ENABLE_ISSUE_SYNC = environ.get("ENABLE_ISSUE_SYNC", "true").lower() == "true"
+    logger.info("ENABLE_PERIODIC_TASKS=%s", enable_periodic_tasks)
+    logger.info("ENABLE_KERNEL_SWM=%s", enable_kernel_swm)
+    logger.info("ENABLE_ARTEFACT_PROMOTION=%s", enable_artefact_promotion)
+    logger.info("ENABLE_USER_SESSION_CLEANUP=%s", enable_user_session_cleanup)
+    logger.info("ENABLE_ISSUE_SYNC=%s", enable_issue_sync)
 
-    logger.info("ENABLE_PERIODIC_TASKS=%s", ENABLE_PERIODIC_TASKS)
-    logger.info("ENABLE_KERNEL_SWM=%s", ENABLE_KERNEL_SWM)
-    logger.info("ENABLE_ARTEFACT_PROMOTION=%s", ENABLE_ARTEFACT_PROMOTION)
-    logger.info("ENABLE_USER_SESSION_CLEANUP=%s", ENABLE_USER_SESSION_CLEANUP)
-    logger.info("ENABLE_ISSUE_SYNC=%s", ENABLE_ISSUE_SYNC)
-
-    if not ENABLE_PERIODIC_TASKS:
+    if not enable_periodic_tasks:
         return
 
-    if ENABLE_KERNEL_SWM:
+    if enable_kernel_swm:
         sender.add_periodic_task(300, integrate_with_kernel_swm.s())
-    if ENABLE_ARTEFACT_PROMOTION:
+    if enable_artefact_promotion:
         sender.add_periodic_task(600, run_promote_artefacts.s())
-    if ENABLE_USER_SESSION_CLEANUP:
+    if enable_user_session_cleanup:
         sender.add_periodic_task(600, clean_user_sessions.s())
 
     # Staggered sync tasks
-    if ENABLE_ISSUE_SYNC:
+    if enable_issue_sync:
         sender.add_periodic_task(SyncConfig.OPEN_ISSUE_INTERVAL, sync_high_priority_issues.s())
         sender.add_periodic_task(SyncConfig.RECENT_CLOSED_INTERVAL, sync_medium_priority_issues.s())
         sender.add_periodic_task(SyncConfig.OLD_CLOSED_INTERVAL, sync_low_priority_issues.s())
