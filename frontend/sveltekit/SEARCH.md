@@ -203,12 +203,20 @@ Artefact (configured family display name, name, version, track, build architectu
 and Test Execution (ID, test plan, environment, status, execution creation time).
 Created is the **execution's** timestamp, displayed in the browser's local time
 with a timezone label and the original timestamp on hover; it is not the result
-creation time used by the search date filters. Execution metadata categories and
-values are sorted and shown literally, with an explicit empty message. Missing
+creation time used by the search date filters. Scalars use vertically stacked,
+top-aligned label/value rows: a compact label column and the remaining modal width
+for naturally wrapping values. Execution Metadata is a separate full-width,
+semantic **Category | Values** table, with top-aligned cells and more space for
+the stacked values. Categories and values are sorted and shown literally, with
+an explicit empty message. Missing
 optional values use an em dash. Every attached `test_result.issues` issue is
 shown when present, with source, project, key, title and status. Nonempty IO Log
-is full, selectable, escaped monospace text, with bounded scrolling and wrapping
-even for unbroken lines; it is never interpreted as HTML or silently truncated.
+is full, selectable, escaped monospace text, preserving whitespace and soft-wrapping
+even unbroken lines; it is never interpreted as HTML or silently truncated.
+The log has its natural height in the **single scrolling modal body**, not its
+own bounded scrollpane. Wheel/trackpad scrolling over fields, metadata, issues
+or the log continues through that body. The labelled body region is the one
+keyboard scroll stop (PageDown/End); the log adds no Tab stop.
 
 Issue links intentionally target the **future internal** `${base}/issues/${id}`
 path in a new tab with `noopener noreferrer`. The SvelteKit issue detail route is
@@ -406,14 +414,61 @@ PW_TEST_SCREENSHOT_NO_FONTS_READY=1 \
 node tests/search-result-details.browser.js
 ```
 
-It checks 1440px, 960px and 800px in light/dark: real loaded row IDs after sorting,
+It checks 1920px, 1440px, 960px and 800px in light/dark: real loaded row IDs after sorting,
 Run targets, native keyboard opening/Tab containment/Escape/backdrop/X/Close and
 focus restoration, viewport/body scroll/footer reachability, explicit selection
 and all-matches exclusions, no API or URL changes on open/close, confirmed and
 unconfirmed drafts, and native view-only Back/Forward modal/focus retention.
-Available real rows exercise populated/empty logs and issue hrefs without requiring
-the future issue destination to succeed. The JSON report explicitly notes live
-data gaps; huge/malicious logs, Unicode and unconfigured-family cases remain
-deterministic mounted fixtures, not claims about the seed. Reports/screenshots
+Shared assertions in `tests/details-layout.browser.js` verify actual scalar row
+geometry, a full-width real metadata table with complete sorted literal text,
+top-aligned cells, wrapping, no descendant scroll containers, and header/footer
+visibility. Available real rows exercise populated/empty logs and issue hrefs
+without requiring the future issue destination to succeed. The JSON report
+explicitly notes live data gaps; large/complex/malicious examples and zoom use the
+separate browser fixture below, not claims about the seed. Reports/screenshots
 stay outside the repository under `/tmp/opencode`; no login screenshots, traces,
 HAR, credentials, cookies, tokens, personal `/me` payload or storage state.
+
+### Representative Details component browser fixture
+
+The existing small seed is not representative of large production details.
+`tests/search-result-details-fixture.browser.js` starts and stops its **own
+standalone loopback Vite server** with `tests/fixtures/details` as its root. That
+test-only entry mounts the actual `SearchResultDetails.svelte` and imports the
+exact application/Pragma/responsive-token styles. It is not a SvelteKit route,
+production entry, static HTML mock, alternate modal implementation, or API
+response interception. It needs no backend, SSO credentials, seed mutations,
+project dependency additions, or production/staging access.
+
+```sh
+PLAYWRIGHT_MODULE=/tmp/opencode/svelte-search-qa-tools/node_modules/playwright-core/index.mjs \
+CHROMIUM_EXECUTABLE=/path/to/chromium \
+QA_ARTIFACT_DIR=/tmp/opencode/details-layout/fixture-browser \
+PW_TEST_SCREENSHOT_NO_FONTS_READY=1 \
+node tests/search-result-details-fixture.browser.js
+```
+
+The reproducible synthetic data includes 41 metadata categories, long repeated
+keys (including `pipeline:workflow_hash` and `failure:charm:component:status`),
+many alternatives, multiline stack traces/messages/relations, long scalar paths,
+Unicode/punctuation/malicious-looking literal text, attached issues, and a large
+multiline log with indented table-like output and long unbroken tokens. A second
+short record covers empty optional fields/sections and an unconfigured family.
+The runner verifies every metadata value and the entire log, not a sample or
+truncated preview. It checks scalar/table geometry, natural short-record height,
+no nested scrolling/clipping, selectable literal content, PageDown/End, real
+wheel events **over the log at start/middle/end** moving the body, background
+locking, native modal/Tab order, Escape and internal issue links.
+
+The matrix is 1920/1440/960/800 × 900 plus 800 × 600, light/dark, at native
+Chromium **100% and 120% browser zoom**. Zoom is set using Chromium's own Settings
+API in a disposable isolated profile, with actual viewport/DPR checked (not CSS
+zoom, pinch scaling, or an emulated DPR). Physical content viewport dimensions
+are maintained, so 120% zoom reduces the CSS viewport as a user would see. This
+also exercises the typography-token breakpoint above 1681px. The runner closes
+its browser/server and removes its disposable profile in `finally`; its Vite
+cache, screenshots and explicitly labelled JSON fixture report stay under the
+artifact directory. Pragma's stylesheet may load its normal external static font;
+the fixture makes zero Test Observer API calls. **A fixture pass is not live API,
+exact production-record, or production-data evidence.** Use the native live
+regression independently, and check actual user data after deployment.

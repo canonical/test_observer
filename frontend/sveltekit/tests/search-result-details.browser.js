@@ -8,6 +8,7 @@
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { assertDetailsLayout } from "./details-layout.browser.js";
 
 assert.ok(
   process.env.TEST_OBSERVER_USERNAME && process.env.TEST_OBSERVER_PASSWORD,
@@ -44,7 +45,7 @@ let rows = [];
 let authentication = null;
 let passed = false;
 const limits = [
-  "Live data is never mutated: empty/populated optional sections are checked only where present in the real loaded page. Huge/malicious logs, Unicode and absent configured families are deterministic mounted fixtures.",
+  "Live data is never mutated: empty/populated optional sections are checked only where present in the real loaded page. Large/complex/malicious examples and zoom are covered by the separate actual-component browser fixture, not claimed as live data evidence.",
 ];
 context.on("request", (request) => {
   const path = new URL(String(request.url())).pathname;
@@ -317,6 +318,9 @@ try {
           .textContent(),
         raw.test_result.name,
       );
+      /** @type {Record<string, string[]>} */
+      const executionMetadata = raw.test_execution.execution_metadata;
+      const layout = await assertDetailsLayout(dialog, executionMetadata);
       const backgroundFocus = await page.evaluate(() => {
         const modal = document.querySelector("dialog.search-result-details");
         const controls = Array.from(
@@ -457,6 +461,7 @@ try {
         backgroundFocusTargets: backgroundFocus.tested,
         zeroTraffic: true,
         geometry,
+        layout,
       });
     }
   }
@@ -482,6 +487,9 @@ try {
     await settle();
     const button = page.locator(`button[data-test-result-id="${caseId}"]`);
     await openDetails(button);
+    /** @type {Record<string, string[]>} */
+    const executionMetadata = row.test_execution.execution_metadata;
+    await assertDetailsLayout(dialog, executionMetadata);
     const issues = row.test_result.issues ?? [];
     assert.equal(await dialog.locator(".issues a").count(), issues.length);
     for (const { issue } of issues) {

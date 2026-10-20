@@ -299,9 +299,9 @@ void test("loaded details show every Flutter-functional section, sorted Unicode 
     ])
       assert.ok(dialog.textContent.includes(text), text);
     assert.deepEqual(
-      [...dialog.querySelectorAll(".execution-metadata dt")].map(
-        (node) => node.textContent,
-      ),
+      [
+        ...dialog.querySelectorAll(".execution-metadata tbody th[scope=row]"),
+      ].map((node) => node.textContent),
       ["Alpha", "ζ Unicode 🐧"],
     );
     assert.deepEqual(
@@ -310,6 +310,40 @@ void test("loaded details show every Flutter-functional section, sorted Unicode 
       ),
       ["a", "z", "一", "二"],
     );
+    const table = dialog.querySelector("table.execution-metadata");
+    assert.ok(table, "Metadata is a real table, not scalar description items");
+    assert.equal(
+      table.closest("dd"),
+      null,
+      "Metadata uses the section's full width",
+    );
+    assert.deepEqual(
+      [...table.querySelectorAll("thead th[scope=col]")].map(
+        (node) => node.textContent,
+      ),
+      ["Category", "Values"],
+    );
+    assert.deepEqual(
+      [...dialog.querySelectorAll("section > .description-list-container")].map(
+        (container) =>
+          [...container.querySelectorAll("dt")].map((node) => node.textContent),
+      ),
+      [
+        ["Name", "Category", "Template ID", "Status"],
+        ["Family", "Name", "Version", "Track", "Architecture"],
+        ["Execution ID", "Test Plan", "Environment", "Status", "Created"],
+      ],
+    );
+    for (const list of dialog.querySelectorAll("dl")) {
+      assert.ok(list.classList.contains("list"));
+      for (const item of list.children) {
+        assert.deepEqual(
+          [...item.children].map((node) => node.tagName),
+          ["DT", "DD"],
+          "Each semantic scalar row pairs one label with one value",
+        );
+      }
+    }
     const time = dialog.querySelector("time");
     assert.equal(time?.getAttribute("datetime"), "2026-02-03T07:04:56.000Z");
     assert.equal(time.getAttribute("title"), row.test_execution.created_at);
@@ -331,6 +365,8 @@ void test("loaded details show every Flutter-functional section, sorted Unicode 
       assert.match(link.getAttribute("aria-label") ?? "", /View issue/);
     }
     assert.equal(dialog.querySelector("pre")?.textContent, log);
+    assert.equal(dialog.querySelector("pre")?.hasAttribute("tabindex"), false);
+    assert.equal(dialog.querySelector("pre")?.hasAttribute("role"), false);
     assert.equal(dialog.querySelector("script, img, b"), null);
     assert.ok(dialog.querySelector("header, .dialog-content-header"));
     assert.ok(dialog.querySelector("footer, .dialog-content-footer"));

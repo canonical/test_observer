@@ -64,11 +64,16 @@
           aria-label="Close details"
         />
       </Modal.Content.Header>
-      <Modal.Content.Body class="details-body">
+      <Modal.Content.Body
+        class="details-body"
+        role="region"
+        aria-label="Test result details content"
+        tabindex={0}
+      >
         {#if result}
           <section aria-labelledby={`${id}-case`}>
             <h3 id={`${id}-case`}>Test Case</h3>
-            <DescriptionList>
+            <DescriptionList layout="list" class="scalar-details">
               <DescriptionList.Item name="Name"
                 >{value(result.test_result.name)}</DescriptionList.Item
               >
@@ -85,7 +90,7 @@
           </section>
           <section aria-labelledby={`${id}-artefact`}>
             <h3 id={`${id}-artefact`}>Artefact</h3>
-            <DescriptionList>
+            <DescriptionList layout="list" class="scalar-details">
               <DescriptionList.Item name="Family"
                 >{value(
                   family ? familyDisplayName(family) : result.artefact.family,
@@ -109,7 +114,7 @@
           </section>
           <section aria-labelledby={`${id}-execution`}>
             <h3 id={`${id}-execution`}>Test Execution</h3>
-            <DescriptionList>
+            <DescriptionList layout="list" class="scalar-details">
               <DescriptionList.Item name="Execution ID"
                 >{value(result.test_execution.id)}</DescriptionList.Item
               >
@@ -132,19 +137,34 @@
                   />{:else}—{/if}
               </DescriptionList.Item>
             </DescriptionList>
-            <h4>Execution Metadata</h4>
+            <h4 id={`${id}-metadata`}>Execution Metadata</h4>
             {#if metadata.length}
-              <DescriptionList class="execution-metadata">
-                {#each metadata as [category, values] (category)}
-                  <DescriptionList.Item name={value(category)}>
-                    {#if values.length}<ul>
-                        {#each [...values].sort() as item, index (index)}<li>
-                            {value(item)}
-                          </li>{/each}
-                      </ul>{:else}—{/if}
-                  </DescriptionList.Item>
-                {/each}
-              </DescriptionList>
+              <table
+                class="execution-metadata"
+                aria-labelledby={`${id}-metadata`}
+              >
+                <thead>
+                  <tr
+                    ><th scope="col">Category</th><th scope="col">Values</th
+                    ></tr
+                  >
+                </thead>
+                <tbody>
+                  {#each metadata as [category, values] (category)}
+                    <tr>
+                      <th scope="row">{value(category)}</th>
+                      <td>
+                        {#if values.length}<ul>
+                            {#each [...values].sort() as item, index (index)}<li
+                              >
+                                {value(item)}
+                              </li>{/each}
+                          </ul>{:else}—{/if}
+                      </td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
             {:else}<p>No execution metadata available.</p>{/if}
           </section>
           {#if result.test_result.issues?.length}
@@ -164,7 +184,7 @@
                         issue.title,
                       )}
                     </Link>
-                    <DescriptionList>
+                    <DescriptionList layout="list" class="scalar-details">
                       <DescriptionList.Item name="Source"
                         >{value(issue.source)}</DescriptionList.Item
                       >
@@ -183,12 +203,7 @@
           {#if result.test_result.io_log}
             <section aria-labelledby={`${id}-log`}>
               <h3 id={`${id}-log`}>IO Log</h3>
-              <!-- svelte-ignore a11y_no_noninteractive_tabindex (This independently scrollable full log needs keyboard scrolling.) -->
-              <pre
-                class="io-log"
-                role="region"
-                tabindex="0"
-                aria-label="IO Log">{result.test_result.io_log}</pre>
+              <pre class="io-log">{result.test_result.io_log}</pre>
             </section>
           {/if}
         {/if}
@@ -238,8 +253,56 @@
     overscroll-behavior: contain;
     overflow-wrap: anywhere;
   }
-  :global(.search-result-details .description-list-item dd) {
+  /* Pragma's list semantics/typography, with top-aligned label/value rows
+     instead of its dotted leaders and right-aligned values. Modal-local only. */
+  :global(dialog.search-result-details .scalar-details .description-list-item) {
+    display: grid;
+    grid-template-columns: min(11rem, 30%) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 1rem;
+  }
+  :global(
+    dialog.search-result-details .scalar-details .description-list-item::before
+  ) {
+    display: none;
+  }
+  :global(
+    dialog.search-result-details .scalar-details .description-list-item dt
+  ),
+  :global(
+    dialog.search-result-details .scalar-details .description-list-item dd
+  ) {
     min-width: 0;
+    margin: 0;
+    text-align: start;
+  }
+  .execution-metadata {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    font: var(--ds-typography-text-secondary);
+  }
+  .execution-metadata th,
+  .execution-metadata td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--lp-color-border-low-contrast);
+    text-align: start;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+  .execution-metadata th:first-child {
+    width: 35%;
+    padding-left: 0;
+  }
+  .execution-metadata th:last-child,
+  .execution-metadata td {
+    padding-right: 0;
+  }
+  .execution-metadata li {
+    white-space: pre-wrap;
+  }
+  .execution-metadata li + li {
+    margin-top: 0.25rem;
   }
   h2 {
     font-size: 1.5rem;
@@ -268,9 +331,6 @@
     font-size: 0.875rem;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    max-height: 20rem;
-    overflow: auto;
-    overscroll-behavior: contain;
     padding: 0.75rem;
     border: 1px solid var(--lp-color-border-low-contrast);
     background: var(--lp-color-background-default);
