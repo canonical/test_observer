@@ -12,6 +12,7 @@
   import { silentApi } from "$lib/api/client";
   import {
     issueAttachmentPayload,
+    executionIds,
     type BulkTarget,
     type Capability,
   } from "$lib/testResultsBulk";
@@ -33,6 +34,8 @@
     type PickedIssue,
   } from "$lib/testResultsIssues";
   import BulkIssuePicker from "./BulkIssuePicker.svelte";
+  import BulkRerunReview from "./BulkRerunReview.svelte";
+  import { rerunIsBulk, type RerunOperation } from "$lib/testResultsReruns";
 
   let {
     scope,
@@ -65,6 +68,9 @@
   let authController: AbortController | undefined;
   let live = true;
   let open = $state(false);
+  let rerunReview: ReturnType<typeof BulkRerunReview>;
+  let rerunBusy = $state(false);
+  let rerunOpen = $state(false);
   let target = $state.raw<BulkTarget | null>(null);
   let operation = $state<IssueOperation>("attach");
   let status = $state<IssueReviewStatus>("review");
@@ -130,6 +136,20 @@
         ? permission.reason
         : "",
   );
+  const rerunReason = $derived.by(() => {
+    if (!capability.ok) return capability.reason;
+    if (checking) return "Checking permissions…";
+    if (capability.value.kind === "explicit") {
+      const ids = executionIds(capability.value);
+      if (!ids.ok) return ids.reason;
+    }
+    const gate = permissions?.check("rerun", rerunIsBulk(capability.value));
+    return gate?.ok
+      ? ""
+      : gate
+        ? gate.reason
+        : "Refresh permissions before using this action.";
+  });
   const canSubmit = $derived(
     open &&
       !busy &&
@@ -183,10 +203,10 @@
     }
   });
   $effect(() => {
-    onbusy(busy);
+    onbusy(busy || rerunBusy);
   });
   $effect(() => {
-    onreview(open);
+    onreview(open || rerunOpen);
   });
   onDestroy(() => {
     live = false;
@@ -209,6 +229,7 @@
     return current;
   }
   async function start(action: IssueOperation) {
+    if (open || rerunOpen || busy || rerunBusy) return;
     const fresh = scope();
     if (!fresh.ok || !attachmentPermission(fresh.value).ok) return;
     beforeOpen();
@@ -229,11 +250,23 @@
     onreview(true);
     await refreshPermissions();
   }
+  function startRerun(action: RerunOperation) {
+    if (open || rerunOpen || busy || rerunBusy || rerunReason) return;
+    beforeOpen();
+    menu.hidePopover();
+    menuButton?.focus({ preventScroll: true });
+    void rerunReview.start(action);
+  }
   function close() {
     if (busy) return;
     open = false;
     authController?.abort();
-    if (menuButton?.isConnected) menuButton.focus({ preventScroll: true });
+    void restoreTriggerFocus();
+  }
+  async function restoreTriggerFocus() {
+    await tick();
+    if (live && !open && !rerunOpen && menuButton?.isConnected)
+      menuButton.focus({ preventScroll: true });
   }
   async function submit() {
     if (!canSubmit || submitted || !target) return;
@@ -320,7 +353,7 @@
       const key = openedKey;
       status = "review";
       open = false;
-      onbusy(false);
+      onbusy(rerunBusy);
       await oncomplete(
         key,
         `${operation === "attach" ? "Attach" : "Detach"} request completed for issue #${issue.id}. Refreshing current results. The API does not report a changed count; already-${operation === "attach" ? "attached" : "detached"} results may be unchanged.`,
@@ -343,7 +376,7 @@
       submitted = false;
       if (live && status === "submitting")
         status = retainedIssue ? "partial" : "error";
-      if (live) onbusy(false);
+      if (live) onbusy(rerunBusy);
     }
   }
 
@@ -414,6 +447,7 @@
       bind:ref={menuButton}
       type="button"
       density="dense"
+      disabled={busy || rerunBusy || open || rerunOpen}
       aria-haspopup="menu"
       aria-expanded={expanded}
       onpointerdown={beforeOpen}
@@ -446,10 +480,49 @@
   <p id={`${id}-menu-reason`} role="status">
     {menuReason || "Review the selected scope and one issue before submitting."}
   </p>
+  <hr />
+  <Button
+    type="button"
+    role="menuitem"
+    density="dense"
+    disabled={Boolean(rerunReason)}
+    aria-describedby={`${id}-rerun-reason`}
+    onclick={() => startRerun("create")}>Create Rerun Requests…</Button
+  >
+  <Button
+    type="button"
+    role="menuitem"
+    density="dense"
+    disabled={Boolean(rerunReason)}
+    aria-describedby={`${id}-rerun-reason`}
+    onclick={() => startRerun("delete")}>Delete Rerun Requests…</Button
+  >
+  <p id={`${id}-rerun-reason`} role="status">
+    {rerunReason ||
+      "Review query eligibility or explicitly opt into exact execution groups."}
+  </p>
 </Popover>
 {#if !capability.ok}<p class="bulk-disabled" role="status">
     {capability.reason}
   </p>{/if}
+
+<BulkRerunReview
+  bind:this={rerunReview}
+  {scope}
+  {reviewKey}
+  {loginUrl}
+  {oncomplete}
+  {onrefresh}
+  onbusy={(value) => {
+    rerunBusy = value;
+    onbusy(busy || value);
+  }}
+  onreview={(value) => {
+    rerunOpen = value;
+    onreview(open || value);
+  }}
+  onclose={restoreTriggerFocus}
+/>
 
 <Modal
   class="bulk-issue-review"

@@ -4,7 +4,7 @@
 # Test result search
 
 `/test-results` is a search page with ephemeral result selection and contextual
-issue attachment actions. Its
+issue attachment and rerun request actions. Its
 applied query lives in the URL, so direct links, reloads, and browser back/forward
 restore the search. Selection is not encoded in links; view-only history changes
 preserve the current selection. This is the canonical SvelteKit search guide.
@@ -281,7 +281,8 @@ and submitted.
 
 Selecting results reveals **Bulk actions** beside the selection summary and
 **Clear selection**. Its Pragma chevron menu contains **Attach Issue…** and
-**Detach Issue…** only. Opening the menu and review refreshes session permissions;
+**Detach Issue…**, followed by a separate group for **Create Rerun Requests…** and
+**Delete Rerun Requests…**. Opening the menu and review refreshes session permissions;
 selection alone never does. Disabled actions have visible explanations, including
 unapplied drafts, unavailable results and unsupported scopes. All-matches
 exclusions are not supported by the mutation API: remove the exclusions or
@@ -325,6 +326,73 @@ pagination, grid view and suspended condition inputs survive. The API does not
 return a changed count, so already-attached/detached results may be unchanged.
 Empty or out-of-range pages retain Previous-page navigation. **Close and refresh
 results** is also available after partial/unknown outcomes for inspection.
+
+## Rerun request review
+
+The same contextual menu opens one Pragma review for Create or Delete Rerun
+Requests. It cannot stack with issue review or Details. Reruns are whole
+**build / environment / test plan groups**, not individual test results, and
+multiple executions can share one group. No client-side group enumeration is
+performed. Selection alone never sends requests.
+
+For **all matches**, the original valid applied query is frozen without page,
+view or local grid filters. All-matches exclusions and date-only queries are
+unsupported even if adding a rerun guard would make them non-date predicates.
+Creation intersects `rerun_is_requested=false`; deletion intersects `true`.
+The independent **Only latest test executions** and **Exclude archived artefacts**
+options default on for create and off for delete. They add `execution_is_latest=true`
+and `artefact_is_archived=false` respectively. Unchecked options preserve existing
+applied constraints, including `false`. A contradiction disables submission with
+a reason; it never replaces the query to target different rows.
+
+An independent `GET /v1/test-results` preview uses the effective conditions and
+`limit=0`, with raw mutation metadata converted to repeated UTF-8 Base64 pairs
+for GET. This does not change the search page's `limit>=1` contract. Options,
+session changes and closing cancel obsolete previews; stale replies/errors cannot
+enable submission. The summary counts **matching test results**, not request
+groups or changed requests. A failed, pending or zero preview cannot submit.
+
+For **explicit selected results**, retained result-to-execution context is
+deduplicated across pages. Missing context disables the action; result IDs are
+never substituted for execution IDs or fetched in bulk to reconstruct context.
+The backend ORs IDs and filters, so guarded explicit selection cannot be expressed.
+The review requires the distinct **Use these exact execution groups** opt-in.
+This sends execution IDs only, with **no latest/archive/existing-request guards**;
+it includes older executions and archived artefacts. Use an all-matches query
+instead when eligibility guards are needed. The review shows selected result and
+unique execution counts; actual request groups may be fewer. Exact creation can
+**update existing groups' priorities**, not just create missing requests. Exact
+deletion affects the whole group, even when identified by an older execution.
+
+Create priority defaults to 0 and must be a safe integer from -1000000 to 1000000.
+Higher-priority requests are listed first, not guaranteed to run first. Delete
+has no priority. More than 50 target **results** requires acknowledgment in the
+same modal, independently of execution deduplication; scope, options, priority
+and preview changes reset it. Effective JSON and scope are frozen before the
+fresh presubmit authorization check. Create sends
+`POST /v1/test-executions/reruns?silent=true` (a null success body is valid);
+delete sends `DELETE /v1/test-executions/reruns` with JSON and no priority.
+IDs and filter criteria are never combined.
+
+Normal `change_rerun` permission is always required. `change_rerun_bulk` is also
+required for queries or more than one deduplicated execution ID, not merely more
+than one result. Confirmed admin and global team grants are supported; cached
+admin, unknown/cancelled/superseded authorization and AMR-only grants that `/me`
+does not expose cannot authorize. Permissions are revocable and refreshed at
+open and immediately before submit. Observed scope/logout changes permanently
+invalidate that review even if the same selection or user returns during an await.
+The server remains authoritative: 401/403 and other failures stay inline, and
+require a new review. Network/5xx outcomes are explicitly unknown, with no
+automatic retry or same-review resubmission. Close and refresh results allows
+inspection before starting over.
+
+Submission blocks duplicates, closing and navigation. Success clears only the
+matching reviewed selection and refreshes the **current applied** results, count
+and loaded rerun state without applying drafts or reloading the route. Query,
+pagination, grid view and the same suspended condition-editor inputs survive;
+an obsolete completion cannot clear a newer selection. The API does not report
+a changed count, and concurrent group changes can leave requests unchanged or
+update an existing priority. This is not a server snapshot or an atomicity promise.
 
 ## Table layout and shareable views
 
@@ -370,8 +438,8 @@ so visibility is checked every 250ms while the grid is mounted (with cleanup).
 
 ## Deliberately deferred
 
-Execution-status filtering; saved views and export. Attachment rules,
-rerun creation/deletion and other mutation workflows remain excluded.
+Execution-status filtering; saved views and export. Attachment rules and other
+mutation workflows beyond issue attachment and rerun requests remain excluded.
 
 ## Local checks
 

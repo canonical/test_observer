@@ -135,7 +135,7 @@ function bulkTransport(override) {
     calls,
     mutations: () =>
       calls.filter(({ options }) =>
-        ["POST", "PUT"].includes(options.method ?? "GET"),
+        ["POST", "PUT", "DELETE"].includes(options.method ?? "GET"),
       ),
     sessions: () =>
       calls.filter(({ url }) => url.pathname.endsWith("/users/me")),
@@ -148,6 +148,761 @@ function bulkDialog() {
   assert.ok(dialog);
   return /** @type {import('happy-dom').HTMLDialogElement} */ (dialog);
 }
+
+function rerunDialog() {
+  const dialog = browser.document.querySelector("dialog.bulk-rerun-review");
+  assert.ok(dialog, "A rerun review is open");
+  return /** @type {import('happy-dom').HTMLDialogElement} */ (dialog);
+}
+/** @param {import('happy-dom').HTMLElement} root @param {string} text */
+function checkLabel(root, text) {
+  const label = [...root.querySelectorAll("label")].find((label) =>
+    label.textContent.includes(text),
+  );
+  assert.ok(label, `Missing checkbox ${text}`);
+  const input = label.querySelector('input[type="checkbox"]');
+  assert.ok(input);
+  return /** @type {import('happy-dom').HTMLInputElement} */ (input);
+}
+/** @param {(request: URL, options: RequestInit) => Response | Promise<Response> | undefined} [override] */
+function rerunTransport(override) {
+  return bulkTransport((request, options) => {
+    const special = override?.(request, options);
+    if (special) return special;
+    if (request.pathname.endsWith("/test-executions/reruns")) return json(null);
+    if (
+      request.pathname.endsWith("/test-results") &&
+      request.searchParams.get("limit") === "0"
+    )
+      return json({ count: 72, limit: 0, offset: 0, test_results: [] });
+    return undefined;
+  });
+}
+/** @param {import('happy-dom').HTMLElement} target @param {"create" | "delete"} [operation] @param {boolean} [all] */
+async function openReruns(target, operation = "create", all = true) {
+  if (all) {
+    selectionHeader(target).click();
+    await flush();
+    allMatchesCheckbox(target).click();
+  } else selectionRow(target, 1).click();
+  await flush();
+  button(target, "Bulk actions").click();
+  await flush();
+  button(
+    target,
+    operation === "create"
+      ? "Create Rerun Requests…"
+      : "Delete Rerun Requests…",
+  ).click();
+  await flush();
+  return rerunDialog();
+}
+
+void test("rerun query review has independent create/delete defaults, correct count-only preview and immutable silent POST/DELETE contracts", async () => {
+  for (const operation of ["create", "delete"]) {
+    const api = rerunTransport();
+    const ui = mounted("artefacts=one&limit=2");
+    try {
+      await flush();
+      const dialog = await openReruns(ui.target, operation);
+      assert.equal(bulkDialog().open, false);
+      assert.equal(detailsDialog().open, false);
+      assert.equal(
+        checkLabel(dialog, "Only latest test executions").checked,
+        operation === "create",
+      );
+      assert.equal(
+        checkLabel(dialog, "Exclude archived artefacts").checked,
+        operation === "create",
+      );
+      assert.match(
+        dialog.textContent,
+        /Matches 72 test results; rerun requests are grouped/,
+      );
+      assert.equal(
+        Boolean(dialog.querySelector('input[type="number"]')),
+        operation === "create",
+      );
+      const preview = api
+        .searches()
+        .filter(({ url }) => url.searchParams.get("limit") === "0");
+      assert.equal(preview.length, 1);
+      assert.equal(preview[0].url.searchParams.get("offset"), null);
+      assert.equal(
+        preview[0].url.searchParams.get("rerun_is_requested"),
+        String(operation === "delete"),
+      );
+      const submit = button(
+        dialog,
+        operation === "create"
+          ? "Create rerun requests"
+          : "Delete rerun requests",
+      );
+      assert.equal(submit.disabled, true);
+      checkLabel(dialog, "I have reviewed").click();
+      await flush();
+      submit.click();
+      submit.click();
+      await flush();
+      assert.equal(api.mutations().length, 1);
+      const mutation = api.mutations()[0];
+      assert.equal(
+        mutation.options.method,
+        operation === "create" ? "POST" : "DELETE",
+      );
+      assert.equal(
+        mutation.url.searchParams.get("silent"),
+        operation === "create" ? "true" : null,
+      );
+      assert.deepEqual(JSON.parse(mutation.options.body), {
+        test_results_filters: {
+          artefacts: ["one"],
+          rerun_is_requested: operation === "delete",
+          ...(operation === "create"
+            ? { execution_is_latest: true, artefact_is_archived: false }
+            : {}),
+        },
+        ...(operation === "create" ? { priority: 0 } : {}),
+      });
+      assert.match(ui.target.textContent, /request completed/);
+      assert.equal(ui.target.querySelector(".selection-summary"), null);
+      assert.equal(
+        api
+          .searches()
+          .filter(({ url }) => url.searchParams.get("limit") !== "0").length,
+        2,
+        "success refreshes current results",
+      );
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("rerun query contradictions disable instead of broadening; toggling either extra option independently keeps applied constraints", async () => {
+  const api = rerunTransport();
+  const ui = mounted("artefact_is_archived=true&execution_is_latest=false");
+  try {
+    await flush();
+    const dialog = await openReruns(ui.target);
+    assert.match(dialog.textContent, /contradicts/);
+    assert.equal(
+      api.searches().filter(({ url }) => url.searchParams.get("limit") === "0")
+        .length,
+      0,
+    );
+    checkLabel(dialog, "Only latest test executions").click();
+    await flush();
+    assert.match(dialog.textContent, /contradicts/);
+    checkLabel(dialog, "Exclude archived artefacts").click();
+    await flush();
+    const preview = api.searches().at(-1).url.searchParams;
+    assert.equal(preview.get("execution_is_latest"), "false");
+    assert.equal(preview.get("artefact_is_archived"), "true");
+    assert.equal(preview.get("rerun_is_requested"), "false");
+    checkLabel(dialog, "I have reviewed").click();
+    await flush();
+    assert.equal(button(dialog, "Create rerun requests").disabled, false);
+    checkLabel(dialog, "Only latest test executions").click();
+    await flush();
+    assert.equal(button(dialog, "Create rerun requests").disabled, true);
+    checkLabel(dialog, "Only latest test executions").click();
+    await flush();
+    assert.equal(checkLabel(dialog, "I have reviewed").checked, false);
+    assert.equal(api.mutations().length, 0);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("explicit rerun exact-group consent deduplicates retained cross-page execution contexts and uses normal permission for a single execution", async () => {
+  for (const operation of ["create", "delete"]) {
+    const api = rerunTransport((request) =>
+      request.pathname.endsWith("/users/me")
+        ? json({
+            ...bulkAdmin,
+            is_admin: false,
+            teams: [{ permissions: ["change_rerun"] }],
+          })
+        : request.pathname.endsWith("/test-results")
+          ? response(
+              request.searchParams.get("offset") === "2" ? [3, 4] : [1, 2],
+              4,
+              2,
+              Number(request.searchParams.get("offset") ?? 0),
+            )
+          : undefined,
+    );
+    const ui = mounted("artefacts=one&limit=2");
+    try {
+      await flush();
+      selectionRow(ui.target, 1).click();
+      await flush();
+      button(ui.target, "Next").click();
+      await flush();
+      selectionRow(ui.target, 3).click();
+      await flush();
+      button(ui.target, "Bulk actions").click();
+      await flush();
+      assert.equal(
+        button(ui.target, "Attach Issue…").disabled,
+        true,
+        "rerun permission is separate from issues",
+      );
+      button(
+        ui.target,
+        operation === "create"
+          ? "Create Rerun Requests…"
+          : "Delete Rerun Requests…",
+      ).click();
+      await flush();
+      const dialog = rerunDialog();
+      assert.match(
+        dialog.textContent,
+        /2 selected test results → 1 unique executions/,
+      );
+      assert.match(
+        dialog.textContent,
+        /whole build \/ environment \/ test plan\s+groups/,
+      );
+      assert.match(
+        dialog.textContent,
+        /older executions and archived artefacts/,
+      );
+      if (operation === "create")
+        assert.match(
+          dialog.textContent,
+          /update the priority of existing requests/,
+        );
+      assert.equal(dialog.querySelectorAll('input[type="checkbox"]').length, 1);
+      const submit = button(
+        dialog,
+        operation === "create"
+          ? "Create rerun requests"
+          : "Delete rerun requests",
+      );
+      assert.equal(submit.disabled, true);
+      checkLabel(dialog, "Use these exact execution groups").click();
+      await flush();
+      assert.equal(submit.disabled, false);
+      if (operation === "create")
+        await enter(dialog, 'input[type="number"]', "-18");
+      submit.click();
+      await flush();
+      assert.deepEqual(JSON.parse(api.mutations()[0].options.body), {
+        test_execution_ids: [7],
+        ...(operation === "create" ? { priority: -18 } : {}),
+      });
+      assert.equal(
+        api.searches().some(({ url }) => url.searchParams.get("limit") === "0"),
+        false,
+        "explicit mode never enumerates or previews query rows",
+      );
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("rerun previews abort and reject late counts/errors on options or close; >50 acknowledgment resets on options, count and priority", async () => {
+  const first = deferred();
+  const second = deferred();
+  let previews = 0;
+  const api = rerunTransport((request) => {
+    if (
+      request.pathname.endsWith("/test-results") &&
+      request.searchParams.get("limit") === "0"
+    ) {
+      previews++;
+      return previews === 1
+        ? first.promise
+        : previews === 2
+          ? second.promise
+          : undefined;
+    }
+    return undefined;
+  });
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    const dialog = await openReruns(ui.target);
+    assert.equal(button(dialog, "Create rerun requests").disabled, true);
+    checkLabel(dialog, "Only latest test executions").click();
+    await flush();
+    assert.equal(
+      api.searches().find(({ url }) => url.searchParams.get("limit") === "0")
+        .options.signal.aborted,
+      true,
+    );
+    second.resolve(json({ count: 80 }));
+    await flush();
+    checkLabel(dialog, "I have reviewed").click();
+    await flush();
+    assert.equal(button(dialog, "Create rerun requests").disabled, false);
+    first.resolve(json({ detail: "obsolete preview" }, 500));
+    await flush();
+    assert.match(dialog.textContent, /Matches 80/);
+    assert.doesNotMatch(dialog.textContent, /obsolete preview/);
+    await enter(dialog, 'input[type="number"]', "9");
+    assert.equal(checkLabel(dialog, "I have reviewed").checked, false);
+    assert.match(dialog.textContent, /Matches 72/);
+    checkLabel(dialog, "I have reviewed").click();
+    await flush();
+    checkLabel(dialog, "Exclude archived artefacts").click();
+    await flush();
+    assert.equal(checkLabel(dialog, "I have reviewed").checked, false);
+    button(dialog, "Cancel").click();
+    await flush();
+    assert.equal(
+      browser.document.querySelector("dialog.bulk-rerun-review"),
+      null,
+    );
+    assert.equal(
+      browser.document.activeElement,
+      button(ui.target, "Bulk actions"),
+    );
+    assert.equal(api.mutations().length, 0);
+  } finally {
+    first.resolve(json({ count: 1 }));
+    second.resolve(json({ count: 1 }));
+    await ui.destroy();
+  }
+});
+
+void test("rerun submit refresh is revocable and scope/session changed-and-restored across awaits never authorizes mutation or clears a new selection", async () => {
+  for (const stage of ["authorization", "mutation"]) {
+    for (const mode of ["session", "scope"]) {
+      const pending = deferred();
+      let sessions = 0;
+      const api = rerunTransport((request) => {
+        if (request.pathname.endsWith("/users/me")) {
+          sessions++;
+          if (stage === "authorization" && sessions === 3)
+            return pending.promise;
+        }
+        if (
+          stage === "mutation" &&
+          request.pathname.endsWith("/test-executions/reruns")
+        )
+          return pending.promise;
+        return undefined;
+      });
+      const ui = mounted("artefacts=one");
+      try {
+        await flush();
+        const dialog = await openReruns(ui.target, "create", false);
+        checkLabel(dialog, "Use these exact execution groups").click();
+        await flush();
+        button(dialog, "Create rerun requests").click();
+        await flush();
+        assert.equal(button(dialog, "Cancel").disabled, true);
+        assert.equal(
+          button(ui.target, "Search").disabled,
+          true,
+          "closed issue child cannot overwrite rerun busy",
+        );
+        await restoreChangedBulkContext(ui.target, mode);
+        pending.resolve(json(stage === "authorization" ? bulkAdmin : null));
+        await flush();
+        assert.equal(api.mutations().length, stage === "mutation" ? 1 : 0);
+        assert.equal(button(dialog, "Create rerun requests").disabled, true);
+        assert.match(dialog.textContent, /session changed/);
+        assert.match(ui.target.textContent, /1 selected by result ID/);
+        assert.equal(button(ui.target, "Search").disabled, false);
+      } finally {
+        pending.resolve(json(bulkAdmin));
+        await ui.destroy();
+      }
+    }
+  }
+});
+
+void test("rerun errors, server denials and ambiguous outcomes are inline and require a new review, never retry", async () => {
+  for (const status of [401, 403, 422, 503, 0]) {
+    const api = rerunTransport((request) =>
+      request.pathname.endsWith("/test-executions/reruns")
+        ? status === 0
+          ? Promise.reject(new Error("Connection lost"))
+          : json({ detail: "Rejected rerun" }, status)
+        : undefined,
+    );
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      const dialog = await openReruns(ui.target, "delete", false);
+      checkLabel(dialog, "Use these exact execution groups").click();
+      await flush();
+      button(dialog, "Delete rerun requests").click();
+      await flush();
+      assert.equal(api.mutations().length, 1);
+      assert.equal(button(dialog, "Delete rerun requests").disabled, true);
+      assert.match(
+        dialog.textContent,
+        status === 401
+          ? /session expired/
+          : status === 403
+            ? /server denied/
+            : status === 422
+              ? /422/
+              : /Outcome unknown/,
+      );
+      button(dialog, "Delete rerun requests").click();
+      await flush();
+      assert.equal(api.mutations().length, 1);
+      button(dialog, "Close and refresh results").click();
+      await flush();
+      assert.equal(
+        browser.document.querySelector("dialog.bulk-rerun-review"),
+        null,
+      );
+      assert.match(ui.target.textContent, /1 selected by result ID/);
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("rerun preview failures and request-state contradictions never authorize; normal-only query permissions fail closed", async () => {
+  for (const mode of [
+    "count-error",
+    "zero",
+    "requested",
+    "bulk-denied",
+    "expired",
+    "unknown",
+  ]) {
+    let sessions = 0;
+    const api = rerunTransport((request) => {
+      if (request.pathname.endsWith("/users/me")) {
+        sessions++;
+        if (mode === "bulk-denied")
+          return json({
+            ...bulkAdmin,
+            is_admin: false,
+            teams: [{ permissions: ["change_rerun"] }],
+          });
+        if (sessions === 3 && mode === "expired") return json(null, 401);
+        if (sessions === 3 && mode === "unknown") return json({}, 503);
+      }
+      if (
+        request.searchParams.get("limit") === "0" &&
+        ["count-error", "zero"].includes(mode)
+      )
+        return mode === "zero"
+          ? json({ count: 0 })
+          : json({ detail: "Count unavailable" }, 503);
+      return undefined;
+    });
+    const ui = mounted(
+      mode === "requested" ? "rerun_is_requested=true" : "artefacts=one",
+    );
+    try {
+      await flush();
+      if (mode === "bulk-denied") {
+        selectionHeader(ui.target).click();
+        await flush();
+        allMatchesCheckbox(ui.target).click();
+        await flush();
+        button(ui.target, "Bulk actions").click();
+        await flush();
+        assert.equal(
+          button(ui.target, "Create Rerun Requests…").disabled,
+          true,
+        );
+        assert.match(ui.target.textContent, /change_rerun_bulk/);
+      } else {
+        const dialog = await openReruns(ui.target);
+        if (["expired", "unknown"].includes(mode)) {
+          checkLabel(dialog, "I have reviewed").click();
+          await flush();
+          button(dialog, "Create rerun requests").click();
+          await flush();
+        }
+        assert.equal(button(dialog, "Create rerun requests").disabled, true);
+        assert.match(
+          dialog.textContent,
+          mode === "requested"
+            ? /contradicts/
+            : mode === "count-error"
+              ? /Count preview failed/
+              : mode === "zero"
+                ? /Matches 0/
+                : mode === "expired"
+                  ? /Log in/
+                  : /unknown/,
+        );
+      }
+      assert.equal(api.mutations().length, 0);
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("rerun exact groups fail closed for missing contexts and require bulk permission for multiple unique executions", async () => {
+  for (const mode of ["missing", "multiple"]) {
+    const api = rerunTransport((request) => {
+      if (request.pathname.endsWith("/users/me"))
+        return json({
+          ...bulkAdmin,
+          is_admin: false,
+          teams: [{ permissions: ["change_rerun"] }],
+        });
+      if (request.pathname.endsWith("/test-results"))
+        return json({
+          count: 2,
+          limit: 50,
+          offset: 0,
+          test_results: [
+            result(1),
+            {
+              ...result(2),
+              test_execution: {
+                ...result(2).test_execution,
+                id: mode === "missing" ? 0 : 8,
+              },
+            },
+          ],
+        });
+      return undefined;
+    });
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      selectionHeader(ui.target).click();
+      await flush();
+      button(ui.target, "Bulk actions").click();
+      await flush();
+      assert.equal(button(ui.target, "Create Rerun Requests…").disabled, true);
+      assert.match(
+        ui.target.textContent,
+        mode === "missing"
+          ? /Execution context is missing/
+          : /change_rerun_bulk/,
+      );
+      assert.equal(api.mutations().length, 0);
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("rerun exact mode requires both group consent and >50 result acknowledgment, validates priority and resets acknowledgment on option changes", async () => {
+  const api = rerunTransport((request) =>
+    request.pathname.endsWith("/test-results")
+      ? response(
+          Array.from({ length: 51 }, (_, index) => index + 1),
+          51,
+        )
+      : undefined,
+  );
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    selectionHeader(ui.target).click();
+    await flush();
+    button(ui.target, "Bulk actions").click();
+    await flush();
+    button(ui.target, "Create Rerun Requests…").click();
+    await flush();
+    const dialog = rerunDialog();
+    const submit = button(dialog, "Create rerun requests");
+    assert.match(
+      dialog.textContent,
+      /51 selected test results → 1 unique executions/,
+    );
+    checkLabel(dialog, "I have reviewed").click();
+    await flush();
+    assert.equal(submit.disabled, true);
+    checkLabel(dialog, "Use these exact execution groups").click();
+    await flush();
+    assert.equal(checkLabel(dialog, "I have reviewed").checked, false);
+    for (const priority of ["1.5", "1000001", "-1000001", ""]) {
+      await enter(dialog, 'input[type="number"]', priority);
+      checkLabel(dialog, "I have reviewed").click();
+      await flush();
+      assert.equal(submit.disabled, true);
+    }
+    await enter(dialog, 'input[type="number"]', "1000000");
+    assert.equal(checkLabel(dialog, "I have reviewed").checked, false);
+    checkLabel(dialog, "I have reviewed").click();
+    await flush();
+    assert.equal(submit.disabled, false);
+    submit.click();
+    await flush();
+    assert.deepEqual(JSON.parse(api.mutations()[0].options.body), {
+      test_execution_ids: [7],
+      priority: 1000000,
+    });
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("rerun cancel and success preserve the same suspended editor, confirmed conditions, current view and focus", async () => {
+  const api = rerunTransport();
+  const ui = mounted("artefacts=one&template_ids=confirmed");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    chip(ui.target, "Template ID").click();
+    await flush();
+    const input = await enter(
+      ui.target,
+      'input[name="template_ids"]',
+      "unconfirmed 🐧",
+    );
+    const trigger = button(ui.target, "Bulk actions");
+    trigger.dispatchEvent(
+      new browser.MouseEvent("pointerdown", { bubbles: true }),
+    );
+    trigger.click();
+    await flush();
+    button(ui.target, "Create Rerun Requests…").click();
+    await flush();
+    let dialog = rerunDialog();
+    const focus = browser.document.activeElement;
+    const view = app.encodeView({ sorting: [{ id: "testCase", desc: true }] });
+    ui.handle.restore(url(`artefacts=one&template_ids=confirmed&view=${view}`));
+    await flush();
+    assert.equal(dialog.open, true);
+    assert.equal(browser.document.activeElement, focus);
+    detailsButton(ui.target, 1).click();
+    await flush();
+    assert.equal(
+      detailsDialog().open,
+      false,
+      "rerun review owns the aggregate review guard",
+    );
+    button(dialog, "Cancel").click();
+    await flush();
+    assert.equal(browser.document.activeElement, trigger);
+    chip(ui.target, "Template ID").click();
+    await flush();
+    assert.equal(ui.target.querySelector('input[name="template_ids"]'), input);
+    assert.equal(input.value, "unconfirmed 🐧");
+    trigger.dispatchEvent(
+      new browser.MouseEvent("pointerdown", { bubbles: true }),
+    );
+    trigger.click();
+    await flush();
+    button(ui.target, "Create Rerun Requests…").click();
+    await flush();
+    dialog = rerunDialog();
+    checkLabel(dialog, "Use these exact execution groups").click();
+    await flush();
+    button(dialog, "Create rerun requests").click();
+    await flush();
+    await flush();
+    assert.equal(
+      ui.handle.currentUrl.searchParams.get("template_ids"),
+      "confirmed",
+    );
+    assert.equal(ui.handle.currentUrl.searchParams.get("view"), view);
+    chip(ui.target, "Template ID").click();
+    await flush();
+    assert.equal(ui.target.querySelector('input[name="template_ids"]'), input);
+    assert.equal(input.value, "unconfirmed 🐧");
+    assert.equal(api.searches().length, 2);
+    assert.deepEqual(JSON.parse(api.mutations()[0].options.body), {
+      test_execution_ids: [7],
+      priority: 0,
+    });
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("rerun pending count is cancelled by close or durable logout and late preview success cannot authorize a new review", async () => {
+  for (const mode of ["close", "logout"]) {
+    const pending = deferred();
+    const api = rerunTransport((request) =>
+      request.searchParams.get("limit") === "0" ? pending.promise : undefined,
+    );
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      const dialog = await openReruns(ui.target);
+      if (mode === "close") {
+        button(dialog, "Cancel").click();
+        await flush();
+      } else {
+        await app.userStore.refresh(() => Promise.resolve(json(null)));
+        await flush();
+        await app.userStore.refresh(() => Promise.resolve(json(bulkAdmin)));
+        await flush();
+      }
+      assert.equal(
+        api.searches().find(({ url }) => url.searchParams.get("limit") === "0")
+          .options.signal.aborted,
+        true,
+      );
+      pending.resolve(json({ count: 1 }));
+      await flush();
+      if (mode === "close")
+        assert.equal(
+          browser.document.querySelector("dialog.bulk-rerun-review"),
+          null,
+        );
+      else {
+        assert.equal(button(dialog, "Create rerun requests").disabled, true);
+        assert.match(dialog.textContent, /session changed/);
+      }
+      assert.equal(api.mutations().length, 0);
+    } finally {
+      pending.resolve(json({ count: 1 }));
+      await ui.destroy();
+    }
+  }
+});
+
+void test("rerun presubmit authorization can be superseded, and allowed submissions retain the payload frozen before reauthorization", async () => {
+  for (const mode of ["superseded", "frozen"]) {
+    const pending = deferred();
+    let sessions = 0;
+    const api = rerunTransport((request) => {
+      if (request.pathname.endsWith("/users/me") && ++sessions === 3)
+        return pending.promise;
+      return undefined;
+    });
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      const dialog = await openReruns(ui.target, "create", false);
+      checkLabel(dialog, "Use these exact execution groups").click();
+      await flush();
+      await enter(dialog, 'input[type="number"]', "23");
+      button(dialog, "Create rerun requests").click();
+      await flush();
+      if (mode === "superseded")
+        await app.userStore.refresh(() => Promise.resolve(json(bulkAdmin)));
+      else {
+        assert.equal(
+          dialog.querySelector('input[type="number"]').disabled,
+          true,
+        );
+        // Deliberately dispatch despite disabled controls: continuations must
+        // still use the immutable reviewed payload, not mutable DOM/state.
+        await enter(dialog, 'input[type="number"]', "99");
+      }
+      pending.resolve(json(bulkAdmin));
+      await flush();
+      if (mode === "superseded") {
+        assert.equal(api.mutations().length, 0);
+        assert.match(dialog.textContent, /superseded/);
+        assert.equal(button(dialog, "Create rerun requests").disabled, true);
+      } else
+        assert.deepEqual(JSON.parse(api.mutations()[0].options.body), {
+          test_execution_ids: [7],
+          priority: 23,
+        });
+    } finally {
+      pending.resolve(json(bulkAdmin));
+      await ui.destroy();
+    }
+  }
+});
 
 /** @param {import('happy-dom').HTMLElement} target @param {string} mode */
 async function restoreChangedBulkContext(target, mode) {
@@ -554,7 +1309,7 @@ async function pickBulkIssue(dialog, reference = "123") {
   await flush();
 }
 
-void test("contextual Pragma bulk menu has only attach/detach, refreshes lazily and restores keyboard focus without mutations", async () => {
+void test("contextual Pragma bulk menu groups issue and rerun actions, refreshes lazily and restores keyboard focus without mutations", async () => {
   const api = bulkTransport();
   const ui = mounted("artefacts=one");
   try {
@@ -586,7 +1341,12 @@ void test("contextual Pragma bulk menu has only attach/detach, refreshes lazily 
       [...menu.querySelectorAll('[role="menuitem"]')].map((b) =>
         b.textContent.trim(),
       ),
-      ["Attach Issue…", "Detach Issue…"],
+      [
+        "Attach Issue…",
+        "Detach Issue…",
+        "Create Rerun Requests…",
+        "Delete Rerun Requests…",
+      ],
     );
     assert.equal(api.sessions().length, 1);
     assert.equal(browser.document.activeElement, button(menu, "Attach Issue…"));
@@ -643,6 +1403,8 @@ void test("unsupported all-query exclusions/date-only and unapplied drafts expla
       await flush();
       const action = button(ui.target, "Attach Issue…");
       assert.equal(action.disabled, true);
+      assert.equal(button(ui.target, "Create Rerun Requests…").disabled, true);
+      assert.equal(button(ui.target, "Delete Rerun Requests…").disabled, true);
       assert.ok(action.getAttribute("aria-describedby"));
       assert.match(
         ui.target.textContent,

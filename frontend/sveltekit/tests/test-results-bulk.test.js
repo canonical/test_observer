@@ -603,6 +603,163 @@ void test("query rerun contradictions block, never override the applied archive/
   assert.equal(model.rerunPlan(target, "delete").ok, true);
 });
 
+void test("rerun latest and archive options are independent intersections with a legacy eligibleOnly fallback", () => {
+  for (const operation of ["create", "delete"]) {
+    for (const latest of [false, true]) {
+      for (const archived of [false, true]) {
+        const filters = value(
+          model.rerunPlan(queryTarget(), operation, {
+            onlyLatestExecutions: latest,
+            excludeArchivedArtefacts: archived,
+          }),
+        ).payload.test_results_filters;
+        assert.deepEqual(filters, {
+          artefacts: ["one"],
+          rerun_is_requested: operation === "delete",
+          ...(latest ? { execution_is_latest: true } : {}),
+          ...(archived ? { artefact_is_archived: false } : {}),
+        });
+      }
+    }
+    assert.deepEqual(
+      value(
+        model.rerunPlan(queryTarget(), operation, {
+          eligibleOnly: true,
+          onlyLatestExecutions: false,
+        }),
+      ).payload.test_results_filters,
+      {
+        artefacts: ["one"],
+        rerun_is_requested: operation === "delete",
+        artefact_is_archived: false,
+      },
+    );
+  }
+  const applied = queryTarget(
+    "execution_is_latest=false&artefact_is_archived=true",
+  );
+  assert.deepEqual(
+    value(
+      model.rerunPlan(applied, "create", {
+        onlyLatestExecutions: false,
+        excludeArchivedArtefacts: false,
+      }),
+    ).payload.test_results_filters,
+    {
+      execution_is_latest: false,
+      artefact_is_archived: true,
+      rerun_is_requested: false,
+    },
+  );
+  denied(
+    model.rerunPlan(applied, "create", {
+      onlyLatestExecutions: true,
+      excludeArchivedArtefacts: false,
+    }),
+    /contradicts/,
+  );
+  denied(
+    model.rerunPlan(applied, "create", {
+      onlyLatestExecutions: false,
+      excludeArchivedArtefacts: true,
+    }),
+    /contradicts/,
+  );
+});
+
+void test("exact rerun guards cannot be combined with either independent eligibility option and bulk uses deduplicated execution IDs", () => {
+  const { selection, query } = selected();
+  const target = value(
+    model.freezeBulkTarget(selection.snapshot(), query, ready),
+  );
+  assert.equal(
+    model.rerunIsBulk(target),
+    false,
+    "two results share one execution",
+  );
+  for (const option of [
+    { onlyLatestExecutions: true },
+    { excludeArchivedArtefacts: true },
+  ])
+    denied(
+      model.rerunPlan(target, "create", { explicitMode: "exact", ...option }),
+      /ORs execution IDs/,
+    );
+  assert.equal(
+    model.rerunIsBulk({
+      ...target,
+      executions: [
+        { resultId: 11, executionId: 501 },
+        { resultId: 12, executionId: 502 },
+      ],
+    }),
+    true,
+  );
+  assert.equal(model.rerunIsBulk({ ...target, executions: [] }), true);
+  assert.equal(model.rerunIsBulk(queryTarget()), true);
+});
+
+void test("count-only rerun GET encodes raw Unicode metadata as repeated Base64 pairs, keeps dates/status/false and excludes page/view", async () => {
+  const filters = {
+    artefact_stages: [""],
+    execution_metadata: { "cat:🐧, ": ["val:1,2", " two "] },
+    from_date: "2026-01-01T01:00:00.123456+01:00",
+    until_date: "2026-02-01T00:00:00Z",
+    test_result_statuses: ["FAILED", "PASSED"],
+    rerun_is_requested: false,
+    artefact_is_archived: false,
+    execution_is_latest: true,
+    issues: "none",
+    reviewer_ids: [7, 8],
+  };
+  const params = model.rerunCountParams(filters);
+  assert.deepEqual(params.getAll("execution_metadata"), [
+    pair("cat:🐧, ", "val:1,2"),
+    pair("cat:🐧, ", " two "),
+  ]);
+  assert.equal(params.get("from_date"), filters.from_date);
+  assert.equal(params.get("until_date"), filters.until_date);
+  assert.deepEqual(params.getAll("test_result_statuses"), ["FAILED", "PASSED"]);
+  assert.equal(params.get("rerun_is_requested"), "false");
+  assert.equal(params.get("artefact_is_archived"), "false");
+  assert.equal(params.get("artefact_stages"), "");
+  assert.deepEqual(params.getAll("reviewer_ids"), ["7", "8"]);
+  assert.equal(params.get("issues"), "none");
+  assert.equal(params.get("limit"), "0");
+  for (const key of [
+    "offset",
+    "view",
+    "test_execution_ids",
+    "test_results_filters",
+  ])
+    assert.equal(params.has(key), false);
+  assert.ok(
+    model
+      .parseSearch(params, families)
+      .problems.some((problem) => problem.includes("limit")),
+    "main page still rejects limit=0",
+  );
+  const original = globalThis.fetch;
+  try {
+    for (const count of [0, 99, -1, 1.5, "99", null]) {
+      globalThis.fetch = () => Promise.resolve(json({ count }));
+      const pending = model.previewRerunCount(
+        filters,
+        new AbortController().signal,
+      );
+      if (
+        typeof count === "number" &&
+        Number.isSafeInteger(count) &&
+        count >= 0
+      )
+        assert.equal(await pending, count);
+      else await assert.rejects(pending, /invalid result count/);
+    }
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
 void test("explicit reruns require honest exact-group opt-in with no eligibility/request-state filters", () => {
   const { selection, query } = selected();
   const target = value(

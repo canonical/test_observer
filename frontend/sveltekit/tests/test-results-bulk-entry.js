@@ -4,6 +4,7 @@
 export * from "../src/lib/testResultsBulk";
 export * from "../src/lib/testResultsBulkPermissions";
 export * from "../src/lib/testResultsIssues";
+export * from "../src/lib/testResultsReruns";
 export * from "../src/lib/testResultsSearch";
 export {
   selectionQuery,

@@ -240,8 +240,10 @@ export type RerunPayload = (
     }
 ) & { readonly priority?: number };
 export interface RerunOptions {
-  /** Defaults on for create, off for delete. Applies latest=true/archive=false. */
+  /** Legacy fallback for both independent options; defaults on for create. */
   readonly eligibleOnly?: boolean;
+  readonly onlyLatestExecutions?: boolean;
+  readonly excludeArchivedArtefacts?: boolean;
   /** Explicit opt-in: exact execution groups, with NO eligibility/request-state
    * guards. The API cannot intersect IDs with filter criteria (they are OR). */
   readonly explicitMode?: "guarded" | "exact";
@@ -275,7 +277,12 @@ export function rerunPlan(
   const priority =
     options.priority === undefined ? {} : { priority: options.priority };
   if (target.kind === "explicit") {
-    if (options.explicitMode !== "exact" || options.eligibleOnly === true)
+    if (
+      options.explicitMode !== "exact" ||
+      options.eligibleOnly === true ||
+      options.onlyLatestExecutions === true ||
+      options.excludeArchivedArtefacts === true
+    )
       return blocked(
         "The server ORs execution IDs and filters, so guarded explicit reruns cannot be expressed. Choose an all-matches query, or explicitly choose exact execution groups without eligibility/request-state guards.",
       );
@@ -293,8 +300,15 @@ export function rerunPlan(
     return blocked("The server cannot bulk-mutate a date-only query.");
   const guards = {
     rerun_is_requested: operation === "delete",
-    ...((options.eligibleOnly ?? operation === "create")
-      ? { execution_is_latest: true, artefact_is_archived: false }
+    ...((options.onlyLatestExecutions ??
+    options.eligibleOnly ??
+    operation === "create")
+      ? { execution_is_latest: true }
+      : {}),
+    ...((options.excludeArchivedArtefacts ??
+    options.eligibleOnly ??
+    operation === "create")
+      ? { artefact_is_archived: false }
       : {}),
   };
   for (const [key, value] of Object.entries(guards)) {
