@@ -13,6 +13,7 @@ export {
 export { userStore } from "../src/lib/stores/user.svelte";
 export * from "../src/lib/testResultsSearch";
 export * from "../src/lib/testResultsBulk";
+export * from "../src/lib/testResultsIssues";
 export { replaceSearchView } from "../src/lib/searchViewNavigation";
 export { encodeView, decodeView } from "../src/lib/gridViewUrl";
 export { familyDisplayName } from "../src/lib/types";

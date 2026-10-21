@@ -3,7 +3,8 @@
 
 # Test result search
 
-`/test-results` is a read-only search page with ephemeral result selection. Its
+`/test-results` is a search page with ephemeral result selection and contextual
+issue attachment actions. Its
 applied query lives in the URL, so direct links, reloads, and browser back/forward
 restore the search. Selection is not encoded in links; view-only history changes
 preserve the current selection. This is the canonical SvelteKit search guide.
@@ -221,8 +222,8 @@ keyboard scroll stop (PageDown/End); the log adds no Tab stop.
 Issue links intentionally target the **future internal** `${base}/issues/${id}`
 path in a new tab with `noopener noreferrer`. The SvelteKit issue detail route is
 not implemented yet: its current 404 is a known, accepted destination gap, not a
-fallback to an external tracker. No issue page, attachment rules or mutations
-are provided here. Footer **View Run** uses the same configured family route,
+fallback to an external tracker. No issue detail page or attachment rules are
+provided here. Footer **View Run** uses the same configured family route,
 deployment base and execution/result deep link as the grid. An unconfigured
 family has no guessed Run route, but its Details still works.
 
@@ -245,7 +246,7 @@ pagination, session/loading invalidation or leaving the route closes details
 safely; obsolete row callbacks cannot open a different dataset. Modal state is
 ephemeral, never a URL parameter or another server query.
 
-## Result selection (no bulk actions)
+## Result selection
 
 Native row checkboxes select by **test result ID**, not row position. The header
 checkbox acts on the entire displayed, post-local-filter/sort backend page,
@@ -273,9 +274,57 @@ Explicit **Search**, including reapplying unchanged filters, a new applied query
 **Clear all**, leaving the route or reloading reset selection. Draft/editor edits,
 pagination and table-view changes preserve it. Selection is ephemeral per-route
 state: nothing is written to the URL, storage or shared view, and selection sends
-no network requests or mutations. There are no bulk actions, edit/selection
-action bar, context menu or mutation workflows; the all-matches wording reserves
-scope for future bulk options only.
+no network requests or mutations until a bulk workflow is explicitly opened
+and submitted.
+
+## Contextual issue actions
+
+Selecting results reveals **Bulk actions** beside the selection summary and
+**Clear selection**. Its Pragma chevron menu contains **Attach Issue…** and
+**Detach Issue…** only. Opening the menu and review refreshes session permissions;
+selection alone never does. Disabled actions have visible explanations, including
+unapplied drafts, unavailable results and unsupported scopes. All-matches
+exclusions are not supported by the mutation API: remove the exclusions or
+choose explicit rows. Date-only queries remain searchable, but all-query
+mutations need a non-date condition; explicit selected IDs are still supported.
+The client never enumerates all results or combines IDs with filters to work
+around these limits.
+
+One Pragma modal reviews the frozen selected IDs (including other pages) or
+explicit all-matches query conditions and count. It excludes local grid filters,
+sorting and pagination. The count is a preview, not a changed count or server
+snapshot; query filters are evaluated against server data at submission time.
+More than 50 results requires an acknowledgment in that same modal. Scope,
+query/reapply, selection or logout changes require a new review. Details cannot
+stack with the review. Existing condition editors are suspended, preserving
+their confirmed and unconfirmed inputs; Cancel/Escape restores the bulk trigger.
+
+The single-issue picker reuses the search issue suggestions and session label
+cache. Choose a rich suggestion, enter one positive safe internal ID, or use a
+same-origin `${base}/issues/123` or legacy `/#/issues/123` link. Supported external
+HTTP(S) GitHub, Jira and Launchpad links are canonicalized to the existing server
+formats; unsafe, foreign internal and arbitrary tracker URLs are rejected.
+Attach can create or find the issue through the existing issue PUT API, requiring
+`change_issue` separately. Detach never creates: external URLs must resolve to
+one exact canonical existing issue in a bounded lookup; fuzzy/ambiguous or
+incomplete matches require an internal ID or explicit suggestion instead.
+
+Session permissions are refreshed again before mutation (and after a creation
+request before attaching). Attachment normal/bulk, lookup and creation grants
+are checked separately; confirmed global team grants work, while cached admin,
+unknown, cancelled and superseded authorization fail closed. Server 401/403 and
+validation errors stay inline. Submission disables duplicates, closing and
+navigation. Network/5xx failures have an explicitly unknown outcome with no
+automatic retry or same-review resubmission. Creating an issue and attaching it
+are not atomic: a known issue ID is retained on failure, and an explicit retry
+after a definite rejection uses that same ID without another PUT.
+
+Success clears the reviewed selection and refreshes current results, counts and
+loaded attachments without reloading the route or applying drafts. Query,
+pagination, grid view and suspended condition inputs survive. The API does not
+return a changed count, so already-attached/detached results may be unchanged.
+Empty or out-of-range pages retain Previous-page navigation. **Close and refresh
+results** is also available after partial/unknown outcomes for inspection.
 
 ## Table layout and shareable views
 
@@ -321,10 +370,8 @@ so visibility is checked every 250ms while the grid is mounted (with cleanup).
 
 ## Deliberately deferred
 
-Execution-status filtering; saved views and export.
-All bulk operations, attachment rules,
-issue attach/detach, rerun creation/deletion, and other mutation workflows are
-excluded.
+Execution-status filtering; saved views and export. Attachment rules,
+rerun creation/deletion and other mutation workflows remain excluded.
 
 ## Local checks
 

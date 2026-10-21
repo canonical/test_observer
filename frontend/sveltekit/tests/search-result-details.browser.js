@@ -226,12 +226,14 @@ try {
     .getByRole("checkbox", { name: "Select row", exact: true })
     .click();
   const explicit = await page
-    .locator(".selection-summary p[role=status]")
+    .locator(".selection-summary > p[role=status]:not(.bulk-disabled)")
     .textContent();
   await openDetails(trigger);
   await closeDetails(trigger, "Escape");
   assert.equal(
-    await page.locator(".selection-summary p[role=status]").textContent(),
+    await page
+      .locator(".selection-summary > p[role=status]:not(.bulk-disabled)")
+      .textContent(),
     explicit,
   );
   await header.click();
@@ -244,7 +246,7 @@ try {
     .getByRole("checkbox", { name: "Select row", exact: true });
   await exclusion.click();
   const selected = await page
-    .locator(".selection-summary p[role=status]")
+    .locator(".selection-summary > p[role=status]:not(.bulk-disabled)")
     .textContent();
   assert.match(String(selected), /1 excluded/);
   const selectedId = String(await trigger.getAttribute("data-test-result-id"));
@@ -435,7 +437,9 @@ try {
         "Keyboard open/traversal/scroll is loaded-data only",
       );
       assert.equal(
-        await page.locator(".selection-summary p[role=status]").textContent(),
+        await page
+          .locator(".selection-summary > p[role=status]:not(.bulk-disabled)")
+          .textContent(),
         selected,
       );
       await page.screenshot({
@@ -448,7 +452,9 @@ try {
         assert.equal(await all.isChecked(), true);
         assert.equal(await exclusion.getAttribute("aria-checked"), "false");
         assert.equal(
-          await page.locator(".selection-summary p[role=status]").textContent(),
+          await page
+            .locator(".selection-summary > p[role=status]:not(.bulk-disabled)")
+            .textContent(),
           selected,
         );
       }

@@ -97,6 +97,1139 @@ function result(id = 1) {
 const response = (ids = [1], count = ids.length, limit = 50, offset = 0) =>
   json({ count, limit, offset, test_results: ids.map(result) });
 
+const bulkAdmin = { id: 500, name: "Bulk reviewer", teams: [], is_admin: true };
+const bulkIssue = {
+  id: 123,
+  source: "github",
+  project: "qa/project",
+  key: "123",
+  title: "Known issue 🐧",
+  url: "https://github.com/qa/project/issues/123",
+};
+/** Mock only transport: all tests mount the actual page, Pragma and SvGrid.
+ * @param {(request: URL, options: RequestInit) => Response | Promise<Response> | undefined} [override]
+ */
+function bulkTransport(override) {
+  /** @type {{url: URL; options: RequestInit}[]} */
+  const calls = [];
+  globalThis.fetch = (input, options = {}) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    calls.push({ url: request, options });
+    const special = override?.(request, options);
+    if (special) return Promise.resolve(special);
+    if (request.pathname.endsWith("/users/me"))
+      return Promise.resolve(json(bulkAdmin));
+    if (request.pathname.endsWith("/issues/123"))
+      return Promise.resolve(json(bulkIssue));
+    if (request.pathname.endsWith("/issues"))
+      return Promise.resolve(
+        options.method === "PUT"
+          ? json(bulkIssue)
+          : json({ issues: [bulkIssue], count: 1 }),
+      );
+    if (/\/issues\/\d+\/(attach|detach)$/.test(request.pathname))
+      return Promise.resolve(json(bulkIssue));
+    return Promise.resolve(response([1, 2], 120));
+  };
+  return {
+    calls,
+    mutations: () =>
+      calls.filter(({ options }) =>
+        ["POST", "PUT"].includes(options.method ?? "GET"),
+      ),
+    sessions: () =>
+      calls.filter(({ url }) => url.pathname.endsWith("/users/me")),
+    searches: () =>
+      calls.filter(({ url }) => url.pathname.endsWith("/test-results")),
+  };
+}
+function bulkDialog() {
+  const dialog = browser.document.querySelector("dialog.bulk-issue-review");
+  assert.ok(dialog);
+  return /** @type {import('happy-dom').HTMLDialogElement} */ (dialog);
+}
+
+/** @param {import('happy-dom').HTMLElement} target @param {string} mode */
+async function restoreChangedBulkContext(target, mode) {
+  if (mode === "session") {
+    await app.userStore.refresh(() => Promise.resolve(json(null)));
+    await flush();
+    assert.equal(
+      app.userStore.current,
+      null,
+      "logout is observed before the same user returns",
+    );
+    await app.userStore.refresh(() => Promise.resolve(json(bulkAdmin)));
+    await flush();
+    assert.equal(app.userStore.current?.id, bulkAdmin.id);
+  } else {
+    selectionRow(target, 2).click();
+    await flush();
+    assert.match(target.textContent, /2 selected by result ID/);
+    selectionRow(target, 2).click();
+    await flush();
+    assert.match(target.textContent, /1 selected by result ID/);
+  }
+}
+
+void test("unrelated session refresh immediately revokes displayed gates, missing lookup is separate, and dialog authorization can be superseded", async () => {
+  for (const mode of ["superseded", "lookup", "later-unknown"]) {
+    const pending = deferred();
+    let sessions = 0;
+    const api = bulkTransport((request) => {
+      if (!request.pathname.endsWith("/users/me")) return undefined;
+      sessions++;
+      if (mode === "lookup")
+        return json({
+          ...bulkAdmin,
+          is_admin: false,
+          teams: [{ permissions: ["change_issue_attachment"] }],
+        });
+      return mode === "superseded" && sessions === 2
+        ? pending.promise
+        : undefined;
+    });
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      selectionRow(ui.target, 1).click();
+      await flush();
+      button(ui.target, "Bulk actions").click();
+      await flush();
+      button(ui.target, "Attach Issue…").click();
+      await flush();
+      const dialog = bulkDialog();
+      if (mode === "superseded") {
+        assert.match(dialog.textContent, /Checking permissions/);
+        await app.userStore.refresh(() => Promise.resolve(json(bulkAdmin)));
+        pending.resolve(json(bulkAdmin));
+        await flush();
+        assert.match(dialog.textContent, /superseded/);
+      } else if (mode === "lookup") {
+        assert.match(
+          dialog.textContent,
+          /Issue lookup: Missing confirmed global permission: view_issue/,
+        );
+        assert.equal(dialog.querySelector('input[name="bulk-issue"]'), null);
+      } else {
+        await pickBulkIssue(dialog);
+        assert.equal(button(dialog, "Attach issue").disabled, false);
+        await app.userStore.refresh(() => Promise.resolve(json({}, 503)));
+        await flush();
+        assert.equal(
+          button(dialog, "Attach issue").disabled,
+          true,
+          "even a same-profile inconclusive later refresh revokes the reactive gate",
+        );
+      }
+      assert.equal(api.mutations().length, 0);
+    } finally {
+      pending.resolve(json(bulkAdmin));
+      await ui.destroy();
+    }
+  }
+});
+
+void test("creation errors/unknown outcomes never auto-retry or hide a known issue; slow creation cannot attach a changed scope", async () => {
+  for (const mode of [
+    "create-validation",
+    "create-network",
+    "attach-5xx",
+    "changed-scope",
+  ]) {
+    const pending = deferred();
+    const api = bulkTransport((_request, options) => {
+      if (options.method === "PUT") {
+        if (mode === "create-validation")
+          return json({ detail: "Unrecognized issue URL" }, 422);
+        if (mode === "create-network")
+          return Promise.reject(new Error("Creation response lost"));
+        if (mode === "changed-scope") return pending.promise;
+      }
+      return options.method === "POST" && mode === "attach-5xx"
+        ? json({}, 503)
+        : undefined;
+    });
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      selectionRow(ui.target, 1).click();
+      await flush();
+      const dialog = await openBulk(ui.target);
+      await pickBulkIssue(dialog, bulkIssue.url);
+      button(dialog, "Attach issue").click();
+      await flush();
+      if (mode === "changed-scope") {
+        selectionRow(ui.target, 2).click();
+        await flush();
+        pending.resolve(json(bulkIssue));
+        await flush();
+      }
+      if (mode === "create-validation")
+        assert.match(dialog.textContent, /Unrecognized issue URL/);
+      else if (mode === "changed-scope")
+        assert.match(
+          dialog.textContent,
+          /selection, applied query or session changed/,
+        );
+      else assert.match(dialog.textContent, /Outcome unknown/);
+      assert.equal(
+        api.mutations().filter(({ options }) => options.method === "PUT")
+          .length,
+        1,
+      );
+      assert.equal(
+        api.mutations().filter(({ options }) => options.method === "POST")
+          .length,
+        mode === "attach-5xx" ? 1 : 0,
+      );
+      if (["attach-5xx", "changed-scope"].includes(mode))
+        assert.match(dialog.textContent, /Issue #123 was created or found/);
+      if (mode === "attach-5xx")
+        assert.equal(
+          button(dialog, "Retry attachment with this issue").disabled,
+          true,
+        );
+      if (mode === "create-network")
+        assert.equal(button(dialog, "Attach issue").disabled, true);
+    } finally {
+      pending.resolve(json(bulkIssue));
+      await ui.destroy();
+    }
+  }
+});
+
+void test("observed logout or selection changes stay revoked after restoration during a slow creation PUT, retaining the created issue for renewed review", async () => {
+  for (const mode of ["session", "selection"]) {
+    const creation = deferred();
+    const api = bulkTransport((_request, options) =>
+      options.method === "PUT" ? creation.promise : undefined,
+    );
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      selectionRow(ui.target, 1).click();
+      await flush();
+      const dialog = await openBulk(ui.target);
+      await pickBulkIssue(dialog, bulkIssue.url);
+      button(dialog, "Attach issue").click();
+      await flush();
+      assert.equal(api.mutations().length, 1, "the creation PUT is in flight");
+      await restoreChangedBulkContext(ui.target, mode);
+      assert.equal(
+        button(dialog, "Cancel").disabled,
+        true,
+        "invalidation must not unlock closing while the PUT is still in flight",
+      );
+      creation.resolve(json(bulkIssue));
+      await flush();
+      await flush();
+      assert.equal(
+        api.mutations().length,
+        1,
+        "restoration must never authorize an attachment POST from the old review",
+      );
+      assert.equal(api.mutations()[0].options.method, "PUT");
+      assert.match(dialog.textContent, /Issue #123 was created or found/);
+      assert.match(
+        dialog.textContent,
+        /Close.*review.*again|Close.*review.*open Bulk actions again/,
+      );
+      assert.equal(
+        button(dialog, "Retry attachment with this issue").disabled,
+        true,
+      );
+      button(dialog, "Retry attachment with this issue").click();
+      await flush();
+      assert.equal(api.mutations().length, 1);
+      assert.equal(button(dialog, "Cancel").disabled, false);
+      button(dialog, "Cancel").click();
+      await flush();
+      const renewed = await openBulk(ui.target);
+      await pickBulkIssue(renewed, String(bulkIssue.id));
+      assert.equal(
+        button(renewed, "Attach issue").disabled,
+        false,
+        "only a renewed user review can submit again",
+      );
+      assert.equal(
+        api.mutations().length,
+        1,
+        "renewing review remains read-only",
+      );
+    } finally {
+      creation.resolve(json(bulkIssue));
+      await ui.destroy();
+    }
+  }
+});
+
+void test("review revocation survives restored context across submission authorization, post-creation authorization and attachment awaits", async () => {
+  for (const phase of ["authorize", "created-authorize", "attach"]) {
+    for (const mode of ["session", "selection"]) {
+      const pending = deferred();
+      let sessions = 0;
+      const api = bulkTransport((request, options) => {
+        if (request.pathname.endsWith("/users/me")) {
+          sessions++;
+          if (
+            sessions === (phase === "created-authorize" ? 4 : 3) &&
+            phase !== "attach"
+          )
+            return pending.promise;
+        }
+        return phase === "attach" && options.method === "POST"
+          ? pending.promise
+          : undefined;
+      });
+      const ui = mounted("artefacts=one");
+      try {
+        await flush();
+        selectionRow(ui.target, 1).click();
+        await flush();
+        const dialog = await openBulk(ui.target);
+        await pickBulkIssue(
+          dialog,
+          phase === "attach" ? String(bulkIssue.id) : bulkIssue.url,
+        );
+        button(dialog, "Attach issue").click();
+        await flush();
+        assert.equal(api.mutations().length, phase === "authorize" ? 0 : 1);
+        await restoreChangedBulkContext(ui.target, mode);
+        assert.equal(button(dialog, "Cancel").disabled, true);
+        pending.resolve(json(phase === "attach" ? bulkIssue : bulkAdmin));
+        await flush();
+        await flush();
+        assert.equal(
+          api.mutations().length,
+          phase === "authorize" ? 0 : 1,
+          "no further mutation after any revoked await",
+        );
+        if (phase === "created-authorize") {
+          assert.equal(api.mutations()[0].options.method, "PUT");
+          assert.match(dialog.textContent, /Issue #123 was created or found/);
+        }
+        assert.match(
+          dialog.textContent,
+          /Close this review and open Bulk actions again/,
+        );
+        assert.equal(
+          button(
+            dialog,
+            phase === "created-authorize"
+              ? "Retry attachment with this issue"
+              : "Attach issue",
+          ).disabled,
+          true,
+        );
+        assert.equal(button(dialog, "Cancel").disabled, false);
+        assert.match(
+          ui.target.textContent,
+          /1 selected by result ID/,
+          "a revoked completion cannot clear the restored selection",
+        );
+        assert.equal(
+          api.searches().length,
+          1,
+          "a revoked completion cannot trigger success refresh",
+        );
+        if (phase === "attach")
+          assert.match(
+            dialog.textContent,
+            /submitted request completed, but its review was revoked/,
+          );
+      } finally {
+        pending.resolve(json(bulkAdmin));
+        await ui.destroy();
+      }
+    }
+  }
+});
+
+void test("a review blocks details stacking and becomes unusable after selection changes or explicit same-query Search", async () => {
+  const api = bulkTransport();
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    const dialog = await openBulk(ui.target);
+    await pickBulkIssue(dialog);
+    detailsButton(ui.target, 1).click();
+    await flush();
+    assert.equal(
+      detailsDialog().open,
+      false,
+      "stale/programmatic details cannot stack with review",
+    );
+    selectionRow(ui.target, 2).click();
+    await flush();
+    assert.match(
+      dialog.textContent,
+      /selection, applied query or session changed/,
+    );
+    assert.equal(button(dialog, "Attach issue").disabled, true);
+    button(dialog, "Cancel").click();
+    await flush();
+    const next = await openBulk(ui.target);
+    await pickBulkIssue(next);
+    const staleSubmit = button(next, "Attach issue");
+    button(ui.target, "Search").click();
+    await flush();
+    staleSubmit.click();
+    await flush();
+    assert.equal(api.mutations().length, 0);
+    assert.equal(ui.target.querySelector(".selection-summary"), null);
+    assert.equal(api.searches().length, 2);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("a late post-success refresh cannot overwrite the next query, its view, confirmed drafts or selection", async () => {
+  const oldRefresh = deferred();
+  let finished = false;
+  const api = bulkTransport((request, options) => {
+    if (options.method === "POST") {
+      finished = true;
+      return json(bulkIssue);
+    }
+    if (finished && request.pathname.endsWith("/test-results"))
+      return request.searchParams.get("artefacts") === "one"
+        ? oldRefresh.promise
+        : response([9], 1);
+    return undefined;
+  });
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    const dialog = await openBulk(ui.target);
+    await pickBulkIssue(dialog);
+    button(dialog, "Attach issue").click();
+    await flush();
+    const view = app.encodeView({ globalFilter: "case 9" });
+    ui.handle.restore(url(`artefacts=two&view=${view}`));
+    await flush();
+    selectionRow(ui.target, 9).click();
+    await flush();
+    await chooseFilter(ui.target, "Template ID");
+    await enter(
+      ui.target,
+      'input[name="template_ids"]',
+      "next confirmed draft",
+    );
+    await confirmEditor(ui.target);
+    oldRefresh.resolve(response([1, 2]));
+    await flush();
+    assert.equal(ui.handle.currentUrl.searchParams.get("artefacts"), "two");
+    assert.equal(ui.handle.currentUrl.searchParams.get("view"), view);
+    assert.match(ui.target.textContent, /1 selected by result ID/);
+    assert.ok(ui.target.textContent.includes("next confirmed draft"));
+    assert.ok(detailsButton(ui.target, 9));
+    assert.equal(api.mutations().length, 1);
+  } finally {
+    oldRefresh.resolve(response([1, 2]));
+    await ui.destroy();
+  }
+});
+/** @param {import('happy-dom').HTMLElement} target @param {"attach" | "detach"} [operation] */
+async function openBulk(target, operation = "attach") {
+  button(target, "Bulk actions").click();
+  await flush();
+  button(
+    target,
+    operation === "attach" ? "Attach Issue…" : "Detach Issue…",
+  ).click();
+  await flush();
+  const dialog = bulkDialog();
+  assert.equal(dialog.open, true);
+  return dialog;
+}
+/** @param {import('happy-dom').HTMLElement} dialog @param {string} [reference] */
+async function pickBulkIssue(dialog, reference = "123") {
+  await enter(dialog, 'input[name="bulk-issue"]', reference);
+  button(dialog, "Use issue reference").click();
+  await flush();
+}
+
+void test("contextual Pragma bulk menu has only attach/detach, refreshes lazily and restores keyboard focus without mutations", async () => {
+  const api = bulkTransport();
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    assert.equal(
+      [...ui.target.querySelectorAll("button")].some((b) =>
+        b.textContent.includes("Bulk actions"),
+      ),
+      false,
+    );
+    selectionRow(ui.target, 1).click();
+    await flush();
+    assert.equal(api.sessions().length, 0);
+    const trigger = button(ui.target, "Bulk actions");
+    assert.equal(trigger.getAttribute("aria-haspopup"), "menu");
+    assert.ok(trigger.querySelector("svg"), "labelled trigger has a chevron");
+    trigger.dispatchEvent(
+      new browser.KeyboardEvent("keydown", {
+        key: "ArrowDown",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await flush();
+    const menu = ui.target.querySelector('[role="menu"]');
+    assert.ok(menu);
+    assert.equal(menu.getAttribute("data-test-open"), "");
+    assert.deepEqual(
+      [...menu.querySelectorAll('[role="menuitem"]')].map((b) =>
+        b.textContent.trim(),
+      ),
+      ["Attach Issue…", "Detach Issue…"],
+    );
+    assert.equal(api.sessions().length, 1);
+    assert.equal(browser.document.activeElement, button(menu, "Attach Issue…"));
+    button(menu, "Attach Issue…").dispatchEvent(
+      new browser.KeyboardEvent("keydown", {
+        key: "ArrowDown",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    assert.equal(browser.document.activeElement, button(menu, "Detach Issue…"));
+    button(menu, "Detach Issue…").click();
+    await flush();
+    assert.equal(api.sessions().length, 2);
+    assert.match(bulkDialog().textContent, /1 test results/);
+    assert.match(
+      bulkDialog().textContent,
+      /frozen preview, not a server transaction/,
+    );
+    assert.equal(detailsDialog().open, false);
+    button(bulkDialog(), "Cancel").click();
+    await flush();
+    assert.equal(browser.document.activeElement, trigger);
+    assert.equal(api.mutations().length, 0);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("unsupported all-query exclusions/date-only and unapplied drafts explain disabled actions and send zero mutations", async () => {
+  for (const mode of ["exclusions", "date", "draft"]) {
+    const api = bulkTransport();
+    const ui = mounted(
+      mode === "date" ? "from_date=2026-01-01T00:00:00Z" : "artefacts=one",
+    );
+    try {
+      await flush();
+      selectionHeader(ui.target).click();
+      await flush();
+      if (mode !== "draft") {
+        allMatchesCheckbox(ui.target)?.click();
+        await flush();
+      }
+      if (mode === "exclusions") {
+        selectionRow(ui.target, 2).click();
+        await flush();
+      }
+      if (mode === "draft") {
+        await chooseFilter(ui.target, "Template ID");
+        await enter(ui.target, 'input[name="template_ids"]', "draft");
+        await confirmEditor(ui.target);
+      }
+      button(ui.target, "Bulk actions").click();
+      await flush();
+      const action = button(ui.target, "Attach Issue…");
+      assert.equal(action.disabled, true);
+      assert.ok(action.getAttribute("aria-describedby"));
+      assert.match(
+        ui.target.textContent,
+        mode === "exclusions"
+          ? /exclusions are not supported/
+          : mode === "date"
+            ? /date-only query/
+            : /Apply or discard draft/,
+      );
+      action.click();
+      assert.equal(bulkDialog().open, false);
+      assert.equal(api.mutations().length, 0);
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("cached admin, unknown/logged-out/denied permissions and missing bulk grants fail closed, verified single-ID and global grants work", async () => {
+  for (const mode of ["unknown", "logout", "denied", "normal-only", "global"]) {
+    await app.userStore.refresh(() => Promise.resolve(json(bulkAdmin)));
+    const api = bulkTransport((request) =>
+      request.pathname.endsWith("/users/me")
+        ? mode === "unknown"
+          ? json({}, 503)
+          : mode === "logout"
+            ? json(null)
+            : json({
+                ...bulkAdmin,
+                is_admin: false,
+                teams: [
+                  {
+                    permissions:
+                      mode === "denied"
+                        ? []
+                        : mode === "normal-only"
+                          ? ["view_issue", "change_issue_attachment"]
+                          : [
+                              "view_issue",
+                              "change_issue_attachment",
+                              "change_issue_attachment_bulk",
+                            ],
+                  },
+                ],
+              })
+        : undefined,
+    );
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      selectionHeader(ui.target).click();
+      await flush();
+      button(ui.target, "Bulk actions").click();
+      await flush();
+      assert.equal(
+        button(ui.target, "Attach Issue…").disabled,
+        mode !== "global",
+      );
+      if (mode === "unknown")
+        assert.match(ui.target.textContent, /unknown, cancelled or superseded/);
+      if (mode === "logout")
+        assert.match(ui.target.textContent, /Log in again/);
+      if (mode === "normal-only") {
+        selectionRow(ui.target, 2).click();
+        await flush();
+        assert.equal(
+          button(ui.target, "Attach Issue…").disabled,
+          false,
+          "one verified ID needs the normal grant only",
+        );
+      }
+      assert.equal(api.mutations().length, 0);
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("cross-page explicit attach uses frozen IDs only and refreshes current results/attachments while retaining query and grid view", async () => {
+  let refreshed = false;
+  const api = bulkTransport((request, options) => {
+    if (options.method === "POST") {
+      refreshed = true;
+      return json(bulkIssue);
+    }
+    if (request.pathname.endsWith("/test-results"))
+      return json({
+        count: 120,
+        test_results: (request.searchParams.get("offset") === "2"
+          ? [3, 4]
+          : [1, 2]
+        ).map((id) => ({
+          ...detailedResult(id),
+          test_result: {
+            ...detailedResult(id).test_result,
+            issues: refreshed ? [{ issue: bulkIssue }] : [],
+          },
+        })),
+      });
+    return undefined;
+  });
+  const ui = mounted("artefacts=one&limit=2");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    button(ui.target, "Next page").click();
+    await flush();
+    selectionRow(ui.target, 3).click();
+    await flush();
+    await localSearch(ui.target, "case 3");
+    const view = /** @type {import('happy-dom').HTMLInputElement} */ (
+      ui.target.querySelector(".sv-grid-global-filter input")
+    ).value;
+    const dialog = await openBulk(ui.target);
+    assert.match(dialog.textContent, /2 test results/);
+    assert.match(dialog.textContent, /Result IDs: 1, 3/);
+    await pickBulkIssue(
+      dialog,
+      "https://observer.example/custom/base/issues/123",
+    );
+    button(dialog, "Attach issue").click();
+    await flush();
+    await flush();
+    assert.equal(api.mutations().length, 1);
+    assert.equal(api.mutations()[0].url.pathname, "/v1/issues/123/attach");
+    assert.deepEqual(JSON.parse(api.mutations()[0].options.body), {
+      test_results: [1, 3],
+    });
+    assert.equal(ui.handle.currentUrl.searchParams.get("artefacts"), "one");
+    assert.equal(ui.handle.currentUrl.searchParams.get("offset"), "2");
+    assert.equal(ui.target.querySelector(".selection-summary"), null);
+    assert.equal(
+      ui.target.querySelector(".sv-grid-global-filter input").value,
+      view,
+    );
+    assert.match(ui.target.textContent, /does not report a changed count/);
+    detailsButton(ui.target, 3).click();
+    await flush();
+    assert.match(detailsDialog().textContent, /Known issue 🐧/);
+    assert.equal(
+      api.sessions().length,
+      3,
+      "menu, dialog and immediately before submit",
+    );
+    assert.equal(
+      api.searches().length,
+      3,
+      "initial, page, current-page refresh only",
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("all-query detach requires same-modal acknowledgment above 50 and sends typed filters without pagination/view/base64", async () => {
+  const api = bulkTransport();
+  const metadata = `${Buffer.from("category").toString("base64")}:${Buffer.from("value").toString("base64")}`;
+  const ui = mounted(
+    `artefacts=one&artefact_is_archived=false&execution_metadata=${encodeURIComponent(metadata)}&limit=2&view=invalid`,
+  );
+  try {
+    await flush();
+    selectionHeader(ui.target).click();
+    await flush();
+    allMatchesCheckbox(ui.target)?.click();
+    await flush();
+    const dialog = await openBulk(ui.target, "detach");
+    await pickBulkIssue(dialog, "https://observer.example/#/issues/123");
+    assert.equal(button(dialog, "Detach issue").disabled, true);
+    const ack = /** @type {import('happy-dom').HTMLInputElement | null} */ (
+      dialog.querySelector('input[type="checkbox"]')
+    );
+    assert.ok(ack);
+    ack.click();
+    await flush();
+    assert.equal(browser.document.querySelectorAll("dialog[open]").length, 1);
+    button(dialog, "Detach issue").click();
+    await flush();
+    await flush();
+    assert.equal(api.mutations().length, 1);
+    assert.equal(api.mutations()[0].url.pathname, "/v1/issues/123/detach");
+    assert.deepEqual(JSON.parse(api.mutations()[0].options.body), {
+      test_results_filters: {
+        artefacts: ["one"],
+        artefact_is_archived: false,
+        execution_metadata: { category: ["value"] },
+      },
+    });
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("rich single-issue suggestions reuse lookup/cache and never mutate until submission", async () => {
+  const api = bulkTransport();
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    const dialog = await openBulk(ui.target);
+    const input = await enter(
+      dialog,
+      'input[name="bulk-issue"]',
+      "Known issue",
+    );
+    await settleSuggestions();
+    assert.match(
+      dialog.textContent,
+      /#123 github — qa\/project\/123 — Known issue 🐧/,
+    );
+    input.focus();
+    input.dispatchEvent(
+      new browser.KeyboardEvent("keydown", {
+        key: "ArrowDown",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    assert.ok(browser.document.activeElement === button(dialog, "#123 github"));
+    button(dialog, "#123 github").click();
+    await flush();
+    assert.equal(dialog.querySelector('input[name="bulk-issue"]'), null);
+    assert.equal(
+      app.searchFilterLabelCache().peek("issues", 123),
+      "#123 github — qa/project/123 — Known issue 🐧",
+    );
+    assert.equal(api.mutations().length, 0);
+    assert.equal(
+      api.calls.filter(({ url }) => url.pathname.endsWith("/issues/123"))
+        .length,
+      0,
+      "rich suggestion does not refetch detail",
+    );
+    button(dialog, "Cancel").click();
+    await flush();
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("detach external URLs resolve only an exact existing issue with bounded q lookup and never PUT, including not-found/ambiguous matches", async () => {
+  for (const mode of ["exact", "fuzzy", "ambiguous", "incomplete"]) {
+    const api = bulkTransport((request) => {
+      if (request.pathname.endsWith("/issues")) {
+        const exact = { ...bulkIssue };
+        return json({
+          issues:
+            mode === "fuzzy"
+              ? [{ ...exact, url: `${exact.url}4` }]
+              : mode === "ambiguous"
+                ? [exact, { ...exact, id: 9 }]
+                : [exact],
+          count: mode === "incomplete" ? 30 : mode === "ambiguous" ? 2 : 1,
+        });
+      }
+      return undefined;
+    });
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      selectionRow(ui.target, 1).click();
+      await flush();
+      const dialog = await openBulk(ui.target, "detach");
+      await pickBulkIssue(dialog, bulkIssue.url);
+      if (mode === "exact") {
+        button(dialog, "Detach issue").click();
+        await flush();
+        await flush();
+      } else {
+        assert.equal(button(dialog, "Detach issue").disabled, true);
+        assert.match(dialog.textContent, /exact|unique/);
+      }
+      assert.equal(api.mutations().length, mode === "exact" ? 1 : 0);
+      assert.equal(
+        api.mutations().some(({ options }) => options.method === "PUT"),
+        false,
+      );
+      const lookup = api.calls.find(({ url }) =>
+        url.pathname.endsWith("/issues"),
+      );
+      assert.equal(lookup?.url.searchParams.get("q"), bulkIssue.url);
+      assert.equal(lookup.url.searchParams.get("limit"), "10");
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("issue creation is attach-only and separately authorized; known attachment failure retains issue ID for explicit retry without recreation", async () => {
+  let denied = true;
+  let posts = 0;
+  const api = bulkTransport((request, options) => {
+    if (request.pathname.endsWith("/users/me") && denied)
+      return json({
+        ...bulkAdmin,
+        is_admin: false,
+        teams: [{ permissions: ["view_issue", "change_issue_attachment"] }],
+      });
+    if (options.method === "POST")
+      return ++posts === 1
+        ? json({ detail: "Attachment validation failed" }, 422)
+        : json(bulkIssue);
+    return undefined;
+  });
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    const dialog = await openBulk(ui.target);
+    await pickBulkIssue(dialog, bulkIssue.url);
+    assert.equal(button(dialog, "Attach issue").disabled, true);
+    assert.match(dialog.textContent, /change_issue/);
+    assert.equal(api.mutations().length, 0);
+    denied = false;
+    button(dialog, "Refresh permissions").click();
+    await flush();
+    button(dialog, "Attach issue").click();
+    await flush();
+    assert.equal(dialog.open, true);
+    assert.match(dialog.textContent, /Issue #123 was created or found/);
+    assert.match(dialog.textContent, /not atomic/);
+    assert.match(dialog.textContent, /Attachment validation failed/);
+    assert.equal(
+      api.mutations().filter(({ options }) => options.method === "PUT").length,
+      1,
+    );
+    button(dialog, "Retry attachment with this issue").click();
+    await flush();
+    await flush();
+    assert.equal(api.mutations().length, 3);
+    assert.equal(
+      api.mutations().filter(({ options }) => options.method === "PUT").length,
+      1,
+    );
+    assert.deepEqual(JSON.parse(api.mutations()[0].options.body), {
+      url: bulkIssue.url,
+    });
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("permission revocation/unknown/session expiry at submit sends no mutation despite an enabled reviewed choice", async () => {
+  for (const mode of ["denied", "unknown", "logout"]) {
+    let revoke = false;
+    const api = bulkTransport((request) =>
+      revoke && request.pathname.endsWith("/users/me")
+        ? mode === "unknown"
+          ? json({}, 503)
+          : mode === "logout"
+            ? json(null)
+            : json({ ...bulkAdmin, is_admin: false, teams: [] })
+        : undefined,
+    );
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      selectionRow(ui.target, 1).click();
+      await flush();
+      const dialog = await openBulk(ui.target);
+      await pickBulkIssue(dialog);
+      assert.equal(button(dialog, "Attach issue").disabled, false);
+      revoke = true;
+      button(dialog, "Attach issue").click();
+      await flush();
+      assert.equal(api.mutations().length, 0);
+      assert.match(
+        dialog.textContent,
+        /Missing confirmed|unknown|session changed/,
+      );
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("duplicate triggers, Escape, close and search/page controls cannot interrupt or resend an in-flight mutation", async () => {
+  const pending = deferred();
+  const api = bulkTransport((_request, options) =>
+    options.method === "POST" ? pending.promise : undefined,
+  );
+  const ui = mounted("artefacts=one&limit=2");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    const dialog = await openBulk(ui.target);
+    await pickBulkIssue(dialog);
+    const submit = button(dialog, "Attach issue");
+    submit.click();
+    submit.click();
+    await flush();
+    assert.equal(api.mutations().length, 1);
+    assert.equal(button(dialog, "Cancel").disabled, true);
+    assert.equal(button(ui.target, "Search").disabled, true);
+    assert.equal(button(ui.target, "Next page").disabled, true);
+    dialog.dispatchEvent(
+      new browser.KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await flush();
+    assert.equal(dialog.open, true);
+    pending.resolve(json(bulkIssue));
+    await flush();
+    await flush();
+    assert.equal(api.mutations().length, 1);
+    assert.equal(ui.target.querySelector(".selection-summary"), null);
+  } finally {
+    pending.resolve(json(bulkIssue));
+    await ui.destroy();
+  }
+});
+
+void test("server 401/403 inline errors remain retryable after fresh review while network/5xx outcomes block resubmission and explain uncertainty", async () => {
+  for (const failure of [401, 403, 503, "network"]) {
+    const api = bulkTransport((_request, options) =>
+      options.method === "POST"
+        ? failure === "network"
+          ? Promise.reject(new Error("Connection lost"))
+          : json({ detail: "Server declined" }, failure)
+        : undefined,
+    );
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      selectionRow(ui.target, 1).click();
+      await flush();
+      const dialog = await openBulk(ui.target);
+      await pickBulkIssue(dialog);
+      button(dialog, "Attach issue").click();
+      await flush();
+      assert.equal(api.mutations().length, 1);
+      if (failure === 401) assert.match(dialog.textContent, /session expired/);
+      else if (failure === 403)
+        assert.match(dialog.textContent, /server denied/);
+      else {
+        assert.match(dialog.textContent, /Outcome unknown/);
+        assert.match(dialog.textContent, /No automatic retry/);
+        assert.equal(button(dialog, "Attach issue").disabled, true);
+        button(dialog, "Attach issue").click();
+        await flush();
+        assert.equal(api.mutations().length, 1);
+      }
+      assert.match(ui.target.textContent, /1 selected by result ID/);
+      assert.equal(
+        app.errorStore.message,
+        null,
+        "bulk errors are local rather than global toasts",
+      );
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("pending submit authorization cannot mutate after selection/query/reapply/logout changes or outgoing unmount", async () => {
+  for (const mode of ["selection", "query", "reapply", "logout", "unmount"]) {
+    const auth = deferred();
+    let wait = false;
+    const api = bulkTransport((request) =>
+      wait && request.pathname.endsWith("/users/me") ? auth.promise : undefined,
+    );
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      selectionRow(ui.target, 1).click();
+      await flush();
+      const dialog = await openBulk(ui.target);
+      await pickBulkIssue(dialog);
+      wait = true;
+      button(dialog, "Attach issue").click();
+      await flush();
+      if (mode === "selection") selectionRow(ui.target, 2).click();
+      if (mode === "query") ui.handle.restore(url("artefacts=two"));
+      if (mode === "reapply") ui.handle.restore(url("artefacts=one&limit=2"));
+      if (mode === "logout")
+        await app.userStore.refresh(() => Promise.resolve(json(null)));
+      if (mode === "unmount") await ui.destroy();
+      auth.resolve(json(bulkAdmin));
+      await flush();
+      await flush();
+      assert.equal(api.mutations().length, 0);
+    } finally {
+      auth.resolve(json(bulkAdmin));
+      if (mode !== "unmount") await ui.destroy();
+    }
+  }
+});
+
+void test("bulk cancellation and successful refresh preserve a suspended unconfirmed condition editor, confirmed query and view-only focus", async () => {
+  const api = bulkTransport();
+  const ui = mounted("artefacts=one&template_ids=confirmed");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    chip(ui.target, "Template ID").click();
+    await flush();
+    const input = await enter(
+      ui.target,
+      'input[name="template_ids"]',
+      "unconfirmed 🐧",
+    );
+    const trigger = button(ui.target, "Bulk actions");
+    trigger.dispatchEvent(
+      new browser.MouseEvent("pointerdown", { bubbles: true }),
+    );
+    let dialog = await openBulk(ui.target);
+    const focus = browser.document.activeElement;
+    ui.handle.restore(
+      url(
+        `artefacts=one&template_ids=confirmed&view=${app.encodeView({ sorting: [{ id: "testCase", desc: true }] })}`,
+      ),
+    );
+    await flush();
+    assert.equal(dialog.open, true);
+    assert.equal(browser.document.activeElement, focus);
+    button(dialog, "Cancel").click();
+    await flush();
+    assert.equal(browser.document.activeElement, trigger);
+    chip(ui.target, "Template ID").click();
+    await flush();
+    assert.equal(ui.target.querySelector('input[name="template_ids"]'), input);
+    assert.equal(input.value, "unconfirmed 🐧");
+    trigger.dispatchEvent(
+      new browser.MouseEvent("pointerdown", { bubbles: true }),
+    );
+    dialog = await openBulk(ui.target);
+    await pickBulkIssue(dialog);
+    button(dialog, "Attach issue").click();
+    await flush();
+    await flush();
+    assert.equal(
+      ui.handle.currentUrl.searchParams.get("template_ids"),
+      "confirmed",
+    );
+    assert.equal(
+      chip(ui.target, "Template ID").getAttribute("title"),
+      "Template ID: confirmed",
+    );
+    chip(ui.target, "Template ID").click();
+    await flush();
+    assert.equal(ui.target.querySelector('input[name="template_ids"]'), input);
+    assert.equal(input.value, "unconfirmed 🐧");
+    assert.equal(api.searches().length, 2);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("successful detach can empty an out-of-range current page without stranding navigation or changing the query", async () => {
+  let finished = false;
+  const api = bulkTransport((request, options) => {
+    if (options.method === "POST") {
+      finished = true;
+      return json(bulkIssue);
+    }
+    return finished && request.pathname.endsWith("/test-results")
+      ? response([], 0)
+      : undefined;
+  });
+  const ui = mounted("artefacts=one&issues=123&offset=50");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    const dialog = await openBulk(ui.target, "detach");
+    await pickBulkIssue(dialog);
+    button(dialog, "Detach issue").click();
+    await flush();
+    await flush();
+    assert.match(ui.target.textContent, /No test results match/);
+    assert.equal(button(ui.target, "Previous page").disabled, false);
+    assert.equal(button(ui.target, "Next page").disabled, true);
+    assert.equal(ui.handle.currentUrl.searchParams.get("offset"), "50");
+    assert.equal(api.mutations().length, 1);
+  } finally {
+    await ui.destroy();
+  }
+});
+
 function detailedResult(id = 1) {
   const row = result(id);
   return {

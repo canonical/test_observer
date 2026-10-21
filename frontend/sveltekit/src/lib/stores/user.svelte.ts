@@ -30,7 +30,7 @@ export type AuthStatus = "authenticated" | "unauthenticated" | "unknown";
 class UserStore {
   current = $state<User | null>(null);
   private sessionConfirmedAdmin = $state(false);
-  private refreshGeneration = 0;
+  private refreshGeneration = $state(0);
 
   /** Authorization gates are invalidated by ANY later refresh, including a
    * failed or cancelled one that leaves the cached display profile intact. */

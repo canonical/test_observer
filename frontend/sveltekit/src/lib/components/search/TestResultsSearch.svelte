@@ -1,7 +1,7 @@
 <!-- SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd. -->
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 <script lang="ts">
-  import { onDestroy, untrack } from "svelte";
+  import { onDestroy, tick, untrack } from "svelte";
   import { Button, Spinner, Link } from "@canonical/svelte-ds-app-launchpad";
   import { SearchIcon } from "@canonical/svelte-icons";
   import type { Family } from "$lib/types";
@@ -23,6 +23,8 @@
   import SearchResultsGrid from "./SearchResultsGrid.svelte";
   import SearchConditions from "./SearchConditions.svelte";
   import SearchResultDetails from "./SearchResultDetails.svelte";
+  import BulkIssueActions from "./BulkIssueActions.svelte";
+  import { freezeBulkTarget } from "$lib/testResultsBulk";
   import { VIEW_PARAM } from "$lib/gridViewUrl";
   import {
     selectionQuery,
@@ -35,6 +37,7 @@
     base,
     navigate,
     replaceView,
+    onBusyChange,
   }: {
     url: URL;
     families: Family[];
@@ -44,6 +47,7 @@
       encoded: string | null,
       sourceHref: string,
     ) => Promise<unknown>;
+    onBusyChange?: (busy: boolean) => void;
   } = $props();
   const store = new TestResultsSearchStore();
   const selection = new TestResultsSelection();
@@ -72,6 +76,62 @@
   let editedFields = $state<SearchFilter[]>([]);
   let moving = $state(false);
   let navigationError = $state(false);
+  let bulkBusy = $state(false);
+  let bulkReviewOpen = $state(false);
+  let bulkMessage = $state("");
+  let refreshView = $state<{ source: string; encoded: string | null } | null>(
+    null,
+  );
+  const gridView = $derived(
+    refreshView?.source === url.href ? refreshView.encoded : encodedView,
+  );
+  function bulkScope(ownSubmission = false) {
+    return freezeBulkTarget(selection.snapshot(), applied, {
+      available:
+        store.response !== null &&
+        store.responseQuery === applied &&
+        !store.error,
+      loading: store.loading,
+      moving,
+      accessError: store.accessError !== null,
+      unapplied,
+      // This dialog owns the in-flight operation; its pre-POST recheck must
+      // exclude only itself, never another operation or loading/access guard.
+      mutating: bulkBusy && !ownSubmission,
+    });
+  }
+  function prepareBulk() {
+    conditions?.preserveEditor();
+    selectedDetails = null;
+  }
+  function setBulkBusy(value: boolean) {
+    bulkBusy = value;
+    onBusyChange?.(value);
+  }
+  async function refreshResults() {
+    const view = grid?.getSharedView();
+    if (view !== undefined) {
+      refreshView = { source: url.href, encoded: view };
+      await updateView(view);
+      if (!live) return;
+    }
+    if (!live) return;
+    // Read CURRENT applied state after any view write; the store's generation
+    // guard rejects this response if a newer query subsequently starts.
+    await store.search(applied);
+  }
+  async function bulkComplete(key: string, message: string) {
+    if (!live) return;
+    if (key === bulkReviewKey) selection.clear();
+    bulkMessage = message;
+    await refreshResults();
+    await tick();
+    if (live)
+      (
+        pageElement.querySelector<HTMLElement>(".results-grid") ??
+        pageElement.querySelector<HTMLElement>(".results")
+      )?.focus({ preventScroll: true });
+  }
   const unapplied = $derived(
     !filtersEqual(drafts, applied.filters) ||
       editedFields.some((key) => invalidAppliedFields.includes(key)),
@@ -88,6 +148,9 @@
   const selectionSnapshot = $derived(selectionQuery(applied));
   const datasetKey = $derived(
     `${url.origin}${url.pathname}?${queryString}:${reapply}`,
+  );
+  const bulkReviewKey = $derived(
+    `${datasetKey}:${JSON.stringify(selection.snapshot())}`,
   );
   const selectionReady = $derived(
     !moving &&
@@ -128,6 +191,7 @@
   function showDetails(result: SearchResult, trigger: HTMLButtonElement) {
     if (
       !live ||
+      bulkReviewOpen ||
       !selectionReady ||
       !store.response?.test_results.includes(result)
     )
@@ -187,7 +251,7 @@
   });
 
   async function go(params: URLSearchParams, clearView = false) {
-    if (moving) return;
+    if (moving || bulkBusy) return;
     moving = true;
     navigationError = false;
     // One-off navigation target, not mutable reactive component state.
@@ -222,7 +286,7 @@
   }
 
   function apply() {
-    if (moving) return;
+    if (moving || bulkBusy) return;
     selection.clear();
     void go(editedSearchParams(drafts, url.searchParams, editedFields));
   }
@@ -249,6 +313,15 @@
   );
 </script>
 
+<svelte:window
+  onbeforeunload={(event) => {
+    if (bulkBusy) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+  }}
+/>
+
 <section
   class="search-page"
   aria-labelledby="search-heading"
@@ -270,7 +343,7 @@
           if (!editedFields.includes(key))
             editedFields = [...editedFields, key];
         }}
-        disabled={moving}
+        disabled={moving || bulkBusy}
       />
     {/key}
     <form
@@ -281,7 +354,12 @@
         apply();
       }}
     >
-      <Button type="submit" severity="brand" density="dense" disabled={moving}>
+      <Button
+        type="submit"
+        severity="brand"
+        density="dense"
+        disabled={moving || bulkBusy}
+      >
         {#snippet iconLeft()}<SearchIcon />{/snippet}
         Search
       </Button>
@@ -295,14 +373,17 @@
             editorRevision++;
             void go(new URLSearchParams(), true);
           }}
-          disabled={moving}>Clear all</Button
+          disabled={moving || bulkBusy}>Clear all</Button
         >
       {/if}
       <Button
         type="button"
         density="dense"
-        disabled={moving || !encodedView}
-        onclick={() => updateView(null)}>Reset table view</Button
+        disabled={moving || bulkBusy || !encodedView}
+        onclick={() => {
+          refreshView = null;
+          void updateView(null);
+        }}>Reset table view</Button
       >
     </form>
   </div>
@@ -317,10 +398,12 @@
   {#if navigationError}<p role="alert">
       Could not update the search URL. Please try again.
     </p>{/if}
+  {#if bulkMessage}<p role="status">{bulkMessage}</p>{/if}
   <section
     class="results"
     aria-label="Search results"
     aria-busy={store.loading}
+    tabindex="-1"
   >
     {#if applied.hasFilters && !applied.problems.length}
       <h2>
@@ -408,6 +491,18 @@
             disabled={!selectionPage.enabled()}
             onclick={selectionPage.clear}>Clear selection</Button
           >
+          <BulkIssueActions
+            scope={bulkScope}
+            reviewKey={bulkReviewKey}
+            origin={url.origin}
+            {base}
+            {loginUrl}
+            beforeOpen={prepareBulk}
+            onbusy={setBulkBusy}
+            onreview={(open) => (bulkReviewOpen = open)}
+            oncomplete={bulkComplete}
+            onrefresh={refreshResults}
+          />
           <p id="selection-scope" class="muted">
             Selection uses the applied backend query, not local grid filters or
             unapplied drafts. All-matches counts use the last server total, not
@@ -423,7 +518,7 @@
           results={response.test_results}
           {families}
           {base}
-          {encodedView}
+          encodedView={gridView}
           sourceHref={url.href}
           queryKey={datasetKey}
           selection={selectionPage}
@@ -442,7 +537,7 @@
       {/if}
       <nav aria-label="Search result pages" class="actions pagination">
         <Button
-          disabled={moving || unapplied || applied.offset === 0}
+          disabled={moving || bulkBusy || unapplied || applied.offset === 0}
           onclick={() =>
             go(
               searchParams(
@@ -453,7 +548,7 @@
             )}>Previous page</Button
         >
         <Button
-          disabled={moving || unapplied || !hasNext}
+          disabled={moving || bulkBusy || unapplied || !hasNext}
           onclick={() =>
             go(
               searchParams(

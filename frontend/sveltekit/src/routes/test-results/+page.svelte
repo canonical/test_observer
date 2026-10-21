@@ -17,11 +17,15 @@
 
 <script lang="ts">
   import { page, navigating } from "$app/state";
-  import { goto, replaceState } from "$app/navigation";
+  import { beforeNavigate, goto, replaceState } from "$app/navigation";
   import { resolve } from "$app/paths";
   import TestResultsSearch from "$lib/components/search/TestResultsSearch.svelte";
   import { replaceSearchView } from "$lib/searchViewNavigation";
   let { data } = $props();
+  let bulkBusy = $state(false);
+  beforeNavigate((navigation) => {
+    if (bulkBusy) navigation.cancel();
+  });
 
   // SvelteKit 3 keeps the loaded page URL separate from shallow history.
   // Use both for reloads, normal navigation AND browser back/forward.
@@ -33,6 +37,7 @@
   url={new URL(url.href)}
   families={data.artefactFamilies}
   base={resolve("").replace(/\/$/, "")}
+  onBusyChange={(busy) => (bulkBusy = busy)}
   navigate={(url) => goto(url)}
   replaceView={(encoded, sourceHref) =>
     replaceSearchView(encoded, sourceHref, {

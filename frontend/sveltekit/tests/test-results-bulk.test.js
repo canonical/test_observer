@@ -90,6 +90,175 @@ before(async () => {
   );
 });
 
+void test("issue references accept only positive safe internal IDs at this origin/base or exact legacy routes", () => {
+  for (const input of [
+    "123",
+    "#123",
+    "/wip/issues/123",
+    "https://observer.test/wip/issues/123",
+    "https://observer.test/#/issues/123",
+    "/wip/#/issues/123",
+  ])
+    assert.deepEqual(
+      value(model.parseIssueReference(input, "https://observer.test", "/wip")),
+      { kind: "internal", id: 123 },
+      input,
+    );
+  for (const input of [
+    "0",
+    "-1",
+    "9007199254740992",
+    "1,2",
+    "1.2",
+    "javascript:alert(1)",
+    "https://foreign.test/wip/issues/123",
+    "https://foreign.test/#/issues/123",
+    "/issues/123",
+    "/wip/issues/123/extra",
+    "/wip/issues/123?other=1",
+    "/wip/issues/123#extra",
+    "/wip/issues/%31",
+    "//observer.test/wip/issues/123",
+    "https://u:p@observer.test/wip/issues/123",
+    "/other/../wip/issues/123",
+    "/wip\\issues\\123",
+    "data:text/html,123",
+  ])
+    denied(
+      model.parseIssueReference(input, "https://observer.test", "/wip"),
+      /positive issue ID/,
+      input,
+    );
+  assert.deepEqual(
+    value(model.parseIssueReference("/issues/1", "https://observer.test", "")),
+    { kind: "internal", id: 1 },
+  );
+});
+
+void test("supported tracker references canonicalize like existing backend source/project/key, without arbitrary HTTP(S) URLs", () => {
+  for (const [input, canonical] of [
+    [
+      "http://github.com/ORG/Repo/issues/123",
+      "https://github.com/org/repo/issues/123",
+    ],
+    [
+      "https://warthogs.atlassian.net/browse/team-123",
+      "https://warthogs.atlassian.net/browse/TEAM-123",
+    ],
+    [
+      "https://bugs.launchpad.net/Ubuntu/+source/linux/+bug/123",
+      "https://bugs.launchpad.net/ubuntu/+bug/123",
+    ],
+  ])
+    assert.deepEqual(
+      value(model.parseIssueReference(input, "https://observer.test", "/wip")),
+      { kind: "external", url: canonical },
+    );
+  for (const input of [
+    "https://example.test/issue/123",
+    "ftp://github.com/a/b/issues/1",
+    "https://github.com.evil.test/a/b/issues/1",
+    "https://github.com:444/a/b/issues/1",
+    "https://github.com/a/b/pull/1",
+    "https://github.com/a/b/issues/1?x=1",
+    "https://github.com/a/b/issues/1#comment",
+    "https://evil@github.com/a/b/issues/1",
+    "https://jira.example/browse/TEAM-1",
+  ])
+    denied(
+      model.parseIssueReference(input, "https://observer.test", "/wip"),
+      /supported/,
+    );
+});
+
+void test("detach lookup is bounded and exact, never fuzzy first, never enumerates and never creates", async () => {
+  const original = globalThis.fetch;
+  const canonical = "https://github.com/org/repo/issues/123";
+  const reference = { kind: /** @type {const} */ ("external"), url: canonical };
+  const exact = {
+    id: 7,
+    url: canonical,
+    source: "github",
+    project: "org/repo",
+    key: "123",
+    title: "Exact issue",
+  };
+  const fuzzy = { ...exact, id: 8, url: `${canonical}4`, title: "Fuzzy issue" };
+  try {
+    for (const [body, accepted] of [
+      [{ issues: [fuzzy, exact], count: 2 }, true],
+      [{ issues: [fuzzy], count: 1 }, false],
+      [{ issues: [], count: 0 }, false],
+      [{ issues: [exact, { ...exact, id: 9 }], count: 2 }, false],
+      [{ issues: [exact], count: 11 }, false],
+      [{ issues: [exact], count: 2 }, false],
+    ]) {
+      /** @type {{url: URL; options: RequestInit}[]} */
+      const calls = [];
+      globalThis.fetch = (input, options = {}) => {
+        calls.push({
+          url: new URL(input instanceof Request ? input.url : input),
+          options,
+        });
+        return Promise.resolve(json(body));
+      };
+      const pending = model.resolveExistingIssue(
+        reference,
+        new AbortController().signal,
+      );
+      if (accepted)
+        assert.deepEqual(await pending, {
+          id: 7,
+          label: "#7 github — org/repo/123 — Exact issue",
+        });
+      else await assert.rejects(pending, /exact|unique|existing/);
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].url.pathname, "/v1/issues");
+      assert.equal(calls[0].url.searchParams.get("q"), canonical);
+      assert.equal(calls[0].url.searchParams.get("limit"), "10");
+      assert.equal(calls[0].options.method ?? "GET", "GET");
+      assert.equal(calls[0].url.searchParams.has("offset"), false);
+    }
+    globalThis.fetch = () => Promise.resolve(json({ ...exact, id: 8 }));
+    await assert.rejects(
+      model.resolveExistingIssue(
+        { kind: "internal", id: 7 },
+        new AbortController().signal,
+      ),
+      /different issue ID/,
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+void test("attachment permission mode/count/identity distinguish verified single IDs, cross-page IDs and all-query previews", () => {
+  const { selection, page, query } = selected();
+  page.toggle([12], false);
+  const single = value(
+    model.freezeBulkTarget(selection.snapshot(), query, ready),
+  );
+  assert.equal(model.attachmentIsBulk(single), false);
+  assert.equal(model.bulkTargetCount(single), 1);
+  page.toggle([12], true);
+  const multiple = value(
+    model.freezeBulkTarget(selection.snapshot(), query, ready),
+  );
+  assert.equal(model.attachmentIsBulk(multiple), true);
+  assert.equal(model.bulkTargetCount(multiple), 2);
+  assert.notEqual(
+    model.bulkTargetIdentity(single),
+    model.bulkTargetIdentity(multiple),
+  );
+  const all = queryTarget();
+  assert.equal(model.attachmentIsBulk(all), true);
+  assert.equal(model.bulkTargetCount(all), 100);
+  assert.notEqual(
+    model.bulkTargetIdentity(all),
+    model.bulkTargetIdentity({ ...all, count: 101 }),
+  );
+});
+
 void test("POST JSON preserves every active field without GET encoding, pagination, alias or presentation", () => {
   const params = new URLSearchParams({
     families: "generic",
