@@ -74,7 +74,7 @@ unfiltered test results.
 | Test Case         | `test_cases`           | Exact names with remote suggestions and manual exact-value entry.                                                                                                                      |
 | Test Plan         | `test_plans`           | Exact names with remote suggestions and manual exact-value entry.                                                                                                                      |
 | Template ID       | `template_ids`         | Manual comma-separated exact values; no remote lookup.                                                                                                                                 |
-| Metadata          | `execution_metadata`   | Literal category/value pairs, with native datalist suggestions and individual pair removal.                                                                                            |
+| Metadata          | `execution_metadata`   | Literal category/value pairs, with visible locally filtered category/value options and individual pair removal.                                                                        |
 | From              | `from_date`            | Inclusive lower bound on result creation time; UTC date/time picker and exact timestamp input.                                                                                         |
 | Until             | `until_date`           | Inclusive upper bound on result creation time; UTC date/time picker and exact timestamp input.                                                                                         |
 
@@ -119,13 +119,17 @@ Artefact Version, Artefact Track and Template ID remain manual exact lists,
 trimming and deduplicating comma-separated values: no complete lookup endpoint
 exists for them (test-case search matches case names, not template IDs).
 
-Metadata lazily loads `GET /v1/execution-metadata` when its editor opens. Native
-category/value datalists filter this known map locally (up to 50 matches), with
-values grouped by the exact category. The map is cached only in memory for five
-minutes in the current API/session/profile/permission context. Reopening can
-reuse it; typing never refetches it, and cancelled replies cannot fill the cache.
-Manual literal pairs remain available. **Add pair** adds the pair and clears its
-inputs; pending category/value text must be added or cleared before confirming.
+Metadata lazily loads `GET /v1/execution-metadata` when its editor opens. Focusing
+Category shows known categories; selecting one focuses Value and reveals that
+category's known values, including before a query is typed. Both lists filter the
+known map locally and scroll internally, showing up to 50 matches. Arrow keys
+highlight options and Enter selects; Enter never submits the editor. The map is
+cached only in memory for five minutes in the current API/session/profile/permission
+context. Reopening can reuse it; typing never refetches it, and cancelled replies
+cannot fill the cache. Manual literal pairs remain available, including when the
+map is empty or unavailable. **Add pair** adds the pair and clears its inputs;
+changing category clears pending value text so it cannot be assigned to the wrong
+category. Pending category/value text must be added or cleared before confirming.
 Suggestion selection and chip confirmation never fetch test results.
 
 ### Metadata and date wire contracts

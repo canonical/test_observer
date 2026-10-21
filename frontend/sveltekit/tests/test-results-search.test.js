@@ -6315,7 +6315,7 @@ void test("all eighteen compact editors confirm typed values, meaningful labels 
     await chooseFilter(ui.target, "Metadata");
     assert.match(
       panel(ui.target).textContent,
-      /all categories \(AND\).*any value \(OR\)/,
+      /AND across categories.*OR within each category/,
     );
     for (const [category, value] of [
       ["c:at,🐧", "one,two:三"],
@@ -7581,41 +7581,81 @@ void test("metadata suggestions load lazily once per session context, filter loc
     assert.equal(calls.length, 1);
     assert.equal(calls[0].pathname, "/v1/execution-metadata");
     assert.equal(calls[0].search, "");
-    const categoryInput = await enter(
-      ui.target,
-      'input[name="metadata-category"]',
-      "c:",
-    );
-    const categories = ui.target.querySelector(
-      `#${categoryInput.getAttribute("list")}`,
-    );
+    const categoryInput =
+      /** @type {import("happy-dom").HTMLInputElement | null} */ (
+        ui.target.querySelector('input[name="metadata-category"]')
+      );
+    assert.ok(categoryInput);
+    categoryInput.focus();
+    await flush();
     assert.deepEqual(
-      Array.from(categories?.querySelectorAll("option") ?? []).map(
-        (item) => item.value,
+      Array.from(panel(ui.target).querySelectorAll('[role="option"]')).map(
+        (item) => item.textContent,
+      ),
+      ["c:at,🐧", "another", "__proto__"],
+      "known categories are visible on empty-query focus",
+    );
+    await press(categoryInput, "ArrowUp");
+    assert.equal(
+      categoryInput.getAttribute("aria-activedescendant"),
+      `${categoryInput.id.replace(/-category$/, "")}-category-option-2`,
+      "ArrowUp from no active option reaches the last option",
+    );
+    await press(categoryInput, "ArrowDown");
+    assert.equal(
+      categoryInput.getAttribute("aria-activedescendant"),
+      `${categoryInput.id.replace(/-category$/, "")}-category-option-0`,
+      "ArrowDown wraps to the first option",
+    );
+    await enter(ui.target, 'input[name="metadata-category"]', "c:");
+    assert.deepEqual(
+      Array.from(panel(ui.target).querySelectorAll('[role="option"]')).map(
+        (item) => item.textContent,
       ),
       ["c:at,🐧"],
+      "category options are filtered locally",
     );
-    await enter(ui.target, 'input[name="metadata-category"]', "c:at,🐧");
-    const valueInput = await enter(
-      ui.target,
-      'input[name="metadata-value"]',
-      "one,",
+    assert.equal(
+      (await press(categoryInput, "ArrowDown")).defaultPrevented,
+      true,
     );
-    const values = ui.target.querySelector(
-      `#${valueInput.getAttribute("list")}`,
+    assert.equal((await press(categoryInput, "Enter")).defaultPrevented, true);
+    const valueInput = ui.target.querySelector('input[name="metadata-value"]');
+    assert.ok(valueInput);
+    assert.equal(
+      browser.document.activeElement,
+      valueInput,
+      "keyboard category selection advances focus to Value",
+    );
+    assert.equal(valueInput.value, "");
+    assert.equal(valueInput.disabled, false);
+    assert.match(panel(ui.target).textContent, /Known values for c:at,🐧/);
+    assert.equal(
+      valueInput.getAttribute("aria-controls"),
+      `${valueInput.id.replace(/-value$/, "")}-values`,
+      "focused Value controls its mounted suggestions listbox",
     );
     assert.deepEqual(
-      Array.from(values?.querySelectorAll("option") ?? []).map(
-        (item) => item.value,
+      Array.from(panel(ui.target).querySelectorAll('[role="option"]')).map(
+        (item) => item.textContent,
+      ),
+      ["one,two:三", "other"],
+      "selecting a category reveals its values before typing",
+    );
+    await enter(ui.target, 'input[name="metadata-value"]', "one,");
+    assert.deepEqual(
+      Array.from(panel(ui.target).querySelectorAll('[role="option"]')).map(
+        (item) => item.textContent,
       ),
       ["one,two:三"],
+      "value options are filtered locally within the selected category",
     );
-    await enter(ui.target, 'input[name="metadata-value"]', "one,two:三");
-    assert.equal(
-      (await press(valueInput, "Enter")).defaultPrevented,
-      false,
-      "native datalist selection must not be cancelled",
-    );
+    assert.equal((await press(valueInput, "ArrowDown")).defaultPrevented, true);
+    assert.equal((await press(valueInput, "Enter")).defaultPrevented, true);
+    assert.equal(valueInput.value, "one,two:三");
+    assert.equal(valueInput.hasAttribute("aria-controls"), false);
+    assert.equal(valueInput.hasAttribute("aria-activedescendant"), false);
+    assert.equal((await press(valueInput, "Enter")).defaultPrevented, true);
     await confirmEditor(ui.target);
     assert.equal(
       ui.target.querySelectorAll(".chip-trigger").length,
@@ -7636,16 +7676,33 @@ void test("metadata suggestions load lazily once per session context, filter loc
     chip(ui.target, "Metadata").click();
     await flush();
     await enter(ui.target, 'input[name="metadata-category"]', "unknown");
-    assert.match(
-      panel(ui.target).textContent,
-      /No\s+matching known categories/,
-    );
+    assert.match(panel(ui.target).textContent, /No\s+matching\s+categories/);
+    await enter(ui.target, 'input[name="metadata-category"]', "another");
+    await enter(ui.target, 'input[name="metadata-value"]', "pending elsewhere");
     await enter(ui.target, 'input[name="metadata-category"]', "__proto__");
+    assert.equal(
+      ui.target.querySelector('input[name="metadata-value"]')?.value,
+      "",
+      "changing category clears a value typed for the prior category",
+    );
+    assert.match(panel(ui.target).textContent, /one,two:三/);
+    assert.match(panel(ui.target).textContent, /manual:comma,🐧/);
+    const reopenedCategoryInput =
+      /** @type {import("happy-dom").HTMLInputElement | null} */ (
+        ui.target.querySelector('input[name="metadata-category"]')
+      );
+    assert.ok(reopenedCategoryInput);
+    const reopenedCategoriesId =
+      reopenedCategoryInput.getAttribute("aria-controls");
+    reopenedCategoryInput.focus();
+    await flush();
     assert.deepEqual(
-      Array.from(panel(ui.target).querySelectorAll("option")).map(
-        (item) => item.value,
-      ),
-      ["__proto__", "literal"],
+      Array.from(
+        panel(ui.target).querySelectorAll(
+          `#${reopenedCategoriesId} [role="option"]`,
+        ),
+      ).map((item) => item.textContent),
+      ["__proto__"],
       "category keys are literal data, not object prototype members",
     );
     assert.equal(
@@ -7654,8 +7711,21 @@ void test("metadata suggestions load lazily once per session context, filter loc
       "neither typing nor reopening refetches the full map",
     );
     assert.equal(ui.handle.currentUrl.search, "");
-    button(panel(ui.target), "Cancel").click();
+    assert.equal(
+      (await press(reopenedCategoryInput, "Escape")).defaultPrevented,
+      true,
+    );
     await flush();
+    assert.equal(
+      ui.target.querySelector(".condition-popover .panel"),
+      null,
+      "Escape cancels the editor even while inline category suggestions are open",
+    );
+    assert.equal(
+      chip(ui.target, "Metadata").title,
+      'Metadata: "c:at,🐧" = "one,two:三", "c:at,🐧" = "manual:comma,🐧"',
+      "Escape discards unconfirmed category/value input",
+    );
     await app.userStore.refresh(() => Promise.resolve(json(null)));
     await flush();
     await app.userStore.refresh(() =>
@@ -7720,14 +7790,267 @@ void test("metadata ignores cancelled parsed bodies, keeps failures local and pe
     button(panel(ui.target), "Retry suggestions").click();
     await flush();
     assert.equal(count, 3);
-    const options = Array.from(panel(ui.target).querySelectorAll("option")).map(
-      (item) => item.value,
-    );
+    await enter(ui.target, 'input[name="metadata-category"]', "");
+    const categoriesId = ui.target
+      .querySelector('input[name="metadata-category"]')
+      ?.getAttribute("aria-controls");
+    const options = Array.from(
+      panel(ui.target).querySelectorAll(`#${categoriesId} [role="option"]`),
+    ).map((item) => item.textContent);
     assert.deepEqual(options, ["latest"]);
     await confirmEditor(ui.target);
     assert.equal(
       chip(ui.target, "Metadata").title,
       'Metadata: "manual:🐧" = "value,exact"',
+    );
+  } finally {
+    await ui.destroy();
+    await app.userStore.refresh(() => Promise.resolve(json(null)));
+  }
+});
+
+void test("metadata no-match status remains stable on blur so Add pair commits an exact manual pair", async () => {
+  await app.userStore.refresh(() =>
+    Promise.resolve(json({ id: 435, teams: [], is_admin: false })),
+  );
+  globalThis.fetch = () =>
+    Promise.resolve(json({ execution_metadata: { known: ["suggested"] } }));
+  const ui = mounted();
+  try {
+    await flush();
+    await chooseFilter(ui.target, "Metadata");
+    await enter(
+      ui.target,
+      'input[name="metadata-category"]',
+      "manual:category🐧",
+    );
+    const valueInput = await enter(
+      ui.target,
+      'input[name="metadata-value"]',
+      "exact, value:三",
+    );
+    valueInput.focus();
+    await flush();
+    const status = panel(ui.target).querySelector('[role="status"]');
+    assert.ok(status);
+    const manualNoMatch = status.textContent.trim().replace(/\s+/g, " ");
+    assert.equal(manualNoMatch, "No known values for this category.");
+
+    const addPair = button(panel(ui.target), "Add pair");
+    addPair.focus();
+    await flush();
+    assert.equal(
+      status.textContent.trim().replace(/\s+/g, " "),
+      manualNoMatch,
+      "manual no-match status persists after focus leaves Value",
+    );
+    addPair.click();
+    await flush();
+
+    assert.match(panel(ui.target).textContent, /"manual:category🐧"/);
+    assert.match(panel(ui.target).textContent, /"exact, value:三"/);
+    assert.equal(valueInput.value, "", "Add pair clears the committed value");
+    assert.equal(
+      document.activeElement,
+      addPair,
+      "adding a pair keeps focus on the action instead of reopening suggestions",
+    );
+    assert.equal(
+      ui.target
+        .querySelector('input[name="metadata-category"]')
+        ?.getAttribute("aria-expanded"),
+      "false",
+      "adding a pair does not expand the category list and shift following actions",
+    );
+    button(panel(ui.target), "Add filter").click();
+    await flush();
+    assert.equal(
+      chip(ui.target, "Metadata").title,
+      'Metadata: "manual:category🐧" = "exact, value:三"',
+      "the new-filter action remains available after Add pair",
+    );
+
+    chip(ui.target, "Metadata").click();
+    await flush();
+    await enter(ui.target, 'input[name="metadata-category"]', "second");
+    await enter(ui.target, 'input[name="metadata-value"]', "saved value");
+    const editAddPair = button(panel(ui.target), "Add pair");
+    editAddPair.focus();
+    editAddPair.click();
+    await flush();
+    assert.equal(
+      document.activeElement,
+      editAddPair,
+      "editing also keeps focus on Add pair without opening a list",
+    );
+    button(panel(ui.target), "Save changes").click();
+    await flush();
+    assert.equal(
+      chip(ui.target, "Metadata").title,
+      'Metadata: "manual:category🐧" = "exact, value:三", "second" = "saved value"',
+      "Save changes remains available after adding a pair in the editor",
+    );
+  } finally {
+    await ui.destroy();
+    await app.userStore.refresh(() => Promise.resolve(json(null)));
+  }
+});
+
+void test("metadata picker caps and scrolls large local lists, keeps category/value identity, and never searches on selection", async () => {
+  await app.userStore.refresh(() =>
+    Promise.resolve(json({ id: 445, teams: [], is_admin: false })),
+  );
+  const execution_metadata = Object.fromEntries(
+    Array.from({ length: 75 }, (_, index) => [
+      `category-${index}`,
+      index === 0
+        ? [
+            "first,exact:🐧",
+            ...Array.from({ length: 74 }, (_, value) => `option-${value}`),
+          ]
+        : [`value-${index}`],
+    ]),
+  );
+  /** @type {URL[]} */ const calls = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    calls.push(request);
+    return Promise.resolve(json({ execution_metadata }));
+  };
+  const ui = mounted();
+  try {
+    await flush();
+    assert.equal(calls.length, 0);
+    await chooseFilter(ui.target, "Metadata");
+    await flush();
+    const categoryInput =
+      /** @type {import("happy-dom").HTMLInputElement | null} */ (
+        ui.target.querySelector('input[name="metadata-category"]')
+      );
+    assert.ok(categoryInput);
+    const valueInputBeforeFocus = ui.target.querySelector(
+      'input[name="metadata-value"]',
+    );
+    assert.ok(valueInputBeforeFocus);
+    assert.ok(categoryInput.hasAttribute("aria-controls"));
+    assert.equal(valueInputBeforeFocus.hasAttribute("aria-controls"), false);
+    categoryInput.focus();
+    await flush();
+    const categoryListId = categoryInput.getAttribute("aria-controls");
+    assert.ok(categoryListId);
+    assert.equal(
+      panel(ui.target)
+        .querySelector(`#${categoryListId}`)
+        ?.getAttribute("role"),
+      "listbox",
+      "aria-controls references a mounted category listbox",
+    );
+    const categoryOptions = () =>
+      Array.from(
+        panel(ui.target).querySelectorAll(`#${categoryListId} [role="option"]`),
+      );
+    assert.equal(categoryOptions().length, 50);
+    assert.match(panel(ui.target).textContent, /Showing 50 of 75/);
+    const categoryList = panel(ui.target).querySelector(`#${categoryListId}`);
+    assert.equal(
+      categoryList?.getAttribute("class")?.includes("suggestions"),
+      true,
+    );
+
+    await enter(ui.target, 'input[name="metadata-category"]', "category-7");
+    assert.equal(categoryOptions().length, 6);
+    assert.ok(
+      categoryOptions().some((option) => option.textContent === "category-74"),
+    );
+    await enter(ui.target, 'input[name="metadata-category"]', "category-0");
+    assert.equal(categoryOptions().length, 1);
+    /** @type {string[]} */ const categoryScrolls = [];
+    for (const option of categoryOptions())
+      option.scrollIntoView = (options) => {
+        assert.deepEqual(options, { block: "nearest" });
+        categoryScrolls.push(option.id);
+      };
+    assert.equal(
+      (await press(categoryInput, "ArrowDown")).defaultPrevented,
+      true,
+    );
+    assert.deepEqual(categoryScrolls, [
+      `${categoryInput.id.replace(/-category$/, "")}-category-option-0`,
+    ]);
+    assert.equal(
+      browser.document.getElementById(
+        categoryInput.getAttribute("aria-activedescendant"),
+      ),
+      categoryOptions()[0],
+      "active descendant always points to a mounted category option",
+    );
+    assert.equal((await press(categoryInput, "Enter")).defaultPrevented, true);
+    const valueInput = ui.target.querySelector('input[name="metadata-value"]');
+    assert.ok(valueInput);
+    const valueListId = valueInput.getAttribute("aria-controls");
+    const valueOptions = () =>
+      Array.from(
+        panel(ui.target).querySelectorAll(`#${valueListId} [role="option"]`),
+      );
+    assert.equal(valueOptions().length, 50);
+    assert.match(panel(ui.target).textContent, /Showing 50 of 75/);
+    assert.equal(valueOptions()[0]?.textContent, "first,exact:🐧");
+    /** @type {string[]} */ const valueScrolls = [];
+    for (const option of valueOptions())
+      option.scrollIntoView = (options) => {
+        assert.deepEqual(options, { block: "nearest" });
+        valueScrolls.push(option.id);
+      };
+    assert.equal((await press(valueInput, "ArrowDown")).defaultPrevented, true);
+    assert.deepEqual(valueScrolls, [
+      `${valueInput.id.replace(/-value$/, "")}-value-option-0`,
+    ]);
+    assert.equal(
+      browser.document.getElementById(
+        valueInput.getAttribute("aria-activedescendant"),
+      ),
+      valueOptions()[0],
+      "active descendant always points to a mounted value option",
+    );
+    for (let index = 1; index < 50; index++)
+      await press(valueInput, "ArrowDown");
+    assert.equal(valueScrolls.length, 50);
+    assert.equal(
+      valueScrolls.at(-1),
+      `${valueInput.id.replace(/-value$/, "")}-value-option-49`,
+    );
+    assert.equal(
+      browser.document.getElementById(
+        valueInput.getAttribute("aria-activedescendant"),
+      ),
+      valueOptions()[49],
+      "the last visible capped-list option stays the active descendant",
+    );
+    // Return to the first exact value before committing it.
+    for (let index = 0; index < 51; index++)
+      await press(valueInput, "ArrowDown");
+    assert.equal((await press(valueInput, "Enter")).defaultPrevented, true);
+    button(panel(ui.target), "Add pair").click();
+    await flush();
+    assert.match(panel(ui.target).textContent, /"category-0"/);
+    assert.match(panel(ui.target).textContent, /"first,exact:🐧"/);
+
+    await enter(ui.target, 'input[name="metadata-category"]', "category-1");
+    await enter(ui.target, 'input[name="metadata-value"]', "pending for one");
+    await enter(ui.target, 'input[name="metadata-category"]', "category-2");
+    assert.equal(
+      ui.target.querySelector('input[name="metadata-value"]')?.value,
+      "",
+      "pending text cannot be reassigned when category changes",
+    );
+    assert.match(panel(ui.target).textContent, /"category-0"/);
+    assert.match(panel(ui.target).textContent, /"first,exact:🐧"/);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0]?.pathname, "/v1/execution-metadata");
+    assert.equal(
+      calls.some((request) => request.pathname.endsWith("/test-results")),
+      false,
+      "typing and choosing metadata never runs a test-results search",
     );
   } finally {
     await ui.destroy();
