@@ -688,12 +688,20 @@
 </Modal>
 
 <style>
-  :global(.bulk-actions-menu) {
+  /* Pragma's bare Popover is transparent; the complete menu owns its surface. */
+  :global(.ds.popover.bulk-actions-menu) {
     width: min(24rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
     padding: 0.5rem;
     box-sizing: border-box;
+    color: var(--lp-color-text-default);
+    background: var(--lp-color-background-default);
+    border: 1px solid var(--lp-color-border-default);
+    border-radius: 0.25rem;
+    box-shadow: 0 4px 16px rgb(0 0 0 / 20%);
   }
-  :global(.bulk-actions-menu > button) {
+  :global(.ds.popover.bulk-actions-menu > button) {
     display: flex;
     width: 100%;
     justify-content: flex-start;
