@@ -4,7 +4,8 @@
 # Test result search
 
 `/test-results` is a search page with ephemeral result selection and contextual
-issue attachment and rerun request actions. Its
+issue attachment and rerun request actions, plus a separate applied-query
+attachment-rule action. Its
 applied query lives in the URL, so direct links, reloads, and browser back/forward
 restore the search. Selection is not encoded in links; view-only history changes
 preserve the current selection. This is the canonical SvelteKit search guide.
@@ -222,7 +223,7 @@ keyboard scroll stop (PageDown/End); the log adds no Tab stop.
 Issue links intentionally target the **future internal** `${base}/issues/${id}`
 path in a new tab with `noopener noreferrer`. The SvelteKit issue detail route is
 not implemented yet: its current 404 is a known, accepted destination gap, not a
-fallback to an external tracker. No issue detail page or attachment rules are
+fallback to an external tracker. No issue detail page or rule-management page is
 provided here. Footer **View Run** uses the same configured family route,
 deployment base and execution/result deep link as the grid. An unconfigured
 family has no guessed Run route, but its Details still works.
@@ -394,6 +395,73 @@ an obsolete completion cannot clear a newer selection. The API does not report
 a changed count, and concurrent group changes can leave requests unchanged or
 update an existing priority. This is not a server snapshot or an atomicity promise.
 
+## Applied-query Create Attachment Rule
+
+**Create Attachment Rule…** is a compact labelled action beside the applied-query
+summary, deliberately separate from the selected-row **Bulk actions** menu. These
+five operations are available through the existing API: Attach Issue, Detach
+Issue, Create Rerun Requests, Delete Rerun Requests, and Create Attachment Rule.
+Rule creation needs a valid, nonempty, successfully loaded applied query, but
+**does not need selected rows or any current results**. A successful zero-result
+search can define an ongoing rule. Loading/moving, inaccessible/failed results,
+invalid/empty queries, confirmed unapplied drafts and other in-flight operations
+disable it with visible accessible explanations.
+
+One Pragma modal reviews read-only frozen criteria and the existing single-issue
+picker. This creates a **persistent ENABLED rule based on the APPLIED SEARCH**,
+not a one-off attachment to the selected/current results. **Selection, all-matches
+exclusions and local grid filters are ignored**, explicitly warned in the modal;
+the current match count is not a bound on the rule's future effect. Close and
+adjust the search chips to change the criteria; the review does not edit them.
+
+The rule API supports Family, Artefact, Artefact Version, Artefact Stage (including
+the explicit blank stage), Artefact Track, Environment, Test Plan, Test Case,
+Template ID, Status and raw Metadata. At least one non-status condition is
+required. Every active unsupported condition blocks creation with its field
+label: Archived, Rerun Requested, Execution Version, Issues, Reviewers, From and
+Until. Boolean `false` is active and is **not** discarded. Supported criteria are
+not dropped to fit the rule API; neither exclusions nor unsupported conditions
+are emulated by enumerating result IDs. Only pagination/presentation is removed.
+
+Submission sends `POST /v1/issues/{issueId}/attachment-rules` with
+`{enabled:true,...ruleFilters}`. Environment and Test Case map to
+`environment_names` and `test_case_names`. Metadata stays a literal JSON category
+dictionary, not GET/Base64 encoding. The returned positive rule ID and enabled
+state are validated. Because the actual minimal POST response omits `issue_id`,
+the existing `GET /v1/issues/{issueId}` confirms the enabled rule's membership
+before displaying success. A failed/invalid confirmation is unconfirmed outcome,
+not a reason to repeat the POST.
+
+The existing backend POST stores the rule; this workflow **does not call the
+attach endpoint**. The current backend applies enabled matching rules during
+result submission and end-test processing. It is not a promise that existing
+records can never change through those or other server processes. Success only
+confirms creation of an enabled rule, not attachment of a counted set of results.
+The action does not refetch results or clear selection: query, view, confirmed
+chips and suspended unconfirmed editor input are preserved.
+
+Fresh revocable authorization is checked at open, presubmit and after issue PUT
+before rule POST. Only `view_issue` and `change_attachment_rule` are required for
+an existing issue; issue-attachment and bulk-attachment grants are **not** needed.
+External supported issue URLs additionally require `change_issue` before PUT.
+Confirmed admin/global team permissions work; AMR-only permissions unavailable
+through `/me` remain unknown and fail closed. The server is authoritative:
+401/403 stay inline and require fresh permission checks. A known issue ID from a
+partial creation is retained (also on reopening), and explicit retry never
+silently repeats its PUT. Network/5xx failures, invalid success bodies and failed
+post-create confirmation have terminal unknown/unconfirmed outcomes: no automatic
+or same-review retry; inspect the issue before a new review to avoid duplicates.
+
+Query/source, explicit reapply, unapplied/readiness or session changes durably
+invalidate the review, even if changed and restored while any request/body is
+awaited. Selection-only and view-only changes do not alter the rule predicate.
+No late response claims success in a new scope. Rule, issue and rerun busy/review
+state is OR-aggregated; only one action modal or Details can be active. Editor
+preservation and focus restoration work even with zero rows. Submission blocks
+duplicates, Cancel/Close, Escape/backdrop, Search and route/unload navigation until
+the request settles. Cancel returns focus to the rule trigger (or the results
+region when the trigger is no longer usable).
+
 ## Table layout and shareable views
 
 Like the artefact list, the search page fills the viewport below the app shell's
@@ -438,8 +506,11 @@ so visibility is checked every 250ms while the grid is mounted (with cleanup).
 
 ## Deliberately deferred
 
-Execution-status filtering; saved views and export. Attachment rules and other
-mutation workflows beyond issue attachment and rerun requests remain excluded.
+Execution-status filtering; saved views and export; issue detail and attachment
+rule management (editing/disabling/deleting existing rules). No backend selector
+enhancement is included: all-matches exclusions, date-only all-query mutations,
+guarded explicit rerun groups, unavailable AMR permissions and unsupported rule
+criteria retain the limitations described above.
 
 ## Local checks
 
@@ -469,6 +540,13 @@ logs, missing configured families, selections, suspended drafts, pending lookup
 focus, view-only preservation, invalidation, recycled-cell focus fallback and
 unmount. The adapter is test-only, not an application dialog fallback or proof
 of real native focus containment.
+Mounted query-rule regressions cover zero/no/other selection, local view and exclusions,
+typed frozen JSON, every unsupported rule condition, independent grants and
+external creation gates, partial issue retention, durable changed/restored
+scope/session/readiness across each asynchronous boundary, unknown confirmations,
+duplicate/modal/unload guards, and editor/focus/view/selection preservation with
+no one-off attach or results refresh. These supplement, not replace, the existing
+issue/rerun/Details and 18-field editor tests.
 Mounted tests also verify viewport constraints with supplied geometry; real
 scrollbar reachability still needs browser QA. These tests use mocked API
 responses, not a live backend integration or

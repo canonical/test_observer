@@ -149,11 +149,1059 @@ function bulkDialog() {
   return /** @type {import('happy-dom').HTMLDialogElement} */ (dialog);
 }
 
+function ruleDialog() {
+  const dialog = browser.document.querySelector(
+    "dialog.attachment-rule-review",
+  );
+  assert.ok(dialog, "An applied-query rule review is open");
+  return /** @type {import('happy-dom').HTMLDialogElement} */ (dialog);
+}
+/** @param {(request: URL, options: RequestInit) => Response | Promise<Response> | undefined} [override] */
+function ruleTransport(override) {
+  return bulkTransport((request, options) => {
+    const special = override?.(request, options);
+    if (special) return special;
+    if (request.pathname.endsWith("/attachment-rules"))
+      return json({ id: 77, enabled: true });
+    if (request.pathname.endsWith("/issues/123"))
+      return json({
+        ...bulkIssue,
+        attachment_rules: [{ id: 77, enabled: true }],
+      });
+    return undefined;
+  });
+}
+/** @param {import('happy-dom').HTMLElement} target */
+async function openRule(target) {
+  button(target, "Create Attachment Rule…").click();
+  await flush();
+  return ruleDialog();
+}
+
+void test("query-level rule supports zero results with no selection and only rule plus view-issue grants; success is persistent, honest and never attaches or refreshes results", async () => {
+  const api = ruleTransport((request) => {
+    if (request.pathname.endsWith("/users/me"))
+      return json({
+        ...bulkAdmin,
+        is_admin: false,
+        teams: [{ permissions: ["view_issue", "change_attachment_rule"] }],
+      });
+    if (request.pathname.endsWith("/test-results")) return response([], 0);
+    return undefined;
+  });
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    const trigger = button(ui.target, "Create Attachment Rule…");
+    assert.equal(trigger.closest(".selection-summary"), null);
+    assert.equal(trigger.disabled, false);
+    assert.equal(ui.target.querySelector(".selection-summary"), null);
+    const dialog = await openRule(ui.target);
+    assert.match(
+      dialog.textContent,
+      /Persistent ENABLED rule based on the APPLIED SEARCH/,
+    );
+    assert.match(
+      dialog.textContent,
+      /Row selection, all-matches exclusions and local grid filtering are\s+ignored/,
+    );
+    await pickBulkIssue(dialog);
+    button(dialog, "Create enabled rule").click();
+    await flush();
+    await flush();
+    assert.equal(api.mutations().length, 1);
+    assert.match(
+      api.mutations()[0].url.pathname,
+      /\/issues\/123\/attachment-rules$/,
+    );
+    assert.deepEqual(JSON.parse(api.mutations()[0].options.body), {
+      enabled: true,
+      artefacts: ["one"],
+    });
+    assert.equal(api.sessions().length, 2, "fresh open and presubmit gates");
+    assert.equal(
+      api.searches().length,
+      1,
+      "no implicit current-results refresh",
+    );
+    assert.match(
+      ui.target.textContent,
+      /Enabled attachment rule #77 created for issue #123/,
+    );
+    assert.match(ui.target.textContent, /No one-off attachment was requested/);
+    assert.equal(
+      browser.document.activeElement,
+      trigger,
+      "zero-result focus restores to rule trigger",
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("rule freezes all supported typed criteria including raw Unicode metadata and blank stage; only pagination/view removed", async () => {
+  const metadata = `${Buffer.from("literal:🐧,").toString("base64")}:${Buffer.from(" value, : ").toString("base64")}`;
+  const params = new URLSearchParams({
+    families: "snap",
+    artefacts: "one",
+    artefact_versions: "1,2",
+    artefact_stages: "",
+    artefact_tracks: "stable",
+    environments: "lab",
+    test_plans: "smoke",
+    test_cases: "case",
+    template_ids: "T1",
+    test_result_statuses: "FAILED",
+    execution_metadata: metadata,
+    limit: "2",
+    offset: "2",
+    view: app.encodeView({ globalFilter: "hidden locally" }),
+  });
+  const api = ruleTransport();
+  const ui = mounted(params.toString());
+  try {
+    await flush();
+    const dialog = await openRule(ui.target);
+    for (const label of [
+      "Family",
+      "Artefact Version",
+      "Artefact Stage",
+      "Environment",
+      "Test Case",
+      "Template ID",
+      "Metadata",
+    ])
+      assert.ok(dialog.textContent.includes(label));
+    assert.ok(dialog.textContent.includes('[""]'));
+    assert.ok(dialog.textContent.includes('"literal:🐧,"'));
+    assert.equal(
+      dialog.querySelector("dl input"),
+      null,
+      "criteria are read only",
+    );
+    await pickBulkIssue(dialog);
+    button(dialog, "Create enabled rule").click();
+    await flush();
+    await flush();
+    assert.deepEqual(JSON.parse(api.mutations()[0].options.body), {
+      enabled: true,
+      families: ["snap"],
+      test_result_statuses: ["FAILED"],
+      artefacts: ["one"],
+      artefact_versions: ["1", "2"],
+      artefact_tracks: ["stable"],
+      environment_names: ["lab"],
+      test_plans: ["smoke"],
+      test_case_names: ["case"],
+      artefact_stages: [""],
+      execution_metadata: { "literal:🐧,": [" value, : "] },
+      template_ids: ["T1"],
+    });
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("rule ignores different selection, all-matches exclusions and local view while preserving them on success", async () => {
+  for (const all of [false, true]) {
+    const api = ruleTransport();
+    const ui = mounted("artefacts=one&limit=2");
+    try {
+      await flush();
+      selectionHeader(ui.target).click();
+      await flush();
+      if (all) {
+        allMatchesCheckbox(ui.target).click();
+        await flush();
+        selectionRow(ui.target, 2).click();
+        await flush();
+      }
+      const dialog = await openRule(ui.target);
+      await pickBulkIssue(dialog);
+      selectionRow(ui.target, 1).click();
+      await flush();
+      const selectionText = ui.target.querySelector(
+        ".selection-summary > p",
+      ).textContent;
+      const view = app.encodeView({
+        globalFilter: "case 2",
+        sorting: [{ id: "testCase", desc: true }],
+      });
+      ui.handle.restore(url(`artefacts=one&limit=2&view=${view}`));
+      await flush();
+      assert.equal(
+        button(dialog, "Create enabled rule").disabled,
+        false,
+        "selection/view do not revoke query rule",
+      );
+      button(dialog, "Create enabled rule").click();
+      await flush();
+      await flush();
+      assert.deepEqual(JSON.parse(api.mutations()[0].options.body), {
+        enabled: true,
+        artefacts: ["one"],
+      });
+      assert.equal(api.searches().length, 1);
+      assert.equal(ui.handle.currentUrl.searchParams.get("view"), view);
+      assert.equal(
+        ui.target.querySelector(".selection-summary > p").textContent,
+        selectionText,
+      );
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("every unsupported rule criterion including false is disabled with Flutter labels; empty invalid and status-only never mutate", async () => {
+  for (const [query, label] of [
+    ["artefacts=one&artefact_is_archived=false", "Archived"],
+    ["artefacts=one&artefact_is_archived=true", "Archived"],
+    ["artefacts=one&rerun_is_requested=false", "Rerun Requested"],
+    ["artefacts=one&execution_is_latest=false", "Execution Version"],
+    ["artefacts=one&issues=none", "Issues"],
+    ["artefacts=one&reviewer_ids=any", "Reviewers"],
+    ["artefacts=one&from_date=2026-01-01T00:00:00Z", "From"],
+    ["artefacts=one&until_date=2026-01-01T00:00:00Z", "Until"],
+    ["test_result_statuses=FAILED", "non-status"],
+    ["", "successful"],
+    ["artefacts=one&unknown=bad", "successful"],
+    [
+      "artefacts=one&execution_is_latest=true&issues=123&reviewer_ids=2&rerun_is_requested=true",
+      "Execution Version",
+    ],
+  ]) {
+    const api = ruleTransport();
+    const ui = mounted(query);
+    try {
+      await flush();
+      const trigger = button(ui.target, "Create Attachment Rule…");
+      assert.equal(trigger.disabled, true, query);
+      const description = browser.document.getElementById(
+        trigger.getAttribute("aria-describedby"),
+      );
+      assert.ok(description);
+      assert.ok(
+        description.textContent.includes(label),
+        description.textContent,
+      );
+      trigger.click();
+      await flush();
+      assert.equal(api.mutations().length, 0);
+      assert.equal(api.sessions().length, 0);
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("rule action blocks loading/access and confirmed unapplied drafts, with no silent widening", async () => {
+  for (const mode of ["loading", "access", "draft"]) {
+    const pending = deferred();
+    const api = ruleTransport((request) =>
+      request.pathname.endsWith("/test-results")
+        ? mode === "loading"
+          ? pending.promise
+          : mode === "access"
+            ? json({}, 403)
+            : undefined
+        : undefined,
+    );
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      if (mode === "draft") {
+        await chooseFilter(ui.target, "Template ID");
+        await enter(ui.target, 'input[name="template_ids"]', "not applied");
+        await confirmEditor(ui.target);
+      }
+      const trigger = button(ui.target, "Create Attachment Rule…");
+      assert.equal(trigger.disabled, true);
+      trigger.click();
+      await flush();
+      assert.equal(api.mutations().length, 0);
+    } finally {
+      pending.resolve(response());
+      await ui.destroy();
+    }
+  }
+});
+
+void test("rule independent grants fail closed without lookup/rule or with unknown session; external creation requires separate change_issue before PUT", async () => {
+  for (const mode of ["no-rule", "no-view", "unknown", "external"]) {
+    const api = ruleTransport((request) =>
+      request.pathname.endsWith("/users/me")
+        ? mode === "unknown"
+          ? json({}, 503)
+          : json({
+              ...bulkAdmin,
+              is_admin: false,
+              teams: [
+                {
+                  permissions:
+                    mode === "no-rule"
+                      ? [
+                          "view_issue",
+                          "change_issue_attachment",
+                          "change_issue_attachment_bulk",
+                        ]
+                      : mode === "no-view"
+                        ? ["change_attachment_rule"]
+                        : ["view_issue", "change_attachment_rule"],
+                },
+              ],
+            })
+        : undefined,
+    );
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      const dialog = await openRule(ui.target);
+      if (mode === "external") await pickBulkIssue(dialog, bulkIssue.url);
+      else if (mode === "no-rule") await pickBulkIssue(dialog);
+      assert.equal(button(dialog, "Create enabled rule").disabled, true);
+      assert.match(
+        dialog.textContent,
+        mode === "no-rule"
+          ? /change_attachment_rule/
+          : mode === "no-view"
+            ? /view_issue/
+            : mode === "unknown"
+              ? /unknown/
+              : /change_issue/,
+      );
+      assert.equal(api.mutations().length, 0);
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("created issue is retained after definite rule rejection and explicit fresh retry never repeats PUT", async () => {
+  let posts = 0;
+  const api = ruleTransport((request, options) =>
+    request.pathname.endsWith("/attachment-rules") &&
+    options.method === "POST" &&
+    ++posts === 1
+      ? json({ detail: "Rejected criteria" }, 422)
+      : undefined,
+  );
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    const dialog = await openRule(ui.target);
+    await pickBulkIssue(dialog, bulkIssue.url);
+    button(dialog, "Create enabled rule").click();
+    await flush();
+    await flush();
+    assert.match(dialog.textContent, /Issue #123 was created or found/);
+    assert.match(dialog.textContent, /Rejected criteria/);
+    assert.equal(
+      button(dialog, "Create enabled rule").disabled,
+      true,
+      "explicit permission refresh required after server rejection",
+    );
+    button(dialog, "Refresh permissions").click();
+    await flush();
+    button(dialog, "Create enabled rule").click();
+    await flush();
+    await flush();
+    assert.deepEqual(
+      api.mutations().map(({ options }) => options.method),
+      ["PUT", "POST", "POST"],
+    );
+    assert.equal(
+      api.sessions().length,
+      5,
+      "open, presubmit, post-create, manual refresh, retry presubmit",
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("external rule creation works with only rule/view/create grants and independent canonical URL validation", async () => {
+  const api = ruleTransport((request) =>
+    request.pathname.endsWith("/users/me")
+      ? json({
+          ...bulkAdmin,
+          is_admin: false,
+          teams: [
+            {
+              permissions: [
+                "view_issue",
+                "change_attachment_rule",
+                "change_issue",
+              ],
+            },
+          ],
+        })
+      : undefined,
+  );
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    const dialog = await openRule(ui.target);
+    await pickBulkIssue(dialog, "http://github.com/QA/Project/issues/123");
+    button(dialog, "Create enabled rule").click();
+    await flush();
+    await flush();
+    assert.deepEqual(
+      api.mutations().map(({ options }) => options.method),
+      ["PUT", "POST"],
+    );
+    assert.deepEqual(JSON.parse(api.mutations()[0].options.body), {
+      url: bulkIssue.url,
+    });
+    assert.equal(
+      api.sessions().length,
+      3,
+      "reauthorized after independent creation PUT",
+    );
+    assert.match(ui.target.textContent, /Enabled attachment rule #77 created/);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("rule errors are inline and network/5xx/invalid confirmations are terminal with no automatic or same-review retry", async () => {
+  for (const mode of [
+    "401",
+    "403",
+    "422",
+    "503",
+    "network",
+    "create-network",
+    "invalid-id",
+    "disabled",
+    "wrong-issue",
+    "missing-membership",
+    "verify-denied",
+  ]) {
+    let reads = 0;
+    const api = ruleTransport((request, options) => {
+      if (mode === "create-network" && options.method === "PUT")
+        return Promise.reject(new Error("Creation response lost"));
+      if (request.pathname.endsWith("/attachment-rules")) {
+        if (/^\d+$/.test(mode))
+          return json({ detail: "Rule rejected" }, Number(mode));
+        if (mode === "network")
+          return Promise.reject(new Error("Response lost"));
+        if (mode === "invalid-id") return json({ id: 0, enabled: true });
+        if (mode === "disabled") return json({ id: 77, enabled: false });
+      }
+      if (request.pathname.endsWith("/issues/123") && ++reads > 1) {
+        if (mode === "wrong-issue")
+          return json({
+            id: 99,
+            attachment_rules: [{ id: 77, enabled: true }],
+          });
+        if (mode === "missing-membership")
+          return json({ ...bulkIssue, attachment_rules: [] });
+        if (mode === "verify-denied") return json({}, 403);
+      }
+      return undefined;
+    });
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      const dialog = await openRule(ui.target);
+      await pickBulkIssue(
+        dialog,
+        mode === "create-network" ? bulkIssue.url : "123",
+      );
+      button(dialog, "Create enabled rule").click();
+      await flush();
+      await flush();
+      assert.equal(button(dialog, "Create enabled rule").disabled, true, mode);
+      assert.match(
+        dialog.textContent,
+        ["401", "403", "422"].includes(mode)
+          ? mode === "401"
+            ? /session expired/
+            : mode === "403"
+              ? /denied.*403/
+              : /Rule rejected/
+          : /Outcome unknown or unconfirmed/,
+        mode,
+      );
+      button(dialog, "Create enabled rule").click();
+      await flush();
+      assert.equal(api.mutations().length, 1, mode);
+      assert.equal(api.searches().length, 1);
+      assert.doesNotMatch(
+        ui.target.textContent,
+        /Enabled attachment rule #77 created/,
+      );
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("rule every-await durable query/session/unapplied changed-restored revocation blocks further mutations and late success", async () => {
+  for (const phase of [
+    "open",
+    "authorize",
+    "create",
+    "created-authorize",
+    "post",
+    "verify",
+    "error-body",
+  ]) {
+    for (const mode of ["query", "session"]) {
+      const pending = deferred();
+      let sessions = 0;
+      let reads = 0;
+      const api = ruleTransport((request, options) => {
+        if (request.pathname.endsWith("/users/me")) {
+          sessions++;
+          if (
+            (phase === "open" && sessions === 1) ||
+            (phase === "authorize" && sessions === 2) ||
+            (phase === "created-authorize" && sessions === 3)
+          )
+            return pending.promise;
+        }
+        if (phase === "create" && options.method === "PUT")
+          return pending.promise;
+        if (request.pathname.endsWith("/attachment-rules")) {
+          if (phase === "post") return pending.promise;
+          if (phase === "error-body") {
+            const res = json({}, 422);
+            res.json = () =>
+              pending.promise.then(() => ({ detail: "Slow error body" }));
+            return res;
+          }
+        }
+        if (
+          phase === "verify" &&
+          request.pathname.endsWith("/issues/123") &&
+          ++reads > 1
+        )
+          return pending.promise;
+        return undefined;
+      });
+      const ui = mounted("artefacts=one");
+      try {
+        await flush();
+        const dialog = await openRule(ui.target);
+        if (phase !== "open") {
+          await pickBulkIssue(
+            dialog,
+            ["create", "created-authorize"].includes(phase)
+              ? bulkIssue.url
+              : "123",
+          );
+          button(dialog, "Create enabled rule").click();
+          await flush();
+        }
+        const before = api.mutations().length;
+        if (mode === "query") {
+          ui.handle.restore(url("artefacts=two"));
+          await flush();
+          ui.handle.restore(url("artefacts=one"));
+          await flush();
+        } else if (mode === "session") {
+          await app.userStore.refresh(() => Promise.resolve(json(null)));
+          await flush();
+          await app.userStore.refresh(() => Promise.resolve(json(bulkAdmin)));
+          await flush();
+        }
+        assert.match(
+          dialog.textContent,
+          /applied query, readiness or session changed/,
+          `${phase}/${mode}`,
+        );
+        pending.resolve(
+          phase === "create"
+            ? json(bulkIssue)
+            : phase === "post"
+              ? json({ id: 77, enabled: true })
+              : phase === "verify"
+                ? json({
+                    ...bulkIssue,
+                    attachment_rules: [{ id: 77, enabled: true }],
+                  })
+                : json(bulkAdmin),
+        );
+        await flush();
+        await flush();
+        assert.equal(
+          api.mutations().length,
+          before,
+          `${phase}/${mode}: no continuation mutation`,
+        );
+        assert.equal(button(dialog, "Create enabled rule").disabled, true);
+        assert.doesNotMatch(
+          ui.target.textContent,
+          /Enabled attachment rule #77 created/,
+        );
+        if (phase === "create" || phase === "created-authorize")
+          assert.match(dialog.textContent, /Issue #123 was created or found/);
+      } finally {
+        pending.resolve(json(bulkAdmin));
+        await ui.destroy();
+      }
+    }
+  }
+});
+
+void test("every rule await durably latches changed-restored readiness including unapplied/loading/moving/access and concurrent mutation", async () => {
+  for (const phase of [
+    "open",
+    "authorize",
+    "create",
+    "created-authorize",
+    "post",
+    "verify",
+    "error-body",
+  ]) {
+    for (const flag of [
+      "unapplied",
+      "loading",
+      "moving",
+      "accessError",
+      "available",
+      "mutating",
+    ]) {
+      const pending = deferred();
+      let sessions = 0;
+      let reads = 0;
+      const api = ruleTransport((request, options) => {
+        if (request.pathname.endsWith("/users/me")) {
+          sessions++;
+          if (
+            (phase === "open" && sessions === 1) ||
+            (phase === "authorize" && sessions === 2) ||
+            (phase === "created-authorize" && sessions === 3)
+          )
+            return pending.promise;
+        }
+        if (phase === "create" && options.method === "PUT")
+          return pending.promise;
+        if (request.pathname.endsWith("/attachment-rules")) {
+          if (phase === "post") return pending.promise;
+          if (phase === "error-body") {
+            const res = json({}, 422);
+            res.json = () =>
+              pending.promise.then(() => ({ detail: "Slow rejection" }));
+            return res;
+          }
+        }
+        if (
+          phase === "verify" &&
+          request.pathname.endsWith("/issues/123") &&
+          ++reads > 1
+        )
+          return pending.promise;
+        return undefined;
+      });
+      const target = browser.document.createElement("div");
+      browser.document.body.append(target);
+      const ui = app.mountRule(
+        /** @type {HTMLElement} */ (/** @type {unknown} */ (target)),
+        families,
+      );
+      try {
+        const dialog = await openRule(target);
+        if (phase !== "open") {
+          await pickBulkIssue(
+            dialog,
+            ["create", "created-authorize"].includes(phase)
+              ? bulkIssue.url
+              : "123",
+          );
+          button(dialog, "Create enabled rule").click();
+          await flush();
+        }
+        const count = api.mutations().length;
+        ui.setReadiness(flag, flag !== "available");
+        await flush();
+        ui.setReadiness(flag, flag === "available");
+        await flush();
+        assert.match(
+          dialog.textContent,
+          /readiness or session changed/,
+          `${phase}/${flag}`,
+        );
+        if (phase !== "open")
+          assert.equal(
+            button(dialog, "Cancel").disabled,
+            true,
+            "revocation retains in-flight guard",
+          );
+        pending.resolve(
+          phase === "create"
+            ? json(bulkIssue)
+            : phase === "post"
+              ? json({ id: 77, enabled: true })
+              : phase === "verify"
+                ? json({
+                    ...bulkIssue,
+                    attachment_rules: [{ id: 77, enabled: true }],
+                  })
+                : json(bulkAdmin),
+        );
+        await flush();
+        await flush();
+        assert.equal(api.mutations().length, count, `${phase}/${flag}`);
+        assert.equal(button(dialog, "Create enabled rule").disabled, true);
+        assert.deepEqual(ui.messages, []);
+        assert.equal(
+          ui.busyChanges.at(-1),
+          phase === "open" ? undefined : false,
+        );
+      } finally {
+        pending.resolve(json(bulkAdmin));
+        await ui.destroy();
+        target.remove();
+      }
+    }
+  }
+});
+
+void test("rule presubmit and post-creation permission revocations stop before the next mutation and retain partial issue ID", async () => {
+  for (const phase of ["presubmit", "post-create"]) {
+    let sessions = 0;
+    const api = ruleTransport((request) =>
+      request.pathname.endsWith("/users/me") &&
+      ++sessions === (phase === "presubmit" ? 2 : 3)
+        ? json({
+            ...bulkAdmin,
+            is_admin: false,
+            teams: [{ permissions: ["view_issue", "change_issue"] }],
+          })
+        : undefined,
+    );
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      const dialog = await openRule(ui.target);
+      await pickBulkIssue(dialog, bulkIssue.url);
+      button(dialog, "Create enabled rule").click();
+      await flush();
+      await flush();
+      assert.equal(api.mutations().length, phase === "presubmit" ? 0 : 1);
+      assert.match(dialog.textContent, /change_attachment_rule/);
+      if (phase === "post-create") {
+        assert.match(dialog.textContent, /Issue #123 was created or found/);
+        button(dialog, "Cancel").click();
+        await flush();
+        const renewed = await openRule(ui.target);
+        assert.match(renewed.textContent, /Issue #123 was created or found/);
+      }
+    } finally {
+      await ui.destroy();
+    }
+  }
+});
+
+void test("rule pending open authorization can be cancelled without late focus theft; renewed reviews reject unsupported external references", async () => {
+  const pending = deferred();
+  let sessions = 0;
+  const api = ruleTransport((request) =>
+    request.pathname.endsWith("/users/me") && ++sessions === 1
+      ? pending.promise
+      : undefined,
+  );
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    const trigger = button(ui.target, "Create Attachment Rule…");
+    let dialog = await openRule(ui.target);
+    button(dialog, "Cancel").click();
+    await flush();
+    assert.equal(browser.document.activeElement, trigger);
+    dialog = await openRule(ui.target);
+    const input = await enter(
+      dialog,
+      'input[name="bulk-issue"]',
+      "https://foreign.test/issues/123",
+    );
+    input.focus();
+    pending.resolve(json(bulkAdmin));
+    await flush();
+    assert.equal(browser.document.activeElement, input);
+    assert.equal(button(dialog, "Use issue reference").disabled, true);
+    assert.equal(api.mutations().length, 0);
+  } finally {
+    pending.resolve(json(bulkAdmin));
+    await ui.destroy();
+  }
+});
+
+void test("unrelated inconclusive session refresh durably invalidates rule authorization even when cached principal stays unchanged", async () => {
+  const api = ruleTransport();
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    const dialog = await openRule(ui.target);
+    await pickBulkIssue(dialog);
+    await app.userStore.refresh(() => Promise.resolve(json({}, 503)));
+    await flush();
+    await app.userStore.refresh(() => Promise.resolve(json(bulkAdmin)));
+    await flush();
+    assert.match(dialog.textContent, /session changed/);
+    assert.equal(button(dialog, "Create enabled rule").disabled, true);
+    assert.equal(api.mutations().length, 0);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("rule busy/review OR aggregation blocks duplicate submit, closing, unload, Search and Details and never stacks with issue/rerun review", async () => {
+  const pending = deferred();
+  const api = ruleTransport((request) =>
+    request.pathname.endsWith("/attachment-rules")
+      ? pending.promise
+      : undefined,
+  );
+  const ui = mounted("artefacts=one");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    const dialog = await openRule(ui.target);
+    await pickBulkIssue(dialog);
+    detailsButton(ui.target, 1).click();
+    await flush();
+    assert.equal(detailsDialog().open, false);
+    assert.equal(button(ui.target, "Bulk actions").disabled, true);
+    button(dialog, "Create enabled rule").click();
+    button(dialog, "Create enabled rule").click();
+    await flush();
+    assert.equal(api.mutations().length, 1);
+    assert.equal(button(dialog, "Cancel").disabled, true);
+    assert.equal(button(ui.target, "Search").disabled, true);
+    assert.equal(
+      ui.handle.busyChanges.at(-1),
+      true,
+      "route adapter receives aggregate busy synchronously",
+    );
+    button(ui.target, "Clear selection").click();
+    await flush();
+    assert.equal(ui.target.querySelector(".selection-summary"), null);
+    assert.equal(
+      button(ui.target, "Search").disabled,
+      true,
+      "unmounting the closed issue/rerun coordinator cannot clear rule busy",
+    );
+    assert.equal(ui.handle.busyChanges.at(-1), true);
+    const cancel = new browser.Event("cancel", { cancelable: true });
+    dialog.dispatchEvent(cancel);
+    assert.equal(cancel.defaultPrevented, true);
+    dialog.dispatchEvent(
+      new browser.KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    dialog.dispatchEvent(new browser.MouseEvent("click", { bubbles: true }));
+    await flush();
+    assert.equal(dialog.open, true);
+    const unload = new browser.Event("beforeunload", { cancelable: true });
+    browser.dispatchEvent(unload);
+    assert.equal(unload.defaultPrevented, true);
+    pending.resolve(json({ id: 77, enabled: true }));
+    await flush();
+    await flush();
+    assert.equal(button(ui.target, "Search").disabled, false);
+    assert.equal(ui.handle.busyChanges.at(-1), false);
+    selectionRow(ui.target, 1).click();
+    await flush();
+    assert.equal(button(ui.target, "Bulk actions").disabled, false);
+    const issue = await openBulk(ui.target);
+    assert.equal(button(ui.target, "Create Attachment Rule…").disabled, true);
+    button(issue, "Cancel").click();
+    await flush();
+    button(ui.target, "Bulk actions").click();
+    await flush();
+    button(ui.target, "Create Rerun Requests…").click();
+    await flush();
+    assert.equal(button(ui.target, "Create Attachment Rule…").disabled, true);
+    button(rerunDialog(), "Cancel").click();
+    await flush();
+    assert.equal(button(ui.target, "Create Attachment Rule…").disabled, false);
+  } finally {
+    pending.resolve(json({ id: 77, enabled: true }));
+    await ui.destroy();
+  }
+});
+
+void test("rule cancel/success preserve editor identity, unconfirmed input, view, selection, focus and frozen applied chips without results refresh", async () => {
+  const api = ruleTransport();
+  const ui = mounted("artefacts=one&template_ids=confirmed");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    chip(ui.target, "Template ID").click();
+    await flush();
+    const input = await enter(
+      ui.target,
+      'input[name="template_ids"]',
+      "unconfirmed 🐧",
+    );
+    const trigger = button(ui.target, "Create Attachment Rule…");
+    for (const success of [false, true]) {
+      trigger.dispatchEvent(
+        new browser.MouseEvent("pointerdown", { bubbles: true }),
+      );
+      trigger.click();
+      await flush();
+      const dialog = ruleDialog();
+      const focus = browser.document.activeElement;
+      const view = app.encodeView({ globalFilter: "case 2" });
+      ui.handle.restore(
+        url(`artefacts=one&template_ids=confirmed&view=${view}`),
+      );
+      await flush();
+      assert.equal(browser.document.activeElement, focus);
+      if (success) {
+        await pickBulkIssue(dialog);
+        button(dialog, "Create enabled rule").click();
+      } else button(dialog, "Cancel").click();
+      await flush();
+      await flush();
+      assert.equal(browser.document.activeElement, trigger);
+      chip(ui.target, "Template ID").click();
+      await flush();
+      assert.equal(
+        ui.target.querySelector('input[name="template_ids"]'),
+        input,
+      );
+      assert.equal(input.value, "unconfirmed 🐧");
+      assert.match(ui.target.textContent, /1 selected by result ID/);
+      assert.equal(
+        ui.handle.currentUrl.searchParams.get("template_ids"),
+        "confirmed",
+      );
+      assert.equal(ui.handle.currentUrl.searchParams.get("view"), view);
+      assert.equal(api.searches().length, 1);
+    }
+  } finally {
+    await ui.destroy();
+  }
+});
+
 function rerunDialog() {
   const dialog = browser.document.querySelector("dialog.bulk-rerun-review");
   assert.ok(dialog, "A rerun review is open");
   return /** @type {import('happy-dom').HTMLDialogElement} */ (dialog);
 }
+
+void test("confirmed issue and rerun mutations release page, route callback and unload guards before a held read-only refresh", async () => {
+  for (const action of ["attach", "detach", "create", "delete"]) {
+    const mutation = deferred();
+    const refresh = deferred();
+    let sent = false;
+    const api = rerunTransport((request, options) => {
+      if (["POST", "DELETE"].includes(options.method ?? "")) {
+        sent = true;
+        return mutation.promise;
+      }
+      if (sent && request.pathname.endsWith("/test-results"))
+        return request.searchParams.get("artefacts") === "one"
+          ? refresh.promise
+          : response([9], 1);
+      return undefined;
+    });
+    const ui = mounted("artefacts=one");
+    try {
+      await flush();
+      let dialog;
+      let submit;
+      if (action === "attach" || action === "detach") {
+        selectionRow(ui.target, 1).click();
+        await flush();
+        dialog = await openBulk(ui.target, action);
+        await pickBulkIssue(dialog);
+        submit = button(
+          dialog,
+          action === "attach" ? "Attach issue" : "Detach issue",
+        );
+      } else {
+        dialog = await openReruns(ui.target, action, false);
+        checkLabel(dialog, "Use these exact execution groups").click();
+        await flush();
+        submit = button(
+          dialog,
+          action === "create"
+            ? "Create rerun requests"
+            : "Delete rerun requests",
+        );
+      }
+      submit.click();
+      await flush();
+      assert.equal(api.mutations().length, 1);
+      assert.equal(button(ui.target, "Search").disabled, true);
+      assert.equal(
+        ui.handle.busyChanges.at(-1),
+        true,
+        `${action}: route guard during mutation`,
+      );
+      const inflightUnload = new browser.Event("beforeunload", {
+        cancelable: true,
+      });
+      browser.dispatchEvent(inflightUnload);
+      assert.equal(inflightUnload.defaultPrevented, true);
+      mutation.resolve(
+        json(action === "attach" || action === "detach" ? bulkIssue : null),
+      );
+      await flush();
+      await flush();
+      assert.equal(
+        api.searches().length,
+        2,
+        "post-success results read is pending",
+      );
+      assert.equal(dialog.isConnected && dialog.open, false);
+      assert.equal(button(ui.target, "Search").disabled, false);
+      assert.equal(
+        ui.handle.busyChanges.at(-1),
+        false,
+        `${action}: route guard must release before refresh`,
+      );
+      const settledUnload = new browser.Event("beforeunload", {
+        cancelable: true,
+      });
+      browser.dispatchEvent(settledUnload);
+      assert.equal(
+        settledUnload.defaultPrevented,
+        false,
+        `${action}: unload guard must release before refresh`,
+      );
+      const releasedAt = ui.handle.busyChanges.length;
+      const view = app.encodeView({ globalFilter: "case 9" });
+      // The route callback has released. Restore a new applied query while the
+      // outgoing read is still held; actual SvelteKit/native navigation is QA'd
+      // separately, whereas this fixture exercises the real page/store race.
+      ui.handle.restore(url(`artefacts=two&view=${view}`));
+      await flush();
+      selectionRow(ui.target, 9).click();
+      await flush();
+      refresh.resolve(response([1, 2], 120));
+      await flush();
+      await flush();
+      assert.equal(ui.handle.currentUrl.searchParams.get("artefacts"), "two");
+      assert.equal(ui.handle.currentUrl.searchParams.get("view"), view);
+      assert.ok(detailsButton(ui.target, 9));
+      assert.match(ui.target.textContent, /1 selected by result ID/);
+      assert.equal(api.searches().length, 3);
+      assert.equal(ui.handle.busyChanges.at(-1), false);
+      assert.ok(
+        ui.handle.busyChanges.slice(releasedAt).every((value) => !value),
+        "late refresh/finally/teardown cannot reassert a settled guard",
+      );
+    } finally {
+      mutation.resolve(json(null));
+      refresh.resolve(response());
+      await ui.destroy();
+    }
+  }
+});
 /** @param {import('happy-dom').HTMLElement} root @param {string} text */
 function checkLabel(root, text) {
   const label = [...root.querySelectorAll("label")].find((label) =>

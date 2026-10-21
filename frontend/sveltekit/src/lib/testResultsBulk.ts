@@ -1,7 +1,12 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
-import { SEARCH_FILTERS, type SearchFilters } from "$lib/testResultsFilters";
+import {
+  FILTER_DEFINITIONS,
+  SEARCH_FILTERS,
+  type SearchFilter,
+  type SearchFilters,
+} from "$lib/testResultsFilters";
 import type { AppliedSearch } from "$lib/testResultsSearch";
 import type {
   ResultExecutionContext,
@@ -369,7 +374,7 @@ export function attachmentRuleFilters(
   );
   if (unsupported.length)
     return blocked(
-      `Attachment rules cannot represent: ${unsupported.join(", ")}. Remove those conditions and apply Search first.`,
+      `Attachment rules cannot represent: ${unsupported.map((key) => `${FILTER_DEFINITIONS[key as SearchFilter].label} (${key})`).join(", ")}. Remove those conditions and apply Search first.`,
     );
   if (!Object.keys(filters).some((key) => key !== "test_result_statuses"))
     return blocked(

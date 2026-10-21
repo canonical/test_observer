@@ -48,6 +48,7 @@
     onreview,
     oncomplete,
     onrefresh,
+    blocked = false,
   }: {
     scope: (ownSubmission?: boolean) => Capability<BulkTarget>;
     reviewKey: string;
@@ -59,6 +60,7 @@
     onreview: (open: boolean) => void;
     oncomplete: (key: string, message: string) => Promise<void>;
     onrefresh: () => Promise<void>;
+    blocked?: boolean;
   } = $props();
   const id = $props.id();
   let menu: ReturnType<typeof Popover>;
@@ -229,7 +231,7 @@
     return current;
   }
   async function start(action: IssueOperation) {
-    if (open || rerunOpen || busy || rerunBusy) return;
+    if (blocked || open || rerunOpen || busy || rerunBusy) return;
     const fresh = scope();
     if (!fresh.ok || !attachmentPermission(fresh.value).ok) return;
     beforeOpen();
@@ -251,7 +253,8 @@
     await refreshPermissions();
   }
   function startRerun(action: RerunOperation) {
-    if (open || rerunOpen || busy || rerunBusy || rerunReason) return;
+    if (blocked || open || rerunOpen || busy || rerunBusy || rerunReason)
+      return;
     beforeOpen();
     menu.hidePopover();
     menuButton?.focus({ preventScroll: true });
@@ -447,7 +450,7 @@
       bind:ref={menuButton}
       type="button"
       density="dense"
-      disabled={busy || rerunBusy || open || rerunOpen}
+      disabled={blocked || busy || rerunBusy || open || rerunOpen}
       aria-haspopup="menu"
       aria-expanded={expanded}
       onpointerdown={beforeOpen}

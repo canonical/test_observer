@@ -90,6 +90,46 @@ before(async () => {
   );
 });
 
+void test("rule confirmation requires a positive ID, enabled state and verified chosen-issue membership", () => {
+  assert.equal(model.createdRule({ id: 10, enabled: true }), 10);
+  for (const body of [
+    null,
+    {},
+    { id: 0, enabled: true },
+    { id: 10, enabled: false },
+    { id: 10, enabled: "true" },
+  ])
+    assert.throws(() => model.createdRule(body), /valid enabled/);
+  model.confirmRuleIssue(
+    { id: 123, attachment_rules: [{ id: 10, enabled: true }] },
+    123,
+    10,
+  );
+  for (const body of [
+    null,
+    { id: 99, attachment_rules: [{ id: 10, enabled: true }] },
+    { id: 123, attachment_rules: [] },
+    { id: 123, attachment_rules: [{ id: 10, enabled: false }] },
+  ])
+    assert.throws(() => {
+      model.confirmRuleIssue(body, 123, 10);
+    }, /belongs to the chosen issue/);
+  assert.deepEqual(
+    model.ruleCriteria({
+      artefact_stages: [""],
+      environment_names: ["lab"],
+      test_case_names: ["case"],
+      execution_metadata: { "literal:🐧": ["value, "] },
+    }),
+    [
+      { label: "Artefact Stage", value: '[""]' },
+      { label: "Environment", value: '["lab"]' },
+      { label: "Test Case", value: '["case"]' },
+      { label: "Metadata", value: '{"literal:🐧":["value, "]}' },
+    ],
+  );
+});
+
 void test("issue references accept only positive safe internal IDs at this origin/base or exact legacy routes", () => {
   for (const input of [
     "123",

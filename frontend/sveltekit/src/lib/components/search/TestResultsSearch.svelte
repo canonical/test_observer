@@ -24,7 +24,11 @@
   import SearchConditions from "./SearchConditions.svelte";
   import SearchResultDetails from "./SearchResultDetails.svelte";
   import BulkIssueActions from "./BulkIssueActions.svelte";
-  import { freezeBulkTarget } from "$lib/testResultsBulk";
+  import CreateAttachmentRule from "./CreateAttachmentRule.svelte";
+  import {
+    attachmentRuleFilters,
+    freezeBulkTarget,
+  } from "$lib/testResultsBulk";
   import { VIEW_PARAM } from "$lib/gridViewUrl";
   import {
     selectionQuery,
@@ -76,8 +80,17 @@
   let editedFields = $state<SearchFilter[]>([]);
   let moving = $state(false);
   let navigationError = $state(false);
-  let bulkBusy = $state(false);
-  let bulkReviewOpen = $state(false);
+  let selectedBusy = $state(false);
+  let selectedReviewOpen = $state(false);
+  let ruleBusy = $state(false);
+  let ruleReviewOpen = $state(false);
+  // Imperative callbacks also run during child teardown. Svelte teardown reads
+  // reactive values from the outgoing snapshot, even after a no-op false write.
+  // Keep the latest callback values outside that snapshot so route guards agree
+  // with the rendered state, without letting one child clear another action.
+  const actionBusy = { selection: false, rule: false };
+  const bulkBusy = $derived(selectedBusy || ruleBusy);
+  const bulkReviewOpen = $derived(selectedReviewOpen || ruleReviewOpen);
   let bulkMessage = $state("");
   let refreshView = $state<{ source: string; encoded: string | null } | null>(
     null,
@@ -85,8 +98,8 @@
   const gridView = $derived(
     refreshView?.source === url.href ? refreshView.encoded : encodedView,
   );
-  function bulkScope(ownSubmission = false) {
-    return freezeBulkTarget(selection.snapshot(), applied, {
+  function actionReadiness(mutating: boolean) {
+    return {
       available:
         store.response !== null &&
         store.responseQuery === applied &&
@@ -97,16 +110,31 @@
       unapplied,
       // This dialog owns the in-flight operation; its pre-POST recheck must
       // exclude only itself, never another operation or loading/access guard.
-      mutating: bulkBusy && !ownSubmission,
-    });
+      mutating,
+    };
+  }
+  function bulkScope(ownSubmission = false) {
+    return freezeBulkTarget(
+      selection.snapshot(),
+      applied,
+      actionReadiness(ruleBusy || (selectedBusy && !ownSubmission)),
+    );
+  }
+  function ruleScope(ownSubmission = false) {
+    return attachmentRuleFilters(
+      applied,
+      actionReadiness(selectedBusy || (ruleBusy && !ownSubmission)),
+    );
   }
   function prepareBulk() {
     conditions?.preserveEditor();
     selectedDetails = null;
   }
-  function setBulkBusy(value: boolean) {
-    bulkBusy = value;
-    onBusyChange?.(value);
+  function setActionBusy(action: "selection" | "rule", value: boolean) {
+    actionBusy[action] = value;
+    if (action === "selection") selectedBusy = value;
+    else ruleBusy = value;
+    onBusyChange?.(actionBusy.selection || actionBusy.rule);
   }
   async function refreshResults() {
     const view = grid?.getSharedView();
@@ -405,11 +433,27 @@
     aria-busy={store.loading}
     tabindex="-1"
   >
-    {#if applied.hasFilters && !applied.problems.length}
-      <h2>
-        {unapplied ? "Results for previous query" : "Results for applied query"}
-      </h2>
-    {/if}
+    <div class="applied-query-actions">
+      {#if applied.hasFilters && !applied.problems.length}
+        <h2>
+          {unapplied
+            ? "Results for previous query"
+            : "Results for applied query"}
+        </h2>
+      {/if}
+      <CreateAttachmentRule
+        scope={ruleScope}
+        reviewKey={`${datasetKey}:${getApiRoot()}`}
+        origin={url.origin}
+        {base}
+        {loginUrl}
+        blocked={selectedReviewOpen || selectedBusy}
+        beforeOpen={prepareBulk}
+        onbusy={(value) => setActionBusy("rule", value)}
+        onreview={(value) => (ruleReviewOpen = value)}
+        oncomplete={(message) => (bulkMessage = message)}
+      />
+    </div>
     {#if applied.problems.length}
       <div role="alert">
         <h2>Search not applied</h2>
@@ -497,9 +541,10 @@
             origin={url.origin}
             {base}
             {loginUrl}
+            blocked={ruleReviewOpen || ruleBusy}
             beforeOpen={prepareBulk}
-            onbusy={setBulkBusy}
-            onreview={(open) => (bulkReviewOpen = open)}
+            onbusy={(value) => setActionBusy("selection", value)}
+            onreview={(open) => (selectedReviewOpen = open)}
             oncomplete={bulkComplete}
             onrefresh={refreshResults}
           />
@@ -612,11 +657,15 @@
     margin-bottom: 0;
   }
   .actions,
+  .applied-query-actions,
   .loading {
     display: flex;
     gap: 0.75rem;
     align-items: center;
     flex-wrap: wrap;
+  }
+  .applied-query-actions h2 {
+    margin: 0;
   }
   .muted {
     color: var(--lp-color-text-muted);
