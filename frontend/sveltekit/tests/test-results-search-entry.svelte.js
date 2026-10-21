@@ -12,6 +12,7 @@ export {
 } from "../src/lib/testResultsSelection.svelte";
 export { userStore } from "../src/lib/stores/user.svelte";
 export * from "../src/lib/testResultsSearch";
+export * from "../src/lib/testResultsBulk";
 export { replaceSearchView } from "../src/lib/searchViewNavigation";
 export { encodeView, decodeView } from "../src/lib/gridViewUrl";
 export { familyDisplayName } from "../src/lib/types";

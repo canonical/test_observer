@@ -5038,6 +5038,109 @@ void test("page selection capabilities reject stale/loading callbacks, invalid q
   assert.equal(selection.matchCount, 0);
 });
 
+void test("mounted search retains only selected execution IDs from successful current pages, preserves view history, and clears on reapply/route", async () => {
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- Deliberate prototype probe, always invoked with .apply below.
+  const originalPage = app.TestResultsSelection.prototype.page;
+  /** @type {import('../src/lib/testResultsSelection.svelte').TestResultsSelection[]} */
+  const captured = [];
+  /** @type {ReturnType<typeof originalPage>[]} */
+  const capabilities = [];
+  app.TestResultsSelection.prototype.page = function (...args) {
+    captured.push(this);
+    const capability = originalPage.apply(this, args);
+    capabilities.push(capability);
+    return capability;
+  };
+  let calls = 0;
+  globalThis.fetch = (input) => {
+    calls++;
+    const request = new URL(input instanceof Request ? input.url : input);
+    const ids = request.searchParams.get("offset") === "2" ? [3, 4] : [1, 2];
+    return Promise.resolve(
+      json({
+        count: 6,
+        test_results: ids.map((id) => ({
+          ...result(id),
+          test_result: {
+            ...result(id).test_result,
+            io_log: "must not be retained in selection",
+          },
+          test_execution: { ...result(id).test_execution, id: id + 300 },
+        })),
+      }),
+    );
+  };
+  const ui = mounted("artefacts=one&limit=2");
+  try {
+    await flush();
+    selectionRow(ui.target, 1).click();
+    await flush();
+    const active = captured.at(-1);
+    assert.ok(active);
+    assert.deepEqual(active.snapshot().executions, [
+      { resultId: 1, executionId: 301 },
+    ]);
+    button(ui.target, "Next page").click();
+    await flush();
+    selectionRow(ui.target, 3).click();
+    await flush();
+    assert.deepEqual(active.snapshot().executions, [
+      { resultId: 1, executionId: 301 },
+      { resultId: 3, executionId: 303 },
+    ]);
+    const first = capabilities[0];
+    assert.ok(first);
+    first.toggle([2], true);
+    assert.deepEqual([...active.explicitIds], [1, 3]);
+    const applied = app.parseSearch(
+      ui.handle.currentUrl.searchParams,
+      families,
+    );
+    const target = app.freezeBulkTarget(active.snapshot(), applied, {
+      available: true,
+      loading: false,
+      moving: false,
+      accessError: false,
+      unapplied: false,
+      mutating: false,
+    });
+    assert.ok(target.ok);
+    const ids = app.executionIds(target.value);
+    assert.ok(ids.ok);
+    assert.deepEqual(ids.value, [301, 303]);
+    const beforeViewCalls = calls;
+    const view = new URL(ui.handle.currentUrl);
+    view.searchParams.set("view", "invalid-presentation-is-ignored");
+    ui.handle.restore(view);
+    await flush();
+    assert.equal(calls, beforeViewCalls);
+    assert.deepEqual(active.snapshot().executions, [
+      { resultId: 1, executionId: 301 },
+      { resultId: 3, executionId: 303 },
+    ]);
+    selectionRow(ui.target, 3).click();
+    await flush();
+    assert.deepEqual(active.snapshot().executions, [
+      { resultId: 1, executionId: 301 },
+    ]);
+    button(ui.target, "Search").click();
+    await flush();
+    assert.deepEqual(active.snapshot().executions, []);
+    selectionRow(ui.target, 1).click();
+    await flush();
+    const route = new URL(ui.handle.currentUrl);
+    route.pathname = "/custom/base/another-search-route";
+    ui.handle.restore(route);
+    await flush();
+    assert.deepEqual(active.snapshot().executions, []);
+    assert.equal(ui.target.querySelector(".selection-summary"), null);
+    assert.equal(ui.target.textContent.includes("Bulk actions"), false);
+  } finally {
+    await ui.destroy();
+    app.TestResultsSelection.prototype.page = originalPage;
+  }
+});
+
 void test("actual grid row/header accessible selection and all-mode persist across server pages, with no selection API/view leakage", async () => {
   /** @type {URL[]} */
   const calls = [];

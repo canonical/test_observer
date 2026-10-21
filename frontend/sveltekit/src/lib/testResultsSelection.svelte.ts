@@ -6,59 +6,77 @@
  * sets are never mutated; their replacement is the reactive notification. */
 
 import {
-  cloneFilters,
-  filterValues,
-  SEARCH_FILTERS,
-  type AppliedSearch,
-  type SearchFilters,
-} from "$lib/testResultsSearch";
+  freezeValue,
+  positiveId,
+  selectionQuery,
+  type SelectionQuery,
+} from "$lib/testResultsPredicate";
+export { selectionQuery, type SelectionQuery } from "$lib/testResultsPredicate";
 
-export interface SelectionQuery {
-  readonly key: string;
-  readonly filters: SearchFilters;
+/** Deliberately contains no row objects, logs, metadata or invented latest flag. */
+export interface ResultExecutionContext {
+  readonly resultId: number;
+  readonly executionId: number;
 }
 
-/** The validated backend predicate, never pagination or local presentation.
- * Wire alternatives (including structured metadata pairs) are sets. Dates keep
- * microseconds, but equivalent timezone/fraction spellings have one identity. */
-export function selectionQuery(query: AppliedSearch): SelectionQuery | null {
-  if (!query.hasFilters || query.problems.length) return null;
-  const filters = cloneFilters(query.filters);
-  const entries = SEARCH_FILTERS.map((key) => {
-    const values = filterValues(key, filters);
-    if (key === "from_date" || key === "until_date") {
-      return [
-        key,
-        values.map((value) => {
-          const seconds = value.replace(/\.\d+(?=Z|[+-]\d{2}:\d{2}$)/, "");
-          const fraction = /\.(\d+)/.exec(value)?.[1] ?? "";
-          return [Date.parse(seconds), fraction.slice(0, 6).padEnd(6, "0")];
-        }),
-      ];
-    }
-    return [key, [...new Set(values)].sort()];
-  });
-  return { key: JSON.stringify(entries), filters };
+export interface SelectionSnapshot {
+  readonly query: SelectionQuery | null;
+  readonly explicitIds: readonly number[];
+  readonly exclusions: readonly number[];
+  readonly allMatches: boolean;
+  readonly matchCount: number;
+  readonly executions: readonly ResultExecutionContext[];
 }
 
 function uniqueIds(ids: Iterable<number>): Set<number> {
-  return new Set([...ids].filter((id) => Number.isSafeInteger(id) && id > 0));
+  return new Set([...ids].filter(positiveId));
 }
 
 /** Ephemeral, per-route state. All mode is a rule, not an enumerated result set.
  * Nothing here knows about URLs, views, storage or the network. */
 export class TestResultsSelection {
-  query = $state.raw<SelectionQuery | null>(null);
-  explicitIds = $state.raw<ReadonlySet<number>>(new Set());
-  exclusions = $state.raw<ReadonlySet<number>>(new Set());
+  private activeQuery = $state.raw<SelectionQuery | null>(null);
+  private selectedIds = $state.raw<ReadonlySet<number>>(new Set());
+  private excludedIds = $state.raw<ReadonlySet<number>>(new Set());
+  private executions = $state.raw<readonly ResultExecutionContext[]>([]);
+  private epoch = $state(0);
   allMatches = $state(false);
   matchCount = $state(0);
 
+  get query() {
+    return this.activeQuery;
+  }
+  // Read-only TS types alone do not prevent callers mutating a Set at runtime.
+  get explicitIds(): ReadonlySet<number> {
+    return new Set(this.selectedIds);
+  }
+  get exclusions(): ReadonlySet<number> {
+    return new Set(this.excludedIds);
+  }
+
+  snapshot(): SelectionSnapshot {
+    return freezeValue({
+      query: this.activeQuery,
+      explicitIds: [...this.selectedIds],
+      exclusions: [...this.excludedIds],
+      allMatches: this.allMatches,
+      matchCount: this.matchCount,
+      executions: this.executions.map((item) => ({ ...item })),
+    });
+  }
+
   setQuery(query: SelectionQuery | null) {
-    if (query?.key === this.query?.key) return;
+    const normalized = query
+      ? selectionQuery({
+          filters: query.filters,
+          hasFilters: true,
+          problems: [],
+        })
+      : null;
+    if (normalized?.key === this.query?.key) return;
     this.clear();
     this.matchCount = 0;
-    this.query = query;
+    this.activeQuery = normalized;
   }
 
   updateCount(count: number) {
@@ -67,29 +85,57 @@ export class TestResultsSelection {
 
   get selectedCount(): number {
     return this.allMatches
-      ? Math.max(0, this.matchCount - this.exclusions.size)
-      : this.explicitIds.size;
+      ? Math.max(0, this.matchCount - this.excludedIds.size)
+      : this.selectedIds.size;
   }
 
   isSelected(id: number): boolean {
     return this.allMatches
-      ? !this.exclusions.has(id)
-      : this.explicitIds.has(id);
+      ? !this.excludedIds.has(id)
+      : this.selectedIds.has(id);
   }
 
   clear() {
+    this.epoch++;
     this.allMatches = false;
-    this.explicitIds = new Set();
-    this.exclusions = new Set();
+    this.selectedIds = new Set();
+    this.excludedIds = new Set();
+    this.executions = [];
   }
 
   /** A page-scoped capability. Callers revoke it on loading, navigation,
    * errors or unmount, so retained DOM/API callbacks cannot touch a new page. */
-  page(loadedIds: Iterable<number>, current: () => boolean) {
+  page(
+    loadedIds: Iterable<number>,
+    current: () => boolean,
+    contexts: Iterable<ResultExecutionContext> = [],
+  ) {
     const loaded = uniqueIds(loadedIds);
     const owner = this.query?.key;
-    const enabled = () =>
-      Boolean(owner && owner === this.query?.key && current());
+    const epoch = this.epoch;
+    // Captured once from a successful current response; never retain that response.
+    const available = [...contexts]
+      .filter(
+        (item) => loaded.has(item.resultId) && positiveId(item.executionId),
+      )
+      .map(({ resultId, executionId }) => ({ resultId, executionId }));
+    const enabled = () => {
+      const currentKey = this.query?.key;
+      return Boolean(
+        owner && owner === currentKey && epoch === this.epoch && current(),
+      );
+    };
+    const retainContext = () => {
+      const byId = new Map(
+        this.executions.map((item) => [item.resultId, item]),
+      );
+      for (const item of available) byId.set(item.resultId, item);
+      this.executions = freezeValue(
+        [...byId.values()].filter(
+          (item) => !this.allMatches && this.selectedIds.has(item.resultId),
+        ),
+      );
+    };
     const isSelected = (id: number) =>
       enabled() && loaded.has(id) && this.isSelected(id);
     const allLoadedSelected = () =>
@@ -97,15 +143,16 @@ export class TestResultsSelection {
     const toggle = (ids: Iterable<number>, next: boolean) => {
       if (!enabled()) return;
       const updated = new Set(
-        this.allMatches ? this.exclusions : this.explicitIds,
+        this.allMatches ? this.excludedIds : this.selectedIds,
       );
       for (const id of uniqueIds(ids)) {
         if (!loaded.has(id)) continue;
         if (this.allMatches ? !next : next) updated.add(id);
         else updated.delete(id);
       }
-      if (this.allMatches) this.exclusions = updated;
-      else this.explicitIds = updated;
+      if (this.allMatches) this.excludedIds = updated;
+      else this.selectedIds = updated;
+      retainContext();
     };
     return {
       enabled,
@@ -122,14 +169,15 @@ export class TestResultsSelection {
         if (this.allMatches) {
           // Opting out keeps selected rows on the entire loaded backend page,
           // including locally hidden rows, but drops the unbounded rule.
-          this.explicitIds = new Set([...loaded].filter(isSelected));
-          this.exclusions = new Set();
+          this.selectedIds = new Set([...loaded].filter(isSelected));
+          this.excludedIds = new Set();
           this.allMatches = false;
         } else if (this.matchCount > 0 && allLoadedSelected()) {
-          this.explicitIds = new Set();
-          this.exclusions = new Set();
+          this.selectedIds = new Set();
+          this.excludedIds = new Set();
           this.allMatches = true;
         }
+        retainContext();
       },
       clear: () => {
         if (enabled()) this.clear();

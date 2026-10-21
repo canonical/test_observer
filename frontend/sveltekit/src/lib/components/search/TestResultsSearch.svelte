@@ -50,6 +50,7 @@
   let live = true;
   onDestroy(() => {
     live = false;
+    selection.clear();
   });
   let grid = $state<ReturnType<typeof SearchResultsGrid> | null>(null);
   let conditions = $state<ReturnType<typeof SearchConditions> | null>(null);
@@ -60,6 +61,7 @@
   } | null>(null);
   let pageElement: HTMLElement;
   const queryString = $derived(searchQueryString(url.searchParams));
+  const routeKey = $derived(`${url.origin}${url.pathname}`);
   const applied = $derived(
     parseSearch(new URLSearchParams(queryString), families),
   );
@@ -98,7 +100,7 @@
   const selectionPage = $derived.by(() => {
     const owner = store.response;
     const key = datasetKey;
-    if (!owner) return null;
+    if (!owner || !selectionReady) return null;
     return selection.page(
       owner.test_results.map((result) => result.test_result.id),
       () =>
@@ -106,6 +108,10 @@
         selectionReady &&
         store.response === owner &&
         datasetKey === key,
+      owner.test_results.map((result) => ({
+        resultId: result.test_result.id,
+        executionId: result.test_execution.id,
+      })),
     );
   });
 
@@ -153,6 +159,14 @@
       selection.setQuery(snapshot);
       if (count !== undefined) selection.updateCount(count);
     });
+  });
+
+  // Pages retain selected execution IDs; route changes and explicit reapply do
+  // not. View-only history neither clears context nor causes an API request.
+  $effect.pre(() => {
+    void routeKey;
+    void reapply;
+    untrack(() => selection.clear());
   });
 
   // Synchronize before the keyed editors mount on navigation. Otherwise a new

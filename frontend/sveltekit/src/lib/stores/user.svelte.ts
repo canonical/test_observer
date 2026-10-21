@@ -32,6 +32,12 @@ class UserStore {
   private sessionConfirmedAdmin = $state(false);
   private refreshGeneration = 0;
 
+  /** Authorization gates are invalidated by ANY later refresh, including a
+   * failed or cancelled one that leaves the cached display profile intact. */
+  get authorizationVersion(): number {
+    return this.refreshGeneration;
+  }
+
   get isConfirmedAdmin(): boolean {
     return Boolean(this.sessionConfirmedAdmin && this.current?.is_admin);
   }
