@@ -328,7 +328,8 @@
   }
   .io-log {
     font-family: monospace;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     padding: 0.75rem;

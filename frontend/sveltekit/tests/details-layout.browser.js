@@ -116,6 +116,15 @@ export async function assertDetailsLayout(
               tabindex: log.getAttribute("tabindex"),
             }
           : null,
+        logTypography: log
+          ? {
+              fontSize: parseFloat(getComputedStyle(log).fontSize),
+              lineHeight: parseFloat(getComputedStyle(log).lineHeight),
+              rootFontSize: parseFloat(
+                getComputedStyle(document.documentElement).fontSize,
+              ),
+            }
+          : null,
         locked:
           getComputedStyle(document.documentElement).overflowY === "hidden",
         bodyOverflow: body.scrollHeight > body.clientHeight,
@@ -204,7 +213,7 @@ export async function assertDetailsLayout(
     "No clipping or nested horizontal scrollpanes",
   );
   assert.equal(geometry.locked, true);
-  if (geometry.log)
+  if (geometry.log) {
     assert.deepEqual(geometry.log, {
       maxHeight: "none",
       overflow: "visible",
@@ -212,6 +221,21 @@ export async function assertDetailsLayout(
       wrap: "anywhere",
       tabindex: null,
     });
+    assert.ok(
+      Math.abs(
+        geometry.logTypography.fontSize -
+          geometry.logTypography.rootFontSize * 0.75,
+      ) < 0.1,
+      "Only the log uses the smaller Flutter-like 12px (0.75rem) typography",
+    );
+    assert.ok(
+      Math.abs(
+        geometry.logTypography.lineHeight -
+          geometry.logTypography.fontSize * 1.5,
+      ) < 0.1,
+      "The log has compact, proportional line spacing rather than inherited body leading",
+    );
+  }
   return geometry;
 }
 
