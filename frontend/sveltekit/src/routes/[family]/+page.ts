@@ -16,8 +16,14 @@
 import { error } from "@sveltejs/kit";
 import { getApiRoot } from "$lib/config";
 import { userStore } from "$lib/stores/user.svelte";
-import type { Artefact } from "$lib/types";
+import type { Artefact, Family } from "$lib/types";
 import type { PageLoad } from "./$types";
+
+type ArtefactPageResult =
+  | { kind: "loaded"; artefacts: Artefact[] }
+  | { kind: "requiresLogin" }
+  | { kind: "forbidden" }
+  | { kind: "sessionCheckFailed" };
 
 export const load: PageLoad = async ({ parent, params, fetch }) => {
   const { artefactFamilies } = await parent();
@@ -27,6 +33,15 @@ export const load: PageLoad = async ({ parent, params, fetch }) => {
     error(404, `Unknown family: ${params.family}`);
   }
 
+  // Keep the family lookup and 404 validation in the load chain, but let
+  // SvelteKit finish navigation while this potentially slow request is pending.
+  return { family, artefacts: fetchArtefacts(fetch, family) };
+};
+
+async function fetchArtefacts(
+  fetch: typeof globalThis.fetch,
+  family: Family,
+): Promise<ArtefactPageResult> {
   const res = await fetch(
     `${getApiRoot()}/v1/artefacts?family=${family.api_name}`,
     {
@@ -46,26 +61,22 @@ export const load: PageLoad = async ({ parent, params, fetch }) => {
       // Only show the forbidden state when we've *confirmed* the user is still
       // authenticated (so a 403 means they lack permission).
       if (res.status === 403 && authStatus === "authenticated") {
-        return { family, artefacts: [] as Artefact[], forbidden: true };
+        return { kind: "forbidden" };
       }
       // If the session check itself was inconclusive, don't claim the user is
       // logged out (that would contradict the cached user the sidebar still
       // shows). Surface a distinct "couldn't verify" state they can retry.
       if (authStatus === "unknown") {
-        return {
-          family,
-          artefacts: [] as Artefact[],
-          sessionCheckFailed: true,
-        };
+        return { kind: "sessionCheckFailed" };
       }
       // Confirmed unauthenticated: prompt for login.
-      return { family, artefacts: [] as Artefact[], requiresLogin: true };
+      return { kind: "requiresLogin" };
     }
-    error(res.status, "Failed to load artefacts");
+    throw new Error(`Failed to load artefacts (${res.status})`);
   }
 
   const raw = (await res.json()) as Artefact[];
   const artefacts = raw.map((a) => ({ ...a, reviewers: a.reviewers ?? [] }));
 
-  return { family, artefacts };
-};
+  return { kind: "loaded", artefacts };
+}

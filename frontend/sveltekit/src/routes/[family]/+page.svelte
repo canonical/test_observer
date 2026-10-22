@@ -16,11 +16,12 @@
 -->
 
 <script lang="ts">
-  import { page } from '$app/state';
-  import { invalidateAll } from '$app/navigation';
-  import { getApiRoot } from '$lib/config';
-  import DashboardHeader from '$lib/components/dashboard/DashboardHeader.svelte';
-  import ArtefactTable from '$lib/components/dashboard/ArtefactTable.svelte';
+  import { page } from "$app/state";
+  import { invalidateAll } from "$app/navigation";
+  import { getApiRoot } from "$lib/config";
+  import { Spinner } from "@canonical/svelte-ds-app-launchpad";
+  import DashboardHeader from "$lib/components/dashboard/DashboardHeader.svelte";
+  import ArtefactTable from "$lib/components/dashboard/ArtefactTable.svelte";
 
   let { data } = $props();
 
@@ -29,54 +30,83 @@
   let exportAvailable = $state(false);
 
   const loginUrl = $derived(
-    `${getApiRoot()}/v1/auth/saml/login?return_to=${encodeURIComponent(page.url.href)}`
+    `${getApiRoot()}/v1/auth/saml/login?return_to=${encodeURIComponent(page.url.href)}`,
   );
 </script>
 
-<div class="dashboard">
+{#snippet dashboardHeader(count: number | null)}
   <DashboardHeader
     family={data.family}
-    count={data.artefacts.length}
+    {count}
     {filtered}
     {exportAvailable}
     onClear={() => table?.clearView()}
     onShare={() => table?.shareUrl() ?? page.url.href}
-    onExport={() => table?.exportCsv() ?? 'unavailable'}
+    onExport={() => table?.exportCsv() ?? "unavailable"}
   />
+{/snippet}
 
-  {#if data.requiresLogin}
-    <div class="login-required" role="status">
-      <p class="login-message">You need to be logged in to view these test results.</p>
-      <!-- Absolute URL to the backend SAML endpoint, not an app route. -->
-      <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-      <a class="login-button" href={loginUrl}>Log in</a>
+<div class="dashboard">
+  {#await data.artefacts}
+    {@render dashboardHeader(null)}
+    <div class="content-row" aria-busy="true">
+      <div class="content-loading" role="status" aria-live="polite">
+        <Spinner class="content-loading-spinner" />
+        <span>Loading test results…</span>
+      </div>
     </div>
-  {:else if data.forbidden}
-    <div class="access-denied" role="alert">
+  {:then result}
+    {@render dashboardHeader(
+      result.kind === "loaded" ? result.artefacts.length : null,
+    )}
+    {#if result.kind === "requiresLogin"}
+      <div class="login-required" role="status">
+        <p class="login-message">
+          You need to be logged in to view these test results.
+        </p>
+        <!-- Absolute URL to the backend SAML endpoint, not an app route. -->
+        <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+        <a class="login-button" href={loginUrl}>Log in</a>
+      </div>
+    {:else if result.kind === "forbidden"}
+      <div class="access-denied" role="alert">
+        <p class="login-message">
+          You don't have permission to view these test results. Contact an
+          administrator if you believe this is a mistake.
+        </p>
+      </div>
+    {:else if result.kind === "sessionCheckFailed"}
+      <div class="session-check-failed" role="alert">
+        <p class="login-message">
+          We couldn't verify your session just now. Please check your connection
+          and try again.
+        </p>
+        <button class="login-button" onclick={() => invalidateAll()}
+          >Retry</button
+        >
+      </div>
+    {:else}
+      <div class="content-row">
+        <ArtefactTable
+          bind:this={table}
+          bind:filtered
+          bind:exportAvailable
+          artefacts={result.artefacts}
+          family={data.family}
+        />
+      </div>
+    {/if}
+  {:catch}
+    {@render dashboardHeader(null)}
+    <div class="request-failed" role="alert">
       <p class="login-message">
-        You don't have permission to view these test results. Contact an administrator if
-        you believe this is a mistake.
+        We couldn't load these test results. Please check your connection and
+        try again.
       </p>
+      <button class="login-button" onclick={() => invalidateAll()}>Retry</button
+      >
     </div>
-  {:else if data.sessionCheckFailed}
-    <div class="session-check-failed" role="alert">
-      <p class="login-message">
-        We couldn't verify your session just now. Please check your connection and try
-        again.
-      </p>
-      <button class="login-button" onclick={() => invalidateAll()}>Retry</button>
-    </div>
-  {:else}
-    <div class="content-row">
-      <ArtefactTable
-        bind:this={table}
-        bind:filtered
-        bind:exportAvailable
-        artefacts={data.artefacts}
-        family={data.family}
-      />
-    </div>
-  {/if}
+  {/await}
 </div>
 
 <style>
@@ -98,7 +128,8 @@
   }
 
   .access-denied,
-  .session-check-failed {
+  .session-check-failed,
+  .request-failed {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -133,5 +164,21 @@
     display: flex;
     flex: 1;
     min-height: 0;
+  }
+
+  .content-loading {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: var(--lp-color-text-muted);
+  }
+
+  .content-loading :global(.content-loading-spinner) {
+    width: 2rem;
+    height: 2rem;
+    color: var(--lp-color-brand-default);
   }
 </style>
