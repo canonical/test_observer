@@ -22,32 +22,3 @@ SPDX-License-Identifier: GPL-3.0-only
 @import "@canonical/launchpad-design-tokens/dist/css/opacity/opacity.css";
 @import "@canonical/launchpad-design-tokens/dist/css/transition/preferred.css";
 @import "@canonical/launchpad-design-tokens/dist/css/color/modifier.css";
-
-/* Map SvGrid's theme tokens onto the Launchpad design tokens so the data grid
-   matches the rest of the app. Defined at :root rather than on the grid wrapper
-   because SvGrid portals its filter and column menus outside that subtree.
-   Following the --lp-* tokens also means dark mode comes along for free. */
-:root {
-  --sg-font: inherit;
-  --sg-bg: var(--lp-color-background-default);
-  --sg-bg-subtle: var(--lp-color-background-alt);
-  --sg-fg: var(--lp-color-text-default);
-  --sg-muted: var(--lp-color-text-muted);
-  --sg-muted-bg: var(--lp-color-background-alt);
-  --sg-border: var(--lp-color-border-default);
-  --sg-header-bg: var(--lp-color-background-alt);
-  --sg-header-fg: var(--lp-color-text-default);
-  --sg-row-alt-bg: var(--lp-color-background-alt);
-  --sg-row-hover-bg: var(--lp-color-background-hover);
-  --sg-selection-bg: var(--lp-color-background-active);
-  --sg-accent: var(--lp-color-brand-default);
-  --sg-on-accent: var(--lp-color-text-on-brand);
-  --sg-focus-ring: var(--lp-color-border-focus);
-  --sg-input-bg: var(--lp-color-background-input);
-  --sg-input-border: var(--lp-color-border-default);
-  --sg-skeleton-bg: var(--lp-color-background-alt);
-  --sg-danger: var(--lp-color-negative);
-  --sg-success: var(--lp-color-positive);
-  --sg-warning: var(--lp-color-caution);
-  --sg-info: var(--lp-color-information);
-}

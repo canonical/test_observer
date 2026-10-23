@@ -83,7 +83,7 @@
   .dashboard {
     display: flex;
     flex-direction: column;
-    /* The grid virtualizes against a bounded height, so fill the viewport less
+    /* The table scrolls within a bounded height, so fill the viewport less
        the app shell's vertical padding rather than growing with the row count. */
     height: calc(100vh - 3rem);
     padding-left: 0;

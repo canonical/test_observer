@@ -1,9 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Serialises grid contents to CSV and hands the file to the browser. SvGrid's
-// own exportCsv only covers columns declared with a `field`, and the dashboard
-// grid derives every cell through a `fieldFn`, so it would export empty rows.
+// Serialises table contents to CSV and hands the file to the browser.
 
 /** Excel reads a file as the local codepage unless a UTF-8 BOM leads it. */
 const BOM = "\ufeff";
