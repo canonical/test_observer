@@ -37,7 +37,7 @@
     "@canonical/launchpad-design-tokens": "^1.1.1",
     "@canonical/svelte-ds-app-launchpad": "^0.33.0",
     "@canonical/svelte-icons": "^0.0.9",
-    "@svgrid/grid": "^3.0.6",
+    "@svgrid/grid": "^3.0.20",
     "prettier": "^3.9.6",
     "prettier-plugin-svelte": "^4.1.1"
   }
