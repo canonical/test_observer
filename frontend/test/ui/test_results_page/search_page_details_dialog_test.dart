@@ -56,6 +56,15 @@ void main() {
     );
     await tester.pump();
 
+    // Apply the navigator update that disposes the removed route before
+    // advancing the event queue to the deferred details load.
+    await tester.pump();
+    expect(find.text('Base route'), findsOneWidget);
+    expect(find.byType(SearchPageTestResultDetailsDialog), findsNothing);
+
+    // The load is deferred to the event queue so the route-removal microtask
+    // disposes the dialog before _loadDetails runs.
+    await tester.pump(const Duration(milliseconds: 1));
     expect(api.requestedIds, isEmpty);
     expect(tester.takeException(), isNull);
     expect(find.text('Base route'), findsOneWidget);
@@ -91,6 +100,7 @@ void main() {
 
       await tester.tap(find.text('Details'));
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1));
       expect(api.requestedIds, [23]);
       expect(find.text('Loading test result details…'), findsOneWidget);
 

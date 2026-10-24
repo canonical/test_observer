@@ -47,7 +47,7 @@ class _TestResultDetailsDialogState
   @override
   void initState() {
     super.initState();
-    Future<void>.microtask(_loadDetails);
+    Future<void>.delayed(Duration.zero, _loadDetails);
   }
 
   Future<void> _loadDetails() async {
