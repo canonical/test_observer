@@ -321,7 +321,7 @@ def get_search_page_result_details(
     db: Session = Depends(get_db),
 ) -> SearchPageDetailsResponse:
     """Load only the fields needed by the Search details modal for one result."""
-    execution = selectinload(TestResult.test_execution).load_only(
+    execution_loader = selectinload(TestResult.test_execution).load_only(
         TestExecution.id,
         TestExecution.status,
         TestExecution.created_at,
@@ -329,12 +329,12 @@ def get_search_page_result_details(
         TestExecution.test_plan_id,
         TestExecution.artefact_build_id,
     )
-    artefact_build = execution.selectinload(TestExecution.artefact_build).load_only(
+    artefact_build_loader = execution_loader.selectinload(TestExecution.artefact_build).load_only(
         ArtefactBuild.id,
         ArtefactBuild.architecture,
         ArtefactBuild.artefact_id,
     )
-    artefact = artefact_build.selectinload(ArtefactBuild.artefact).load_only(
+    artefact_loader = artefact_build_loader.selectinload(ArtefactBuild.artefact).load_only(
         Artefact.id,
         Artefact.name,
         Artefact.version,
@@ -373,22 +373,22 @@ def get_search_page_result_details(
                 Issue.title,
                 Issue.status,
             ),
-            execution,
-            execution.selectinload(TestExecution.environment).load_only(
+            execution_loader,
+            execution_loader.selectinload(TestExecution.environment).load_only(
                 Environment.id,
                 Environment.name,
             ),
-            execution.selectinload(TestExecution.test_plan).load_only(
+            execution_loader.selectinload(TestExecution.test_plan).load_only(
                 TestPlan.id,
                 TestPlan.name,
             ),
-            execution.selectinload(TestExecution.execution_metadata).load_only(
+            execution_loader.selectinload(TestExecution.execution_metadata).load_only(
                 TestExecutionMetadata.id,
                 TestExecutionMetadata.category,
                 TestExecutionMetadata.value,
             ),
-            artefact_build,
-            artefact,
+            artefact_build_loader,
+            artefact_loader,
         )
     ).scalar_one_or_none()
     if result is None:
