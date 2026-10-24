@@ -18,6 +18,7 @@ from datetime import datetime
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Security
+from pydantic import HttpUrl
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session, load_only, selectinload
 
@@ -372,7 +373,7 @@ def get_search_page_result_details(
                         key=attachment.issue.key,
                         title=attachment.issue.title,
                         status=attachment.issue.status,
-                        url=attachment.issue.url,
+                        url=HttpUrl(attachment.issue.url),
                     )
                 )
                 for attachment in result.issue_attachments
