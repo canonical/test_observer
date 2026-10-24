@@ -257,9 +257,19 @@ def test_search_page_details_endpoint_returns_modal_fields_only(
     issue_data = data["test_result"]["issues"][0]["issue"]
     assert issue_data["id"] == issue.id
     assert issue_data["title"] == "Search page issue"
+    assert issue_data["source"] == "github"
+    assert issue_data["status"] == "open"
     assert issue_data["url"] == issue.url
     assert set(issue_data) == {"id", "source", "project", "key", "title", "status", "url"}
     assert "attachment_rule" not in data["test_result"]["issues"][0]
+
+    schemas = test_client.app.openapi()["components"]["schemas"]
+    issue_schema = schemas["SearchPageDetailsIssue"]
+    source_schema = schemas[issue_schema["properties"]["source"]["$ref"].rsplit("/", maxsplit=1)[-1]]
+    status_schema = schemas[issue_schema["properties"]["status"]["$ref"].rsplit("/", maxsplit=1)[-1]]
+    assert source_schema["enum"] == ["jira", "github", "launchpad"]
+    assert status_schema["enum"] == ["unknown", "open", "closed"]
+    assert issue_schema["properties"]["url"]["format"] == "uri"
 
 
 def test_search_page_details_endpoint_returns_not_found_for_missing_result(

@@ -9001,8 +9001,7 @@
             "title": "Id"
           },
           "source": {
-            "type": "string",
-            "title": "Source"
+            "$ref": "#/components/schemas/IssueSource"
           },
           "project": {
             "type": "string",
@@ -9017,11 +9016,13 @@
             "title": "Title"
           },
           "status": {
-            "type": "string",
-            "title": "Status"
+            "$ref": "#/components/schemas/IssueStatus"
           },
           "url": {
             "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
             "title": "Url"
           }
         },

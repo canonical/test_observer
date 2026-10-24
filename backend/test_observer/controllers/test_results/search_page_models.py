@@ -16,10 +16,16 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus, TestResultStatus
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    IssueSource,
+    IssueStatus,
+    TestExecutionStatus,
+    TestResultStatus,
+)
 
 
 class SearchPageTableTestResult(BaseModel):
@@ -70,12 +76,12 @@ class SearchPageTableResponse(BaseModel):
 
 class SearchPageDetailsIssue(BaseModel):
     id: int
-    source: str
+    source: IssueSource
     project: str
     key: str
     title: str
-    status: str
-    url: str
+    status: IssueStatus
+    url: HttpUrl
 
 
 class SearchPageDetailsIssueAttachment(BaseModel):
