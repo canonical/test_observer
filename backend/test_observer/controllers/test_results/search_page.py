@@ -111,6 +111,7 @@ def _search_page_results(
         selectinload(TestResult.test_case).load_only(
             TestCase.id,
             TestCase.name,
+            TestCase.category,
             TestCase.template_id,
         ),
         selectinload(TestResult.issue_attachments)
@@ -179,6 +180,7 @@ def _table_row(result: TestResult) -> SearchPageTableRow:
         test_result=SearchPageTableTestResult(
             id=result.id,
             name=result.test_case.name,
+            category=result.test_case.category,
             created_at=result.created_at,
             template_id=result.test_case.template_id,
             status=result.status,
@@ -414,6 +416,7 @@ def get_search_page_result_details(
                         key=attachment.issue.key,
                         title=attachment.issue.title,
                         status=attachment.issue.status,
+                        url=attachment.issue.url,
                     )
                 )
                 for attachment in result.issue_attachments

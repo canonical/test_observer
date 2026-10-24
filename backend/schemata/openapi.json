@@ -9019,6 +9019,10 @@
           "status": {
             "type": "string",
             "title": "Status"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
           }
         },
         "type": "object",
@@ -9028,7 +9032,8 @@
           "project",
           "key",
           "title",
-          "status"
+          "status",
+          "url"
         ],
         "title": "SearchPageDetailsIssue"
       },
@@ -9344,6 +9349,10 @@
             "type": "string",
             "title": "Name"
           },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -9368,6 +9377,7 @@
         "required": [
           "id",
           "name",
+          "category",
           "created_at",
           "template_id",
           "status",

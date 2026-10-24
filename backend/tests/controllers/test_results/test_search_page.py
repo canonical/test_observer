@@ -72,7 +72,8 @@ def test_search_page_includes_count_by_default(
     assert data["count"] >= 1
     assert set(data) == {"count", "limit", "offset", "rows"}
     row = next(row for row in data["rows"] if row["test_result"]["id"] == result_id)
-    assert set(row["test_result"]) == {"id", "name", "created_at", "template_id", "status", "issues"}
+    assert set(row["test_result"]) == {"id", "name", "category", "created_at", "template_id", "status", "issues"}
+    assert row["test_result"]["category"] == "camera"
     assert "io_log" not in row["test_result"]
     assert "comment" not in row["test_result"]
     page_query = next(statement for statement in statements if "FROM test_result ORDER BY" in statement)
@@ -147,6 +148,8 @@ def test_search_page_details_endpoint_returns_modal_fields_only(
     assert table_issue["title"] == "Search page issue"
     assert table_issue["labels"] == ["table-label"]
     assert "attachment_rule" not in table_row["test_result"]["issues"][0]
+    assert "io_log" not in table_row["test_result"]
+    assert "comment" not in table_row["test_result"]
 
     response = make_authenticated_request(
         lambda: test_client.get(f"/v1/test-results/search-page/{result_id}"),
@@ -178,6 +181,8 @@ def test_search_page_details_endpoint_returns_modal_fields_only(
     issue_data = data["test_result"]["issues"][0]["issue"]
     assert issue_data["id"] == issue.id
     assert issue_data["title"] == "Search page issue"
+    assert issue_data["url"] == issue.url
+    assert set(issue_data) == {"id", "source", "project", "key", "title", "status", "url"}
     assert "attachment_rule" not in data["test_result"]["issues"][0]
 
 

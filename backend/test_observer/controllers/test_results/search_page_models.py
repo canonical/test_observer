@@ -31,6 +31,7 @@ class SearchPageTableIssueAttachment(BaseModel):
 class SearchPageTableTestResult(BaseModel):
     id: int
     name: str
+    category: str
     created_at: datetime
     template_id: str
     status: TestResultStatus
@@ -86,6 +87,7 @@ class SearchPageDetailsIssue(BaseModel):
     key: str
     title: str
     status: str
+    url: str
 
 
 class SearchPageDetailsIssueAttachment(BaseModel):
