@@ -72,7 +72,7 @@ void main() {
       expect(find.text('one selected result log'), findsOneWidget);
       expect(find.text('Issue title'), findsOneWidget);
       expect(find.text('#8'), findsOneWidget);
-      expect(find.text('View Run'), findsNWidgets(2));
+      expect(find.text('View Run'), findsNothing);
     },
   );
 }

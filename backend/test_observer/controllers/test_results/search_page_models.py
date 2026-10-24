@@ -18,7 +18,6 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from test_observer.controllers.artefacts.models import ReviewerResponse
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.controllers.issues.shared_models import MinimalIssueResponse
 from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus, TestResultStatus
@@ -56,10 +55,7 @@ class SearchPageTableArtefact(BaseModel):
     name: str
     version: str
     track: str
-    stage: str
     family: FamilyName
-    archived: bool
-    reviewers: list[ReviewerResponse]
 
 
 class SearchPageTableArtefactBuild(BaseModel):

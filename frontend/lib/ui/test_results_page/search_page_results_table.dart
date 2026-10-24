@@ -16,12 +16,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:yaru/yaru.dart';
 
 import '../../models/search_page_results.dart';
 import '../../models/test_result.dart';
-import 'search_page_results_navigation.dart';
 import 'test_results_details_dialog.dart';
 
 class SearchPageResultsTable extends StatelessWidget {
@@ -270,19 +268,8 @@ class _ActionsCell extends StatelessWidget {
                 ),
             child: _ActionLabel(icon: Icons.visibility, label: 'Details'),
           ),
-          InkWell(
-            onTap: () => _navigateToTestExecution(result),
-            child: _ActionLabel(icon: Icons.launch, label: 'View Run'),
-          ),
         ],
       ),
-    );
-  }
-
-  void _navigateToTestExecution(SearchPageTableRow result) {
-    launchUrl(
-      Uri.base.replace(fragment: searchPageRunPath(result)),
-      mode: LaunchMode.externalApplication,
     );
   }
 }

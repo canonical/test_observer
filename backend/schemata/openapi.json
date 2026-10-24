@@ -9172,23 +9172,8 @@
             "type": "string",
             "title": "Track"
           },
-          "stage": {
-            "type": "string",
-            "title": "Stage"
-          },
           "family": {
             "$ref": "#/components/schemas/FamilyName"
-          },
-          "archived": {
-            "type": "boolean",
-            "title": "Archived"
-          },
-          "reviewers": {
-            "items": {
-              "$ref": "#/components/schemas/ReviewerResponse"
-            },
-            "type": "array",
-            "title": "Reviewers"
           }
         },
         "type": "object",
@@ -9197,10 +9182,7 @@
           "name",
           "version",
           "track",
-          "stage",
-          "family",
-          "archived",
-          "reviewers"
+          "family"
         ],
         "title": "SearchPageTableArtefact"
       },

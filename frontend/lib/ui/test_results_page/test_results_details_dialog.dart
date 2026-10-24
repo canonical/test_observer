@@ -23,10 +23,10 @@ import '../../models/family_name.dart';
 import '../../models/issue.dart';
 import '../../models/search_page_results.dart';
 import '../../providers/api.dart';
+import '../../routing.dart';
 import '../date_time.dart';
 import '../execution_metadata.dart';
 import '../inline_url_text.dart';
-import 'search_page_results_navigation.dart';
 
 class SearchPageTestResultDetailsDialog extends ConsumerStatefulWidget {
   const SearchPageTestResultDetailsDialog({super.key, required this.result});
@@ -133,7 +133,6 @@ class _TestResultDetailsDialogState
               Expanded(child: _DialogContent(result: _details!)),
             _DialogFooter(
               onClose: () => Navigator.of(context).pop(),
-              result: widget.result,
             ),
           ],
         ),
@@ -150,7 +149,6 @@ class TestResultDetailsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tableRow = _legacyTableRow(result);
     return Dialog(
       child: Container(
         constraints: const BoxConstraints(maxWidth: 900, maxHeight: 1000),
@@ -161,7 +159,22 @@ class TestResultDetailsDialog extends StatelessWidget {
             Expanded(child: _DialogContent(result: _legacyDetails(result))),
             _DialogFooter(
               onClose: () => Navigator.of(context).pop(),
-              result: tableRow,
+              onViewRun: () {
+                final family = FamilyName.values.firstWhere(
+                  (family) => family.name == result.artefact.family,
+                  orElse: () => FamilyName.values.first,
+                );
+                final path = getArtefactPagePathForFamily(
+                  family,
+                  result.artefact.id,
+                  testExecutionId: result.testExecution.id,
+                  testResultId: result.testResult.id,
+                );
+                launchUrl(
+                  Uri.base.replace(fragment: path),
+                  mode: LaunchMode.externalApplication,
+                );
+              },
             ),
           ],
         ),
@@ -472,10 +485,10 @@ class _SearchPageIssueWidget extends StatelessWidget {
 }
 
 class _DialogFooter extends StatelessWidget {
-  const _DialogFooter({required this.onClose, required this.result});
+  const _DialogFooter({required this.onClose, this.onViewRun});
 
   final VoidCallback onClose;
-  final SearchPageTableRow result;
+  final VoidCallback? onViewRun;
 
   @override
   Widget build(BuildContext context) {
@@ -491,26 +504,23 @@ class _DialogFooter extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          InkWell(
-            onTap: () {
-              launchUrl(
-                Uri.base.replace(fragment: searchPageRunPath(result)),
-                mode: LaunchMode.externalApplication,
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.launch, size: 16, color: YaruColors.orange),
-                  const SizedBox(width: 4),
-                  Text('View Run', style: TextStyle(color: YaruColors.orange)),
-                ],
+          if (onViewRun != null) ...[
+            InkWell(
+              onTap: onViewRun,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.launch, size: 16, color: YaruColors.orange),
+                    const SizedBox(width: 4),
+                    Text('View Run', style: TextStyle(color: YaruColors.orange)),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 4),
+            const SizedBox(width: 4),
+          ],
           TextButton(onPressed: onClose, child: const Text('Close')),
         ],
       ),

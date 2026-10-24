@@ -76,7 +76,7 @@ class SearchPageResultsController
 
     _loadingMore = true;
     state = const AsyncValue<SearchPageResultsState>.loading().copyWithPrevious(
-      state,
+      AsyncValue.data(current),
     );
     try {
       final response = await _ref
@@ -96,7 +96,12 @@ class SearchPageResultsController
         );
       }
     } catch (error, stackTrace) {
-      if (mounted) state = AsyncValue.error(error, stackTrace);
+      if (mounted) {
+        state = AsyncValue<SearchPageResultsState>.error(
+          error,
+          stackTrace,
+        ).copyWithPrevious(AsyncValue.data(current));
+      }
     } finally {
       _loadingMore = false;
     }

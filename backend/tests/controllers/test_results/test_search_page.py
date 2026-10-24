@@ -79,16 +79,14 @@ def test_search_page_includes_count_by_default(
     page_query = next(statement for statement in statements if "FROM test_result ORDER BY" in statement)
     assert "test_result.io_log" not in page_query
     assert "test_result.comment" not in page_query
-    assert set(row["artefact"]) == {
-        "id",
-        "name",
-        "version",
-        "track",
-        "stage",
-        "family",
-        "archived",
-        "reviewers",
-    }
+    assert set(row["artefact"]) == {"id", "name", "version", "track", "family"}
+    assert not any("FROM artefact_reviewers_association" in statement for statement in statements)
+    artefact_load_query = next(
+        statement for statement in statements if re.search(r"\bFROM\s+artefact\b", statement, re.IGNORECASE)
+    )
+    selected_columns = re.split(r"\bFROM\b", artefact_load_query, maxsplit=1, flags=re.IGNORECASE)[0]
+    assert "artefact.stage" not in selected_columns
+    assert "artefact.archived" not in selected_columns
     assert len(_count_statements(statements)) == 1
 
 

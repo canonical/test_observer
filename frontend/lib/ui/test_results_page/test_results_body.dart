@@ -109,6 +109,14 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
     }
 
     final searchResults = ref.watch(searchPageResultsProvider(widget.filters));
+    final data = searchResults.valueOrNull;
+    if (data != null) {
+      return _buildResultsContent(
+        context,
+        data,
+        loadMoreError: searchResults.hasError ? searchResults.error : null,
+      );
+    }
 
     return searchResults.when(
       loading: () => _buildLoadingState(context),
@@ -178,8 +186,9 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
 
   Widget _buildResultsContent(
     BuildContext context,
-    SearchPageResultsState data,
-  ) {
+    SearchPageResultsState data, {
+    Object? loadMoreError,
+  }) {
     final count = data.count;
     final testResults = data.rows;
 
@@ -202,6 +211,17 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
             ],
           ],
         ),
+        if (loadMoreError != null) ...[
+          const SizedBox(height: Spacing.level2),
+          Text(
+            'Error loading more results: $loadMoreError',
+            style: const TextStyle(color: Colors.red),
+          ),
+          TextButton(
+            onPressed: _loadMore,
+            child: const Text('Retry loading more'),
+          ),
+        ],
         const SizedBox(height: Spacing.level3),
         SearchPageResultsTable(testResults: testResults),
       ],

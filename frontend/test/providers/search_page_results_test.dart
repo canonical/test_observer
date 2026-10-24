@@ -121,6 +121,54 @@ void main() {
       ]);
     },
   );
+
+  test('a later-page error preserves rows and can be retried', () async {
+    var laterPageCalls = 0;
+    final api = _SearchPageApiFake((offset, includeCount, filters) {
+      if (offset == 0) {
+        return searchPageResponse(
+          count: includeCount ? 3 : null,
+          offset: offset,
+          rows: [SearchPageTableRow.fromJson(searchPageRowJson(id: 1))],
+        );
+      }
+      laterPageCalls++;
+      if (laterPageCalls == 1) throw Exception('network unavailable');
+      return searchPageResponse(
+        count: null,
+        offset: offset,
+        rows: [SearchPageTableRow.fromJson(searchPageRowJson(id: 2))],
+      );
+    });
+    final filters = const TestResultsFilters(families: ['snap']);
+    final container = createContainer(
+      overrides: [apiProvider.overrideWith((ref) => api)],
+    );
+    container.listen(searchPageResultsProvider(filters), (_, __) {});
+    await Future<void>.delayed(Duration.zero);
+
+    final notifier = container.read(
+      searchPageResultsProvider(filters).notifier,
+    );
+    await notifier.loadMore();
+
+    final failedPage = container.read(searchPageResultsProvider(filters));
+    expect(failedPage.hasError, isTrue);
+    expect(
+      failedPage.valueOrNull?.rows.map((row) => row.testResult.id),
+      [1],
+    );
+
+    await notifier.loadMore();
+
+    final retriedPage = container.read(searchPageResultsProvider(filters));
+    expect(retriedPage.hasError, isFalse);
+    expect(
+      retriedPage.requireValue.rows.map((row) => row.testResult.id),
+      [1, 2],
+    );
+    expect(api.calls.map((call) => call.offset), [0, 1, 1]);
+  });
 }
 
 class _SearchPageApiFake extends Mock implements ApiRepository {

@@ -25,7 +25,6 @@ from test_observer.common.config import MAX_RESULT_PAGE_LIMIT
 from test_observer.common.constants import QueryValue
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
-from test_observer.controllers.artefacts.models import ReviewerResponse
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
 from test_observer.controllers.issues.shared_models import MinimalIssueResponse
 from test_observer.data_access.models import (
@@ -40,7 +39,6 @@ from test_observer.data_access.models import (
     TestExecutionRerunRequest,
     TestPlan,
     TestResult,
-    User,
 )
 from test_observer.data_access.models_enums import (
     FamilyName,
@@ -96,9 +94,7 @@ def _search_page_results(
         Artefact.name,
         Artefact.version,
         Artefact.track,
-        Artefact.stage,
         Artefact.family,
-        Artefact.archived,
     )
     query = select(TestResult).options(
         load_only(
@@ -147,12 +143,6 @@ def _search_page_results(
         ),
         artefact_build,
         artefact,
-        artefact.selectinload(Artefact.reviewers).load_only(
-            User.id,
-            User.email,
-            User.launchpad_handle,
-            User.name,
-        ),
     )
     query = filter_test_results(query, filters)
     query = query.order_by(desc(TestResult.created_at), desc(TestResult.id))
@@ -202,10 +192,7 @@ def _table_row(result: TestResult) -> SearchPageTableRow:
             name=artefact.name,
             version=artefact.version,
             track=artefact.track,
-            stage=artefact.stage,
             family=artefact.family,
-            archived=artefact.archived,
-            reviewers=[ReviewerResponse.model_validate(reviewer) for reviewer in artefact.reviewers],
         ),
         artefact_build=SearchPageTableArtefactBuild(architecture=artefact_build.architecture),
     )
