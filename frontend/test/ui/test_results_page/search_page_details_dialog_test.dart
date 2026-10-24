@@ -28,6 +28,41 @@ import '../../search_page_test_data.dart';
 
 void main() {
   testWidgets(
+    'Does not start loading after dialog route is disposed',
+    (tester) async {
+      final api = _DetailsApiFake([]);
+      final navigatorKey = GlobalKey<NavigatorState>();
+      final row = SearchPageTableRow.fromJson(searchPageRowJson());
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [apiProvider.overrideWith((ref) => api)],
+          child: MaterialApp(
+            navigatorKey: navigatorKey,
+            home: const Scaffold(body: Text('Base route')),
+          ),
+        ),
+      );
+
+      navigatorKey.currentState!.push<void>(
+        MaterialPageRoute<void>(
+          builder:
+              (_) => _RemoveRouteBeforeDetailsLoad(
+                child: Scaffold(
+                  body: SearchPageTestResultDetailsDialog(result: row),
+                ),
+              ),
+        ),
+      );
+      await tester.pump();
+
+      expect(api.requestedIds, isEmpty);
+      expect(tester.takeException(), isNull);
+      expect(find.text('Base route'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
     'Details lazily loads selected result, retries errors, and renders',
     (tester) async {
       tester.view.physicalSize = const Size(1400, 900);
@@ -75,6 +110,36 @@ void main() {
       expect(find.text('View Run'), findsNothing);
     },
   );
+}
+
+class _RemoveRouteBeforeDetailsLoad extends StatefulWidget {
+  const _RemoveRouteBeforeDetailsLoad({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_RemoveRouteBeforeDetailsLoad> createState() =>
+      _RemoveRouteBeforeDetailsLoadState();
+}
+
+class _RemoveRouteBeforeDetailsLoadState
+    extends State<_RemoveRouteBeforeDetailsLoad> {
+  bool _removalScheduled = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_removalScheduled) return;
+    _removalScheduled = true;
+
+    final route = ModalRoute.of(context);
+    if (route == null) return;
+    final navigator = Navigator.of(context);
+    Future<void>.microtask(() => navigator.removeRoute(route));
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class _DetailsApiFake extends Mock implements ApiRepository {

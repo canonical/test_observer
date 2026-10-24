@@ -26,7 +26,6 @@ from test_observer.common.constants import QueryValue
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.controllers.issues.shared_models import MinimalIssueResponse
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -59,7 +58,6 @@ from .search_page_models import (
     SearchPageTableArtefact,
     SearchPageTableArtefactBuild,
     SearchPageTableEnvironment,
-    SearchPageTableIssueAttachment,
     SearchPageTableResponse,
     SearchPageTableRow,
     SearchPageTableTestExecution,
@@ -110,22 +108,6 @@ def _search_page_results(
             TestCase.category,
             TestCase.template_id,
         ),
-        selectinload(TestResult.issue_attachments)
-        .load_only(
-            IssueTestResultAttachment.id,
-            IssueTestResultAttachment.test_result_id,
-            IssueTestResultAttachment.issue_id,
-        )
-        .selectinload(IssueTestResultAttachment.issue)
-        .load_only(
-            Issue.id,
-            Issue.source,
-            Issue.project,
-            Issue.key,
-            Issue.title,
-            Issue.status,
-            Issue.labels,
-        ),
         execution,
         execution.selectinload(TestExecution.environment).load_only(
             Environment.id,
@@ -174,10 +156,6 @@ def _table_row(result: TestResult) -> SearchPageTableRow:
             created_at=result.created_at,
             template_id=result.test_case.template_id,
             status=result.status,
-            issues=[
-                SearchPageTableIssueAttachment(issue=MinimalIssueResponse.model_validate(attachment.issue))
-                for attachment in result.issue_attachments
-            ],
         ),
         test_execution=SearchPageTableTestExecution(
             id=execution.id,

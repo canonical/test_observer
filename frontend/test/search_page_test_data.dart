@@ -23,7 +23,6 @@ Map<String, dynamic> searchPageRowJson({int id = 23, int executionId = 12}) => {
     'created_at': '2025-01-02T03:04:05Z',
     'template_id': 'template-1',
     'status': 'FAILED',
-    'issues': [],
   },
   'test_execution': {
     'id': executionId,

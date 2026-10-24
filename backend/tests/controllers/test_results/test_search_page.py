@@ -72,13 +72,14 @@ def test_search_page_includes_count_by_default(
     assert data["count"] >= 1
     assert set(data) == {"count", "limit", "offset", "rows"}
     row = next(row for row in data["rows"] if row["test_result"]["id"] == result_id)
-    assert set(row["test_result"]) == {"id", "name", "category", "created_at", "template_id", "status", "issues"}
+    assert set(row["test_result"]) == {"id", "name", "category", "created_at", "template_id", "status"}
     assert row["test_result"]["category"] == "camera"
     assert "io_log" not in row["test_result"]
     assert "comment" not in row["test_result"]
     page_query = next(statement for statement in statements if "FROM test_result ORDER BY" in statement)
     assert "test_result.io_log" not in page_query
     assert "test_result.comment" not in page_query
+    assert not any("FROM issue_test_result_attachment" in statement for statement in statements)
     assert set(row["artefact"]) == {"id", "name", "version", "track", "family"}
     assert not any("FROM artefact_reviewers_association" in statement for statement in statements)
     artefact_load_query = next(
@@ -141,13 +142,16 @@ def test_search_page_details_endpoint_returns_modal_fields_only(
     assert table_response.status_code == 200
     table_data = table_response.json()
     table_row = next(row for row in table_data["rows"] if row["test_result"]["id"] == result_id)
-    table_issue = table_row["test_result"]["issues"][0]["issue"]
-    assert table_issue["id"] == issue.id
-    assert table_issue["title"] == "Search page issue"
-    assert table_issue["labels"] == ["table-label"]
-    assert "attachment_rule" not in table_row["test_result"]["issues"][0]
+    assert set(table_row["test_result"]) == {"id", "name", "category", "created_at", "template_id", "status"}
     assert "io_log" not in table_row["test_result"]
     assert "comment" not in table_row["test_result"]
+
+    filtered_response = make_authenticated_request(
+        lambda: test_client.get("/v1/test-results/search-page", params={"issues": issue.id}),
+        Permission.view_test,
+    )
+    assert filtered_response.status_code == 200
+    assert any(row["test_result"]["id"] == result_id for row in filtered_response.json()["rows"])
 
     response = make_authenticated_request(
         lambda: test_client.get(f"/v1/test-results/search-page/{result_id}"),

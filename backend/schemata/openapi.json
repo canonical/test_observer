@@ -9212,18 +9212,6 @@
         ],
         "title": "SearchPageTableEnvironment"
       },
-      "SearchPageTableIssueAttachment": {
-        "properties": {
-          "issue": {
-            "$ref": "#/components/schemas/MinimalIssueResponse"
-          }
-        },
-        "type": "object",
-        "required": [
-          "issue"
-        ],
-        "title": "SearchPageTableIssueAttachment"
-      },
       "SearchPageTableResponse": {
         "properties": {
           "count": {
@@ -9346,13 +9334,6 @@
           },
           "status": {
             "$ref": "#/components/schemas/TestResultStatus"
-          },
-          "issues": {
-            "items": {
-              "$ref": "#/components/schemas/SearchPageTableIssueAttachment"
-            },
-            "type": "array",
-            "title": "Issues"
           }
         },
         "type": "object",
@@ -9362,8 +9343,7 @@
           "category",
           "created_at",
           "template_id",
-          "status",
-          "issues"
+          "status"
         ],
         "title": "SearchPageTableTestResult"
       },

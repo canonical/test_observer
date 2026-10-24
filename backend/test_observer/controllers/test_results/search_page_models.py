@@ -19,12 +19,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.controllers.issues.shared_models import MinimalIssueResponse
 from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus, TestResultStatus
-
-
-class SearchPageTableIssueAttachment(BaseModel):
-    issue: MinimalIssueResponse
 
 
 class SearchPageTableTestResult(BaseModel):
@@ -34,7 +29,6 @@ class SearchPageTableTestResult(BaseModel):
     created_at: datetime
     template_id: str
     status: TestResultStatus
-    issues: list[SearchPageTableIssueAttachment]
 
 
 class SearchPageTableEnvironment(BaseModel):

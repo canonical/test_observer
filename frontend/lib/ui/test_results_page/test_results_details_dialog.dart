@@ -51,6 +51,8 @@ class _TestResultDetailsDialogState
   }
 
   Future<void> _loadDetails() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
       _error = null;
