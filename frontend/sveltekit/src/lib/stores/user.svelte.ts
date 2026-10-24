@@ -30,7 +30,13 @@ export type AuthStatus = "authenticated" | "unauthenticated" | "unknown";
 class UserStore {
   current = $state<User | null>(null);
   private sessionConfirmedAdmin = $state(false);
-  private refreshGeneration = 0;
+  private refreshGeneration = $state(0);
+
+  /** Authorization gates are invalidated by ANY later refresh, including a
+   * failed or cancelled one that leaves the cached display profile intact. */
+  get authorizationVersion(): number {
+    return this.refreshGeneration;
+  }
 
   get isConfirmedAdmin(): boolean {
     return Boolean(this.sessionConfirmedAdmin && this.current?.is_admin);
@@ -55,13 +61,17 @@ class UserStore {
   // preserved (so a transient failure doesn't falsely log the user out), but
   // callers must not treat that preserved value as proof of an active
   // session — branch on the returned status instead.
-  async refresh(fetch: typeof globalThis.fetch): Promise<AuthStatus> {
+  async refresh(
+    fetch: typeof globalThis.fetch,
+    signal?: AbortSignal,
+  ): Promise<AuthStatus> {
     const generation = ++this.refreshGeneration;
     this.sessionConfirmedAdmin = false;
-    const result = await fetchMe(fetch);
-    // A superseded response is not authorization evidence for its caller,
-    // even though it is already prevented from updating the cached state.
-    if (generation !== this.refreshGeneration) return "unknown";
+    const result = await fetchMe(fetch, signal);
+    // A superseded or cancelled response is not authorization evidence for its
+    // caller, even if cancellation happened while the response body was read.
+    if (generation !== this.refreshGeneration || signal?.aborted)
+      return "unknown";
     if (result.status === "authenticated") {
       this.current = result.user;
       this.sessionConfirmedAdmin = result.user.is_admin;
@@ -79,9 +89,13 @@ type MeResult =
   | { status: "unauthenticated" }
   | { status: "unknown" };
 
-const fetchMe = async (fetch: typeof globalThis.fetch): Promise<MeResult> => {
+const fetchMe = async (
+  fetch: typeof globalThis.fetch,
+  signal?: AbortSignal,
+): Promise<MeResult> => {
   try {
     const response = await fetch(`${getApiRoot()}/v1/users/me`, {
+      signal,
       credentials: "include",
       headers: { "X-CSRF-Token": "1" },
     });

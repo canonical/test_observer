@@ -3,7 +3,6 @@
   "families": [
     {
       "name": "snaps",
-      "friendly_name": "Snap Testing",
       "api_name": "snap",
       "stages": ["edge", "beta", "candidate", "stable"],
       "columns": [
@@ -77,7 +76,6 @@
     },
     {
       "name": "debs",
-      "friendly_name": "Deb Testing",
       "api_name": "deb",
       "stages": ["proposed", "updates", ""],
       "columns": [
@@ -152,7 +150,6 @@
     },
     {
       "name": "charms",
-      "friendly_name": "Charm Testing",
       "api_name": "charm",
       "stages": ["edge", "beta", "candidate", "stable"],
       "columns": [
@@ -226,7 +223,6 @@
     },
     {
       "name": "images",
-      "friendly_name": "Image Testing",
       "api_name": "image",
       "stages": ["pending", "current"],
       "columns": [
@@ -313,7 +309,6 @@
     },
     {
       "name": "solutions",
-      "friendly_name": "Solution Testing",
       "api_name": "solution",
       "stages": ["edge", "beta", "candidate", "stable"],
       "columns": [
