@@ -44,11 +44,10 @@ class SearchPageResultsTable extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: testResults.length,
-                  itemBuilder:
-                      (context, index) => _SearchTableRow(
-                        result: testResults[index],
-                        index: index,
-                      ),
+                  itemBuilder: (context, index) => _SearchTableRow(
+                    result: testResults[index],
+                    index: index,
+                  ),
                 ),
               ],
             ),
@@ -143,10 +142,9 @@ class _SearchTableRow extends StatelessWidget {
           Expanded(
             flex: 3,
             child: Tooltip(
-              message:
-                  execution.testPlan.isNotEmpty
-                      ? execution.testPlan
-                      : 'Unknown',
+              message: execution.testPlan.isNotEmpty
+                  ? execution.testPlan
+                  : 'Unknown',
               child: _Cell(
                 execution.testPlan.isNotEmpty ? execution.testPlan : 'Unknown',
               ),
@@ -260,12 +258,10 @@ class _ActionsCell extends StatelessWidget {
         spacing: 4,
         children: [
           InkWell(
-            onTap:
-                () => showDialog<void>(
-                  context: context,
-                  builder:
-                      (_) => SearchPageTestResultDetailsDialog(result: result),
-                ),
+            onTap: () => showDialog<void>(
+              context: context,
+              builder: (_) => SearchPageTestResultDetailsDialog(result: result),
+            ),
             child: _ActionLabel(icon: Icons.visibility, label: 'Details'),
           ),
         ],

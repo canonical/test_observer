@@ -38,13 +38,11 @@ class SearchPageTableResponse {
       count: json['count'] as int?,
       limit: json['limit'] as int,
       offset: json['offset'] as int,
-      rows:
-          (json['rows'] as List<dynamic>)
-              .map(
-                (row) =>
-                    SearchPageTableRow.fromJson(row as Map<String, dynamic>),
-              )
-              .toList(),
+      rows: (json['rows'] as List<dynamic>)
+          .map(
+            (row) => SearchPageTableRow.fromJson(row as Map<String, dynamic>),
+          )
+          .toList(),
     );
   }
 }
@@ -268,15 +266,14 @@ class SearchPageDetailsTestResult {
       templateId: json['template_id'] as String,
       status: TestResultStatus.fromString(json['status'] as String),
       ioLog: json['io_log'] as String,
-      issues:
-          (json['issues'] as List<dynamic>)
-              .map(
-                (attachment) => SearchPageDetailsIssue.fromJson(
-                  (attachment as Map<String, dynamic>)['issue']
-                      as Map<String, dynamic>,
-                ),
-              )
-              .toList(),
+      issues: (json['issues'] as List<dynamic>)
+          .map(
+            (attachment) => SearchPageDetailsIssue.fromJson(
+              (attachment as Map<String, dynamic>)['issue']
+                  as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
     );
   }
 }
@@ -352,8 +349,7 @@ TestExecutionStatus _executionStatus(String value) {
     'FAILED' => TestExecutionStatus.failed,
     'NOT_TESTED' => TestExecutionStatus.notTested,
     'ENDED_PREMATURELY' => TestExecutionStatus.endedPrematurely,
-    _ =>
-      throw ArgumentError.value(
+    _ => throw ArgumentError.value(
         value,
         'status',
         'Unknown test execution status',

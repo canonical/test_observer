@@ -9283,29 +9283,20 @@
           "status": {
             "$ref": "#/components/schemas/TestExecutionStatus"
           },
-          "is_rerun_requested": {
-            "type": "boolean",
-            "title": "Is Rerun Requested"
-          },
           "environment": {
             "$ref": "#/components/schemas/SearchPageTableEnvironment"
           },
           "test_plan": {
             "type": "string",
             "title": "Test Plan"
-          },
-          "execution_metadata": {
-            "$ref": "#/components/schemas/ExecutionMetadata"
           }
         },
         "type": "object",
         "required": [
           "id",
           "status",
-          "is_rerun_requested",
           "environment",
-          "test_plan",
-          "execution_metadata"
+          "test_plan"
         ],
         "title": "SearchPageTableTestExecution"
       },

@@ -78,9 +78,8 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(TestResultsBody)),
     );
-    final loadMore = container
-        .read(searchPageResultsProvider(filters).notifier)
-        .loadMore();
+    final loadMore =
+        container.read(searchPageResultsProvider(filters).notifier).loadMore();
     pageFailure.completeError(Exception('network unavailable'));
     await loadMore;
     await tester.pumpAndSettle();
@@ -121,5 +120,6 @@ class _PagedSearchApi extends Mock implements ApiRepository {
     required int limit,
     required int offset,
     required bool includeCount,
-  }) => responses.removeAt(0);
+  }) =>
+      responses.removeAt(0);
 }

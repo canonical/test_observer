@@ -22,20 +22,21 @@ import '../models/test_results_filters.dart';
 import 'api.dart';
 
 final searchPageResultsProvider = StateNotifierProvider.autoDispose.family<
-  SearchPageResultsController,
-  AsyncValue<SearchPageResultsState>,
-  TestResultsFilters
->((ref, filters) => SearchPageResultsController(ref: ref, filters: filters));
+        SearchPageResultsController,
+        AsyncValue<SearchPageResultsState>,
+        TestResultsFilters>(
+    (ref, filters) => SearchPageResultsController(ref: ref, filters: filters));
 
 class SearchPageResultsController
     extends StateNotifier<AsyncValue<SearchPageResultsState>> {
   SearchPageResultsController({required Ref ref, required this.filters})
-    : _ref = ref,
-      super(
-        filters.hasFilters
-            ? const AsyncValue.loading()
-            : const AsyncValue.data(SearchPageResultsState(count: 0, rows: [])),
-      ) {
+      : _ref = ref,
+        super(
+          filters.hasFilters
+              ? const AsyncValue.loading()
+              : const AsyncValue.data(
+                  SearchPageResultsState(count: 0, rows: [])),
+        ) {
     if (filters.hasFilters) unawaited(loadInitial());
   }
 
@@ -48,9 +49,7 @@ class SearchPageResultsController
   Future<void> loadInitial() async {
     state = const AsyncValue.loading();
     try {
-      final response = await _ref
-          .read(apiProvider)
-          .searchTestResultsPage(
+      final response = await _ref.read(apiProvider).searchTestResultsPage(
             filters,
             limit: pageSize,
             offset: 0,
@@ -79,9 +78,7 @@ class SearchPageResultsController
       AsyncValue.data(current),
     );
     try {
-      final response = await _ref
-          .read(apiProvider)
-          .searchTestResultsPage(
+      final response = await _ref.read(apiProvider).searchTestResultsPage(
             filters,
             limit: pageSize,
             offset: current.rows.length,

@@ -77,10 +77,9 @@ void main() {
     () async {
       final api = _SearchPageApiFake((offset, includeCount, filters) {
         return searchPageResponse(
-          count:
-              includeCount
-                  ? (filters.families.single == 'snap' ? 250 : 4)
-                  : null,
+          count: includeCount
+              ? (filters.families.single == 'snap' ? 250 : 4)
+              : null,
           offset: offset,
           rows: [],
         );
@@ -178,8 +177,7 @@ class _SearchPageApiFake extends Mock implements ApiRepository {
     int offset,
     bool includeCount,
     TestResultsFilters filters,
-  )
-  respond;
+  ) respond;
 
   final calls =
       <({TestResultsFilters filters, int offset, bool includeCount})>[];

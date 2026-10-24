@@ -48,7 +48,9 @@ void main() {
     expect(details.testExecution.createdAt, DateTime.utc(2025, 1, 2, 3, 4, 5));
     expect(
       details.testExecution.executionMetadata.data,
-      {'architecture': {'amd64'}},
+      {
+        'architecture': {'amd64'}
+      },
     );
     expect(
       details.testResult.issues.single.url,
