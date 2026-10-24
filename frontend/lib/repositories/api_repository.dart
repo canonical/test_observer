@@ -27,6 +27,7 @@ import '../models/execution_metadata.dart';
 import '../models/family_name.dart';
 import '../models/issue.dart';
 import '../models/rerun_details.dart';
+import '../models/search_page_results.dart';
 import '../models/test_event.dart';
 import '../models/test_issue.dart';
 import '../models/test_result.dart';
@@ -472,6 +473,32 @@ class ApiRepository {
       queryParameters: filters.toQueryParams(),
     );
     return TestResultsSearchResult.fromJson(response.data);
+  }
+
+  Future<SearchPageTableResponse> searchTestResultsPage(
+    TestResultsFilters filters, {
+    required int limit,
+    required int offset,
+    required bool includeCount,
+  }) async {
+    final queryParameters = <String, dynamic>{
+      ...filters.copyWith(limit: limit, offset: offset).toQueryParams(),
+      'include_count': includeCount,
+    };
+    final response = await dio.get(
+      '/v1/test-results/search-page',
+      queryParameters: queryParameters,
+    );
+    return SearchPageTableResponse.fromJson(response.data);
+  }
+
+  Future<SearchPageDetailsResponse> getSearchPageTestResultDetails(
+    int testResultId,
+  ) async {
+    final response = await dio.get(
+      '/v1/test-results/search-page/$testResultId',
+    );
+    return SearchPageDetailsResponse.fromJson(response.data);
   }
 
   Future<void> submitTestResult({

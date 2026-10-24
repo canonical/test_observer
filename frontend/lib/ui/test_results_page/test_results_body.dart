@@ -17,11 +17,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yaru/yaru.dart';
 
-import '../../models/detailed_test_results.dart';
+import '../../models/search_page_results.dart';
 import '../../models/test_results_filters.dart';
-import '../../providers/test_results_search.dart';
+import '../../providers/search_page_results.dart';
 import '../spacing.dart';
-import 'test_results_table.dart';
+import 'search_page_results_table.dart';
 
 class TestResultsBody extends ConsumerStatefulWidget {
   const TestResultsBody({
@@ -83,7 +83,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
 
     try {
       await ref
-          .read(testResultsSearchProvider(widget.filters).notifier)
+          .read(searchPageResultsProvider(widget.filters).notifier)
           .loadMore();
     } finally {
       if (mounted) {
@@ -96,7 +96,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
     if (_isLoadingMore) return;
 
     final data =
-        ref.read(testResultsSearchProvider(widget.filters)).valueOrNull;
+        ref.read(searchPageResultsProvider(widget.filters)).valueOrNull;
     if (data == null || !data.hasMore) return;
 
     _loadMore();
@@ -108,7 +108,15 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
       return _buildEmptyState(context);
     }
 
-    final searchResults = ref.watch(testResultsSearchProvider(widget.filters));
+    final searchResults = ref.watch(searchPageResultsProvider(widget.filters));
+    final data = searchResults.valueOrNull;
+    if (data != null) {
+      return _buildResultsContent(
+        context,
+        data,
+        loadMoreError: searchResults.hasError ? searchResults.error : null,
+      );
+    }
 
     return searchResults.when(
       loading: () => _buildLoadingState(context),
@@ -120,9 +128,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.only(
-          bottom: Spacing.level6 * 4,
-        ),
+        padding: const EdgeInsets.only(bottom: Spacing.level6 * 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
@@ -147,9 +153,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
   Widget _buildLoadingState(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.only(
-          bottom: Spacing.level6 * 4,
-        ),
+        padding: const EdgeInsets.only(bottom: Spacing.level6 * 4),
         child: const YaruCircularProgressIndicator(),
       ),
     );
@@ -158,9 +162,7 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
   Widget _buildErrorState(BuildContext context, Object error) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.only(
-          bottom: Spacing.level6 * 4,
-        ),
+        padding: const EdgeInsets.only(bottom: Spacing.level6 * 4),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -184,10 +186,11 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
 
   Widget _buildResultsContent(
     BuildContext context,
-    TestResultsSearchResult data,
-  ) {
+    SearchPageResultsState data, {
+    Object? loadMoreError,
+  }) {
     final count = data.count;
-    final testResults = data.testResults;
+    final testResults = data.rows;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,8 +211,19 @@ class _TestResultsBodyState extends ConsumerState<TestResultsBody> {
             ],
           ],
         ),
+        if (loadMoreError != null) ...[
+          const SizedBox(height: Spacing.level2),
+          Text(
+            'Error loading more results: $loadMoreError',
+            style: const TextStyle(color: Colors.red),
+          ),
+          TextButton(
+            onPressed: _loadMore,
+            child: const Text('Retry loading more'),
+          ),
+        ],
         const SizedBox(height: Spacing.level3),
-        TestResultsTable(testResults: testResults),
+        SearchPageResultsTable(testResults: testResults),
       ],
     );
   }
