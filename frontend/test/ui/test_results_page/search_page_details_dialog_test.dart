@@ -23,44 +23,43 @@ import 'package:testcase_dashboard/models/search_page_results.dart';
 import 'package:testcase_dashboard/providers/api.dart';
 import 'package:testcase_dashboard/repositories/api_repository.dart';
 import 'package:testcase_dashboard/ui/test_results_page/search_page_results_table.dart';
+import 'package:testcase_dashboard/ui/test_results_page/test_results_details_dialog.dart';
 
 import '../../search_page_test_data.dart';
 
 void main() {
-  testWidgets(
-    'Does not start loading after dialog route is disposed',
-    (tester) async {
-      final api = _DetailsApiFake([]);
-      final navigatorKey = GlobalKey<NavigatorState>();
-      final row = SearchPageTableRow.fromJson(searchPageRowJson());
+  testWidgets('Does not start loading after dialog route is disposed', (
+    tester,
+  ) async {
+    final api = _DetailsApiFake([]);
+    final navigatorKey = GlobalKey<NavigatorState>();
+    final row = SearchPageTableRow.fromJson(searchPageRowJson());
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [apiProvider.overrideWith((ref) => api)],
-          child: MaterialApp(
-            navigatorKey: navigatorKey,
-            home: const Scaffold(body: Text('Base route')),
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [apiProvider.overrideWith((ref) => api)],
+        child: MaterialApp(
+          navigatorKey: navigatorKey,
+          home: const Scaffold(body: Text('Base route')),
+        ),
+      ),
+    );
+
+    navigatorKey.currentState!.push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => _RemoveRouteBeforeDetailsLoad(
+          child: Scaffold(
+            body: SearchPageTestResultDetailsDialog(result: row),
           ),
         ),
-      );
+      ),
+    );
+    await tester.pump();
 
-      navigatorKey.currentState!.push<void>(
-        MaterialPageRoute<void>(
-          builder:
-              (_) => _RemoveRouteBeforeDetailsLoad(
-                child: Scaffold(
-                  body: SearchPageTestResultDetailsDialog(result: row),
-                ),
-              ),
-        ),
-      );
-      await tester.pump();
-
-      expect(api.requestedIds, isEmpty);
-      expect(tester.takeException(), isNull);
-      expect(find.text('Base route'), findsOneWidget);
-    },
-  );
+    expect(api.requestedIds, isEmpty);
+    expect(tester.takeException(), isNull);
+    expect(find.text('Base route'), findsOneWidget);
+  });
 
   testWidgets(
     'Details lazily loads selected result, retries errors, and renders',

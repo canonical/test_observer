@@ -133,9 +133,7 @@ class _TestResultDetailsDialogState
               )
             else
               Expanded(child: _DialogContent(result: _details!)),
-            _DialogFooter(
-              onClose: () => Navigator.of(context).pop(),
-            ),
+            _DialogFooter(onClose: () => Navigator.of(context).pop()),
           ],
         ),
       ),
@@ -230,20 +228,19 @@ SearchPageDetailsResponse _legacyDetails(TestResultWithContext result) {
       templateId: result.testResult.templateId,
       status: result.testResult.status,
       ioLog: result.testResult.ioLog,
-      issues:
-          result.testResult.issueAttachments
-              .map(
-                (attachment) => SearchPageDetailsIssue(
-                  id: attachment.issue.id,
-                  source: attachment.issue.source,
-                  project: attachment.issue.project,
-                  key: attachment.issue.key,
-                  title: attachment.issue.title,
-                  status: attachment.issue.status,
-                  url: attachment.issue.url,
-                ),
-              )
-              .toList(),
+      issues: result.testResult.issueAttachments
+          .map(
+            (attachment) => SearchPageDetailsIssue(
+              id: attachment.issue.id,
+              source: attachment.issue.source,
+              project: attachment.issue.project,
+              key: attachment.issue.key,
+              title: attachment.issue.title,
+              status: attachment.issue.status,
+              url: attachment.issue.url,
+            ),
+          )
+          .toList(),
     ),
     testExecution: SearchPageDetailsTestExecution(
       id: result.testExecution.id,
@@ -380,30 +377,28 @@ class _DialogContent extends StatelessWidget {
             const SizedBox(height: 16),
             _DialogSection(
               title: 'Issues',
-              children:
-                  result.testResult.issues
-                      .map(
-                        (issue) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(8),
-                            onTap:
-                                () => launchUrl(
-                                  Uri.base.replace(
-                                    fragment: '/issues/${issue.id}',
-                                  ),
-                                  mode: LaunchMode.externalApplication,
-                                ),
-                            child: Card(
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: _SearchPageIssueWidget(issue: issue),
-                              ),
-                            ),
+              children: result.testResult.issues
+                  .map(
+                    (issue) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () => launchUrl(
+                          Uri.base.replace(
+                            fragment: '/issues/${issue.id}',
+                          ),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: _SearchPageIssueWidget(issue: issue),
                           ),
                         ),
-                      )
-                      .toList(),
+                      ),
+                    ),
+                  )
+                  .toList(),
             ),
           ],
           if (result.testResult.ioLog.isNotEmpty) ...[
@@ -434,10 +429,10 @@ class _SearchPageIssueWidget extends StatelessWidget {
     final (label, icon, color) = switch (issue.status) {
       IssueStatus.open => ('Open', Icons.adjust, Colors.green),
       IssueStatus.closed => (
-        'Closed',
-        Icons.check_circle_outline,
-        Colors.purple,
-      ),
+          'Closed',
+          Icons.check_circle_outline,
+          Colors.purple,
+        ),
       IssueStatus.unknown => ('Unknown', Icons.help_outline, Colors.grey),
     };
     return Column(
@@ -456,10 +451,9 @@ class _SearchPageIssueWidget extends StatelessWidget {
             Text(issue.project, style: style?.copyWith(color: Colors.grey)),
             InlineUrlText(
               url: issue.url,
-              urlText:
-                  issue.source == IssueSource.jira
-                      ? '${issue.project}-${issue.key}'
-                      : '#${issue.key}',
+              urlText: issue.source == IssueSource.jira
+                  ? '${issue.project}-${issue.key}'
+                  : '#${issue.key}',
               fontStyle: linkStyle,
             ),
             Row(
@@ -476,8 +470,8 @@ class _SearchPageIssueWidget extends StatelessWidget {
         Text(
           issue.title.isNotEmpty ? issue.title : '[No title]',
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-          ),
+                color: Theme.of(context).colorScheme.primary,
+              ),
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
         ),
@@ -516,7 +510,10 @@ class _DialogFooter extends StatelessWidget {
                   children: [
                     Icon(Icons.launch, size: 16, color: YaruColors.orange),
                     const SizedBox(width: 4),
-                    Text('View Run', style: TextStyle(color: YaruColors.orange)),
+                    Text(
+                      'View Run',
+                      style: TextStyle(color: YaruColors.orange),
+                    ),
                   ],
                 ),
               ),
@@ -581,8 +578,7 @@ class _DetailRow extends StatelessWidget {
             ),
           ),
           Expanded(
-            child:
-                valueWidget ??
+            child: valueWidget ??
                 SelectableText(
                   value ?? 'N/A',
                   style: const TextStyle(color: Colors.black),
