@@ -49,7 +49,7 @@ void main() {
     expect(
       details.testExecution.executionMetadata.data,
       {
-        'architecture': {'amd64'}
+        'architecture': {'amd64'},
       },
     );
     expect(
