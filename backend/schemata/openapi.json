@@ -4051,6 +4051,580 @@
         ]
       }
     },
+    "/v1/test-results/search-page": {
+      "get": {
+        "tags": [
+          "test-results-search-page"
+        ],
+        "summary": "Search Test Results Page",
+        "description": "Return only the fields needed to render a Search table range.",
+        "operationId": "search_test_results_page_v1_test_results_search_page_get",
+        "parameters": [
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyName"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact families (e.g., charm,snap)",
+              "title": "Families"
+            },
+            "description": "Filter by artefact families (e.g., charm,snap)"
+          },
+          {
+            "name": "artefacts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact names",
+              "title": "Artefacts"
+            },
+            "description": "Filter by artefact names"
+          },
+          {
+            "name": "artefact_versions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact versions",
+              "title": "Artefact Versions"
+            },
+            "description": "Filter by artefact versions"
+          },
+          {
+            "name": "artefact_stages",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact stages",
+              "title": "Artefact Stages"
+            },
+            "description": "Filter by artefact stages"
+          },
+          {
+            "name": "artefact_tracks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by artefact tracks",
+              "title": "Artefact Tracks"
+            },
+            "description": "Filter by artefact tracks"
+          },
+          {
+            "name": "artefact_is_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether the artefact is archived",
+              "title": "Artefact Is Archived"
+            },
+            "description": "Filter by whether the artefact is archived"
+          },
+          {
+            "name": "environments",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by environment names",
+              "title": "Environments"
+            },
+            "description": "Filter by environment names"
+          },
+          {
+            "name": "test_plans",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test plan names",
+              "title": "Test Plans"
+            },
+            "description": "Filter by test plan names"
+          },
+          {
+            "name": "test_cases",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test case names",
+              "title": "Test Cases"
+            },
+            "description": "Filter by test case names"
+          },
+          {
+            "name": "template_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by template IDs",
+              "title": "Template Ids"
+            },
+            "description": "Filter by template IDs"
+          },
+          {
+            "name": "issues",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by issue IDs",
+              "title": "Issues"
+            },
+            "description": "Filter by issue IDs"
+          },
+          {
+            "name": "test_result_statuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestResultStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test result statuses",
+              "title": "Test Result Statuses"
+            },
+            "description": "Filter by test result statuses"
+          },
+          {
+            "name": "test_execution_statuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestExecutionStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by test execution statuses",
+              "title": "Test Execution Statuses"
+            },
+            "description": "Filter by test execution statuses"
+          },
+          {
+            "name": "reviewer_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by reviewer user ids",
+              "title": "Reviewer Ids"
+            },
+            "description": "Filter by reviewer user ids"
+          },
+          {
+            "name": "assignee_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "any",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "const": "none",
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "DEPRECATED: Use reviewer_ids instead",
+              "deprecated": true,
+              "title": "Assignee Ids"
+            },
+            "description": "DEPRECATED: Use reviewer_ids instead",
+            "deprecated": true
+          },
+          {
+            "name": "rerun_is_requested",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether a rerun has been requested for the test execution",
+              "title": "Rerun Is Requested"
+            },
+            "description": "Filter by whether a rerun has been requested for the test execution"
+          },
+          {
+            "name": "execution_is_latest",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether the test execution is the latest in its environment/artifact/test plan combination",
+              "title": "Execution Is Latest"
+            },
+            "description": "Filter by whether the test execution is the latest in its environment/artifact/test plan combination"
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter results from this timestamp",
+              "title": "From Date"
+            },
+            "description": "Filter results from this timestamp"
+          },
+          {
+            "name": "until_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter results until this timestamp",
+              "title": "Until Date"
+            },
+            "description": "Filter results until this timestamp"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 0,
+              "description": "Maximum number of results to return",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip for pagination"
+          },
+          {
+            "name": "include_count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Include the exact total count; null is returned when false",
+              "default": true,
+              "title": "Include Count"
+            },
+            "description": "Include the exact total count; null is returned when false"
+          },
+          {
+            "name": "execution_metadata",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by execution metadata (base64 encoded category:value pairs).",
+              "title": "Execution Metadata"
+            },
+            "description": "Filter by execution metadata (base64 encoded category:value pairs)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchPageTableResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
+      }
+    },
+    "/v1/test-results/search-page/{test_result_id}": {
+      "get": {
+        "tags": [
+          "test-results-search-page"
+        ],
+        "summary": "Get Search Page Result Details",
+        "description": "Load only the fields needed by the Search details modal for one result.",
+        "operationId": "get_search_page_result_details_v1_test_results_search_page__test_result_id__get",
+        "parameters": [
+          {
+            "name": "test_result_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Test Result Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchPageDetailsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
+      }
+    },
     "/v1/execution-metadata": {
       "get": {
         "tags": [
@@ -8374,6 +8948,396 @@
           "name"
         ],
         "title": "ReviewerResponse"
+      },
+      "SearchPageDetailsArtefact": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "version",
+          "track",
+          "family"
+        ],
+        "title": "SearchPageDetailsArtefact"
+      },
+      "SearchPageDetailsArtefactBuild": {
+        "properties": {
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          }
+        },
+        "type": "object",
+        "required": [
+          "architecture"
+        ],
+        "title": "SearchPageDetailsArtefactBuild"
+      },
+      "SearchPageDetailsIssue": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IssueSource"
+          },
+          "project": {
+            "type": "string",
+            "title": "Project"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IssueStatus"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "project",
+          "key",
+          "title",
+          "status",
+          "url"
+        ],
+        "title": "SearchPageDetailsIssue"
+      },
+      "SearchPageDetailsIssueAttachment": {
+        "properties": {
+          "issue": {
+            "$ref": "#/components/schemas/SearchPageDetailsIssue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "issue"
+        ],
+        "title": "SearchPageDetailsIssueAttachment"
+      },
+      "SearchPageDetailsResponse": {
+        "properties": {
+          "test_result": {
+            "$ref": "#/components/schemas/SearchPageDetailsTestResult"
+          },
+          "test_execution": {
+            "$ref": "#/components/schemas/SearchPageDetailsTestExecution"
+          },
+          "artefact": {
+            "$ref": "#/components/schemas/SearchPageDetailsArtefact"
+          },
+          "artefact_build": {
+            "$ref": "#/components/schemas/SearchPageDetailsArtefactBuild"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_result",
+          "test_execution",
+          "artefact",
+          "artefact_build"
+        ],
+        "title": "SearchPageDetailsResponse"
+      },
+      "SearchPageDetailsTestExecution": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TestExecutionStatus"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/SearchPageTableEnvironment"
+          },
+          "test_plan": {
+            "type": "string",
+            "title": "Test Plan"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "environment",
+          "test_plan",
+          "created_at",
+          "execution_metadata"
+        ],
+        "title": "SearchPageDetailsTestExecution"
+      },
+      "SearchPageDetailsTestResult": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "template_id": {
+            "type": "string",
+            "title": "Template Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TestResultStatus"
+          },
+          "io_log": {
+            "type": "string",
+            "title": "Io Log"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/SearchPageDetailsIssueAttachment"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "category",
+          "template_id",
+          "status",
+          "io_log",
+          "issues"
+        ],
+        "title": "SearchPageDetailsTestResult"
+      },
+      "SearchPageTableArtefact": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "version",
+          "track",
+          "family"
+        ],
+        "title": "SearchPageTableArtefact"
+      },
+      "SearchPageTableArtefactBuild": {
+        "properties": {
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          }
+        },
+        "type": "object",
+        "required": [
+          "architecture"
+        ],
+        "title": "SearchPageTableArtefactBuild"
+      },
+      "SearchPageTableEnvironment": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "SearchPageTableEnvironment"
+      },
+      "SearchPageTableResponse": {
+        "properties": {
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/SearchPageTableRow"
+            },
+            "type": "array",
+            "title": "Rows"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "limit",
+          "offset",
+          "rows"
+        ],
+        "title": "SearchPageTableResponse"
+      },
+      "SearchPageTableRow": {
+        "properties": {
+          "test_result": {
+            "$ref": "#/components/schemas/SearchPageTableTestResult"
+          },
+          "test_execution": {
+            "$ref": "#/components/schemas/SearchPageTableTestExecution"
+          },
+          "artefact": {
+            "$ref": "#/components/schemas/SearchPageTableArtefact"
+          },
+          "artefact_build": {
+            "$ref": "#/components/schemas/SearchPageTableArtefactBuild"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_result",
+          "test_execution",
+          "artefact",
+          "artefact_build"
+        ],
+        "title": "SearchPageTableRow"
+      },
+      "SearchPageTableTestExecution": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TestExecutionStatus"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/SearchPageTableEnvironment"
+          },
+          "test_plan": {
+            "type": "string",
+            "title": "Test Plan"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "environment",
+          "test_plan"
+        ],
+        "title": "SearchPageTableTestExecution"
+      },
+      "SearchPageTableTestResult": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "template_id": {
+            "type": "string",
+            "title": "Template Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TestResultStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "category",
+          "created_at",
+          "template_id",
+          "status"
+        ],
+        "title": "SearchPageTableTestResult"
       },
       "SnapStage": {
         "type": "string",
