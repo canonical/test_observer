@@ -35,7 +35,6 @@ from test_observer.data_access.models import (
     TestCase,
     TestExecution,
     TestExecutionMetadata,
-    TestExecutionRerunRequest,
     TestPlan,
     TestResult,
 )
@@ -117,12 +116,6 @@ def _search_page_results(
             TestPlan.id,
             TestPlan.name,
         ),
-        execution.selectinload(TestExecution.rerun_request).load_only(TestExecutionRerunRequest.id),
-        execution.selectinload(TestExecution.execution_metadata).load_only(
-            TestExecutionMetadata.id,
-            TestExecutionMetadata.category,
-            TestExecutionMetadata.value,
-        ),
         artefact_build,
         artefact,
     )
@@ -160,10 +153,8 @@ def _table_row(result: TestResult) -> SearchPageTableRow:
         test_execution=SearchPageTableTestExecution(
             id=execution.id,
             status=execution.status,
-            is_rerun_requested=execution.rerun_request is not None,
             environment=SearchPageTableEnvironment(name=execution.environment.name),
             test_plan=execution.test_plan.name,
-            execution_metadata=ExecutionMetadata.from_rows(execution.execution_metadata),
         ),
         artefact=SearchPageTableArtefact(
             id=artefact.id,

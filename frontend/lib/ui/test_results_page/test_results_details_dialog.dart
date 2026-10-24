@@ -200,7 +200,6 @@ SearchPageTableRow _legacyTableRow(TestResultWithContext result) {
         name: result.testExecution.environment.name,
       ),
       testPlan: result.testExecution.testPlan,
-      executionMetadata: result.testExecution.executionMetadata,
     ),
     artefact: SearchPageTableArtefact(
       id: result.artefact.id,

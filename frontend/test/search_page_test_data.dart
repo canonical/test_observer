@@ -27,12 +27,8 @@ Map<String, dynamic> searchPageRowJson({int id = 23, int executionId = 12}) => {
       'test_execution': {
         'id': executionId,
         'status': 'IN_PROGRESS',
-        'is_rerun_requested': false,
         'environment': {'name': 'jammy-amd64'},
         'test_plan': 'daily',
-        'execution_metadata': {
-          'architecture': ['amd64'],
-        },
       },
       'artefact': {
         'id': 7,

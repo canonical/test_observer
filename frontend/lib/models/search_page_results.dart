@@ -115,14 +115,12 @@ class SearchPageTableTestExecution {
     required this.status,
     required this.environment,
     required this.testPlan,
-    required this.executionMetadata,
   });
 
   final int id;
   final TestExecutionStatus status;
   final SearchPageTableEnvironment environment;
   final String testPlan;
-  final ExecutionMetadata executionMetadata;
 
   factory SearchPageTableTestExecution.fromJson(Map<String, dynamic> json) {
     return SearchPageTableTestExecution(
@@ -132,7 +130,6 @@ class SearchPageTableTestExecution {
         json['environment'] as Map<String, dynamic>,
       ),
       testPlan: json['test_plan'] as String,
-      executionMetadata: _executionMetadata(json['execution_metadata']),
     );
   }
 }
@@ -143,10 +140,11 @@ class SearchPageDetailsTestExecution extends SearchPageTableTestExecution {
     required super.status,
     required super.environment,
     required super.testPlan,
-    required super.executionMetadata,
+    required this.executionMetadata,
     required this.createdAt,
   });
 
+  final ExecutionMetadata executionMetadata;
   final DateTime createdAt;
 
   factory SearchPageDetailsTestExecution.fromJson(Map<String, dynamic> json) {
@@ -156,7 +154,7 @@ class SearchPageDetailsTestExecution extends SearchPageTableTestExecution {
       status: tableFields.status,
       environment: tableFields.environment,
       testPlan: tableFields.testPlan,
-      executionMetadata: tableFields.executionMetadata,
+      executionMetadata: _executionMetadata(json['execution_metadata']),
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }

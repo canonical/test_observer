@@ -38,10 +38,8 @@ class SearchPageTableEnvironment(BaseModel):
 class SearchPageTableTestExecution(BaseModel):
     id: int
     status: TestExecutionStatus
-    is_rerun_requested: bool
     environment: SearchPageTableEnvironment
     test_plan: str
-    execution_metadata: ExecutionMetadata
 
 
 class SearchPageTableArtefact(BaseModel):
