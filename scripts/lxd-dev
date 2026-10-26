@@ -163,7 +163,7 @@ def ensure_privileges() -> None:
     if os.geteuid() != 0:
         if shutil.which("sudo") is None:
             fail("This command needs root for Ubuntu packages and system services (sudo is not installed).")
-        run(["sudo", "-v"])
+        run(["sudo", "-n", "-v"])
     if not Path("/run/systemd/system").exists():
         fail("This script expects an Ubuntu systemd container (for PostgreSQL and PHP-FPM services).")
 
