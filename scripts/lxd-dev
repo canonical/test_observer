@@ -383,7 +383,14 @@ def ensure_simple_saml(secrets_state: dict[str, str], public_ip: str) -> Path:
         (repo_config / "saml20-idp-hosted.php", metadata_dir / "saml20-idp-hosted.php"),
         (repo_config / "saml20-sp-remote.php", metadata_dir / "saml20-sp-remote.php"),
     ):
-        sudo(["install", "-o", "root", "-g", "www-data", "-m", "0640", str(source), str(destination)])
+        content = source.read_text()
+        if source.name == "saml20-sp-remote.php":
+            # PHP-FPM does not inherit the SAML_SP_BASE_URL set by this script,
+            # so bake the LXD API address into its remote-SP metadata fallback.
+            content = content.replace("http://localhost:30000", f"http://{public_ip}:30000")
+        sudo(["tee", str(destination)], input_text=content, stdout=subprocess.DEVNULL)
+        sudo(["chmod", "0640", str(destination)])
+        sudo(["chown", "root:www-data", str(destination)])
 
     if "secretsalt" not in secrets_state:
         secrets_state["secretsalt"] = secrets.token_urlsafe(32)
@@ -432,6 +439,16 @@ def ensure_simple_saml(secrets_state: dict[str, str], public_ip: str) -> Path:
 
     sudo(["chown", "-R", "root:www-data", str(install_dir)])
     return current
+
+
+def read_simple_saml_secrets() -> dict[str, str]:
+    if not SECRETS_FILE.exists():
+        return {}
+    try:
+        return json.loads(SECRETS_FILE.read_text())
+    except (json.JSONDecodeError, OSError) as error:
+        fail(f"Cannot read SimpleSAMLphp local secrets at {SECRETS_FILE}: {error}")
+    raise AssertionError("unreachable")
 
 
 def php_string(value: str) -> str:
@@ -675,6 +692,8 @@ def up() -> None:
     public_idp_url = f"http://{public_ip}:8080/simplesaml/"
     if existing and is_process_alive(existing.get("api_pid"), str(BACKEND / "dev_entrypoint.sh")):
         progress("The Test Observer development stack is already running.")
+        progress("Refreshing SimpleSAMLphp metadata for the container IP...")
+        ensure_simple_saml(read_simple_saml_secrets(), public_ip)
         print(f"API: {public_api_url}\nFrontend: {public_frontend_url}\nSAML IdP: {public_idp_url}")
         return
     if existing:
@@ -722,12 +741,7 @@ def up() -> None:
     run([str(uv), "sync", "--frozen", "--all-groups"], cwd=BACKEND, env=env)
     build_frontend(env, flutter_bin, node_bin, public_ip)
 
-    secrets_state: dict[str, str] = {}
-    if SECRETS_FILE.exists():
-        try:
-            secrets_state = json.loads(SECRETS_FILE.read_text())
-        except (json.JSONDecodeError, OSError) as error:
-            fail(f"Cannot read SimpleSAMLphp local secrets at {SECRETS_FILE}: {error}")
+    secrets_state = read_simple_saml_secrets()
     saml_dir = ensure_simple_saml(secrets_state, public_ip)
 
     if not services_were_active["php8.3-fpm"]:
