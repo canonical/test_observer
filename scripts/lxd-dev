@@ -163,7 +163,9 @@ def ensure_privileges() -> None:
     if os.geteuid() != 0:
         if shutil.which("sudo") is None:
             fail("This command needs root for Ubuntu packages and system services (sudo is not installed).")
-        run(["sudo", "-n", "-v"])
+        # Probe the non-interactive command path used below. `sudo -v` asks
+        # for a credential timestamp even when commands are NOPASSWD.
+        run(["sudo", "-n", "true"])
     if not Path("/run/systemd/system").exists():
         fail("This script expects an Ubuntu systemd container (for PostgreSQL and PHP-FPM services).")
 
