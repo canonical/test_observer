@@ -1,0 +1,744 @@
+#!/usr/bin/env python3
+"""Run the Test Observer development stack without Docker on Ubuntu 24.04."""
+
+from __future__ import annotations
+
+import fcntl
+import hashlib
+import json
+import os
+import platform
+import re
+import secrets
+import shlex
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+import urllib.error
+import urllib.request
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+BACKEND = ROOT / "backend"
+FRONTEND = ROOT / "frontend"
+
+STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "test-observer/lxd-dev"
+STATE_FILE = STATE_DIR / "state.json"
+SECRETS_FILE = STATE_DIR / "secrets.json"
+SYSTEM_DIR = Path("/opt/test-observer-lxd-dev")
+SYSTEM_STATE_DIR = Path("/var/lib/test-observer-lxd-dev")
+WEBROOT = SYSTEM_STATE_DIR / "www"
+
+API_URL = "http://localhost:30000"
+FRONTEND_URL = "http://localhost:30001"
+IDP_URL = "http://127.0.0.1:8080/simplesaml/saml2/idp/metadata.php"
+
+DB_USER = "test_observer_user"
+DB_PASSWORD = "test_observer_password"
+DB_NAME = "test_observer_db"
+
+# These are intentionally pinned. The Node archive checksum is from the
+# official Node.js SHASUMS256.txt; Flutter is pinned to the official 3.29.3 tag
+# commit; SimpleSAMLphp is the official full release and its published SHA-256.
+NODE_VERSION = "22.22.1"
+NODE_SHA256 = {
+    "x86_64": "9a6bc82f9b491279147219f6a18add1e18424dce90d41d2a5fcd69d4924ba3aa",
+    "aarch64": "0f3550d58d45e5d3cf7103d9e3f69937f09fe82fb5dd474c66a5d816fa58c9ee",
+}
+FLUTTER_TAG = "3.29.3"
+FLUTTER_COMMIT = "ea121f8859e4b13e47a8f845e4586164519588bc"
+UV_VERSION = "0.11.15"
+SIMPLESAMLPHP_VERSION = "2.5.3.1"
+SIMPLESAMLPHP_URL = (
+    "https://github.com/simplesamlphp/simplesamlphp/releases/download/"
+    f"v{SIMPLESAMLPHP_VERSION}/simplesamlphp-{SIMPLESAMLPHP_VERSION}-full.tar.gz"
+)
+SIMPLESAMLPHP_SHA256 = "b199ebcba6e30220e7b5df2783ca42f8947dd9bdf046e9e6302fef3d3a438d01"
+
+APT_PACKAGES = [
+    "ca-certificates",
+    "curl",
+    "fonts-droid-fallback",
+    "git",
+    "libglu1-mesa",
+    "nginx",
+    "php8.3-curl",
+    "php8.3-fpm",
+    "php8.3-intl",
+    "php8.3-mbstring",
+    "php8.3-xml",
+    "pipx",
+    "postgresql",
+    "python3.12",
+    "python3.12-venv",
+    "unzip",
+    "xz-utils",
+]
+
+
+def progress(message: str) -> None:
+    print(f"==> {message}", file=sys.stderr, flush=True)
+
+
+def fail(message: str, status: int = 1) -> None:
+    print(message, file=sys.stderr)
+    raise SystemExit(status)
+
+
+def run(
+    args: list[str],
+    *,
+    capture: bool = False,
+    input_text: str | None = None,
+    check: bool = True,
+    env: dict[str, str] | None = None,
+    cwd: Path | str | None = None,
+    stdout: int | None = None,
+) -> subprocess.CompletedProcess[str]:
+    kwargs: dict[str, object] = {"text": True, "env": env}
+    if cwd is not None:
+        kwargs["cwd"] = cwd
+    if capture:
+        kwargs["stdout"] = subprocess.PIPE
+        kwargs["stderr"] = subprocess.STDOUT
+    elif stdout is not None:
+        kwargs["stdout"] = stdout
+    if input_text is not None:
+        kwargs["input"] = input_text
+    result = subprocess.run(args, **kwargs)  # type: ignore[arg-type]
+    if check and result.returncode:
+        output = result.stdout or "" if capture else ""
+        if output:
+            print(output, file=sys.stderr, end="")
+        raise subprocess.CalledProcessError(result.returncode, args)
+    return result
+
+
+def sudo(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+    if os.geteuid() == 0:
+        return run(args, **kwargs)  # type: ignore[arg-type]
+    return run(["sudo", "-n", *args], **kwargs)  # type: ignore[arg-type]
+
+
+def atomic_write(path: Path, content: str, mode: int = 0o600) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        os.fchmod(fd, mode)
+        with os.fdopen(fd, "w") as stream:
+            stream.write(content)
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def read_state() -> dict[str, object]:
+    try:
+        return json.loads(STATE_FILE.read_text())
+    except FileNotFoundError:
+        return {}
+    except (json.JSONDecodeError, OSError) as error:
+        fail(f"Cannot read {STATE_FILE}: {error}")
+
+
+def write_state(state: dict[str, object]) -> None:
+    atomic_write(STATE_FILE, json.dumps(state, indent=2) + "\n")
+
+
+def service_active(name: str) -> bool:
+    result = sudo(["systemctl", "is-active", "--quiet", name], check=False)
+    return result.returncode == 0
+
+
+def systemctl(action: str, name: str) -> None:
+    sudo(["systemctl", action, name])
+
+
+def ensure_privileges() -> None:
+    if os.geteuid() != 0:
+        if shutil.which("sudo") is None:
+            fail("This command needs root for Ubuntu packages and system services (sudo is not installed).")
+        run(["sudo", "-v"])
+    if not Path("/run/systemd/system").exists():
+        fail("This script expects an Ubuntu systemd container (for PostgreSQL and PHP-FPM services).")
+
+
+def ensure_noble() -> None:
+    release = {}
+    try:
+        for line in Path("/etc/os-release").read_text().splitlines():
+            key, separator, value = line.partition("=")
+            if separator:
+                release[key] = value.strip().strip('"')
+    except OSError as error:
+        fail(f"Cannot identify the Ubuntu release: {error}")
+    if release.get("ID") != "ubuntu" or release.get("VERSION_ID") != "24.04":
+        fail("scripts/lxd-dev up currently supports Ubuntu 24.04 LTS (Noble) only.")
+
+
+def package_installed(package: str) -> bool:
+    result = run(
+        ["dpkg-query", "-W", "-f=${db:Status-Status}", package],
+        capture=True,
+        check=False,
+    )
+    return result.returncode == 0 and result.stdout.strip() == "installed"
+
+
+def ensure_apt_packages() -> None:
+    missing = [package for package in APT_PACKAGES if not package_installed(package)]
+    if not missing:
+        return
+    progress("Refreshing Ubuntu package indexes...")
+    run(["apt-get", "update"] if os.geteuid() == 0 else ["sudo", "-n", "apt-get", "update"])
+    progress("Installing Ubuntu development services and build prerequisites...")
+    command = ["apt-get", "install", "-y", *missing]
+    if os.geteuid() != 0:
+        command = ["sudo", "-n", *command]
+    run(command)
+
+
+def download(url: str, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_suffix(destination.suffix + ".part")
+    try:
+        run(["curl", "--fail", "--location", "--silent", "--show-error", "--output", str(temporary), url])
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def ensure_uv() -> Path:
+    path = Path.home() / ".local/bin/uv"
+    if path.exists():
+        result = run([str(path), "--version"], capture=True, check=False)
+        if result.returncode == 0 and UV_VERSION in (result.stdout or ""):
+            return path
+    pipx = shutil.which("pipx")
+    if pipx is None:
+        fail("Ubuntu pipx was not found after package installation.")
+    progress(f"Installing Astral uv {UV_VERSION} from PyPI via Ubuntu's pipx package...")
+    run([pipx, "install", "--force", f"uv=={UV_VERSION}"])
+    if not path.exists():
+        fail(f"pipx installed uv but {path} is missing; ensure ~/.local/bin is in PATH.")
+    return path
+
+
+def node_archive_details() -> tuple[str, str]:
+    machine = platform.machine()
+    if machine not in NODE_SHA256:
+        fail(f"No pinned Node.js archive checksum is configured for {machine}.")
+    arch = {"x86_64": "x64", "aarch64": "arm64"}[machine]
+    archive = f"node-v{NODE_VERSION}-linux-{arch}.tar.xz"
+    return archive, NODE_SHA256[machine]
+
+
+def ensure_node() -> Path:
+    version = run(["node", "--version"], capture=True, check=False) if shutil.which("node") else None
+    if version and version.returncode == 0:
+        match = re.match(r"v(\d+)\.(\d+)\.(\d+)", (version.stdout or "").strip())
+        if match and int(match.group(1)) == 22 and (int(match.group(2)), int(match.group(3))) >= (13, 0):
+            return Path(shutil.which("node") or "node").resolve().parent
+
+    archive_name, expected_hash = node_archive_details()
+    install_dir = Path.home() / ".local/opt" / f"node-v{NODE_VERSION}"
+    node_bin = install_dir / "bin"
+    if not (node_bin / "node").exists():
+        if install_dir.exists():
+            fail(f"{install_dir} exists without the expected Node.js binary; refusing to overwrite it.")
+        archive = STATE_DIR / "downloads" / archive_name
+        url = f"https://nodejs.org/dist/v{NODE_VERSION}/{archive_name}"
+        progress(f"Downloading official Node.js {NODE_VERSION} from nodejs.org...")
+        if not archive.exists() or sha256(archive) != expected_hash:
+            download(url, archive)
+        actual_hash = sha256(archive)
+        if actual_hash != expected_hash:
+            archive.unlink(missing_ok=True)
+            fail(f"Node.js SHA-256 mismatch: expected {expected_hash}, got {actual_hash}.")
+        install_dir.parent.mkdir(parents=True, exist_ok=True)
+        temporary = install_dir.with_name(install_dir.name + ".installing")
+        if temporary.exists():
+            fail(f"Temporary Node.js installation path already exists: {temporary}; refusing to remove it.")
+        temporary.mkdir()
+        try:
+            run(["tar", "-xJf", str(archive), "--strip-components=1", "-C", str(temporary)])
+            if not (temporary / "bin/node").is_file() or not (temporary / "bin/npm").is_file():
+                fail("Node.js archive did not contain node and npm binaries.")
+            temporary.rename(install_dir)
+        except BaseException:
+            shutil.rmtree(temporary, ignore_errors=True)
+            raise
+    return node_bin
+
+
+def ensure_flutter() -> Path:
+    install_dir = Path.home() / ".local/opt" / f"flutter-{FLUTTER_TAG}"
+    if install_dir.exists():
+        result = run(["git", "-C", str(install_dir), "rev-parse", "HEAD"], capture=True, check=False)
+        if result.returncode == 0 and (result.stdout or "").strip() != FLUTTER_COMMIT:
+            fail(f"{install_dir} exists but is not the pinned Flutter {FLUTTER_TAG} revision; refusing to replace it.")
+    else:
+        temporary = install_dir.with_name(install_dir.name + ".installing")
+        if temporary.exists():
+            fail(f"Temporary Flutter installation path already exists: {temporary}; refusing to remove it.")
+        progress(f"Cloning Flutter {FLUTTER_TAG} from the official Flutter repository...")
+        try:
+            run([
+                "git", "clone", "--depth", "1", "--branch", FLUTTER_TAG,
+                "https://github.com/flutter/flutter.git", str(temporary),
+            ])
+        except BaseException:
+            shutil.rmtree(temporary, ignore_errors=True)
+            raise
+        result = run(["git", "-C", str(temporary), "rev-parse", "HEAD"], capture=True)
+        if (result.stdout or "").strip() != FLUTTER_COMMIT:
+            shutil.rmtree(temporary, ignore_errors=True)
+            fail("Flutter tag 3.29.3 did not resolve to the expected commit; refusing to build it.")
+        temporary.rename(install_dir)
+    flutter = install_dir / "bin/flutter"
+    run([str(flutter), "config", "--enable-web", "--no-enable-android"])
+    return install_dir / "bin"
+
+
+def ensure_simple_saml(secrets_state: dict[str, str]) -> Path:
+    install_parent = SYSTEM_DIR
+    install_dir = install_parent / f"simplesamlphp-{SIMPLESAMLPHP_VERSION}"
+    current = install_parent / "simplesamlphp"
+    archive = STATE_DIR / "downloads" / f"simplesamlphp-{SIMPLESAMLPHP_VERSION}-full.tar.gz"
+    if not install_dir.exists():
+        progress(f"Downloading the official SimpleSAMLphp {SIMPLESAMLPHP_VERSION} full release...")
+        if not archive.exists() or sha256(archive) != SIMPLESAMLPHP_SHA256:
+            download(SIMPLESAMLPHP_URL, archive)
+        actual_hash = sha256(archive)
+        if actual_hash != SIMPLESAMLPHP_SHA256:
+            archive.unlink(missing_ok=True)
+            fail(f"SimpleSAMLphp SHA-256 mismatch: expected {SIMPLESAMLPHP_SHA256}, got {actual_hash}.")
+        sudo(["install", "-d", "-o", "root", "-g", "www-data", "-m", "0750", str(install_parent)])
+        sudo(["tar", "--no-same-owner", "-xzf", str(archive), "-C", str(install_parent)])
+        if not install_dir.is_dir():
+            fail(f"SimpleSAMLphp archive did not contain the expected directory {install_dir}.")
+    sudo(["ln", "-sfn", str(install_dir), str(current)])
+
+    config_dir = current / "config"
+    metadata_dir = current / "metadata"
+    cert_dir = SYSTEM_STATE_DIR / "cert"
+    cache_dir = SYSTEM_STATE_DIR / "cache"
+    sudo(["install", "-d", "-o", "root", "-g", "www-data", "-m", "0750", str(config_dir)])
+    sudo(["install", "-d", "-o", "root", "-g", "www-data", "-m", "0750", str(metadata_dir)])
+    sudo(["install", "-d", "-o", "root", "-g", "www-data", "-m", "0750", str(cert_dir)])
+    sudo(["install", "-d", "-o", "www-data", "-g", "www-data", "-m", "0750", str(cache_dir)])
+
+    if not (config_dir / "config.php").exists():
+        sudo([
+            "install", "-o", "root", "-g", "www-data", "-m", "0640",
+            str(config_dir / "config.php.dist"), str(config_dir / "config.php"),
+        ])
+
+    repo_config = BACKEND / "saml/simplesamlphp"
+    for source, destination in (
+        (repo_config / "authsources.php", config_dir / "authsources.php"),
+        (repo_config / "config-override.php", config_dir / "config-override.php"),
+        (repo_config / "saml20-idp-hosted.php", metadata_dir / "saml20-idp-hosted.php"),
+        (repo_config / "saml20-sp-remote.php", metadata_dir / "saml20-sp-remote.php"),
+    ):
+        sudo(["install", "-o", "root", "-g", "www-data", "-m", "0640", str(source), str(destination)])
+
+    if "secretsalt" not in secrets_state:
+        secrets_state["secretsalt"] = secrets.token_urlsafe(32)
+    if "assets_salt" not in secrets_state:
+        secrets_state["assets_salt"] = secrets.token_urlsafe(32)
+    if "admin_password_hash" not in secrets_state:
+        password = os.environ.get("SSP_ADMIN_PASSWORD", "secret1")
+        result = sudo(["php", str(current / "bin/pwgen.php")], capture=True, input_text=password + "\n")
+        match = re.search(r"Password hash:\s*\n([^\r\n]+)", result.stdout or "")
+        if not match:
+            fail("Could not generate the SimpleSAMLphp administrator password hash.")
+        secrets_state["admin_password_hash"] = match.group(1).strip()
+    atomic_write(SECRETS_FILE, json.dumps(secrets_state, indent=2) + "\n")
+
+    overrides = "\n".join([
+        "<?php",
+        "require_once __DIR__ . '/config-override.php';",
+        f"$config['baseurlpath'] = {php_string('http://localhost:8080/simplesaml/')};",
+        f"$config['certdir'] = {php_string(str(cert_dir))};",
+        f"$config['cachedir'] = {php_string(str(cache_dir))};",
+        f"$config['secretsalt'] = {php_string(secrets_state['secretsalt'])};",
+        f"$config['assets']['salt'] = {php_string(secrets_state['assets_salt'])};",
+        f"$config['auth.adminpassword'] = {php_string(secrets_state['admin_password_hash'])};",
+        "$config['logging.handler'] = 'errorlog';",
+        "$config['module.enable']['exampleauth'] = true;",
+        "",
+    ])
+    sudo(["tee", str(config_dir / "lxd-dev-config.php")], input_text=overrides, stdout=subprocess.DEVNULL)
+    config_php = sudo(["cat", str(config_dir / "config.php")], capture=True).stdout or ""
+    include = "require_once __DIR__ . '/lxd-dev-config.php';"
+    if include not in config_php:
+        sudo(["tee", "-a", str(config_dir / "config.php")], input_text=f"\n{include}\n", stdout=subprocess.DEVNULL)
+
+    if not (cert_dir / "server.pem").exists() or not (cert_dir / "server.crt").exists():
+        sudo([
+            "openssl", "req", "-newkey", "rsa:2048", "-new", "-x509", "-days", "3652", "-nodes",
+            "-out", str(cert_dir / "server.crt"),
+            "-keyout", str(cert_dir / "server.pem"),
+            "-subj", "/C=NA/ST=NA/L=NA/O=TestObserver/OU=Dev/CN=localhost",
+        ])
+        sudo(["chmod", "0644", str(cert_dir / "server.crt")])
+        sudo(["chmod", "0640", str(cert_dir / "server.pem")])
+        sudo(["chown", "root:www-data", str(cert_dir / "server.pem"), str(cert_dir / "server.crt")])
+
+    sudo(["chown", "-R", "root:www-data", str(install_dir)])
+    return current
+
+
+def php_string(value: str) -> str:
+    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
+
+
+def build_frontend(env: dict[str, str], flutter_bin: Path, node_bin: Path) -> None:
+    current_path = os.environ.get("PATH", "")
+    env["PATH"] = os.pathsep.join([str(node_bin), str(flutter_bin), str(Path.home() / ".local/bin"), current_path])
+    progress("Resolving Flutter dependencies and generating the frontend API code...")
+    run([str(flutter_bin / "flutter"), "pub", "get"], cwd=FRONTEND, env=env, check=True)
+    run([
+        str(flutter_bin / "dart"), "run", "build_runner", "build", "--delete-conflicting-outputs",
+    ], cwd=FRONTEND, env=env, check=True)
+    progress("Building the Flutter frontend...")
+    run([str(flutter_bin / "flutter"), "build", "web", "--release"], cwd=FRONTEND, env=env, check=True)
+
+    sveltekit = FRONTEND / "sveltekit"
+    progress("Installing locked SvelteKit dependencies and building the /wip frontend...")
+    run([str(node_bin / "npm"), "ci"], cwd=sveltekit, env=env, check=True)
+    svelte_env = dict(env)
+    svelte_env["BASE_PATH"] = "/wip"
+    run([str(node_bin / "npm"), "run", "build"], cwd=sveltekit, env=svelte_env, check=True)
+    webroot = FRONTEND / "build/web"
+    webroot.mkdir(parents=True, exist_ok=True)
+    shutil.copytree(sveltekit / "build", webroot / "wip", dirs_exist_ok=True)
+    sudo(["install", "-d", "-o", "root", "-g", "www-data", "-m", "0750", str(WEBROOT)])
+    sudo(["cp", "-a", str(webroot) + "/.", str(WEBROOT) + "/"])
+    sudo(["chown", "-R", "root:www-data", str(WEBROOT)])
+
+
+def nginx_quote(path: Path) -> str:
+    return '"' + str(path).replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def write_nginx_config(saml_dir: Path) -> tuple[Path, Path]:
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    prefix = SYSTEM_STATE_DIR / "nginx"
+    directories = (
+        prefix,
+        prefix / "logs",
+        prefix / "client_body_temp",
+        prefix / "proxy_temp",
+        prefix / "fastcgi_temp",
+        prefix / "uwsgi_temp",
+        prefix / "scgi_temp",
+    )
+    for directory in directories:
+        sudo(["install", "-d", "-o", "root", "-g", "www-data", "-m", "0770", str(directory)])
+    config = STATE_DIR / "nginx.conf"
+    frontend_root = WEBROOT
+    conf = f"""user www-data;
+worker_processes 1;
+pid {nginx_quote(prefix / 'nginx.pid')};
+error_log {nginx_quote(prefix / 'logs/error.log')} warn;
+events {{ worker_connections 1024; }}
+http {{
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    access_log {nginx_quote(prefix / 'logs/access.log')};
+    client_body_temp_path {nginx_quote(prefix / 'client_body_temp')};
+    proxy_temp_path {nginx_quote(prefix / 'proxy_temp')};
+    fastcgi_temp_path {nginx_quote(prefix / 'fastcgi_temp')};
+    uwsgi_temp_path {nginx_quote(prefix / 'uwsgi_temp')};
+    scgi_temp_path {nginx_quote(prefix / 'scgi_temp')};
+
+    server {{
+        listen 30001;
+        server_name localhost _;
+        root {nginx_quote(frontend_root)};
+        location /wip/ {{
+            index 200.html;
+            try_files $uri $uri/ /wip/200.html =404;
+        }}
+        location / {{
+            try_files $uri $uri/ /index.html;
+        }}
+    }}
+
+    server {{
+        listen 8080;
+        server_name localhost _;
+        location ^~ /simplesaml {{
+            alias {nginx_quote(saml_dir / 'public')};
+            location ~ ^(?<prefix>/simplesaml)(?<phpfile>.+?\\.php)(?<pathinfo>/.*)?$ {{
+                include /etc/nginx/fastcgi_params;
+                fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+                fastcgi_param SCRIPT_FILENAME {nginx_quote(saml_dir / 'public')}$phpfile;
+                fastcgi_param SCRIPT_NAME /simplesaml$phpfile;
+                fastcgi_param PATH_INFO $pathinfo if_not_empty;
+                fastcgi_param SIMPLESAMLPHP_CONFIG_DIR {nginx_quote(saml_dir / 'config')};
+            }}
+        }}
+    }}
+}}
+"""
+    atomic_write(config, conf, 0o644)
+    return config, prefix
+
+
+def wait_http(url: str, *, timeout: int = 90) -> None:
+    deadline = time.monotonic() + timeout
+    last_error = "no response"
+    while time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=2) as response:
+                if 200 <= response.status < 400:
+                    return
+                last_error = f"HTTP {response.status}"
+        except (urllib.error.URLError, TimeoutError, OSError) as error:
+            last_error = str(error)
+        time.sleep(2)
+    fail(f"Timed out waiting for {url}: {last_error}")
+
+
+def ensure_database() -> None:
+    systemctl("start", "postgresql")
+    role_exists = sudo(
+        [
+            "-u", "postgres", "psql", "-At", "-d", "postgres", "-c",
+            f"SELECT 1 FROM pg_roles WHERE rolname = '{DB_USER}'",
+        ],
+        capture=True,
+    )
+    role_command = "ALTER ROLE" if (role_exists.stdout or "").strip() == "1" else "CREATE ROLE"
+    sudo([
+        "-u", "postgres", "psql", "-v", "ON_ERROR_STOP=1", "-d", "postgres",
+        "-c", f"{role_command} {DB_USER} WITH LOGIN SUPERUSER PASSWORD '{DB_PASSWORD}'",
+    ])
+    exists = sudo(
+        [
+            "-u", "postgres", "psql", "-At", "-d", "postgres", "-c",
+            f"SELECT 1 FROM pg_database WHERE datname = '{DB_NAME}'",
+        ],
+        capture=True,
+    )
+    if (exists.stdout or "").strip() != "1":
+        sudo(["-u", "postgres", "createdb", "-O", DB_USER, DB_NAME])
+
+
+def is_process_alive(pid: object, expected: str | None = None) -> bool:
+    if not isinstance(pid, int) or pid <= 1:
+        return False
+    try:
+        command_line = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
+    except OSError:
+        return False
+    return expected is None or expected in command_line
+
+
+def stop_api(pid: object) -> None:
+    if not is_process_alive(pid, str(BACKEND / "dev_entrypoint.sh")):
+        return
+    try:
+        os.killpg(int(pid), signal.SIGTERM)
+    except (ProcessLookupError, PermissionError):
+        return
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline and is_process_alive(pid):
+        time.sleep(0.2)
+    if is_process_alive(pid):
+        try:
+            os.killpg(int(pid), signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+
+
+def stop(state: dict[str, object]) -> None:
+    config_path = STATE_DIR / "nginx.conf"
+    prefix = SYSTEM_STATE_DIR / "nginx"
+    pid_path = prefix / "nginx.pid"
+    if pid_path.exists() and config_path.exists():
+        sudo(["nginx", "-s", "quit", "-c", str(config_path), "-p", str(prefix) + "/"], check=False)
+        deadline = time.monotonic() + 10
+        while pid_path.exists() and time.monotonic() < deadline:
+            time.sleep(0.2)
+        if pid_path.exists():
+            try:
+                nginx_pid = int(pid_path.read_text().strip())
+                if is_process_alive(nginx_pid, str(config_path)):
+                    sudo(["kill", "-TERM", str(nginx_pid)], check=False)
+            except OSError:
+                pass
+            except ValueError:
+                progress(f"Ignoring invalid nginx PID file: {pid_path}")
+
+    stop_api(state.get("api_pid"))
+    services_were_active = state.get("services_were_active", {})
+    if isinstance(services_were_active, dict):
+        for service in ("php8.3-fpm", "postgresql"):
+            if services_were_active.get(service) is False and service_active(service):
+                progress(f"Stopping {service} (it was started by lxd-dev).")
+                systemctl("stop", service)
+    STATE_FILE.unlink(missing_ok=True)
+
+
+def up() -> None:
+    ensure_noble()
+    ensure_privileges()
+    STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.chmod(STATE_DIR, 0o700)
+    existing = read_state()
+    if existing and is_process_alive(existing.get("api_pid"), str(BACKEND / "dev_entrypoint.sh")):
+        progress("The Test Observer development stack is already running.")
+        print(f"API: {API_URL}\nFrontend: {FRONTEND_URL}\nSAML IdP: {IDP_URL}")
+        return
+    if existing:
+        stop(existing)
+
+    services_were_active = {
+        service: service_active(service)
+        for service in ("postgresql", "php8.3-fpm", "nginx")
+    }
+    state: dict[str, object] = {"services_were_active": services_were_active}
+    write_state(state)
+
+    ensure_apt_packages()
+    # The packaged nginx default site may bind port 80. This stack uses a
+    # private config on 30001 and 8080, so stop the package service if apt
+    # started it during installation.
+    if not services_were_active["nginx"] and service_active("nginx"):
+        systemctl("stop", "nginx")
+
+    uv = ensure_uv()
+    node_bin = ensure_node()
+    flutter_bin = ensure_flutter()
+    env = os.environ.copy()
+    env["PATH"] = os.pathsep.join([
+        str(node_bin),
+        str(flutter_bin),
+        str(Path.home() / ".local/bin"),
+        env.get("PATH", ""),
+    ])
+    env.update({
+        "DB_URL": f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@localhost:5432/{DB_NAME}",
+        "SAML_IDP_METADATA_URL": "http://localhost:8080/simplesaml/saml2/idp/metadata.php",
+        "SEED_DATA": "true",
+        "DISABLE_PERIODIC_TASKS": "true",
+        "UV_DYNAMIC_VERSIONING_BYPASS": "0.0.0",
+        "SESSIONS_HTTPS_ONLY": "false",
+        "USE_LOCAL_LOGIN": "true",
+        "PYTHONDONTWRITEBYTECODE": "1",
+    })
+    env["UV"] = str(uv)
+
+    progress("Installing backend dependencies from backend/uv.lock...")
+    run([str(uv), "sync", "--frozen", "--all-groups"], cwd=BACKEND, env=env)
+    build_frontend(env, flutter_bin, node_bin)
+
+    secrets_state: dict[str, str] = {}
+    if SECRETS_FILE.exists():
+        try:
+            secrets_state = json.loads(SECRETS_FILE.read_text())
+        except (json.JSONDecodeError, OSError) as error:
+            fail(f"Cannot read SimpleSAMLphp local secrets at {SECRETS_FILE}: {error}")
+    saml_dir = ensure_simple_saml(secrets_state)
+
+    if not services_were_active["php8.3-fpm"]:
+        state["services_were_active"] = services_were_active
+        write_state(state)
+    systemctl("start", "php8.3-fpm")
+    ensure_database()
+
+    config_path, prefix = write_nginx_config(saml_dir)
+    sudo(["nginx", "-t", "-c", str(config_path), "-p", str(prefix) + "/"])
+    progress("Starting the frontend and SimpleSAMLphp through the pinned nginx configuration...")
+    sudo(["nginx", "-c", str(config_path), "-p", str(prefix) + "/"])
+    wait_http(IDP_URL)
+
+    progress("Starting the API; migrations and local seed data run automatically...")
+    log_path = STATE_DIR / "api.log"
+    with log_path.open("a") as log:
+        process = subprocess.Popen(
+            [str(BACKEND / "dev_entrypoint.sh")],
+            cwd=BACKEND,
+            env=env,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+    state["api_pid"] = process.pid
+    write_state(state)
+    wait_http(f"{API_URL}/health/ready", timeout=180)
+    wait_http(FRONTEND_URL)
+
+    print("Test Observer development services are ready:")
+    print(f"  API:       {API_URL}")
+    print(f"  Frontend:  {FRONTEND_URL}")
+    print(f"  SAML IdP:  http://localhost:8080/simplesaml/")
+    print("Stop them with: scripts/lxd-dev down")
+
+
+def down() -> None:
+    state = read_state()
+    if not state and not (SYSTEM_STATE_DIR / "nginx/nginx.pid").exists():
+        print("The Test Observer development stack is not running.")
+        return
+    ensure_privileges()
+    stop(state)
+    print("Test Observer development services stopped. PostgreSQL data and installed packages were kept.")
+
+
+def main(argv: list[str]) -> None:
+    if len(argv) != 1 or argv[0] not in {"up", "down"}:
+        print(f"Usage: {Path(sys.argv[0]).name} <up|down>", file=sys.stderr)
+        raise SystemExit(2)
+    if not (ROOT / "backend/pyproject.toml").is_file() or not (ROOT / "docker-compose.yml").is_file():
+        fail("Run scripts/lxd-dev from a Test Observer checkout.")
+    STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+    os.chmod(STATE_DIR, 0o700)
+    with (STATE_DIR / "lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if argv[0] == "up":
+            try:
+                up()
+            except subprocess.CalledProcessError as error:
+                state = read_state()
+                if state:
+                    try:
+                        stop(state)
+                    except Exception as cleanup_error:
+                        progress(f"Cleanup after failed startup also failed: {cleanup_error}")
+                command = shlex.join(error.cmd) if isinstance(error.cmd, list) else str(error.cmd)
+                fail(
+                    f"Command failed with exit code {error.returncode}: {command}\n"
+                    "Check that this container can reach Ubuntu mirrors and the pinned upstream download sites."
+                )
+            except BaseException:
+                state = read_state()
+                if state:
+                    try:
+                        stop(state)
+                    except Exception as cleanup_error:
+                        progress(f"Cleanup after failed startup also failed: {cleanup_error}")
+                raise
+        else:
+            down()
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
