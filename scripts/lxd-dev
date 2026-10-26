@@ -14,13 +14,16 @@ import shlex
 import shutil
 import signal
 import socket
+import stat
 import subprocess
 import sys
 import tempfile
 import time
 import urllib.error
 import urllib.request
+import zipfile
 from pathlib import Path
+from pathlib import PurePosixPath
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
@@ -30,6 +33,8 @@ STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state"))
 STATE_FILE = STATE_DIR / "state.json"
 SECRETS_FILE = STATE_DIR / "secrets.json"
 BUILD_CACHE_FILE = STATE_DIR / "build-cache.json"
+DATABASE_STATE_FILE = STATE_DIR / "database-state.json"
+SEED_COMPLETION_FILE = STATE_DIR / "seed-complete"
 SYSTEM_DIR = Path("/opt/test-observer-lxd-dev")
 SYSTEM_STATE_DIR = Path("/var/lib/test-observer-lxd-dev")
 WEBROOT = SYSTEM_STATE_DIR / "www"
@@ -153,6 +158,24 @@ def write_state(state: dict[str, object]) -> None:
     atomic_write(STATE_FILE, json.dumps(state, indent=2) + "\n")
 
 
+def read_database_state() -> dict[str, object]:
+    try:
+        state = json.loads(DATABASE_STATE_FILE.read_text())
+    except FileNotFoundError:
+        return {}
+    except (json.JSONDecodeError, OSError) as error:
+        progress(f"Ignoring invalid database state at {DATABASE_STATE_FILE}: {error}")
+        return {}
+    return state if isinstance(state, dict) else {}
+
+
+def write_database_state(*, initialized: bool, source: str) -> None:
+    atomic_write(
+        DATABASE_STATE_FILE,
+        json.dumps({"initialized": initialized, "source": source}, indent=2) + "\n",
+    )
+
+
 def service_active(name: str) -> bool:
     result = sudo(["systemctl", "is-active", "--quiet", name], check=False)
     return result.returncode == 0
@@ -251,6 +274,77 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def extract_snapshot_archive(
+    archive_arg: str,
+) -> tuple[tempfile.TemporaryDirectory[str], Path, Path]:
+    archive = Path(archive_arg).expanduser().resolve()
+    if not archive.is_file() or not os.access(archive, os.R_OK):
+        fail(f"Snapshot archive is not a readable file: {archive}")
+    if not zipfile.is_zipfile(archive):
+        fail("Snapshot must be a ZIP containing a PostgreSQL directory-format dump.")
+
+    preferred = Path("/tmp/opencode")
+    temporary = tempfile.TemporaryDirectory(
+        prefix="lxd-dev-snapshot-",
+        dir=preferred if preferred.is_dir() else None,
+    )
+    root = Path(temporary.name)
+    try:
+        with zipfile.ZipFile(archive) as zipped:
+            seen: set[str] = set()
+            for member in zipped.infolist():
+                name = member.filename
+                relative = PurePosixPath(name)
+                if (
+                    not name
+                    or "\\" in name
+                    or relative.is_absolute()
+                    or not relative.parts
+                    or ".." in relative.parts
+                    or ":" in relative.parts[0]
+                ):
+                    raise ValueError(f"Unsafe path in snapshot ZIP: {name!r}")
+                normalized = relative.as_posix()
+                if normalized in seen:
+                    raise ValueError(f"Duplicate path in snapshot ZIP: {name!r}")
+                seen.add(normalized)
+                file_type = stat.S_IFMT(member.external_attr >> 16)
+                if file_type not in (0, stat.S_IFREG, stat.S_IFDIR):
+                    raise ValueError(f"Unsupported file type in snapshot ZIP: {name!r}")
+            zipped.extractall(root)
+    except (OSError, ValueError, zipfile.BadZipFile, RuntimeError) as error:
+        temporary.cleanup()
+        fail(f"Could not extract snapshot ZIP: {error}")
+
+    toc_files = list(root.rglob("toc.dat"))
+    if len(toc_files) != 1:
+        temporary.cleanup()
+        fail(f"Expected exactly one toc.dat in the snapshot ZIP, found {len(toc_files)}.")
+    restore_list = root / f".lxd-dev-restore-{secrets.token_hex(8)}.list"
+    return temporary, toc_files[0].parent, restore_list
+
+
+def make_restore_list(archive_dir: Path, destination: Path) -> None:
+    result = run(["pg_restore", "--list", str(archive_dir)], capture=True)
+    unavailable_extensions = ("login_hook", "pgaudit", "set_user")
+    entry_pattern = re.compile(
+        r"\b(?:EXTENSION\s+-\s+|COMMENT\s+-\s+EXTENSION\s+)"
+        rf"({'|'.join(unavailable_extensions)})(?:\s|$)",
+        re.IGNORECASE,
+    )
+    filtered: list[str] = []
+    skipped: set[str] = set()
+    for line in (result.stdout or "").splitlines(keepends=True):
+        match = entry_pattern.search(line)
+        if match:
+            skipped.add(match.group(1).lower())
+        else:
+            filtered.append(line)
+    destination.write_text("".join(filtered), encoding="utf-8")
+    if skipped:
+        progress("Skipping unavailable local extensions: " + ", ".join(sorted(skipped)))
 
 
 def source_fingerprint(paths: list[Path], settings: dict[str, str] | None = None) -> str:
@@ -764,6 +858,27 @@ def wait_http(url: str, *, timeout: int = 90) -> None:
     fail(f"Timed out waiting for {url}: {last_error}")
 
 
+def wait_for_seed_completion(pid: int, *, timeout: int = 300) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if SEED_COMPLETION_FILE.is_file():
+            return
+        if not is_process_alive(pid, str(BACKEND / "dev_entrypoint.sh")):
+            fail(f"Backend exited before initial database seeding completed; check {STATE_DIR / 'api.log'}.")
+        time.sleep(1)
+    fail(f"Timed out waiting for initial database seeding; check {STATE_DIR / 'api.log'}.")
+
+
+def postgres_psql(database: str, statement: str, *, capture: bool = False) -> subprocess.CompletedProcess[str]:
+    return sudo(
+        [
+            "-u", "postgres", "psql", "-X", "-A", "-t", "-v", "ON_ERROR_STOP=1", "-d", database,
+            "-c", statement,
+        ],
+        capture=capture,
+    )
+
+
 def ensure_database() -> None:
     systemctl("start", "postgresql")
     role_exists = sudo(
@@ -787,6 +902,123 @@ def ensure_database() -> None:
     )
     if (exists.stdout or "").strip() != "1":
         sudo(["-u", "postgres", "createdb", "-O", DB_USER, DB_NAME])
+
+
+def database_is_initialized() -> bool:
+    result = postgres_psql(
+        DB_NAME,
+        "SELECT to_regclass('public.alembic_version') IS NOT NULL",
+        capture=True,
+    )
+    return (result.stdout or "").strip() == "t"
+
+
+def should_seed_database() -> bool:
+    state = read_database_state()
+    if not database_is_initialized():
+        # Keep a pending marker until the entrypoint confirms seeding finished.
+        write_database_state(initialized=False, source="seeded")
+        return True
+    if state.get("initialized") is False:
+        # This can happen if startup stopped after migrations but during seeding.
+        return True
+    if state.get("initialized") is not True:
+        # Preserve databases initialized by older versions of the LXD workflow.
+        write_database_state(initialized=True, source="existing")
+    return False
+
+
+def database_exists(name: str) -> bool:
+    result = postgres_psql(
+        "postgres",
+        f"SELECT 1 FROM pg_database WHERE datname = '{name}'",
+        capture=True,
+    )
+    return (result.stdout or "").strip() == "1"
+
+
+def drop_database(name: str) -> None:
+    if database_exists(name):
+        postgres_psql(
+            "postgres",
+            f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{name}'",
+        )
+        sudo(["-u", "postgres", "dropdb", name])
+
+
+def swap_database(staging_database: str) -> None:
+    backup_database = f"test_observer_old_{os.getpid()}_{secrets.token_hex(4)}"
+    has_existing_database = database_exists(DB_NAME)
+    if has_existing_database:
+        postgres_psql(
+            "postgres",
+            f"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{DB_NAME}'",
+        )
+        postgres_psql("postgres", f"ALTER DATABASE {DB_NAME} RENAME TO {backup_database}")
+
+    try:
+        postgres_psql("postgres", f"ALTER DATABASE {staging_database} RENAME TO {DB_NAME}")
+    except BaseException:
+        if has_existing_database and database_exists(backup_database) and not database_exists(DB_NAME):
+            postgres_psql("postgres", f"ALTER DATABASE {backup_database} RENAME TO {DB_NAME}")
+        raise
+
+    if has_existing_database:
+        try:
+            drop_database(backup_database)
+        except subprocess.CalledProcessError as error:
+            progress(f"The old database remains available as {backup_database}: {error}")
+
+
+def restore_snapshot(
+    archive_dir: Path,
+    restore_list: Path,
+    uv: Path,
+    env: dict[str, str],
+) -> None:
+    staging_database = f"test_observer_restore_{os.getpid()}_{secrets.token_hex(4)}"
+    sudo(["-u", "postgres", "createdb", "-O", DB_USER, staging_database])
+    stage_exists = True
+    try:
+        pg_env = os.environ.copy()
+        for variable in ("PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSERVICE", "PGSERVICEFILE", "PGOPTIONS"):
+            pg_env.pop(variable, None)
+        pg_env["PGPASSWORD"] = DB_PASSWORD
+        progress("Restoring the PostgreSQL directory dump into a staging database...")
+        run(
+            [
+                "pg_restore", "--host", "127.0.0.1", "--port", "5432", "--username", DB_USER,
+                "--dbname", staging_database, "--no-owner", "--no-privileges", "--exit-on-error",
+                "--use-list", str(restore_list), str(archive_dir),
+            ],
+            env=pg_env,
+        )
+
+        staging_env = dict(env)
+        staging_env["DB_URL"] = (
+            f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@localhost:5432/{staging_database}"
+        )
+        progress("Applying current application migrations to the snapshot...")
+        run([str(uv), "run", "alembic", "upgrade", "head"], cwd=BACKEND, env=staging_env)
+
+        progress("Sanitizing restored identities, sessions, and API keys...")
+        run(
+            [
+                "psql", "-X", "--quiet", "--set=ON_ERROR_STOP=1", "--host", "127.0.0.1", "--port", "5432",
+                "--username", DB_USER, "--dbname", staging_database, "--file", str(BACKEND / "scripts/byodb_sanitize.sql"),
+            ],
+            env=pg_env,
+        )
+
+        progress("Replacing the local database with the prepared snapshot...")
+        swap_database(staging_database)
+        stage_exists = False
+    finally:
+        if stage_exists:
+            try:
+                drop_database(staging_database)
+            except subprocess.CalledProcessError as error:
+                progress(f"Could not remove incomplete staging database {staging_database}: {error}")
 
 
 def is_process_alive(pid: object, expected: str | None = None) -> bool:
@@ -846,22 +1078,41 @@ def stop(state: dict[str, object]) -> None:
     STATE_FILE.unlink(missing_ok=True)
 
 
-def up() -> None:
+def up(snapshot_arg: str | None = None) -> None:
     ensure_noble()
     ensure_privileges()
     STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.chmod(STATE_DIR, 0o700)
+    temporary: tempfile.TemporaryDirectory[str] | None = None
+    prepared_snapshot: tuple[Path, Path] | None = None
+    if snapshot_arg:
+        temporary, archive_dir, restore_list = extract_snapshot_archive(snapshot_arg)
+        prepared_snapshot = (archive_dir, restore_list)
+    try:
+        up_stack(prepared_snapshot)
+    finally:
+        if temporary is not None:
+            temporary.cleanup()
+
+
+def up_stack(prepared_snapshot: tuple[Path, Path] | None) -> None:
     existing = read_state()
     public_ip = service_ip()
     public_api_url = f"http://{public_ip}:30000"
     public_frontend_url = f"http://{public_ip}:30001"
     public_idp_url = f"http://{public_ip}:8080/simplesaml/"
+    if prepared_snapshot is not None and shutil.which("pg_restore"):
+        make_restore_list(*prepared_snapshot)
     if existing and is_process_alive(existing.get("api_pid"), str(BACKEND / "dev_entrypoint.sh")):
-        progress("The Test Observer development stack is already running.")
-        progress("Refreshing SimpleSAMLphp metadata for the container IP...")
-        ensure_simple_saml(read_simple_saml_secrets(), public_ip)
-        print(f"API: {public_api_url}\nFrontend: {public_frontend_url}\nSAML IdP: {public_idp_url}")
-        return
+        if prepared_snapshot is None:
+            progress("The Test Observer development stack is already running.")
+            progress("Refreshing SimpleSAMLphp metadata for the container IP...")
+            ensure_simple_saml(read_simple_saml_secrets(), public_ip)
+            print(f"API: {public_api_url}\nFrontend: {public_frontend_url}\nSAML IdP: {public_idp_url}")
+            return
+        progress("Stopping the running stack to apply the supplied database snapshot...")
+        stop(existing)
+        existing = {}
     if existing:
         stop(existing)
 
@@ -869,10 +1120,15 @@ def up() -> None:
         service: service_active(service)
         for service in ("postgresql", "php8.3-fpm", "nginx")
     }
-    state: dict[str, object] = {"services_were_active": services_were_active}
+    state: dict[str, object] = {
+        "services_were_active": services_were_active,
+        "startup_attempt": secrets.token_hex(8),
+    }
     write_state(state)
 
     ensure_apt_packages()
+    if prepared_snapshot is not None and not prepared_snapshot[1].is_file():
+        make_restore_list(*prepared_snapshot)
     # The packaged nginx default site may bind port 80. This stack uses a
     # private config on 30001 and 8080, so stop the package service if apt
     # started it during installation.
@@ -894,7 +1150,6 @@ def up() -> None:
         "SAML_IDP_METADATA_URL": f"http://{public_ip}:8080/simplesaml/saml2/idp/metadata.php",
         "SAML_SP_BASE_URL": public_api_url,
         "FRONTEND_URL": public_frontend_url,
-        "SEED_DATA": "true",
         "DISABLE_PERIODIC_TASKS": "true",
         "UV_DYNAMIC_VERSIONING_BYPASS": "0.0.0",
         "SESSIONS_HTTPS_ONLY": "false",
@@ -935,6 +1190,24 @@ def up() -> None:
         write_state(state)
     systemctl("start", "php8.3-fpm")
     ensure_database()
+    if prepared_snapshot is not None:
+        restore_snapshot(*prepared_snapshot, uv, env)
+        write_database_state(initialized=True, source="snapshot")
+        seed_data = False
+        progress("Snapshot is installed; startup seeding is disabled.")
+        progress("The source archive and restored database remain sensitive local data.")
+    else:
+        seed_data = should_seed_database()
+        if seed_data:
+            progress("The database is uninitialized; it will be seeded on first startup.")
+        else:
+            progress("Using the existing database without adding seed data.")
+    env["SEED_DATA"] = "true" if seed_data else "false"
+    if seed_data:
+        SEED_COMPLETION_FILE.unlink(missing_ok=True)
+        env["SEED_COMPLETION_FILE"] = str(SEED_COMPLETION_FILE)
+    else:
+        env.pop("SEED_COMPLETION_FILE", None)
 
     config_path, prefix = write_nginx_config(saml_dir)
     sudo(["nginx", "-t", "-c", str(config_path), "-p", str(prefix) + "/"])
@@ -942,7 +1215,7 @@ def up() -> None:
     sudo(["nginx", "-c", str(config_path), "-p", str(prefix) + "/"])
     wait_http(IDP_URL)
 
-    progress("Starting the API; migrations and local seed data run automatically...")
+    progress("Starting the API; pending migrations will be applied automatically...")
     log_path = STATE_DIR / "api.log"
     with log_path.open("a") as log:
         process = subprocess.Popen(
@@ -956,6 +1229,9 @@ def up() -> None:
     state["api_pid"] = process.pid
     write_state(state)
     wait_http(f"{API_URL}/health/ready", timeout=180)
+    if seed_data:
+        wait_for_seed_completion(process.pid)
+        write_database_state(initialized=True, source="seeded")
     wait_http(FRONTEND_URL)
 
     print("Test Observer development services are ready:")
@@ -976,8 +1252,16 @@ def down() -> None:
 
 
 def main(argv: list[str]) -> None:
-    if len(argv) != 1 or argv[0] not in {"up", "down"}:
-        print(f"Usage: {Path(sys.argv[0]).name} <up|down>", file=sys.stderr)
+    snapshot_arg: str | None = None
+    if argv == ["down"]:
+        command = "down"
+    elif argv == ["up"]:
+        command = "up"
+    elif len(argv) == 3 and argv[0] == "up" and argv[1] == "--snapshot" and argv[2]:
+        command = "up"
+        snapshot_arg = argv[2]
+    else:
+        print(f"Usage: {Path(sys.argv[0]).name} up [--snapshot ZIP] | down", file=sys.stderr)
         raise SystemExit(2)
     if not (ROOT / "backend/pyproject.toml").is_file() or not (ROOT / "docker-compose.yml").is_file():
         fail("Run scripts/lxd-dev from a Test Observer checkout.")
@@ -985,12 +1269,13 @@ def main(argv: list[str]) -> None:
     os.chmod(STATE_DIR, 0o700)
     with (STATE_DIR / "lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        if argv[0] == "up":
+        if command == "up":
+            previous_state = read_state()
             try:
-                up()
+                up(snapshot_arg)
             except subprocess.CalledProcessError as error:
                 state = read_state()
-                if state:
+                if state and state.get("startup_attempt") != previous_state.get("startup_attempt"):
                     try:
                         stop(state)
                     except Exception as cleanup_error:
@@ -998,11 +1283,11 @@ def main(argv: list[str]) -> None:
                 command = shlex.join(error.cmd) if isinstance(error.cmd, list) else str(error.cmd)
                 fail(
                     f"Command failed with exit code {error.returncode}: {command}\n"
-                    "Check that this container can reach Ubuntu mirrors and the pinned upstream download sites."
+                    f"Inspect the command output and, if relevant, {STATE_DIR / 'api.log'}."
                 )
             except BaseException:
                 state = read_state()
-                if state:
+                if state and state.get("startup_attempt") != previous_state.get("startup_attempt"):
                     try:
                         stop(state)
                     except Exception as cleanup_error:

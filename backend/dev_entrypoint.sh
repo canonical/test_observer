@@ -54,6 +54,12 @@ if [ "${SEED_DATA:-false}" = "true" ]; then
     
     # Run seed data script
     uv run python scripts/seed_data.py
+
+    # The LXD development launcher uses this optional marker to distinguish a
+    # successfully seeded database from one whose first startup was interrupted.
+    if [ -n "${SEED_COMPLETION_FILE:-}" ]; then
+        touch "$SEED_COMPLETION_FILE"
+    fi
 else
     echo "SEED_DATA is disabled. Skipping database seeding."
 fi
