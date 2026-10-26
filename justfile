@@ -30,6 +30,14 @@ up:
 down:
     @./scripts/down.sh
 
+# Start the native Ubuntu services in an LXD development container
+lxd-dev-up:
+    @scripts/lxd-dev up
+
+# Stop the native Ubuntu services (PostgreSQL data is retained)
+lxd-dev-down:
+    @scripts/lxd-dev down
+
 # Install SvelteKit frontend dependencies
 sveltekit-install:
     cd frontend/sveltekit && npm ci
