@@ -159,6 +159,11 @@ def systemctl(action: str, name: str) -> None:
     sudo(["systemctl", action, name])
 
 
+def privileged_path_exists(path: Path, *, directory: bool = False) -> bool:
+    result = sudo(["test", "-d" if directory else "-e", str(path)], check=False)
+    return result.returncode == 0
+
+
 def ensure_privileges() -> None:
     if os.geteuid() != 0:
         if shutil.which("sudo") is None:
@@ -202,7 +207,29 @@ def ensure_apt_packages() -> None:
     command = ["apt-get", "install", "-y", *missing]
     if os.geteuid() != 0:
         command = ["sudo", "-n", *command]
-    run(command)
+
+    # Debian package post-install hooks may start their default services. In a
+    # container that can fail (for example, nginx's packaged IPv6 listener) or
+    # collide with the isolated service configuration started below. Keep any
+    # host-provided policy-rc.d intact; otherwise temporarily deny package
+    # service actions while apt configures the packages.
+    policy = Path("/usr/sbin/policy-rc.d")
+    if policy.exists() or policy.is_symlink():
+        run(command)
+        return
+
+    policy_script = Path("/run") / f"test-observer-lxd-dev-policy-rc.d-{os.getpid()}"
+    sudo(["tee", str(policy_script)], input_text="#!/bin/sh\nexit 101\n", stdout=subprocess.DEVNULL)
+    sudo(["chmod", "0755", str(policy_script)])
+    policy_installed = False
+    try:
+        sudo(["ln", "-s", str(policy_script), str(policy)])
+        policy_installed = True
+        run(command)
+    finally:
+        if policy_installed:
+            sudo(["rm", "-f", str(policy)])
+        sudo(["rm", "-f", str(policy_script)])
 
 
 def download(url: str, destination: Path) -> None:
@@ -320,7 +347,7 @@ def ensure_simple_saml(secrets_state: dict[str, str]) -> Path:
     install_dir = install_parent / f"simplesamlphp-{SIMPLESAMLPHP_VERSION}"
     current = install_parent / "simplesamlphp"
     archive = STATE_DIR / "downloads" / f"simplesamlphp-{SIMPLESAMLPHP_VERSION}-full.tar.gz"
-    if not install_dir.exists():
+    if not privileged_path_exists(install_dir, directory=True):
         progress(f"Downloading the official SimpleSAMLphp {SIMPLESAMLPHP_VERSION} full release...")
         if not archive.exists() or sha256(archive) != SIMPLESAMLPHP_SHA256:
             download(SIMPLESAMLPHP_URL, archive)
@@ -330,7 +357,7 @@ def ensure_simple_saml(secrets_state: dict[str, str]) -> Path:
             fail(f"SimpleSAMLphp SHA-256 mismatch: expected {SIMPLESAMLPHP_SHA256}, got {actual_hash}.")
         sudo(["install", "-d", "-o", "root", "-g", "www-data", "-m", "0750", str(install_parent)])
         sudo(["tar", "--no-same-owner", "-xzf", str(archive), "-C", str(install_parent)])
-        if not install_dir.is_dir():
+        if not privileged_path_exists(install_dir, directory=True):
             fail(f"SimpleSAMLphp archive did not contain the expected directory {install_dir}.")
     sudo(["ln", "-sfn", str(install_dir), str(current)])
 
@@ -343,7 +370,7 @@ def ensure_simple_saml(secrets_state: dict[str, str]) -> Path:
     sudo(["install", "-d", "-o", "root", "-g", "www-data", "-m", "0750", str(cert_dir)])
     sudo(["install", "-d", "-o", "www-data", "-g", "www-data", "-m", "0750", str(cache_dir)])
 
-    if not (config_dir / "config.php").exists():
+    if not privileged_path_exists(config_dir / "config.php"):
         sudo([
             "install", "-o", "root", "-g", "www-data", "-m", "0640",
             str(config_dir / "config.php.dist"), str(config_dir / "config.php"),
@@ -390,7 +417,9 @@ def ensure_simple_saml(secrets_state: dict[str, str]) -> Path:
     if include not in config_php:
         sudo(["tee", "-a", str(config_dir / "config.php")], input_text=f"\n{include}\n", stdout=subprocess.DEVNULL)
 
-    if not (cert_dir / "server.pem").exists() or not (cert_dir / "server.crt").exists():
+    if not privileged_path_exists(cert_dir / "server.pem") or not privileged_path_exists(
+        cert_dir / "server.crt"
+    ):
         sudo([
             "openssl", "req", "-newkey", "rsa:2048", "-new", "-x509", "-days", "3652", "-nodes",
             "-out", str(cert_dir / "server.crt"),
@@ -490,7 +519,7 @@ http {{
             location ~ ^(?<prefix>/simplesaml)(?<phpfile>.+?\\.php)(?<pathinfo>/.*)?$ {{
                 include /etc/nginx/fastcgi_params;
                 fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-                fastcgi_param SCRIPT_FILENAME {nginx_quote(saml_dir / 'public')}$phpfile;
+                fastcgi_param SCRIPT_FILENAME {nginx_quote(saml_dir / 'public')[:-1]}$phpfile";
                 fastcgi_param SCRIPT_NAME /simplesaml$phpfile;
                 fastcgi_param PATH_INFO $pathinfo if_not_empty;
                 fastcgi_param SIMPLESAMLPHP_CONFIG_DIR {nginx_quote(saml_dir / 'config')};
@@ -574,14 +603,15 @@ def stop(state: dict[str, object]) -> None:
     config_path = STATE_DIR / "nginx.conf"
     prefix = SYSTEM_STATE_DIR / "nginx"
     pid_path = prefix / "nginx.pid"
-    if pid_path.exists() and config_path.exists():
+    if privileged_path_exists(pid_path) and config_path.exists():
         sudo(["nginx", "-s", "quit", "-c", str(config_path), "-p", str(prefix) + "/"], check=False)
         deadline = time.monotonic() + 10
-        while pid_path.exists() and time.monotonic() < deadline:
+        while privileged_path_exists(pid_path) and time.monotonic() < deadline:
             time.sleep(0.2)
-        if pid_path.exists():
+        if privileged_path_exists(pid_path):
             try:
-                nginx_pid = int(pid_path.read_text().strip())
+                result = sudo(["cat", str(pid_path)], capture=True, check=False)
+                nginx_pid = int((result.stdout or "").strip())
                 if is_process_alive(nginx_pid, str(config_path)):
                     sudo(["kill", "-TERM", str(nginx_pid)], check=False)
             except OSError:
@@ -697,7 +727,7 @@ def up() -> None:
 
 def down() -> None:
     state = read_state()
-    if not state and not (SYSTEM_STATE_DIR / "nginx/nginx.pid").exists():
+    if not state and not privileged_path_exists(SYSTEM_STATE_DIR / "nginx/nginx.pid"):
         print("The Test Observer development stack is not running.")
         return
     ensure_privileges()
