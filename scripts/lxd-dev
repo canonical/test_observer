@@ -13,6 +13,7 @@ import secrets
 import shlex
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
@@ -20,7 +21,6 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
@@ -342,7 +342,7 @@ def ensure_flutter() -> Path:
     return install_dir / "bin"
 
 
-def ensure_simple_saml(secrets_state: dict[str, str]) -> Path:
+def ensure_simple_saml(secrets_state: dict[str, str], public_ip: str) -> Path:
     install_parent = SYSTEM_DIR
     install_dir = install_parent / f"simplesamlphp-{SIMPLESAMLPHP_VERSION}"
     current = install_parent / "simplesamlphp"
@@ -401,7 +401,7 @@ def ensure_simple_saml(secrets_state: dict[str, str]) -> Path:
     overrides = "\n".join([
         "<?php",
         "require_once __DIR__ . '/config-override.php';",
-        f"$config['baseurlpath'] = {php_string('http://localhost:8080/simplesaml/')};",
+        f"$config['baseurlpath'] = {php_string(f'http://{public_ip}:8080/simplesaml/')};",
         f"$config['certdir'] = {php_string(str(cert_dir))};",
         f"$config['cachedir'] = {php_string(str(cache_dir))};",
         f"$config['secretsalt'] = {php_string(secrets_state['secretsalt'])};",
@@ -438,7 +438,31 @@ def php_string(value: str) -> str:
     return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
-def build_frontend(env: dict[str, str], flutter_bin: Path, node_bin: Path) -> None:
+def service_ip() -> str:
+    """Return the container's IPv4 address selected for the default route."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.connect(("192.0.2.1", 80))
+            address = probe.getsockname()[0]
+            if not address.startswith("127."):
+                return address
+    except OSError:
+        pass
+
+    # A container without a default route can still have a directly assigned
+    # address. Use the first non-loopback IPv4 address resolved for its hostname.
+    try:
+        for result in socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET, socket.SOCK_STREAM):
+            address = result[4][0]
+            if not address.startswith("127."):
+                return address
+    except socket.gaierror:
+        pass
+    fail("Could not determine a non-loopback IPv4 address for the container.")
+    raise AssertionError("unreachable")
+
+
+def build_frontend(env: dict[str, str], flutter_bin: Path, node_bin: Path, public_ip: str) -> None:
     current_path = os.environ.get("PATH", "")
     env["PATH"] = os.pathsep.join([str(node_bin), str(flutter_bin), str(Path.home() / ".local/bin"), current_path])
     progress("Resolving Flutter dependencies and generating the frontend API code...")
@@ -458,6 +482,16 @@ def build_frontend(env: dict[str, str], flutter_bin: Path, node_bin: Path) -> No
     webroot = FRONTEND / "build/web"
     webroot.mkdir(parents=True, exist_ok=True)
     shutil.copytree(sveltekit / "build", webroot / "wip", dirs_exist_ok=True)
+    for asset in webroot.rglob("*"):
+        if not asset.is_file():
+            continue
+        try:
+            content = asset.read_text()
+        except (OSError, UnicodeDecodeError):
+            continue
+        updated = content.replace("localhost:30000", f"{public_ip}:30000")
+        if updated != content:
+            asset.write_text(updated)
     sudo(["install", "-d", "-o", "root", "-g", "www-data", "-m", "0750", str(WEBROOT)])
     sudo(["cp", "-a", str(webroot) + "/.", str(WEBROOT) + "/"])
     sudo(["chown", "-R", "root:www-data", str(WEBROOT)])
@@ -635,9 +669,13 @@ def up() -> None:
     STATE_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
     os.chmod(STATE_DIR, 0o700)
     existing = read_state()
+    public_ip = service_ip()
+    public_api_url = f"http://{public_ip}:30000"
+    public_frontend_url = f"http://{public_ip}:30001"
+    public_idp_url = f"http://{public_ip}:8080/simplesaml/"
     if existing and is_process_alive(existing.get("api_pid"), str(BACKEND / "dev_entrypoint.sh")):
         progress("The Test Observer development stack is already running.")
-        print(f"API: {API_URL}\nFrontend: {FRONTEND_URL}\nSAML IdP: {IDP_URL}")
+        print(f"API: {public_api_url}\nFrontend: {public_frontend_url}\nSAML IdP: {public_idp_url}")
         return
     if existing:
         stop(existing)
@@ -668,7 +706,9 @@ def up() -> None:
     ])
     env.update({
         "DB_URL": f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@localhost:5432/{DB_NAME}",
-        "SAML_IDP_METADATA_URL": "http://localhost:8080/simplesaml/saml2/idp/metadata.php",
+        "SAML_IDP_METADATA_URL": f"http://{public_ip}:8080/simplesaml/saml2/idp/metadata.php",
+        "SAML_SP_BASE_URL": public_api_url,
+        "FRONTEND_URL": public_frontend_url,
         "SEED_DATA": "true",
         "DISABLE_PERIODIC_TASKS": "true",
         "UV_DYNAMIC_VERSIONING_BYPASS": "0.0.0",
@@ -680,7 +720,7 @@ def up() -> None:
 
     progress("Installing backend dependencies from backend/uv.lock...")
     run([str(uv), "sync", "--frozen", "--all-groups"], cwd=BACKEND, env=env)
-    build_frontend(env, flutter_bin, node_bin)
+    build_frontend(env, flutter_bin, node_bin, public_ip)
 
     secrets_state: dict[str, str] = {}
     if SECRETS_FILE.exists():
@@ -688,7 +728,7 @@ def up() -> None:
             secrets_state = json.loads(SECRETS_FILE.read_text())
         except (json.JSONDecodeError, OSError) as error:
             fail(f"Cannot read SimpleSAMLphp local secrets at {SECRETS_FILE}: {error}")
-    saml_dir = ensure_simple_saml(secrets_state)
+    saml_dir = ensure_simple_saml(secrets_state, public_ip)
 
     if not services_were_active["php8.3-fpm"]:
         state["services_were_active"] = services_were_active
@@ -719,9 +759,9 @@ def up() -> None:
     wait_http(FRONTEND_URL)
 
     print("Test Observer development services are ready:")
-    print(f"  API:       {API_URL}")
-    print(f"  Frontend:  {FRONTEND_URL}")
-    print(f"  SAML IdP:  http://localhost:8080/simplesaml/")
+    print(f"  API:       {public_api_url}")
+    print(f"  Frontend:  {public_frontend_url}")
+    print(f"  SAML IdP:  {public_idp_url}")
     print("Stop them with: scripts/lxd-dev down")
 
 
