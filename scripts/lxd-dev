@@ -29,9 +29,12 @@ FRONTEND = ROOT / "frontend"
 STATE_DIR = Path(os.environ.get("XDG_STATE_HOME", Path.home() / ".local/state")) / "test-observer/lxd-dev"
 STATE_FILE = STATE_DIR / "state.json"
 SECRETS_FILE = STATE_DIR / "secrets.json"
+BUILD_CACHE_FILE = STATE_DIR / "build-cache.json"
 SYSTEM_DIR = Path("/opt/test-observer-lxd-dev")
 SYSTEM_STATE_DIR = Path("/var/lib/test-observer-lxd-dev")
 WEBROOT = SYSTEM_STATE_DIR / "www"
+# Bump this when build commands or cache invalidation rules change.
+BUILD_CACHE_SCHEMA = 1
 
 API_URL = "http://localhost:30000"
 FRONTEND_URL = "http://localhost:30001"
@@ -248,6 +251,47 @@ def sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def source_fingerprint(paths: list[Path], settings: dict[str, str] | None = None) -> str:
+    """Hash source file contents and build settings, independent of mtimes."""
+    digest = hashlib.sha256()
+    fingerprint_settings = {
+        "cache_schema": str(BUILD_CACHE_SCHEMA),
+        "system": platform.system(),
+        "machine": platform.machine(),
+        **(settings or {}),
+    }
+    digest.update(json.dumps(fingerprint_settings, sort_keys=True).encode())
+    files: set[Path] = set()
+    for path in paths:
+        if path.is_file():
+            files.add(path)
+        elif path.is_dir():
+            files.update(child for child in path.rglob("*") if child.is_file())
+    for path in sorted(files):
+        digest.update(path.relative_to(ROOT).as_posix().encode())
+        digest.update(b"\0")
+        digest.update(bytes.fromhex(sha256(path)))
+    return digest.hexdigest()
+
+
+def read_build_cache() -> dict[str, str]:
+    try:
+        cache = json.loads(BUILD_CACHE_FILE.read_text())
+    except FileNotFoundError:
+        return {}
+    except (json.JSONDecodeError, OSError) as error:
+        progress(f"Ignoring invalid build cache at {BUILD_CACHE_FILE}: {error}")
+        return {}
+    if not isinstance(cache, dict) or not all(isinstance(key, str) and isinstance(value, str) for key, value in cache.items()):
+        progress(f"Ignoring invalid build cache at {BUILD_CACHE_FILE}.")
+        return {}
+    return cache
+
+
+def save_build_cache(cache: dict[str, str]) -> None:
+    atomic_write(BUILD_CACHE_FILE, json.dumps(cache, indent=2) + "\n")
 
 
 def ensure_uv() -> Path:
@@ -479,26 +523,148 @@ def service_ip() -> str:
     raise AssertionError("unreachable")
 
 
-def build_frontend(env: dict[str, str], flutter_bin: Path, node_bin: Path, public_ip: str) -> None:
+def build_frontend(
+    env: dict[str, str],
+    flutter_bin: Path,
+    node_bin: Path,
+    public_ip: str,
+    cache: dict[str, str],
+) -> None:
     current_path = os.environ.get("PATH", "")
     env["PATH"] = os.pathsep.join([str(node_bin), str(flutter_bin), str(Path.home() / ".local/bin"), current_path])
-    progress("Resolving Flutter dependencies and generating the frontend API code...")
-    run([str(flutter_bin / "flutter"), "pub", "get"], cwd=FRONTEND, env=env, check=True)
-    run([
-        str(flutter_bin / "dart"), "run", "build_runner", "build", "--delete-conflicting-outputs",
-    ], cwd=FRONTEND, env=env, check=True)
-    progress("Building the Flutter frontend...")
-    run([str(flutter_bin / "flutter"), "build", "web", "--release"], cwd=FRONTEND, env=env, check=True)
+    flutter = flutter_bin / "flutter"
+    dart = flutter_bin / "dart"
+    flutter_dependencies = source_fingerprint(
+        [FRONTEND / "pubspec.yaml", FRONTEND / "pubspec.lock", FRONTEND / "pubspec_overrides.yaml"],
+        {"flutter": FLUTTER_COMMIT, "command": "flutter pub get"},
+    )
+    if (
+        cache.get("flutter_dependencies") != flutter_dependencies
+        or not (FRONTEND / ".dart_tool/package_config.json").is_file()
+    ):
+        progress("Resolving Flutter dependencies...")
+        run([str(flutter), "pub", "get"], cwd=FRONTEND, env=env, check=True)
+        cache["flutter_dependencies"] = flutter_dependencies
+        save_build_cache(cache)
+    else:
+        progress("Reusing cached Flutter dependencies.")
+
+    flutter_codegen_inputs = [
+        FRONTEND / "lib",
+        FRONTEND / "pubspec.yaml",
+        FRONTEND / "pubspec.lock",
+        FRONTEND / "pubspec_overrides.yaml",
+        FRONTEND / "build.yaml",
+    ]
+    flutter_codegen = source_fingerprint(
+        flutter_codegen_inputs,
+        {"flutter": FLUTTER_COMMIT, "command": "build_runner build"},
+    )
+    if cache.get("flutter_codegen") != flutter_codegen:
+        progress("Generating the Flutter frontend API code...")
+        run([
+            str(dart), "run", "build_runner", "build", "--delete-conflicting-outputs",
+        ], cwd=FRONTEND, env=env, check=True)
+        cache["flutter_codegen"] = source_fingerprint(
+            flutter_codegen_inputs,
+            {"flutter": FLUTTER_COMMIT, "command": "build_runner build"},
+        )
+        save_build_cache(cache)
+    else:
+        progress("Reusing cached Flutter generated code.")
+
+    flutter_build_inputs = [
+        FRONTEND / "lib",
+        FRONTEND / "web",
+        FRONTEND / "assets",
+        FRONTEND / "pubspec.yaml",
+        FRONTEND / "pubspec.lock",
+        FRONTEND / "pubspec_overrides.yaml",
+        FRONTEND / "analysis_options.yaml",
+    ]
+    flutter_build = source_fingerprint(
+        flutter_build_inputs,
+        {"flutter": FLUTTER_COMMIT, "mode": "release", "api_ip": public_ip},
+    )
+    flutter_webroot = FRONTEND / "build/web"
+    flutter_outputs_exist = all(
+        (flutter_webroot / output).is_file()
+        for output in ("index.html", "main.dart.js", "flutter_bootstrap.js")
+    )
+    if cache.get("flutter_web") != flutter_build or not flutter_outputs_exist:
+        progress("Building the Flutter frontend...")
+        run([str(flutter), "build", "web", "--release"], cwd=FRONTEND, env=env, check=True)
+        cache["flutter_web"] = flutter_build
+        save_build_cache(cache)
+    else:
+        progress("Reusing cached Flutter web build.")
 
     sveltekit = FRONTEND / "sveltekit"
-    progress("Installing locked SvelteKit dependencies and building the /wip frontend...")
-    run([str(node_bin / "npm"), "ci"], cwd=sveltekit, env=env, check=True)
+    npm = node_bin / "npm"
+    node_version = run([str(node_bin / "node"), "--version"], capture=True, env=env).stdout or "unknown"
+    npm_version = run([str(npm), "--version"], capture=True, env=env).stdout or "unknown"
+    svelte_dependencies = source_fingerprint(
+        [
+            sveltekit / "package.json",
+            sveltekit / "package-lock.json",
+            sveltekit / "npm-shrinkwrap.json",
+            sveltekit / ".npmrc",
+        ],
+        {"node": node_version.strip(), "npm": npm_version.strip(), "command": "npm ci"},
+    )
+    if (
+        cache.get("svelte_dependencies") != svelte_dependencies
+        or not (sveltekit / "node_modules/.bin/vite").exists()
+    ):
+        progress("Installing locked SvelteKit dependencies...")
+        run([str(npm), "ci"], cwd=sveltekit, env=env, check=True)
+        cache["svelte_dependencies"] = svelte_dependencies
+        save_build_cache(cache)
+    else:
+        progress("Reusing cached SvelteKit dependencies.")
+
     svelte_env = dict(env)
     svelte_env["BASE_PATH"] = "/wip"
-    run([str(node_bin / "npm"), "run", "build"], cwd=sveltekit, env=svelte_env, check=True)
+    svelte_build_config = [
+        sveltekit / name
+        for name in (
+            "package.json",
+            "package-lock.json",
+            "npm-shrinkwrap.json",
+            "vite.config.ts",
+            "svelte.config.js",
+            "svelte.config.ts",
+            "tsconfig.json",
+        )
+        if (sveltekit / name).is_file()
+    ]
+    svelte_build_config.extend(
+        path for path in sveltekit.iterdir() if path.is_file() and path.name.startswith(".env")
+    )
+    svelte_build = source_fingerprint(
+        [sveltekit / "src", sveltekit / "static", *svelte_build_config],
+        {
+            "node": node_version.strip(),
+            "npm": npm_version.strip(),
+            "base_path": svelte_env["BASE_PATH"],
+            "api_ip": public_ip,
+        },
+    )
+    svelte_webroot = sveltekit / "build"
+    svelte_outputs_exist = (svelte_webroot / "200.html").is_file() and any(
+        asset.is_file() for asset in (svelte_webroot / "_app").rglob("*")
+    )
+    if cache.get("svelte_build") != svelte_build or not svelte_outputs_exist:
+        progress("Building the /wip SvelteKit frontend...")
+        run([str(npm), "run", "build"], cwd=sveltekit, env=svelte_env, check=True)
+        cache["svelte_build"] = svelte_build
+        save_build_cache(cache)
+    else:
+        progress("Reusing cached SvelteKit build.")
+
     webroot = FRONTEND / "build/web"
     webroot.mkdir(parents=True, exist_ok=True)
-    shutil.copytree(sveltekit / "build", webroot / "wip", dirs_exist_ok=True)
+    shutil.copytree(svelte_webroot, webroot / "wip", dirs_exist_ok=True)
     for asset in webroot.rglob("*"):
         if not asset.is_file():
             continue
@@ -737,9 +903,29 @@ def up() -> None:
     })
     env["UV"] = str(uv)
 
-    progress("Installing backend dependencies from backend/uv.lock...")
-    run([str(uv), "sync", "--frozen", "--all-groups"], cwd=BACKEND, env=env)
-    build_frontend(env, flutter_bin, node_bin, public_ip)
+    build_cache = read_build_cache()
+    uv_version = run([str(uv), "--version"], capture=True).stdout or "unknown"
+    backend_dependencies = source_fingerprint(
+        [BACKEND / "pyproject.toml", BACKEND / "uv.lock", BACKEND / "uv.toml", BACKEND / ".python-version"],
+        {
+            "uv": uv_version.strip(),
+            "python": platform.python_version(),
+            "groups": "all",
+            "frozen": "true",
+        },
+    )
+    if (
+        build_cache.get("backend_dependencies") != backend_dependencies
+        or not (BACKEND / ".venv/bin/python").is_file()
+    ):
+        progress("Installing backend dependencies from backend/uv.lock...")
+        run([str(uv), "sync", "--frozen", "--all-groups"], cwd=BACKEND, env=env)
+        build_cache["backend_dependencies"] = backend_dependencies
+        save_build_cache(build_cache)
+    else:
+        progress("Reusing cached backend dependencies.")
+
+    build_frontend(env, flutter_bin, node_bin, public_ip, build_cache)
 
     secrets_state = read_simple_saml_secrets()
     saml_dir = ensure_simple_saml(secrets_state, public_ip)
