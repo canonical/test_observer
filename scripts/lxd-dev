@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import fcntl
 import hashlib
 import json
@@ -1114,10 +1115,8 @@ def signal_api_session(session_id: int, token: str, sig: int) -> None:
             # process and the token check prevents signaling it by mistake.
             if candidate not in api_session_processes(session_id, token):
                 continue
-            try:
+            with contextlib.suppress(ProcessLookupError, PermissionError, OSError):
                 pidfd_send_signal(pidfd, sig)
-            except (ProcessLookupError, PermissionError, OSError):
-                pass
         finally:
             os.close(pidfd)
 
