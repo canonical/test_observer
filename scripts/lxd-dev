@@ -1304,7 +1304,9 @@ def stop_api(pid: object, group_token: object = None) -> None:
     expected_command = str(BACKEND / "dev_entrypoint.sh")
     if not is_process_alive(pid, expected_command):
         return
-    raise RuntimeError("legacy API state has no identity token; refusing unsafe process-group signaling")
+    raise RuntimeError(
+        "legacy API state has no identity token; refusing unsafe process-group signaling"
+    )
 
 
 def verify_running_stack(public_ip: str) -> None:
@@ -1318,7 +1320,10 @@ def verify_running_stack(public_ip: str) -> None:
     endpoints = (
         ("API", f"http://{public_ip}:30000/health/ready"),
         ("frontend", f"http://{public_ip}:30001"),
-        ("SimpleSAMLphp IdP", f"http://{public_ip}:8080/simplesaml/saml2/idp/metadata.php"),
+        (
+            "SimpleSAMLphp IdP",
+            f"http://{public_ip}:8080/simplesaml/saml2/idp/metadata.php",
+        ),
     )
     for service, url in endpoints:
         try:
