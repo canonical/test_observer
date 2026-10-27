@@ -202,15 +202,36 @@ def systemctl(action: str, name: str) -> None:
 
 
 def privileged_path_exists(path: Path, *, directory: bool = False) -> bool:
+    check_type = "directory" if directory else "any"
     try:
-        result = sudo(["test", "-d" if directory else "-e", str(path)], check=False)
+        result = sudo(
+            [sys.executable, str(Path(__file__).resolve()), "--path-exists", str(path), check_type],
+            check=False,
+        )
     except OSError as error:
         raise RuntimeError(f"Could not inspect privileged path {path}: {error}") from error
     if result.returncode == 0:
         return True
-    if result.returncode == 1:
+    if result.returncode == 10:
         return False
     raise RuntimeError(f"Could not inspect privileged path {path} (exit status {result.returncode}).")
+
+
+def privileged_path_exists_command(argv: list[str]) -> int:
+    """Privileged internal entry point for distinguishing absence from stat errors."""
+    if len(argv) != 2 or argv[1] not in {"any", "directory"}:
+        return 2
+    path = Path(argv[0])
+    try:
+        path_stat = path.stat()
+    except (FileNotFoundError, NotADirectoryError):
+        return 10
+    except OSError as error:
+        sys.stderr.write(f"Could not inspect privileged path {path}: {error}\n")
+        return 2
+    if argv[1] == "directory" and not stat.S_ISDIR(path_stat.st_mode):
+        return 10
+    return 0
 
 
 def ensure_privileges() -> None:
@@ -1574,4 +1595,6 @@ def main(argv: list[str]) -> None:
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--signal-nginx":
         raise SystemExit(nginx_signal_command(sys.argv[2:]))
+    if len(sys.argv) > 1 and sys.argv[1] == "--path-exists":
+        raise SystemExit(privileged_path_exists_command(sys.argv[2:]))
     main(sys.argv[1:])

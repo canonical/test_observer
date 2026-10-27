@@ -307,6 +307,93 @@ def test_stop_treats_mismatched_nginx_pid_as_stale_cleanup(monkeypatch: pytest.M
     assert all("-s" not in command and "kill" not in command for command in commands)
 
 
+def test_privileged_path_exists_distinguishes_sudo_failure_from_missing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    path = tmp_path / "nginx.pid"
+    statuses = iter([1, 10, 0])
+    commands: list[list[str]] = []
+
+    def fake_sudo(args: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        commands.append(args)
+        return subprocess.CompletedProcess(args, next(statuses))
+
+    monkeypatch.setattr(lxd_dev, "sudo", fake_sudo)
+
+    with pytest.raises(RuntimeError, match="exit status 1"):
+        lxd_dev.privileged_path_exists(path)
+    assert lxd_dev.privileged_path_exists(path) is False
+    assert lxd_dev.privileged_path_exists(path) is True
+    assert all(command[1:3] == [str(SCRIPT_PATH), "--path-exists"] for command in commands)
+
+
+def test_privileged_path_exists_helper_returns_distinct_missing_status(tmp_path: Path) -> None:
+    existing_file = tmp_path / "existing"
+    existing_file.touch()
+
+    assert lxd_dev.privileged_path_exists_command([str(tmp_path / "missing"), "any"]) == 10
+    assert lxd_dev.privileged_path_exists_command([str(existing_file), "any"]) == 0
+    assert lxd_dev.privileged_path_exists_command([str(existing_file), "directory"]) == 10
+
+
+def test_privileged_path_exists_helper_reports_stat_errors(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def fail_stat(_path: Path) -> os.stat_result:
+        raise PermissionError("inspection denied")
+
+    monkeypatch.setattr(Path, "stat", fail_stat)
+
+    assert lxd_dev.privileged_path_exists_command(["/restricted/path", "any"]) == 2
+    assert "inspection denied" in capsys.readouterr().err
+
+
+def test_stop_retains_nginx_state_when_privileged_path_check_fails(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    state_file = tmp_path / "state.json"
+    state = {"api_pid": 123}
+    state_file.write_text(lxd_dev.json.dumps(state))
+    monkeypatch.setattr(lxd_dev, "STATE_FILE", state_file)
+    monkeypatch.setattr(lxd_dev, "STATE_DIR", tmp_path)
+    monkeypatch.setattr(lxd_dev, "SYSTEM_STATE_DIR", tmp_path / "system-state")
+    monkeypatch.setattr(lxd_dev, "stop_api", lambda *_args: None)
+
+    def sudo_status_one(args: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert "--path-exists" in args
+        return subprocess.CompletedProcess(args, 1)
+
+    monkeypatch.setattr(lxd_dev, "sudo", sudo_status_one)
+
+    with pytest.raises(SystemExit) as error:
+        lxd_dev.stop(state)
+
+    assert error.value.code == 1
+    assert lxd_dev.json.loads(state_file.read_text()) == state
+
+
+def test_stop_cleans_state_when_nginx_pid_path_is_verified_missing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    state_file = tmp_path / "state.json"
+    state = {"api_pid": 123}
+    state_file.write_text(lxd_dev.json.dumps(state))
+    monkeypatch.setattr(lxd_dev, "STATE_FILE", state_file)
+    monkeypatch.setattr(lxd_dev, "STATE_DIR", tmp_path)
+    monkeypatch.setattr(lxd_dev, "SYSTEM_STATE_DIR", tmp_path / "system-state")
+    monkeypatch.setattr(lxd_dev, "stop_api", lambda *_args: None)
+
+    def missing_path(args: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert "--path-exists" in args
+        return subprocess.CompletedProcess(args, 10)
+
+    monkeypatch.setattr(lxd_dev, "sudo", missing_path)
+
+    lxd_dev.stop(state)
+
+    assert not state_file.exists()
+
+
 @pytest.mark.parametrize("failure", ["pid-file-read", "helper-invocation", "helper-permission"])
 def test_stop_retains_state_when_nginx_identity_cannot_be_verified(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, failure: str
