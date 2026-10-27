@@ -204,6 +204,55 @@ def test_stop_api_retries_transient_empty_session_discovery(monkeypatch: pytest.
     assert now[0] >= 0.6
 
 
+def test_signal_api_session_reports_missing_pidfd_support(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(lxd_dev.os, "pidfd_open", None)
+    monkeypatch.setattr(lxd_dev.signal, "pidfd_send_signal", None)
+
+    assert lxd_dev.signal_api_session(123, "test-token", lxd_dev.signal.SIGTERM) is False
+
+
+@pytest.mark.parametrize("pidfd_mode", ["unavailable", "signal-denied"])
+def test_stop_retains_state_when_api_cleanup_cannot_be_verified(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    pidfd_mode: str,
+) -> None:
+    state_file = tmp_path / "state.json"
+    state = {"api_pid": 123, "api_group_token": "test-token"}
+    state_file.write_text(lxd_dev.json.dumps(state))
+    monkeypatch.setattr(lxd_dev, "STATE_DIR", tmp_path)
+    monkeypatch.setattr(lxd_dev, "STATE_FILE", state_file)
+    monkeypatch.setattr(lxd_dev, "privileged_path_exists", lambda _path: False)
+    monkeypatch.setattr(lxd_dev, "ensure_privileges", lambda: None)
+    monkeypatch.setattr(lxd_dev, "api_session_processes", lambda _pid, _token: [456])
+    monkeypatch.setattr(lxd_dev.os, "killpg", lambda *_args: pytest.fail("unsafe process-group signal attempted"))
+    now = [0.0]
+    monkeypatch.setattr(lxd_dev.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(lxd_dev.time, "sleep", lambda delay: now.__setitem__(0, now[0] + delay))
+
+    if pidfd_mode == "unavailable":
+        monkeypatch.setattr(lxd_dev.os, "pidfd_open", None)
+        monkeypatch.setattr(lxd_dev.signal, "pidfd_send_signal", None)
+    else:
+        monkeypatch.setattr(lxd_dev.os, "pidfd_open", lambda _pid: os.open(os.devnull, os.O_RDONLY))
+
+        def deny_signal(_pidfd: int, _sig: int) -> None:
+            raise PermissionError("signal denied")
+
+        monkeypatch.setattr(lxd_dev.signal, "pidfd_send_signal", deny_signal)
+
+    with pytest.raises(SystemExit) as error:
+        lxd_dev.down()
+
+    assert error.value.code == 1
+    assert lxd_dev.json.loads(state_file.read_text()) == state
+    output = capsys.readouterr()
+    assert "Could not stop the API safely" in output.err
+    assert f"State retained at {state_file}" in output.err
+    assert "development services stopped" not in output.out
+
+
 def start_failed_api_wrapper(tmp_path: Path, token: str) -> tuple[subprocess.Popen[bytes], int]:
     child_pid_path = tmp_path / "uvicorn.pid"
     wrapper = tmp_path / "dev_entrypoint.sh"

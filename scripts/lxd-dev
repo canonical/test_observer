@@ -20,7 +20,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import fcntl
 import hashlib
 import json
@@ -1095,19 +1094,23 @@ def api_session_processes(session_id: int, token: str) -> list[int]:
     return processes
 
 
-def signal_api_session(session_id: int, token: str, sig: int) -> None:
+def signal_api_session(session_id: int, token: str, sig: int) -> bool:
     """Signal only token-matching API processes, pinning each PID with a pidfd."""
     pidfd_open = getattr(os, "pidfd_open", None)
     pidfd_send_signal = getattr(signal, "pidfd_send_signal", None)
     if pidfd_open is None or pidfd_send_signal is None:
         # Never fall back to killpg here: after the wrapper exits its PID/SID
         # could have been reused, and a broad signal could hit an unrelated job.
-        return
+        return False
 
+    all_signals_sent = True
     for candidate in api_session_processes(session_id, token):
         try:
             pidfd = pidfd_open(candidate)
-        except (ProcessLookupError, PermissionError, OSError):
+        except ProcessLookupError:
+            continue
+        except (PermissionError, OSError):
+            all_signals_sent = False
             continue
         try:
             # Re-check identity after opening the pidfd. Even if the numeric
@@ -1115,10 +1118,16 @@ def signal_api_session(session_id: int, token: str, sig: int) -> None:
             # process and the token check prevents signaling it by mistake.
             if candidate not in api_session_processes(session_id, token):
                 continue
-            with contextlib.suppress(ProcessLookupError, PermissionError, OSError):
+            try:
                 pidfd_send_signal(pidfd, sig)
+            except ProcessLookupError:
+                # Final process disappearance is verified by stop_api's scan.
+                continue
+            except (PermissionError, OSError):
+                all_signals_sent = False
         finally:
             os.close(pidfd)
+    return all_signals_sent
 
 
 def stop_api(pid: object, group_token: object = None) -> None:
@@ -1146,7 +1155,10 @@ def stop_api(pid: object, group_token: object = None) -> None:
         if not wait_until_quiet(10, signal.SIGTERM):
             # Keep retrying discovery during the bounded force-stop window as
             # well, rather than letting one empty /proc scan skip cleanup.
-            wait_until_quiet(1, signal.SIGKILL)
+            if not wait_until_quiet(1, signal.SIGKILL):
+                raise RuntimeError(
+                    "matching API processes remain after identity-safe signaling was unavailable or unsuccessful"
+                )
         return
 
     # State files written by older versions do not have a group token. Retain
@@ -1189,7 +1201,10 @@ def stop(state: dict[str, object]) -> None:
             except ValueError:
                 progress(f"Ignoring invalid nginx PID file: {pid_path}")
 
-    stop_api(state.get("api_pid"), state.get("api_group_token"))
+    try:
+        stop_api(state.get("api_pid"), state.get("api_group_token"))
+    except RuntimeError as error:
+        fail(f"Could not stop the API safely: {error}. State retained at {STATE_FILE}; retry scripts/lxd-dev down.")
     services_were_active = state.get("services_were_active", {})
     if isinstance(services_were_active, dict):
         for service in ("php8.3-fpm", "postgresql"):
