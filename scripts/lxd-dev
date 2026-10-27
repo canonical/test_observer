@@ -1129,7 +1129,7 @@ def nginx_signal_command(argv: list[str]) -> int:
         sig = {"QUIT": signal.SIGQUIT, "TERM": signal.SIGTERM}[argv[3]]
         return 0 if signal_nginx_pid(pid, config_path, prefix, sig) else 1
     except (OSError, RuntimeError, ValueError, KeyError) as error:
-        print(f"Could not stop nginx safely: {error}", file=sys.stderr)
+        sys.stderr.write(f"Could not stop nginx safely: {error}\n")
         return 2
 
 
