@@ -14,7 +14,6 @@
 #
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: Apache-2.0
-
 # NOTE: Remember to set TEST_OBSERVER_API_URL to a valid URL and set
 # TEST_OBSERVER_API_KEY to a read-only key
 
@@ -32,7 +31,7 @@ down:
 
 # Start native LXD services; optionally replace the DB from a zipped pg_dump directory archive
 lxd-dev-up snapshot="":
-    @if [ -n "{{snapshot}}" ]; then scripts/lxd-dev up --snapshot "{{snapshot}}"; else scripts/lxd-dev up; fi
+    @if [ -n {{ quote(snapshot) }} ]; then scripts/lxd-dev up --snapshot {{ quote(snapshot) }}; else scripts/lxd-dev up; fi
 
 # Stop the native Ubuntu services (PostgreSQL data is retained)
 lxd-dev-down:
