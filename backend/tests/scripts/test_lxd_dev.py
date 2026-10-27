@@ -859,7 +859,13 @@ def test_running_stack_with_unchanged_address_only_refreshes_saml(
     monkeypatch.setattr(lxd_dev, "read_simple_saml_secrets", lambda: {"secretsalt": "test"})
     refreshed: list[str] = []
     monkeypatch.setattr(lxd_dev, "ensure_simple_saml", lambda _secrets, ip: refreshed.append(ip))
-    monkeypatch.setattr(lxd_dev, "service_active", lambda service: service == "php8.3-fpm")
+    checked_services: list[str] = []
+
+    def service_is_active(service: str) -> bool:
+        checked_services.append(service)
+        return service == "php8.3-fpm"
+
+    monkeypatch.setattr(lxd_dev, "service_active", service_is_active)
     checked_endpoints: list[str] = []
     monkeypatch.setattr(lxd_dev, "wait_http", lambda url, **_kwargs: checked_endpoints.append(url))
     monkeypatch.setattr(lxd_dev, "stop", lambda _state: pytest.fail("unchanged stack was stopped"))
@@ -869,10 +875,11 @@ def test_running_stack_with_unchanged_address_only_refreshes_saml(
 
     assert refreshed == ["192.0.2.42"]
     assert checked_endpoints == [
-        "http://192.0.2.42:30000/health/ready",
+        f"{lxd_dev.API_URL}/health/ready",
         "http://192.0.2.42:30001",
         "http://192.0.2.42:8080/simplesaml/saml2/idp/metadata.php",
     ]
+    assert checked_services == ["php8.3-fpm"]
     assert lxd_dev.read_state()["public_ip"] == "192.0.2.42"
     assert "API: http://192.0.2.42:30000" in capsys.readouterr().out
 
@@ -922,7 +929,7 @@ def test_running_stack_with_unavailable_nginx_frontend_fails_health_check(
         lxd_dev.up_stack(None)
 
     assert error.value.code == 1
-    assert checked == ["http://192.0.2.42:30000/health/ready", "http://192.0.2.42:30001"]
+    assert checked == [f"{lxd_dev.API_URL}/health/ready", "http://192.0.2.42:30001"]
     output = capsys.readouterr().err
     assert "frontend endpoint" in output
     assert "run scripts/lxd-dev down, then scripts/lxd-dev up" in output

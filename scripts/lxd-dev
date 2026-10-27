@@ -1316,7 +1316,7 @@ def verify_running_stack(public_ip: str) -> None:
         )
 
     endpoints = (
-        ("API", f"http://{public_ip}:30000/health/ready"),
+        ("API", f"{API_URL}/health/ready"),
         ("frontend", f"http://{public_ip}:30001"),
         (
             "SimpleSAMLphp IdP",
