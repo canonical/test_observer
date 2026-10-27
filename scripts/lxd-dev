@@ -605,7 +605,13 @@ def ensure_simple_saml(secrets_state: dict[str, str], public_ip: str) -> Path:
         "$config['module.enable']['exampleauth'] = true;",
         "",
     ])
-    sudo(["tee", str(config_dir / "lxd-dev-config.php")], input_text=overrides, stdout=subprocess.DEVNULL)
+    dev_config = config_dir / "lxd-dev-config.php"
+    sudo(["tee", str(dev_config)], input_text=overrides, stdout=subprocess.DEVNULL)
+    sudo(["chmod", "0640", str(dev_config)])
+    sudo(["chown", "root:www-data", str(dev_config)])
+    permissions = sudo(["stat", "-c", "%U:%G %a", str(dev_config)], capture=True).stdout
+    if (permissions or "").strip() != "root:www-data 640":
+        fail(f"SimpleSAMLphp development config has unsafe permissions: {dev_config}.")
     config_php = sudo(["cat", str(config_dir / "config.php")], capture=True).stdout or ""
     include = "require_once __DIR__ . '/lxd-dev-config.php';"
     if include not in config_php:
@@ -1292,24 +1298,36 @@ def stop_api(pid: object, group_token: object = None) -> None:
             )
         return
 
-    # State files written by older versions do not have a group token. Retain
-    # the existing wrapper-identity guard for those entries; never infer that
-    # a mismatched PID's process group belongs to the API without the token.
+    # State files written by older versions do not have a group token. The
+    # command-line check cannot pin process identity across a subsequent
+    # killpg(), so fail closed rather than risk signaling a reused PID's group.
     expected_command = str(BACKEND / "dev_entrypoint.sh")
     if not is_process_alive(pid, expected_command):
         return
-    try:
-        os.killpg(int(pid), signal.SIGTERM)
-    except (ProcessLookupError, PermissionError):
-        return
-    deadline = time.monotonic() + 10
-    while time.monotonic() < deadline and is_process_alive(pid, expected_command):
-        time.sleep(0.2)
-    if is_process_alive(pid, expected_command):
+    raise RuntimeError("legacy API state has no identity token; refusing unsafe process-group signaling")
+
+
+def verify_running_stack(public_ip: str) -> None:
+    """Verify dependencies and public endpoints before accepting a live API as healthy."""
+    if not service_active("php8.3-fpm"):
+        fail(
+            "The existing development stack is unhealthy: php8.3-fpm is not active; "
+            "run scripts/lxd-dev down, then scripts/lxd-dev up to restart the stack."
+        )
+
+    endpoints = (
+        ("API", f"http://{public_ip}:30000/health/ready"),
+        ("frontend", f"http://{public_ip}:30001"),
+        ("SimpleSAMLphp IdP", f"http://{public_ip}:8080/simplesaml/saml2/idp/metadata.php"),
+    )
+    for service, url in endpoints:
         try:
-            os.killpg(int(pid), signal.SIGKILL)
-        except (ProcessLookupError, PermissionError):
-            pass
+            wait_http(url, timeout=10)
+        except SystemExit:
+            fail(
+                f"The existing development stack is unhealthy: {service} endpoint {url} is unavailable; "
+                "run scripts/lxd-dev down, then scripts/lxd-dev up to restart the stack."
+            )
 
 
 def stop(state: dict[str, object]) -> None:
@@ -1420,6 +1438,7 @@ def up_stack(prepared_snapshot: tuple[Path, Path] | None) -> None:
             progress("The Test Observer development stack is already running.")
             progress("Refreshing SimpleSAMLphp metadata for the container IP...")
             ensure_simple_saml(read_simple_saml_secrets(), public_ip)
+            verify_running_stack(public_ip)
             print(f"API: {public_api_url}\nFrontend: {public_frontend_url}\nSAML IdP: {public_idp_url}")
             return
         if prepared_snapshot is None:

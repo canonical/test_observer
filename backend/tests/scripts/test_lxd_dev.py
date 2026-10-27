@@ -169,24 +169,97 @@ def test_wait_for_seed_completion_uses_new_seed_log_output(
     lxd_dev.wait_for_seed_completion(42, log_path, len(stale_marker.encode()), timeout=1)
 
 
-def test_stop_api_does_not_signal_reused_pid(monkeypatch: pytest.MonkeyPatch) -> None:
-    liveness_checks: list[str | None] = []
-    alive_results = iter([True, False, False])
-    signals: list[tuple[int, int]] = []
+def test_stop_api_fails_closed_for_legacy_state_without_signaling_pid_group(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(lxd_dev, "is_process_alive", lambda *_args: True)
+    monkeypatch.setattr(
+        lxd_dev.os,
+        "killpg",
+        lambda *_args: pytest.fail("legacy process-group signal could hit a reused PID"),
+    )
 
-    def fake_is_process_alive(_pid: object, expected: str | None = None) -> bool:
-        liveness_checks.append(expected)
-        return next(alive_results)
+    with pytest.raises(RuntimeError, match="legacy API state has no identity token"):
+        lxd_dev.stop_api(123)
 
-    monkeypatch.setattr(lxd_dev, "is_process_alive", fake_is_process_alive)
-    monkeypatch.setattr(lxd_dev.os, "killpg", lambda pid, sig: signals.append((pid, sig)))
-    monkeypatch.setattr(lxd_dev.time, "monotonic", lambda: 0)
-    monkeypatch.setattr(lxd_dev.time, "sleep", lambda _delay: None)
 
-    lxd_dev.stop_api(123)
+def test_down_retains_legacy_api_state_when_safe_cleanup_is_unavailable(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    state_file = tmp_path / "state.json"
+    state = {"api_pid": 123}
+    state_file.write_text(lxd_dev.json.dumps(state))
+    monkeypatch.setattr(lxd_dev, "STATE_DIR", tmp_path)
+    monkeypatch.setattr(lxd_dev, "STATE_FILE", state_file)
+    monkeypatch.setattr(lxd_dev, "privileged_path_exists", lambda _path: False)
+    monkeypatch.setattr(lxd_dev, "ensure_privileges", lambda: None)
+    monkeypatch.setattr(lxd_dev, "is_process_alive", lambda *_args: True)
+    monkeypatch.setattr(
+        lxd_dev.os,
+        "killpg",
+        lambda *_args: pytest.fail("legacy process-group signal could hit a reused PID"),
+    )
 
-    assert signals == [(123, lxd_dev.signal.SIGTERM)]
-    assert liveness_checks == [str(lxd_dev.BACKEND / "dev_entrypoint.sh")] * 3
+    with pytest.raises(SystemExit) as error:
+        lxd_dev.down()
+
+    assert error.value.code == 1
+    assert lxd_dev.json.loads(state_file.read_text()) == state
+    assert "State retained" in capsys.readouterr().err
+
+
+def test_ensure_simple_saml_verifies_secret_config_permissions(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(lxd_dev, "SYSTEM_DIR", tmp_path / "system")
+    monkeypatch.setattr(lxd_dev, "SYSTEM_STATE_DIR", tmp_path / "system-state")
+    monkeypatch.setattr(lxd_dev, "SECRETS_FILE", tmp_path / "secrets.json")
+    monkeypatch.setattr(lxd_dev, "privileged_path_exists", lambda *_args, **_kwargs: True)
+    commands: list[tuple[list[str], str | None]] = []
+
+    def fake_sudo(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        input_text = kwargs.get("input_text")
+        commands.append((args, input_text if isinstance(input_text, str) else None))
+        if args[:2] == ["stat", "-c"]:
+            return subprocess.CompletedProcess(args, 0, stdout="root:www-data 640\n")
+        if args[:1] == ["cat"]:
+            return subprocess.CompletedProcess(args, 0, stdout="")
+        return subprocess.CompletedProcess(args, 0, stdout="")
+
+    monkeypatch.setattr(lxd_dev, "sudo", fake_sudo)
+
+    lxd_dev.ensure_simple_saml(
+        {"secretsalt": "secret-salt", "assets_salt": "assets-salt", "admin_password_hash": "hash"},
+        "192.0.2.42",
+    )
+
+    config_path = str(tmp_path / "system/simplesamlphp" / "config/lxd-dev-config.php")
+    config_write = next(index for index, (args, _content) in enumerate(commands) if args[:2] == ["tee", config_path])
+    assert commands[config_write + 1][0] == ["chmod", "0640", config_path]
+    assert commands[config_write + 2][0] == ["chown", "root:www-data", config_path]
+    assert commands[config_write + 3][0] == ["stat", "-c", "%U:%G %a", config_path]
+    assert "auth.adminpassword" in (commands[config_write][1] or "")
+
+
+def test_ensure_simple_saml_fails_when_secret_config_permissions_are_unsafe(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(lxd_dev, "SYSTEM_DIR", tmp_path / "system")
+    monkeypatch.setattr(lxd_dev, "SYSTEM_STATE_DIR", tmp_path / "system-state")
+    monkeypatch.setattr(lxd_dev, "SECRETS_FILE", tmp_path / "secrets.json")
+    monkeypatch.setattr(lxd_dev, "privileged_path_exists", lambda *_args, **_kwargs: True)
+
+    def fake_sudo(args: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        if args[:2] == ["stat", "-c"]:
+            return subprocess.CompletedProcess(args, 0, stdout="root:root 644\n")
+        return subprocess.CompletedProcess(args, 0, stdout="")
+
+    monkeypatch.setattr(lxd_dev, "sudo", fake_sudo)
+
+    with pytest.raises(SystemExit) as error:
+        lxd_dev.ensure_simple_saml(
+            {"secretsalt": "secret-salt", "assets_salt": "assets-salt", "admin_password_hash": "hash"},
+            "192.0.2.42",
+        )
+    assert error.value.code == 1
 
 
 def test_signal_nginx_pid_does_not_signal_reused_pid(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -786,14 +859,73 @@ def test_running_stack_with_unchanged_address_only_refreshes_saml(
     monkeypatch.setattr(lxd_dev, "read_simple_saml_secrets", lambda: {"secretsalt": "test"})
     refreshed: list[str] = []
     monkeypatch.setattr(lxd_dev, "ensure_simple_saml", lambda _secrets, ip: refreshed.append(ip))
+    monkeypatch.setattr(lxd_dev, "service_active", lambda service: service == "php8.3-fpm")
+    checked_endpoints: list[str] = []
+    monkeypatch.setattr(lxd_dev, "wait_http", lambda url, **_kwargs: checked_endpoints.append(url))
     monkeypatch.setattr(lxd_dev, "stop", lambda _state: pytest.fail("unchanged stack was stopped"))
     monkeypatch.setattr(lxd_dev, "build_frontend", lambda *_args: pytest.fail("frontend was rebuilt"))
 
     lxd_dev.up_stack(None)
 
     assert refreshed == ["192.0.2.42"]
+    assert checked_endpoints == [
+        "http://192.0.2.42:30000/health/ready",
+        "http://192.0.2.42:30001",
+        "http://192.0.2.42:8080/simplesaml/saml2/idp/metadata.php",
+    ]
     assert lxd_dev.read_state()["public_ip"] == "192.0.2.42"
     assert "API: http://192.0.2.42:30000" in capsys.readouterr().out
+
+
+def test_running_stack_with_inactive_php_fpm_fails_health_check(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(lxd_dev, "STATE_DIR", tmp_path)
+    monkeypatch.setattr(lxd_dev, "STATE_FILE", tmp_path / "state.json")
+    lxd_dev.write_state({"api_pid": 42, "public_ip": "192.0.2.42"})
+    monkeypatch.setattr(lxd_dev, "service_ip", lambda: "192.0.2.42")
+    monkeypatch.setattr(lxd_dev, "is_process_alive", lambda *_args: True)
+    monkeypatch.setattr(lxd_dev, "read_simple_saml_secrets", lambda: {})
+    monkeypatch.setattr(lxd_dev, "ensure_simple_saml", lambda *_args: None)
+    monkeypatch.setattr(lxd_dev, "service_active", lambda _service: False)
+
+    with pytest.raises(SystemExit) as error:
+        lxd_dev.up_stack(None)
+
+    assert error.value.code == 1
+    output = capsys.readouterr().err
+    assert "php8.3-fpm is not active" in output
+    assert "run scripts/lxd-dev down, then scripts/lxd-dev up" in output
+
+
+def test_running_stack_with_unavailable_nginx_frontend_fails_health_check(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(lxd_dev, "STATE_DIR", tmp_path)
+    monkeypatch.setattr(lxd_dev, "STATE_FILE", tmp_path / "state.json")
+    lxd_dev.write_state({"api_pid": 42, "public_ip": "192.0.2.42"})
+    monkeypatch.setattr(lxd_dev, "service_ip", lambda: "192.0.2.42")
+    monkeypatch.setattr(lxd_dev, "is_process_alive", lambda *_args: True)
+    monkeypatch.setattr(lxd_dev, "read_simple_saml_secrets", lambda: {})
+    monkeypatch.setattr(lxd_dev, "ensure_simple_saml", lambda *_args: None)
+    monkeypatch.setattr(lxd_dev, "service_active", lambda _service: True)
+    checked: list[str] = []
+
+    def fail_frontend(url: str, **_kwargs: object) -> None:
+        checked.append(url)
+        if url.endswith(":30001"):
+            raise SystemExit(1)
+
+    monkeypatch.setattr(lxd_dev, "wait_http", fail_frontend)
+
+    with pytest.raises(SystemExit) as error:
+        lxd_dev.up_stack(None)
+
+    assert error.value.code == 1
+    assert checked == ["http://192.0.2.42:30000/health/ready", "http://192.0.2.42:30001"]
+    output = capsys.readouterr().err
+    assert "frontend endpoint" in output
+    assert "run scripts/lxd-dev down, then scripts/lxd-dev up" in output
 
 
 def test_running_stack_with_changed_address_restarts_and_uses_new_configuration(
