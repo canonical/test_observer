@@ -307,6 +307,77 @@ def test_stop_treats_mismatched_nginx_pid_as_stale_cleanup(monkeypatch: pytest.M
     assert all("-s" not in command and "kill" not in command for command in commands)
 
 
+@pytest.mark.parametrize("failure", ["pid-file-read", "helper-invocation", "helper-permission"])
+def test_stop_retains_state_when_nginx_identity_cannot_be_verified(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, failure: str
+) -> None:
+    state_file = tmp_path / "state.json"
+    state = {"api_pid": 123}
+    state_file.write_text(lxd_dev.json.dumps(state))
+    config_path = tmp_path / "nginx.conf"
+    config_path.touch()
+    pid_path = tmp_path / "system-state/nginx/nginx.pid"
+    pid_path.parent.mkdir(parents=True)
+    monkeypatch.setattr(lxd_dev, "STATE_DIR", tmp_path)
+    monkeypatch.setattr(lxd_dev, "STATE_FILE", state_file)
+    monkeypatch.setattr(lxd_dev, "SYSTEM_STATE_DIR", tmp_path / "system-state")
+    monkeypatch.setattr(lxd_dev, "stop_api", lambda *_args: None)
+    monkeypatch.setattr(lxd_dev, "privileged_path_exists", lambda _path: True)
+    original_unlink = Path.unlink
+    state_unlinks: list[Path] = []
+
+    def track_unlink(path: Path, *args: object, **kwargs: object) -> None:
+        if path == state_file:
+            state_unlinks.append(path)
+        original_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", track_unlink)
+
+    def fake_sudo(args: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        if args[:2] == ["cat", str(pid_path)]:
+            if failure == "pid-file-read":
+                return subprocess.CompletedProcess(args, 1, stdout="")
+            return subprocess.CompletedProcess(args, 0, stdout="456\n")
+        if "--signal-nginx" in args:
+            if failure == "helper-invocation":
+                raise PermissionError("sudo could not invoke helper")
+            if failure == "helper-permission":
+                # sudo uses status 1 when permission policy denies a command;
+                # that must not be confused with the helper's stale-PID result.
+                return subprocess.CompletedProcess(args, 1)
+        pytest.fail(f"Unexpected privileged command: {args}")
+
+    monkeypatch.setattr(lxd_dev, "sudo", fake_sudo)
+
+    with pytest.raises(SystemExit) as error:
+        lxd_dev.stop(state)
+
+    assert error.value.code == 1
+    assert lxd_dev.json.loads(state_file.read_text()) == state
+    assert state_unlinks == []
+
+
+@pytest.mark.parametrize(
+    ("read_error", "expected"),
+    [(FileNotFoundError("process exited"), False), (PermissionError("proc denied"), RuntimeError)],
+)
+def test_nginx_identity_inspection_distinguishes_disappearance_from_access_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    read_error: OSError,
+    expected: bool | type[RuntimeError],
+) -> None:
+    def fail_read(_path: Path) -> bytes:
+        raise read_error
+
+    monkeypatch.setattr(Path, "read_bytes", fail_read)
+
+    if expected is RuntimeError:
+        with pytest.raises(RuntimeError, match="could not inspect nginx PID"):
+            lxd_dev.nginx_process_matches(456, Path("/tmp/nginx.conf"), Path("/tmp/nginx"))
+    else:
+        assert lxd_dev.nginx_process_matches(456, Path("/tmp/nginx.conf"), Path("/tmp/nginx")) is expected
+
+
 def test_stop_api_retries_transient_empty_session_discovery(monkeypatch: pytest.MonkeyPatch) -> None:
     session_scans = iter([[], [456], *([[]] * 20)])
     signals: list[int] = []

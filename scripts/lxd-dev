@@ -202,8 +202,15 @@ def systemctl(action: str, name: str) -> None:
 
 
 def privileged_path_exists(path: Path, *, directory: bool = False) -> bool:
-    result = sudo(["test", "-d" if directory else "-e", str(path)], check=False)
-    return result.returncode == 0
+    try:
+        result = sudo(["test", "-d" if directory else "-e", str(path)], check=False)
+    except OSError as error:
+        raise RuntimeError(f"Could not inspect privileged path {path}: {error}") from error
+    if result.returncode == 0:
+        return True
+    if result.returncode == 1:
+        return False
+    raise RuntimeError(f"Could not inspect privileged path {path} (exit status {result.returncode}).")
 
 
 def ensure_privileges() -> None:
@@ -1076,8 +1083,11 @@ def nginx_process_matches(pid: int, config_path: Path, prefix: Path) -> bool:
     """Return whether PID is the master for this private nginx configuration."""
     try:
         command_line = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
-    except OSError:
+    except (FileNotFoundError, ProcessLookupError):
+        # nginx exited between opening its pidfd and reading /proc.
         return False
+    except OSError as error:
+        raise RuntimeError(f"could not inspect nginx PID {pid}: {error}") from error
     if not command_line.startswith("nginx: master process "):
         return False
     expected_arguments = f" -c {config_path} -p {prefix}/"
@@ -1127,7 +1137,9 @@ def nginx_signal_command(argv: list[str]) -> int:
         config_path = Path(argv[1])
         prefix = Path(argv[2])
         sig = {"QUIT": signal.SIGQUIT, "TERM": signal.SIGTERM}[argv[3]]
-        return 0 if signal_nginx_pid(pid, config_path, prefix, sig) else 1
+        # Reserve a distinct status for a verified stale/mismatched process.
+        # sudo itself commonly returns 1 for invocation/permission failures.
+        return 0 if signal_nginx_pid(pid, config_path, prefix, sig) else 10
     except (OSError, RuntimeError, ValueError, KeyError) as error:
         sys.stderr.write(f"Could not stop nginx safely: {error}\n")
         return 2
@@ -1264,53 +1276,66 @@ def stop(state: dict[str, object]) -> None:
     config_path = STATE_DIR / "nginx.conf"
     prefix = SYSTEM_STATE_DIR / "nginx"
     pid_path = prefix / "nginx.pid"
-    if privileged_path_exists(pid_path) and config_path.exists():
-        try:
-            result = sudo(["cat", str(pid_path)], capture=True, check=False)
-            nginx_pid = int((result.stdout or "").strip())
-        except OSError:
-            nginx_pid = 0
-        except ValueError:
-            nginx_pid = 0
-            progress(f"Ignoring invalid nginx PID file: {pid_path}")
+    try:
+        if privileged_path_exists(pid_path):
+            if not config_path.is_file():
+                raise RuntimeError(f"Cannot inspect nginx identity without configuration {config_path}.")
 
-        def signal_nginx(nginx_pid: int, sig_name: str) -> int:
-            return sudo(
-                [
-                    sys.executable,
-                    str(Path(__file__).resolve()),
-                    "--signal-nginx",
-                    str(nginx_pid),
-                    str(config_path),
-                    str(prefix),
-                    sig_name,
-                ],
-                check=False,
-            ).returncode
+            def read_nginx_pid() -> int | None:
+                try:
+                    result = sudo(["cat", str(pid_path)], capture=True, check=False)
+                except OSError as error:
+                    raise RuntimeError(f"Could not read nginx PID file {pid_path}: {error}") from error
+                if result.returncode != 0:
+                    # cat can fail because the daemon concurrently removed its
+                    # PID file. Only treat that as stale after independently
+                    # verifying absence; all other read failures retain state.
+                    if not privileged_path_exists(pid_path):
+                        return None
+                    raise RuntimeError(f"Could not read nginx PID file {pid_path} (exit status {result.returncode}).")
+                try:
+                    nginx_pid = int((result.stdout or "").strip())
+                except ValueError as error:
+                    raise RuntimeError(f"Invalid nginx PID file {pid_path}.") from error
+                if nginx_pid <= 1:
+                    raise RuntimeError(f"Invalid nginx PID in {pid_path}.")
+                return nginx_pid
 
-        if nginx_pid > 1:
-            signal_status = signal_nginx(nginx_pid, "QUIT")
-            if signal_status == 2:
-                fail(f"Could not stop nginx safely; state retained at {STATE_FILE}; retry scripts/lxd-dev down.")
-            if signal_status == 1:
-                progress(f"Ignoring stale or mismatched nginx PID file: {pid_path}")
-            if signal_status == 0:
-                deadline = time.monotonic() + 10
-                while privileged_path_exists(pid_path) and time.monotonic() < deadline:
-                    time.sleep(0.2)
-                if privileged_path_exists(pid_path):
-                    try:
-                        result = sudo(["cat", str(pid_path)], capture=True, check=False)
-                        nginx_pid = int((result.stdout or "").strip())
-                    except (OSError, ValueError):
-                        nginx_pid = 0
-                    if nginx_pid > 1:
-                        signal_status = signal_nginx(nginx_pid, "TERM")
-                        if signal_status == 2:
-                            fail(
-                                f"Could not stop nginx safely; state retained at {STATE_FILE}; "
-                                "retry scripts/lxd-dev down."
-                            )
+            def signal_nginx(nginx_pid: int, sig_name: str) -> int:
+                try:
+                    result = sudo(
+                        [
+                            sys.executable,
+                            str(Path(__file__).resolve()),
+                            "--signal-nginx",
+                            str(nginx_pid),
+                            str(config_path),
+                            str(prefix),
+                            sig_name,
+                        ],
+                        check=False,
+                    )
+                except OSError as error:
+                    raise RuntimeError(f"Could not invoke the safe nginx signal helper: {error}") from error
+                if result.returncode not in (0, 10):
+                    raise RuntimeError(f"The safe nginx signal helper failed (exit status {result.returncode}).")
+                return result.returncode
+
+            nginx_pid = read_nginx_pid()
+            if nginx_pid is not None:
+                signal_status = signal_nginx(nginx_pid, "QUIT")
+                if signal_status == 10:
+                    progress(f"Ignoring stale or mismatched nginx PID file: {pid_path}")
+                else:
+                    deadline = time.monotonic() + 10
+                    while privileged_path_exists(pid_path) and time.monotonic() < deadline:
+                        time.sleep(0.2)
+                    if privileged_path_exists(pid_path):
+                        nginx_pid = read_nginx_pid()
+                        if nginx_pid is not None:
+                            signal_nginx(nginx_pid, "TERM")
+    except (OSError, RuntimeError) as error:
+        fail(f"Could not stop nginx safely: {error}. State retained at {STATE_FILE}; retry scripts/lxd-dev down.")
 
     try:
         stop_api(state.get("api_pid"), state.get("api_group_token"))
