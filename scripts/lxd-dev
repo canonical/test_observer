@@ -1123,12 +1123,30 @@ def signal_api_session(session_id: int, token: str, sig: int) -> None:
 
 def stop_api(pid: object, group_token: object = None) -> None:
     if isinstance(pid, int) and pid > 1 and isinstance(group_token, str) and group_token:
+        def wait_until_quiet(timeout: float, sig: int) -> bool:
+            deadline = time.monotonic() + timeout
+            absent_since: float | None = None
+            while time.monotonic() < deadline:
+                if api_session_processes(pid, group_token):
+                    absent_since = None
+                    # Repeat the identity-checked signal while polling. The
+                    # initial /proc scan may have missed a process that was
+                    # still starting, and a later scan can also be transient.
+                    signal_api_session(pid, group_token, sig)
+                else:
+                    now = time.monotonic()
+                    if absent_since is None:
+                        absent_since = now
+                    elif now - absent_since >= 0.5:
+                        return True
+                time.sleep(0.1)
+            return False
+
         signal_api_session(pid, group_token, signal.SIGTERM)
-        deadline = time.monotonic() + 10
-        while time.monotonic() < deadline and api_session_processes(pid, group_token):
-            time.sleep(0.2)
-        if api_session_processes(pid, group_token):
-            signal_api_session(pid, group_token, signal.SIGKILL)
+        if not wait_until_quiet(10, signal.SIGTERM):
+            # Keep retrying discovery during the bounded force-stop window as
+            # well, rather than letting one empty /proc scan skip cleanup.
+            wait_until_quiet(1, signal.SIGKILL)
         return
 
     # State files written by older versions do not have a group token. Retain

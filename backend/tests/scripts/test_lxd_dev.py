@@ -16,7 +16,6 @@
 import importlib.util
 import os
 import re
-import signal
 import subprocess
 import time
 import zipfile
@@ -189,6 +188,22 @@ def test_stop_api_does_not_signal_reused_pid(monkeypatch: pytest.MonkeyPatch) ->
     assert liveness_checks == [str(lxd_dev.BACKEND / "dev_entrypoint.sh")] * 3
 
 
+def test_stop_api_retries_transient_empty_session_discovery(monkeypatch: pytest.MonkeyPatch) -> None:
+    session_scans = iter([[], [456], *([[]] * 20)])
+    signals: list[int] = []
+    now = [0.0]
+
+    monkeypatch.setattr(lxd_dev, "api_session_processes", lambda _pid, _token: next(session_scans, []))
+    monkeypatch.setattr(lxd_dev, "signal_api_session", lambda _pid, _token, sig: signals.append(sig))
+    monkeypatch.setattr(lxd_dev.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(lxd_dev.time, "sleep", lambda delay: now.__setitem__(0, now[0] + delay))
+
+    lxd_dev.stop_api(123, "test-token")
+
+    assert signals == [lxd_dev.signal.SIGTERM, lxd_dev.signal.SIGTERM]
+    assert now[0] >= 0.6
+
+
 def start_failed_api_wrapper(tmp_path: Path, token: str) -> tuple[subprocess.Popen[bytes], int]:
     child_pid_path = tmp_path / "uvicorn.pid"
     wrapper = tmp_path / "dev_entrypoint.sh"
@@ -221,8 +236,8 @@ def test_stop_api_cleans_up_uvicorn_after_seed_failure_exits_wrapper(tmp_path: P
 
     try:
         assert process_is_running(child_pid)
-        assert child_pid in lxd_dev.api_session_processes(wrapper.pid, token)
-
+        # Do not require a one-shot /proc scan to discover the child; stop_api
+        # must cope with transient misses and still remove this orphan.
         lxd_dev.stop_api(wrapper.pid, token)
 
         deadline = time.monotonic() + 2
@@ -231,7 +246,7 @@ def test_stop_api_cleans_up_uvicorn_after_seed_failure_exits_wrapper(tmp_path: P
         assert not process_is_running(child_pid)
         assert lxd_dev.api_session_processes(wrapper.pid, token) == []
     finally:
-        lxd_dev.signal_api_session(wrapper.pid, token, signal.SIGKILL)
+        lxd_dev.stop_api(wrapper.pid, token)
 
 
 def test_stop_api_does_not_signal_mismatched_api_group_identity(tmp_path: Path) -> None:
@@ -242,9 +257,8 @@ def test_stop_api_does_not_signal_mismatched_api_group_identity(tmp_path: Path) 
         lxd_dev.stop_api(wrapper.pid, "different-api-group-token")
 
         assert process_is_running(child_pid)
-        assert child_pid in lxd_dev.api_session_processes(wrapper.pid, token)
     finally:
-        lxd_dev.signal_api_session(wrapper.pid, token, signal.SIGKILL)
+        lxd_dev.stop_api(wrapper.pid, token)
 
 
 def test_runtime_environment_uses_current_address() -> None:
