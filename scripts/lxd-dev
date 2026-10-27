@@ -610,6 +610,16 @@ def php_string(value: str) -> str:
     return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
+def configure_runtime_environment(env: dict[str, str], public_ip: str) -> None:
+    """Set address-dependent application settings for this stack startup."""
+    public_api_url = f"http://{public_ip}:30000"
+    env.update({
+        "SAML_IDP_METADATA_URL": f"http://{public_ip}:8080/simplesaml/saml2/idp/metadata.php",
+        "SAML_SP_BASE_URL": public_api_url,
+        "FRONTEND_URL": f"http://{public_ip}:30001",
+    })
+
+
 def service_ip() -> str:
     """Return the container's IPv4 address selected for the default route."""
     try:
@@ -1121,13 +1131,16 @@ def up_stack(prepared_snapshot: tuple[Path, Path] | None) -> None:
     if prepared_snapshot is not None and shutil.which("pg_restore"):
         make_restore_list(*prepared_snapshot)
     if existing and is_process_alive(existing.get("api_pid"), str(BACKEND / "dev_entrypoint.sh")):
-        if prepared_snapshot is None:
+        if prepared_snapshot is None and existing.get("public_ip") == public_ip:
             progress("The Test Observer development stack is already running.")
             progress("Refreshing SimpleSAMLphp metadata for the container IP...")
             ensure_simple_saml(read_simple_saml_secrets(), public_ip)
             print(f"API: {public_api_url}\nFrontend: {public_frontend_url}\nSAML IdP: {public_idp_url}")
             return
-        progress("Stopping the running stack to apply the supplied database snapshot...")
+        if prepared_snapshot is None:
+            progress("The container IP changed; restarting the stack to refresh address-dependent configuration...")
+        else:
+            progress("Stopping the running stack to apply the supplied database snapshot...")
         stop(existing)
         existing = {}
     if existing:
@@ -1140,6 +1153,7 @@ def up_stack(prepared_snapshot: tuple[Path, Path] | None) -> None:
     state: dict[str, object] = {
         "services_were_active": services_were_active,
         "startup_attempt": secrets.token_hex(8),
+        "public_ip": public_ip,
     }
     write_state(state)
 
@@ -1164,15 +1178,13 @@ def up_stack(prepared_snapshot: tuple[Path, Path] | None) -> None:
     ])
     env.update({
         "DB_URL": f"postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@localhost:5432/{DB_NAME}",
-        "SAML_IDP_METADATA_URL": f"http://{public_ip}:8080/simplesaml/saml2/idp/metadata.php",
-        "SAML_SP_BASE_URL": public_api_url,
-        "FRONTEND_URL": public_frontend_url,
         "DISABLE_PERIODIC_TASKS": "true",
         "UV_DYNAMIC_VERSIONING_BYPASS": "0.0.0",
         "SESSIONS_HTTPS_ONLY": "false",
         "USE_LOCAL_LOGIN": "true",
         "PYTHONDONTWRITEBYTECODE": "1",
     })
+    configure_runtime_environment(env, public_ip)
     env["UV"] = str(uv)
 
     build_cache = read_build_cache()
