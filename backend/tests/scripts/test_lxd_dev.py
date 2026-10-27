@@ -14,8 +14,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import importlib.util
+import os
 import re
+import signal
 import subprocess
+import time
 import zipfile
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
@@ -125,9 +128,7 @@ def test_ensure_node_falls_back_when_compatible_node_has_no_npm(
     assert lxd_dev.ensure_node() == pinned_bin
 
 
-def test_write_nginx_config_routes_simplesaml_php_through_fpm(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-) -> None:
+def test_write_nginx_config_routes_simplesaml_php_through_fpm(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setattr(lxd_dev, "STATE_DIR", tmp_path / "state")
     monkeypatch.setattr(lxd_dev, "SYSTEM_STATE_DIR", tmp_path / "system-state")
     monkeypatch.setattr(lxd_dev, "sudo", lambda *_args, **_kwargs: None)
@@ -186,6 +187,64 @@ def test_stop_api_does_not_signal_reused_pid(monkeypatch: pytest.MonkeyPatch) ->
 
     assert signals == [(123, lxd_dev.signal.SIGTERM)]
     assert liveness_checks == [str(lxd_dev.BACKEND / "dev_entrypoint.sh")] * 3
+
+
+def start_failed_api_wrapper(tmp_path: Path, token: str) -> tuple[subprocess.Popen[bytes], int]:
+    child_pid_path = tmp_path / "uvicorn.pid"
+    wrapper = tmp_path / "dev_entrypoint.sh"
+    wrapper.write_text(
+        "#!/bin/bash\n"
+        "set -e\n"
+        "bash -c 'exec -a uvicorn /bin/sleep 120' &\n"
+        f"echo $! > {child_pid_path}\n"
+        "false # Simulates seed_data.py exiting after uvicorn has started.\n"
+    )
+    wrapper.chmod(0o755)
+    env = os.environ.copy()
+    env["LXD_DEV_API_GROUP_TOKEN"] = token
+    process = subprocess.Popen([str(wrapper)], start_new_session=True, env=env)
+    assert process.wait(timeout=5) == 1
+    return process, int(child_pid_path.read_text())
+
+
+def process_is_running(pid: int) -> bool:
+    try:
+        fields = Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()
+    except OSError:
+        return False
+    return fields[0] != "Z"
+
+
+def test_stop_api_cleans_up_uvicorn_after_seed_failure_exits_wrapper(tmp_path: Path) -> None:
+    token = "seed-failure-test-token"
+    wrapper, child_pid = start_failed_api_wrapper(tmp_path, token)
+
+    try:
+        assert process_is_running(child_pid)
+        assert child_pid in lxd_dev.api_session_processes(wrapper.pid, token)
+
+        lxd_dev.stop_api(wrapper.pid, token)
+
+        deadline = time.monotonic() + 2
+        while process_is_running(child_pid) and time.monotonic() < deadline:
+            time.sleep(0.02)
+        assert not process_is_running(child_pid)
+        assert lxd_dev.api_session_processes(wrapper.pid, token) == []
+    finally:
+        lxd_dev.signal_api_session(wrapper.pid, token, signal.SIGKILL)
+
+
+def test_stop_api_does_not_signal_mismatched_api_group_identity(tmp_path: Path) -> None:
+    token = "actual-api-group-token"
+    wrapper, child_pid = start_failed_api_wrapper(tmp_path, token)
+
+    try:
+        lxd_dev.stop_api(wrapper.pid, "different-api-group-token")
+
+        assert process_is_running(child_pid)
+        assert child_pid in lxd_dev.api_session_processes(wrapper.pid, token)
+    finally:
+        lxd_dev.signal_api_session(wrapper.pid, token, signal.SIGKILL)
 
 
 def test_runtime_environment_uses_current_address() -> None:

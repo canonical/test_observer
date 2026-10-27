@@ -1072,7 +1072,69 @@ def is_process_alive(pid: object, expected: str | None = None) -> bool:
     return expected is None or expected in command_line
 
 
-def stop_api(pid: object) -> None:
+def api_session_processes(session_id: int, token: str) -> list[int]:
+    """Find this startup's processes in its isolated API session."""
+    token_entry = f"LXD_DEV_API_GROUP_TOKEN={token}".encode()
+    processes: list[int] = []
+    for process_dir in Path("/proc").iterdir():
+        if not process_dir.name.isdecimal():
+            continue
+        try:
+            stat_fields = process_dir.joinpath("stat").read_text().rsplit(")", 1)[1].split()
+            # The fields following comm start with state (field 3); session
+            # (field 6) is therefore at index 3. Descendants may create their
+            # own process groups but remain members of this isolated session.
+            if int(stat_fields[3]) != session_id:
+                continue
+            environment = process_dir.joinpath("environ").read_bytes().split(b"\0")
+        except (IndexError, OSError, ValueError):
+            continue
+        if token_entry in environment:
+            processes.append(int(process_dir.name))
+    return processes
+
+
+def signal_api_session(session_id: int, token: str, sig: int) -> None:
+    """Signal only token-matching API processes, pinning each PID with a pidfd."""
+    pidfd_open = getattr(os, "pidfd_open", None)
+    pidfd_send_signal = getattr(signal, "pidfd_send_signal", None)
+    if pidfd_open is None or pidfd_send_signal is None:
+        # Never fall back to killpg here: after the wrapper exits its PID/SID
+        # could have been reused, and a broad signal could hit an unrelated job.
+        return
+
+    for candidate in api_session_processes(session_id, token):
+        try:
+            pidfd = pidfd_open(candidate)
+        except (ProcessLookupError, PermissionError, OSError):
+            continue
+        try:
+            # Re-check identity after opening the pidfd. Even if the numeric
+            # PID was reused during discovery, the descriptor now pins that
+            # process and the token check prevents signaling it by mistake.
+            if candidate not in api_session_processes(session_id, token):
+                continue
+            try:
+                pidfd_send_signal(pidfd, sig)
+            except (ProcessLookupError, PermissionError, OSError):
+                pass
+        finally:
+            os.close(pidfd)
+
+
+def stop_api(pid: object, group_token: object = None) -> None:
+    if isinstance(pid, int) and pid > 1 and isinstance(group_token, str) and group_token:
+        signal_api_session(pid, group_token, signal.SIGTERM)
+        deadline = time.monotonic() + 10
+        while time.monotonic() < deadline and api_session_processes(pid, group_token):
+            time.sleep(0.2)
+        if api_session_processes(pid, group_token):
+            signal_api_session(pid, group_token, signal.SIGKILL)
+        return
+
+    # State files written by older versions do not have a group token. Retain
+    # the existing wrapper-identity guard for those entries; never infer that
+    # a mismatched PID's process group belongs to the API without the token.
     expected_command = str(BACKEND / "dev_entrypoint.sh")
     if not is_process_alive(pid, expected_command):
         return
@@ -1110,7 +1172,7 @@ def stop(state: dict[str, object]) -> None:
             except ValueError:
                 progress(f"Ignoring invalid nginx PID file: {pid_path}")
 
-    stop_api(state.get("api_pid"))
+    stop_api(state.get("api_pid"), state.get("api_group_token"))
     services_were_active = state.get("services_were_active", {})
     if isinstance(services_were_active, dict):
         for service in ("php8.3-fpm", "postgresql"):
@@ -1258,6 +1320,8 @@ def up_stack(prepared_snapshot: tuple[Path, Path] | None) -> None:
     progress("Starting the API; pending migrations will be applied automatically...")
     log_path = STATE_DIR / "api.log"
     log_offset = log_path.stat().st_size if log_path.exists() else 0
+    api_group_token = secrets.token_hex(32)
+    env["LXD_DEV_API_GROUP_TOKEN"] = api_group_token
     with log_path.open("a") as log:
         process = subprocess.Popen(
             [str(BACKEND / "dev_entrypoint.sh")],
@@ -1268,6 +1332,7 @@ def up_stack(prepared_snapshot: tuple[Path, Path] | None) -> None:
             start_new_session=True,
         )
     state["api_pid"] = process.pid
+    state["api_group_token"] = api_group_token
     write_state(state)
     wait_http(f"{API_URL}/health/ready", timeout=180)
     if seed_data:
