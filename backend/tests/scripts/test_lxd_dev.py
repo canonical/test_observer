@@ -19,6 +19,7 @@ import re
 import subprocess
 import time
 import zipfile
+from collections.abc import Iterator
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from types import SimpleNamespace
@@ -251,6 +252,124 @@ def test_stop_retains_state_when_api_cleanup_cannot_be_verified(
     assert "Could not stop the API safely" in output.err
     assert f"State retained at {state_file}" in output.err
     assert "development services stopped" not in output.out
+
+
+@pytest.mark.parametrize("failure_point", ["stat", "environ", "identity-recheck"])
+def test_down_retains_state_when_process_identity_scan_is_incomplete(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    failure_point: str,
+) -> None:
+    state_file = tmp_path / "state.json"
+    state = {"api_pid": 123, "api_group_token": "test-token"}
+    state_file.write_text(lxd_dev.json.dumps(state))
+    monkeypatch.setattr(lxd_dev, "STATE_DIR", tmp_path)
+    monkeypatch.setattr(lxd_dev, "STATE_FILE", state_file)
+    monkeypatch.setattr(lxd_dev, "privileged_path_exists", lambda _path: False)
+    monkeypatch.setattr(lxd_dev, "ensure_privileges", lambda: None)
+    monkeypatch.setattr(lxd_dev.os, "killpg", lambda *_args: pytest.fail("unsafe process-group signal attempted"))
+
+    proc_dir = Path("/proc/456")
+    proc_stat = proc_dir / "stat"
+    proc_environ = proc_dir / "environ"
+    process_stat = "456 (api) S 0 0 123 0\n"
+    original_iterdir = Path.iterdir
+    original_read_text = Path.read_text
+    original_read_bytes = Path.read_bytes
+    procfd_opened = False
+    environment_reads = 0
+
+    def fake_iterdir(path: Path) -> Iterator[Path]:
+        if path == Path("/proc"):
+            return iter([proc_dir])
+        return original_iterdir(path)
+
+    def fake_read_text(path: Path, *args: object, **kwargs: object) -> str:
+        if path == proc_stat:
+            if failure_point == "stat":
+                raise PermissionError("stat denied")
+            return process_stat
+        return original_read_text(path, *args, **kwargs)
+
+    def fake_read_bytes(path: Path) -> bytes:
+        nonlocal environment_reads
+        if path == proc_environ:
+            environment_reads += 1
+            if failure_point == "environ" or (
+                failure_point == "identity-recheck" and procfd_opened and environment_reads > 1
+            ):
+                raise PermissionError("environment denied")
+            return b"LXD_DEV_API_GROUP_TOKEN=test-token\0"
+        return original_read_bytes(path)
+
+    opened_pids: list[int] = []
+    signals: list[tuple[int, int]] = []
+
+    def fake_pidfd_open(pid: int) -> int:
+        nonlocal procfd_opened
+        procfd_opened = True
+        opened_pids.append(pid)
+        return 987
+
+    monkeypatch.setattr(Path, "iterdir", fake_iterdir)
+    monkeypatch.setattr(Path, "read_text", fake_read_text)
+    monkeypatch.setattr(Path, "read_bytes", fake_read_bytes)
+    monkeypatch.setattr(lxd_dev.os, "pidfd_open", fake_pidfd_open, raising=False)
+    monkeypatch.setattr(
+        lxd_dev.signal,
+        "pidfd_send_signal",
+        lambda pidfd, sig: signals.append((pidfd, sig)),
+        raising=False,
+    )
+    monkeypatch.setattr(lxd_dev.os, "close", lambda _fd: None)
+
+    with pytest.raises(SystemExit) as error:
+        lxd_dev.down()
+
+    assert error.value.code == 1
+    assert lxd_dev.json.loads(state_file.read_text()) == state
+    assert signals == []
+    assert opened_pids == ([456] if failure_point == "identity-recheck" else [])
+    output = capsys.readouterr()
+    assert "Could not stop the API safely" in output.err
+    assert f"State retained at {state_file}" in output.err
+    assert "development services stopped" not in output.out
+
+
+@pytest.mark.parametrize("vanish_at", ["stat", "environ"])
+def test_api_session_process_scan_tolerates_process_disappearance(
+    monkeypatch: pytest.MonkeyPatch, vanish_at: str
+) -> None:
+    proc_dir = Path("/proc/456")
+    proc_stat = proc_dir / "stat"
+    proc_environ = proc_dir / "environ"
+    original_iterdir = Path.iterdir
+    original_read_text = Path.read_text
+    original_read_bytes = Path.read_bytes
+
+    def fake_iterdir(path: Path) -> Iterator[Path]:
+        if path == Path("/proc"):
+            return iter([proc_dir])
+        return original_iterdir(path)
+
+    def fake_read_text(path: Path, *args: object, **kwargs: object) -> str:
+        if path == proc_stat:
+            if vanish_at == "stat":
+                raise FileNotFoundError("process exited")
+            return "456 (api) S 0 0 123 0\n"
+        return original_read_text(path, *args, **kwargs)
+
+    def fake_read_bytes(path: Path) -> bytes:
+        if path == proc_environ:
+            raise ProcessLookupError("process exited")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "iterdir", fake_iterdir)
+    monkeypatch.setattr(Path, "read_text", fake_read_text)
+    monkeypatch.setattr(Path, "read_bytes", fake_read_bytes)
+
+    assert lxd_dev.api_session_processes(123, "test-token") == []
 
 
 def start_failed_api_wrapper(tmp_path: Path, token: str) -> tuple[subprocess.Popen[bytes], int]:

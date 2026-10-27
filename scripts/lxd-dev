@@ -1073,24 +1073,42 @@ def is_process_alive(pid: object, expected: str | None = None) -> bool:
 
 
 def api_session_processes(session_id: int, token: str) -> list[int]:
-    """Find this startup's processes in its isolated API session."""
+    """Find this startup's processes in its isolated API session.
+
+    Return only after a complete identity scan. Processes that disappear while
+    being inspected are ordinary /proc races; other inspection failures make
+    the scan incomplete and must prevent cleanup from claiming success.
+    """
     token_entry = f"LXD_DEV_API_GROUP_TOKEN={token}".encode()
     processes: list[int] = []
-    for process_dir in Path("/proc").iterdir():
-        if not process_dir.name.isdecimal():
-            continue
-        try:
-            stat_fields = process_dir.joinpath("stat").read_text().rsplit(")", 1)[1].split()
-            # The fields following comm start with state (field 3); session
-            # (field 6) is therefore at index 3. Descendants may create their
-            # own process groups but remain members of this isolated session.
-            if int(stat_fields[3]) != session_id:
+    try:
+        for process_dir in Path("/proc").iterdir():
+            if not process_dir.name.isdecimal():
                 continue
-            environment = process_dir.joinpath("environ").read_bytes().split(b"\0")
-        except (IndexError, OSError, ValueError):
-            continue
-        if token_entry in environment:
-            processes.append(int(process_dir.name))
+            try:
+                stat_fields = process_dir.joinpath("stat").read_text().rsplit(")", 1)[1].split()
+                # The fields following comm start with state (field 3); session
+                # (field 6) is therefore at index 3. Descendants may create their
+                # own process groups but remain members of this isolated session.
+                process_session = int(stat_fields[3])
+            except (FileNotFoundError, ProcessLookupError):
+                # The process exited while /proc was being inspected.
+                continue
+            except (IndexError, OSError, ValueError) as error:
+                raise RuntimeError(f"Could not inspect process identity at {process_dir}/stat: {error}") from error
+            if process_session != session_id:
+                continue
+            try:
+                environment = process_dir.joinpath("environ").read_bytes().split(b"\0")
+            except (FileNotFoundError, ProcessLookupError):
+                # The process exited after its stat entry was read.
+                continue
+            except OSError as error:
+                raise RuntimeError(f"Could not inspect process identity at {process_dir}/environ: {error}") from error
+            if token_entry in environment:
+                processes.append(int(process_dir.name))
+    except OSError as error:
+        raise RuntimeError(f"Could not complete the /proc process identity scan: {error}") from error
     return processes
 
 
