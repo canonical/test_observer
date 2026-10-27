@@ -230,7 +230,7 @@ def test_signal_nginx_pid_signals_matching_private_master(monkeypatch: pytest.Mo
         if path == proc_cmdline:
             return (
                 b"nginx: master process /usr/sbin/nginx -c /tmp/lxd-dev/nginx.conf "
-                b"-p /var/lib/test-observer-lxd-dev/nginx/\0"
+                b"-p /var/lib/test-observer-lxd-dev/nginx/\0 \t\n"
             )
         return original_read_bytes(path)
 
@@ -254,6 +254,63 @@ def test_signal_nginx_pid_signals_matching_private_master(monkeypatch: pytest.Mo
     )
 
     assert pidfd_signals == [(89, lxd_dev.signal.SIGQUIT)]
+
+
+def test_nginx_process_matches_literal_paths_with_spaces(monkeypatch: pytest.MonkeyPatch) -> None:
+    proc_cmdline = Path("/proc/456/cmdline")
+    original_read_bytes = Path.read_bytes
+    config_path = Path("/tmp/lxd dev/nginx.conf")
+    prefix = Path("/var/lib/test observer/nginx")
+
+    def fake_read_bytes(path: Path) -> bytes:
+        if path == proc_cmdline:
+            return f"nginx: master process /usr/sbin/nginx -c {config_path} -p {prefix}/\0".encode()
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", fake_read_bytes)
+
+    assert lxd_dev.nginx_process_matches(456, config_path, prefix) is True
+
+
+@pytest.mark.parametrize(
+    ("actual_config", "actual_prefix"),
+    [
+        ("/tmp/lxd-dev/nginx.conf", "/var/lib/test-observer-lxd-dev/nginx/other-instance/"),
+        ("/tmp/lxd-dev/nginx.conf", "/var/lib/test-observer-lxd-dev/nginx-other/"),
+        ("/tmp/lxd-dev/other-nginx.conf", "/var/lib/test-observer-lxd-dev/nginx/"),
+    ],
+)
+def test_signal_nginx_pid_does_not_signal_different_private_arguments(
+    monkeypatch: pytest.MonkeyPatch, actual_config: str, actual_prefix: str
+) -> None:
+    pidfd_signals: list[tuple[int, int]] = []
+    proc_cmdline = Path("/proc/456/cmdline")
+    original_read_bytes = Path.read_bytes
+
+    def fake_read_bytes(path: Path) -> bytes:
+        if path == proc_cmdline:
+            return f"nginx: master process /usr/sbin/nginx -c {actual_config} -p {actual_prefix}\0".encode()
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(lxd_dev.os, "pidfd_open", lambda _pid: 89)
+    monkeypatch.setattr(lxd_dev.os, "close", lambda _pidfd: None)
+    monkeypatch.setattr(
+        lxd_dev.signal,
+        "pidfd_send_signal",
+        lambda pidfd, sig: pidfd_signals.append((pidfd, sig)),
+    )
+    monkeypatch.setattr(Path, "read_bytes", fake_read_bytes)
+
+    assert (
+        lxd_dev.signal_nginx_pid(
+            456,
+            Path("/tmp/lxd-dev/nginx.conf"),
+            Path("/var/lib/test-observer-lxd-dev/nginx"),
+            lxd_dev.signal.SIGQUIT,
+        )
+        is False
+    )
+    assert pidfd_signals == []
 
 
 def test_stop_treats_mismatched_nginx_pid_as_stale_cleanup(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

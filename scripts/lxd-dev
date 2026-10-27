@@ -1103,7 +1103,13 @@ def is_process_alive(pid: object, expected: str | None = None) -> bool:
 def nginx_process_matches(pid: int, config_path: Path, prefix: Path) -> bool:
     """Return whether PID is the master for this private nginx configuration."""
     try:
-        command_line = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
+        command_line = (
+            Path(f"/proc/{pid}/cmdline")
+            .read_bytes()
+            .replace(b"\0", b" ")
+            .decode(errors="replace")
+            .strip()
+        )
     except (FileNotFoundError, ProcessLookupError):
         # nginx exited between opening its pidfd and reading /proc.
         return False
@@ -1111,8 +1117,21 @@ def nginx_process_matches(pid: int, config_path: Path, prefix: Path) -> bool:
         raise RuntimeError(f"could not inspect nginx PID {pid}: {error}") from error
     if not command_line.startswith("nginx: master process "):
         return False
-    expected_arguments = f" -c {config_path} -p {prefix}/"
-    return expected_arguments in command_line
+    # nginx rewrites argv to one process-title string, so check explicit option
+    # boundaries rather than searching for a prefix that could also match a
+    # nested instance directory. Keep paths as literal values (including spaces).
+    option_counts = {
+        option: len(re.findall(rf"(?<!\S){option}(?=\s)", command_line))
+        for option in ("-c", "-p")
+    }
+    if any(count != 1 for count in option_counts.values()):
+        return False
+    expected_config = re.escape(str(config_path))
+    expected_prefix = re.escape(f"{prefix}/")
+    return bool(
+        re.search(rf"(?<!\S)-c\s+{expected_config}(?=\s|$)", command_line)
+        and re.search(rf"(?<!\S)-p\s+{expected_prefix}(?=\s|$)", command_line)
+    )
 
 
 def signal_nginx_pid(pid: int, config_path: Path, prefix: Path, sig: int) -> bool:
