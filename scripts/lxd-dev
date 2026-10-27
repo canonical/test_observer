@@ -51,7 +51,6 @@ STATE_FILE = STATE_DIR / "state.json"
 SECRETS_FILE = STATE_DIR / "secrets.json"
 BUILD_CACHE_FILE = STATE_DIR / "build-cache.json"
 DATABASE_STATE_FILE = STATE_DIR / "database-state.json"
-SEED_COMPLETION_FILE = STATE_DIR / "seed-complete"
 SYSTEM_DIR = Path("/opt/test-observer-lxd-dev")
 SYSTEM_STATE_DIR = Path("/var/lib/test-observer-lxd-dev")
 WEBROOT = SYSTEM_STATE_DIR / "www"
@@ -435,7 +434,12 @@ def ensure_node() -> Path:
     if version and version.returncode == 0:
         match = re.match(r"v(\d+)\.(\d+)\.(\d+)", (version.stdout or "").strip())
         if match and int(match.group(1)) == 22 and (int(match.group(2)), int(match.group(3))) >= (13, 0):
-            return Path(shutil.which("node") or "node").resolve().parent
+            node_bin = Path(shutil.which("node") or "node").resolve().parent
+            npm = node_bin / "npm"
+            if npm.is_file() and os.access(npm, os.X_OK):
+                npm_version = run([str(npm), "--version"], capture=True, check=False)
+                if npm_version.returncode == 0:
+                    return node_bin
 
     archive_name, expected_hash = node_archive_details()
     install_dir = Path.home() / ".local/opt" / f"node-v{NODE_VERSION}"
@@ -801,7 +805,7 @@ def build_frontend(
     sudo(["chown", "-R", "root:www-data", str(WEBROOT)])
 
 
-def nginx_quote(path: Path) -> str:
+def nginx_quote(path: Path | str) -> str:
     return '"' + str(path).replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
@@ -821,6 +825,7 @@ def write_nginx_config(saml_dir: Path) -> tuple[Path, Path]:
         sudo(["install", "-d", "-o", "root", "-g", "www-data", "-m", "0770", str(directory)])
     config = STATE_DIR / "nginx.conf"
     frontend_root = WEBROOT
+    saml_public_dir = saml_dir / "public"
     conf = f"""user www-data;
 worker_processes 1;
 pid {nginx_quote(prefix / 'nginx.pid')};
@@ -852,16 +857,16 @@ http {{
     server {{
         listen 8080;
         server_name localhost _;
-        location ^~ /simplesaml {{
-            alias {nginx_quote(saml_dir / 'public')};
-            location ~ ^(?<prefix>/simplesaml)(?<phpfile>.+?\\.php)(?<pathinfo>/.*)?$ {{
-                include /etc/nginx/fastcgi_params;
-                fastcgi_pass unix:/run/php/php8.3-fpm.sock;
-                fastcgi_param SCRIPT_FILENAME {nginx_quote(saml_dir / 'public')[:-1]}$phpfile";
-                fastcgi_param SCRIPT_NAME /simplesaml$phpfile;
-                fastcgi_param PATH_INFO $pathinfo if_not_empty;
-                fastcgi_param SIMPLESAMLPHP_CONFIG_DIR {nginx_quote(saml_dir / 'config')};
-            }}
+        location /simplesaml/ {{
+            alias {nginx_quote(str(saml_public_dir) + "/")};
+        }}
+        location ~ ^(?<prefix>/simplesaml)(?<phpfile>.+?\\.php)(?<pathinfo>/.*)?$ {{
+            include /etc/nginx/fastcgi_params;
+            fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME {nginx_quote(saml_public_dir)[:-1]}$phpfile";
+            fastcgi_param SCRIPT_NAME /simplesaml$phpfile;
+            fastcgi_param PATH_INFO $pathinfo if_not_empty;
+            fastcgi_param SIMPLESAMLPHP_CONFIG_DIR {nginx_quote(saml_dir / 'config')};
         }}
     }}
 }}
@@ -885,10 +890,19 @@ def wait_http(url: str, *, timeout: int = 90) -> None:
     fail(f"Timed out waiting for {url}: {last_error}")
 
 
-def wait_for_seed_completion(pid: int, *, timeout: int = 300) -> None:
+def wait_for_seed_completion(pid: int, log_path: Path, log_offset: int, *, timeout: int = 300) -> None:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if SEED_COMPLETION_FILE.is_file():
+        try:
+            with log_path.open("r") as log:
+                log.seek(log_offset)
+                seed_log = log.read()
+        except OSError:
+            seed_log = ""
+        if (
+            "Database seeding completed successfully!" in seed_log
+            or "Database already contains data. Skipping seed operation." in seed_log
+        ):
             return
         if not is_process_alive(pid, str(BACKEND / "dev_entrypoint.sh")):
             fail(f"Backend exited before initial database seeding completed; check {STATE_DIR / 'api.log'}.")
@@ -1059,16 +1073,17 @@ def is_process_alive(pid: object, expected: str | None = None) -> bool:
 
 
 def stop_api(pid: object) -> None:
-    if not is_process_alive(pid, str(BACKEND / "dev_entrypoint.sh")):
+    expected_command = str(BACKEND / "dev_entrypoint.sh")
+    if not is_process_alive(pid, expected_command):
         return
     try:
         os.killpg(int(pid), signal.SIGTERM)
     except (ProcessLookupError, PermissionError):
         return
     deadline = time.monotonic() + 10
-    while time.monotonic() < deadline and is_process_alive(pid):
+    while time.monotonic() < deadline and is_process_alive(pid, expected_command):
         time.sleep(0.2)
-    if is_process_alive(pid):
+    if is_process_alive(pid, expected_command):
         try:
             os.killpg(int(pid), signal.SIGKILL)
         except (ProcessLookupError, PermissionError):
@@ -1232,11 +1247,7 @@ def up_stack(prepared_snapshot: tuple[Path, Path] | None) -> None:
         else:
             progress("Using the existing database without adding seed data.")
     env["SEED_DATA"] = "true" if seed_data else "false"
-    if seed_data:
-        SEED_COMPLETION_FILE.unlink(missing_ok=True)
-        env["SEED_COMPLETION_FILE"] = str(SEED_COMPLETION_FILE)
-    else:
-        env.pop("SEED_COMPLETION_FILE", None)
+    env.pop("SEED_COMPLETION_FILE", None)
 
     config_path, prefix = write_nginx_config(saml_dir)
     sudo(["nginx", "-t", "-c", str(config_path), "-p", str(prefix) + "/"])
@@ -1246,6 +1257,7 @@ def up_stack(prepared_snapshot: tuple[Path, Path] | None) -> None:
 
     progress("Starting the API; pending migrations will be applied automatically...")
     log_path = STATE_DIR / "api.log"
+    log_offset = log_path.stat().st_size if log_path.exists() else 0
     with log_path.open("a") as log:
         process = subprocess.Popen(
             [str(BACKEND / "dev_entrypoint.sh")],
@@ -1259,7 +1271,7 @@ def up_stack(prepared_snapshot: tuple[Path, Path] | None) -> None:
     write_state(state)
     wait_http(f"{API_URL}/health/ready", timeout=180)
     if seed_data:
-        wait_for_seed_completion(process.pid)
+        wait_for_seed_completion(process.pid, log_path, log_offset)
         write_database_state(initialized=True, source="seeded")
     wait_http(FRONTEND_URL)
 

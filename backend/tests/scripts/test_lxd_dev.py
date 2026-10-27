@@ -14,6 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import importlib.util
+import re
 import subprocess
 import zipfile
 from importlib.machinery import SourceFileLoader
@@ -97,6 +98,94 @@ def test_should_seed_database_keeps_legacy_initialized_database(
 
     assert lxd_dev.should_seed_database() is False
     assert lxd_dev.read_database_state() == {"initialized": True, "source": "existing"}
+
+
+def test_ensure_node_falls_back_when_compatible_node_has_no_npm(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    system_node = tmp_path / "system-node/bin"
+    system_node.mkdir(parents=True)
+    (system_node / "node").touch()
+    pinned_node = tmp_path / ".local/opt" / f"node-v{lxd_dev.NODE_VERSION}"
+    pinned_bin = pinned_node / "bin"
+    pinned_bin.mkdir(parents=True)
+    (pinned_bin / "node").touch()
+    (pinned_bin / "npm").touch()
+    (pinned_bin / "npm").chmod(0o755)
+    monkeypatch.setattr(lxd_dev.Path, "home", lambda: tmp_path)
+    monkeypatch.setattr(lxd_dev.shutil, "which", lambda _command: str(system_node / "node"))
+
+    def fake_run(args: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        if args == ["node", "--version"]:
+            return subprocess.CompletedProcess(args, 0, stdout="v22.14.0")
+        return subprocess.CompletedProcess(args, 0, stdout="10.9.2")
+
+    monkeypatch.setattr(lxd_dev, "run", fake_run)
+
+    assert lxd_dev.ensure_node() == pinned_bin
+
+
+def test_write_nginx_config_routes_simplesaml_php_through_fpm(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(lxd_dev, "STATE_DIR", tmp_path / "state")
+    monkeypatch.setattr(lxd_dev, "SYSTEM_STATE_DIR", tmp_path / "system-state")
+    monkeypatch.setattr(lxd_dev, "sudo", lambda *_args, **_kwargs: None)
+
+    config_path, _prefix = lxd_dev.write_nginx_config(tmp_path / "simplesaml")
+
+    config = config_path.read_text()
+    php_location = "location ~ ^(?<prefix>/simplesaml)(?<phpfile>.+?\\.php)"
+    assert php_location in config
+    assert "location ^~ /simplesaml" not in config
+    public_dir = tmp_path / "simplesaml" / "public"
+    assert f'alias "{public_dir}/";' in config
+    assert "fastcgi_pass unix:/run/php/php8.3-fpm.sock;" in config
+    assert re.match(
+        r"^/simplesaml(?P<phpfile>.+?\.php)(?P<pathinfo>/.*)?$",
+        "/simplesaml/saml2/idp/metadata.php",
+    )
+
+
+def test_wait_for_seed_completion_uses_new_seed_log_output(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    log_path = tmp_path / "api.log"
+    stale_marker = "Database seeding completed successfully!\n"
+    log_path.write_text(stale_marker)
+    monkeypatch.setattr(lxd_dev, "is_process_alive", lambda *_args: True)
+    monotonic_values = iter([0, 0, 2])
+    monkeypatch.setattr(lxd_dev.time, "monotonic", lambda: next(monotonic_values))
+    monkeypatch.setattr(lxd_dev.time, "sleep", lambda _delay: None)
+
+    with pytest.raises(SystemExit):
+        lxd_dev.wait_for_seed_completion(42, log_path, len(stale_marker.encode()), timeout=1)
+    assert "Timed out waiting for initial database seeding" in capsys.readouterr().err
+
+    with log_path.open("a") as log:
+        log.write("Starting database seed...\nDatabase seeding completed successfully!\n")
+    monkeypatch.setattr(lxd_dev.time, "monotonic", lambda: 0)
+    lxd_dev.wait_for_seed_completion(42, log_path, len(stale_marker.encode()), timeout=1)
+
+
+def test_stop_api_does_not_signal_reused_pid(monkeypatch: pytest.MonkeyPatch) -> None:
+    liveness_checks: list[str | None] = []
+    alive_results = iter([True, False, False])
+    signals: list[tuple[int, int]] = []
+
+    def fake_is_process_alive(_pid: object, expected: str | None = None) -> bool:
+        liveness_checks.append(expected)
+        return next(alive_results)
+
+    monkeypatch.setattr(lxd_dev, "is_process_alive", fake_is_process_alive)
+    monkeypatch.setattr(lxd_dev.os, "killpg", lambda pid, sig: signals.append((pid, sig)))
+    monkeypatch.setattr(lxd_dev.time, "monotonic", lambda: 0)
+    monkeypatch.setattr(lxd_dev.time, "sleep", lambda _delay: None)
+
+    lxd_dev.stop_api(123)
+
+    assert signals == [(123, lxd_dev.signal.SIGTERM)]
+    assert liveness_checks == [str(lxd_dev.BACKEND / "dev_entrypoint.sh")] * 3
 
 
 def test_runtime_environment_uses_current_address() -> None:
