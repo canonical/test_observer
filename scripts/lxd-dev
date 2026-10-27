@@ -1072,6 +1072,67 @@ def is_process_alive(pid: object, expected: str | None = None) -> bool:
     return expected is None or expected in command_line
 
 
+def nginx_process_matches(pid: int, config_path: Path, prefix: Path) -> bool:
+    """Return whether PID is the master for this private nginx configuration."""
+    try:
+        command_line = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
+    except OSError:
+        return False
+    if not command_line.startswith("nginx: master process "):
+        return False
+    expected_arguments = f" -c {config_path} -p {prefix}/"
+    return expected_arguments in command_line
+
+
+def signal_nginx_pid(pid: int, config_path: Path, prefix: Path, sig: int) -> bool:
+    """Signal this private nginx master only, pinning its identity with a pidfd.
+
+    Must run with permission to signal nginx (the CLI invokes it through sudo).
+    A missing or mismatched process is stale PID-file cleanup, not a live
+    instance. Failure to safely signal is reported instead of falling back to
+    a PID-based signal.
+    """
+    pidfd_open = getattr(os, "pidfd_open", None)
+    pidfd_send_signal = getattr(signal, "pidfd_send_signal", None)
+    if pidfd_open is None or pidfd_send_signal is None:
+        raise RuntimeError("pidfd signaling is unavailable")
+    try:
+        pidfd = pidfd_open(pid)
+    except ProcessLookupError:
+        return False
+    except OSError as error:
+        raise RuntimeError(f"could not pin nginx PID {pid}: {error}") from error
+    try:
+        # Open first, then inspect identity. The pidfd pins this exact process
+        # even if it exits and the numeric PID is subsequently reused.
+        if not nginx_process_matches(pid, config_path, prefix):
+            return False
+        try:
+            pidfd_send_signal(pidfd, sig)
+        except ProcessLookupError:
+            return False
+        except OSError as error:
+            raise RuntimeError(f"could not signal nginx PID {pid}: {error}") from error
+        return True
+    finally:
+        os.close(pidfd)
+
+
+def nginx_signal_command(argv: list[str]) -> int:
+    """Privileged internal entry point used to send pidfd-pinned nginx signals."""
+    if len(argv) != 4:
+        return 2
+    try:
+        pid = int(argv[0])
+        config_path = Path(argv[1])
+        prefix = Path(argv[2])
+        sig = {"QUIT": signal.SIGQUIT, "TERM": signal.SIGTERM}[argv[3]]
+        return 0 if signal_nginx_pid(pid, config_path, prefix, sig) else 1
+    except (OSError, RuntimeError, ValueError, KeyError) as error:
+        print(f"Could not stop nginx safely: {error}", file=sys.stderr)
+        return 2
+
+
 def api_session_processes(session_id: int, token: str) -> list[int]:
     """Find this startup's processes in its isolated API session.
 
@@ -1204,20 +1265,52 @@ def stop(state: dict[str, object]) -> None:
     prefix = SYSTEM_STATE_DIR / "nginx"
     pid_path = prefix / "nginx.pid"
     if privileged_path_exists(pid_path) and config_path.exists():
-        sudo(["nginx", "-s", "quit", "-c", str(config_path), "-p", str(prefix) + "/"], check=False)
-        deadline = time.monotonic() + 10
-        while privileged_path_exists(pid_path) and time.monotonic() < deadline:
-            time.sleep(0.2)
-        if privileged_path_exists(pid_path):
-            try:
-                result = sudo(["cat", str(pid_path)], capture=True, check=False)
-                nginx_pid = int((result.stdout or "").strip())
-                if is_process_alive(nginx_pid, str(config_path)):
-                    sudo(["kill", "-TERM", str(nginx_pid)], check=False)
-            except OSError:
-                pass
-            except ValueError:
-                progress(f"Ignoring invalid nginx PID file: {pid_path}")
+        try:
+            result = sudo(["cat", str(pid_path)], capture=True, check=False)
+            nginx_pid = int((result.stdout or "").strip())
+        except OSError:
+            nginx_pid = 0
+        except ValueError:
+            nginx_pid = 0
+            progress(f"Ignoring invalid nginx PID file: {pid_path}")
+
+        def signal_nginx(nginx_pid: int, sig_name: str) -> int:
+            return sudo(
+                [
+                    sys.executable,
+                    str(Path(__file__).resolve()),
+                    "--signal-nginx",
+                    str(nginx_pid),
+                    str(config_path),
+                    str(prefix),
+                    sig_name,
+                ],
+                check=False,
+            ).returncode
+
+        if nginx_pid > 1:
+            signal_status = signal_nginx(nginx_pid, "QUIT")
+            if signal_status == 2:
+                fail(f"Could not stop nginx safely; state retained at {STATE_FILE}; retry scripts/lxd-dev down.")
+            if signal_status == 1:
+                progress(f"Ignoring stale or mismatched nginx PID file: {pid_path}")
+            if signal_status == 0:
+                deadline = time.monotonic() + 10
+                while privileged_path_exists(pid_path) and time.monotonic() < deadline:
+                    time.sleep(0.2)
+                if privileged_path_exists(pid_path):
+                    try:
+                        result = sudo(["cat", str(pid_path)], capture=True, check=False)
+                        nginx_pid = int((result.stdout or "").strip())
+                    except (OSError, ValueError):
+                        nginx_pid = 0
+                    if nginx_pid > 1:
+                        signal_status = signal_nginx(nginx_pid, "TERM")
+                        if signal_status == 2:
+                            fail(
+                                f"Could not stop nginx safely; state retained at {STATE_FILE}; "
+                                "retry scripts/lxd-dev down."
+                            )
 
     try:
         stop_api(state.get("api_pid"), state.get("api_group_token"))
@@ -1454,4 +1547,6 @@ def main(argv: list[str]) -> None:
 
 
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--signal-nginx":
+        raise SystemExit(nginx_signal_command(sys.argv[2:]))
     main(sys.argv[1:])

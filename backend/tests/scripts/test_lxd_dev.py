@@ -189,6 +189,124 @@ def test_stop_api_does_not_signal_reused_pid(monkeypatch: pytest.MonkeyPatch) ->
     assert liveness_checks == [str(lxd_dev.BACKEND / "dev_entrypoint.sh")] * 3
 
 
+def test_signal_nginx_pid_does_not_signal_reused_pid(monkeypatch: pytest.MonkeyPatch) -> None:
+    pidfds_opened: list[int] = []
+    pidfds_closed: list[int] = []
+    signals: list[tuple[int, int]] = []
+    proc_cmdline = Path("/proc/456/cmdline")
+    original_read_bytes = Path.read_bytes
+
+    def fake_read_bytes(path: Path) -> bytes:
+        if path == proc_cmdline:
+            return b"unrelated-service\0--worker\0"
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(lxd_dev.os, "pidfd_open", lambda pid: pidfds_opened.append(pid) or 89)
+    monkeypatch.setattr(lxd_dev.os, "close", lambda pidfd: pidfds_closed.append(pidfd))
+    monkeypatch.setattr(lxd_dev.signal, "pidfd_send_signal", lambda pidfd, sig: signals.append((pidfd, sig)))
+    monkeypatch.setattr(Path, "read_bytes", fake_read_bytes)
+
+    assert (
+        lxd_dev.signal_nginx_pid(
+            456,
+            Path("/home/user/.local/state/test-observer/lxd-dev/nginx.conf"),
+            Path("/var/lib/test-observer-lxd-dev/nginx"),
+            lxd_dev.signal.SIGQUIT,
+        )
+        is False
+    )
+
+    assert pidfds_opened == [456]
+    assert pidfds_closed == [89]
+    assert signals == []
+
+
+def test_signal_nginx_pid_signals_matching_private_master(monkeypatch: pytest.MonkeyPatch) -> None:
+    pidfd_signals: list[tuple[int, int]] = []
+    proc_cmdline = Path("/proc/456/cmdline")
+    original_read_bytes = Path.read_bytes
+
+    def fake_read_bytes(path: Path) -> bytes:
+        if path == proc_cmdline:
+            return (
+                b"nginx: master process /usr/sbin/nginx -c /tmp/lxd-dev/nginx.conf "
+                b"-p /var/lib/test-observer-lxd-dev/nginx/\0"
+            )
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(lxd_dev.os, "pidfd_open", lambda _pid: 89)
+    monkeypatch.setattr(lxd_dev.os, "close", lambda _pidfd: None)
+    monkeypatch.setattr(
+        lxd_dev.signal,
+        "pidfd_send_signal",
+        lambda pidfd, sig: pidfd_signals.append((pidfd, sig)),
+    )
+    monkeypatch.setattr(Path, "read_bytes", fake_read_bytes)
+
+    assert (
+        lxd_dev.signal_nginx_pid(
+            456,
+            Path("/tmp/lxd-dev/nginx.conf"),
+            Path("/var/lib/test-observer-lxd-dev/nginx"),
+            lxd_dev.signal.SIGQUIT,
+        )
+        is True
+    )
+
+    assert pidfd_signals == [(89, lxd_dev.signal.SIGQUIT)]
+
+
+def test_stop_treats_mismatched_nginx_pid_as_stale_cleanup(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    state_dir = tmp_path / "state"
+    state_dir.mkdir()
+    (state_dir / "nginx.conf").touch()
+    system_state_dir = tmp_path / "system-state"
+    pid_path = system_state_dir / "nginx/nginx.pid"
+    monkeypatch.setattr(lxd_dev, "STATE_DIR", state_dir)
+    monkeypatch.setattr(lxd_dev, "STATE_FILE", state_dir / "state.json")
+    monkeypatch.setattr(lxd_dev, "SYSTEM_STATE_DIR", system_state_dir)
+    monkeypatch.setattr(lxd_dev, "privileged_path_exists", lambda path: path == pid_path)
+    monkeypatch.setattr(lxd_dev, "stop_api", lambda *_args: None)
+    monkeypatch.setattr(lxd_dev.os, "pidfd_open", lambda _pid: 89)
+    monkeypatch.setattr(lxd_dev.os, "close", lambda _pidfd: None)
+    monkeypatch.setattr(
+        lxd_dev.signal,
+        "pidfd_send_signal",
+        lambda *_args: pytest.fail("reused nginx PID was signaled"),
+    )
+    original_read_bytes = Path.read_bytes
+
+    def fake_read_bytes(path: Path) -> bytes:
+        if path == Path("/proc/456/cmdline"):
+            return b"unrelated-service\0--worker\0"
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", fake_read_bytes)
+    commands: list[list[str]] = []
+
+    def fake_sudo(args: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        commands.append(args)
+        if args[:2] == ["cat", str(pid_path)]:
+            return subprocess.CompletedProcess(args, 0, stdout="456\n")
+        assert args[2] == "--signal-nginx"
+        status = lxd_dev.nginx_signal_command(args[3:])
+        return subprocess.CompletedProcess(args, status)
+
+    monkeypatch.setattr(lxd_dev, "sudo", fake_sudo)
+
+    lxd_dev.stop({})
+
+    assert commands[0] == ["cat", str(pid_path)]
+    assert commands[1][2:] == [
+        "--signal-nginx",
+        "456",
+        str(state_dir / "nginx.conf"),
+        str(system_state_dir / "nginx"),
+        "QUIT",
+    ]
+    assert all("-s" not in command and "kill" not in command for command in commands)
+
+
 def test_stop_api_retries_transient_empty_session_discovery(monkeypatch: pytest.MonkeyPatch) -> None:
     session_scans = iter([[], [456], *([[]] * 20)])
     signals: list[int] = []
