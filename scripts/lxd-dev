@@ -1132,6 +1132,7 @@ def signal_api_session(session_id: int, token: str, sig: int) -> bool:
 
 def stop_api(pid: object, group_token: object = None) -> None:
     if isinstance(pid, int) and pid > 1 and isinstance(group_token, str) and group_token:
+
         def wait_until_quiet(timeout: float, sig: int) -> bool:
             deadline = time.monotonic() + timeout
             absent_since: float | None = None
@@ -1152,13 +1153,12 @@ def stop_api(pid: object, group_token: object = None) -> None:
             return False
 
         signal_api_session(pid, group_token, signal.SIGTERM)
-        if not wait_until_quiet(10, signal.SIGTERM):
-            # Keep retrying discovery during the bounded force-stop window as
-            # well, rather than letting one empty /proc scan skip cleanup.
-            if not wait_until_quiet(1, signal.SIGKILL):
-                raise RuntimeError(
-                    "matching API processes remain after identity-safe signaling was unavailable or unsuccessful"
-                )
+        # Keep retrying discovery during the bounded force-stop window as
+        # well, rather than letting one empty /proc scan skip cleanup.
+        if not wait_until_quiet(10, signal.SIGTERM) and not wait_until_quiet(1, signal.SIGKILL):
+            raise RuntimeError(
+                "matching API processes remain after identity-safe signaling was unavailable or unsuccessful"
+            )
         return
 
     # State files written by older versions do not have a group token. Retain
