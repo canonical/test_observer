@@ -1304,9 +1304,7 @@ def stop_api(pid: object, group_token: object = None) -> None:
     expected_command = str(BACKEND / "dev_entrypoint.sh")
     if not is_process_alive(pid, expected_command):
         return
-    raise RuntimeError(
-        "legacy API state has no identity token; refusing unsafe process-group signaling"
-    )
+    raise RuntimeError("legacy API state has no identity token; refusing unsafe process-group signaling")
 
 
 def verify_running_stack(public_ip: str) -> None:
