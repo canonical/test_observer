@@ -1075,7 +1075,12 @@ def is_process_alive(pid: object, expected: str | None = None) -> bool:
 def nginx_process_matches(pid: int, config_path: Path, prefix: Path) -> bool:
     """Return whether PID is the master for this private nginx configuration."""
     try:
-        command_line = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").decode(errors="replace")
+        command_line = (
+            Path(f"/proc/{pid}/cmdline")
+            .read_bytes()
+            .replace(b"\0", b" ")
+            .decode(errors="replace")
+        )
     except OSError:
         return False
     if not command_line.startswith("nginx: master process "):
