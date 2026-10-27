@@ -30,20 +30,6 @@ uv run uvicorn test_observer.main:app --host 0.0.0.0 --port 30000 --reload &
 # Get the PID of the uvicorn process
 APP_PID=$!
 
-# Do not leave the API process running if migrations/seeding or any other
-# foreground startup step fails. The LXD launcher starts this entrypoint in
-# its own process group and may observe the shell exit before it can stop the
-# API child itself.
-stop_app_after_failure() {
-    status=$?
-    if [ "$status" -ne 0 ]; then
-        echo "Stopping FastAPI application after backend entrypoint failure..."
-        kill -TERM "$APP_PID" 2>/dev/null || true
-        wait "$APP_PID" 2>/dev/null || true
-    fi
-}
-trap stop_app_after_failure EXIT
-
 # Check if seeding is enabled (default to false)
 if [ "${SEED_DATA:-false}" = "true" ]; then
     echo "SEED_DATA is enabled. Waiting for API server to be ready..."
@@ -68,12 +54,6 @@ if [ "${SEED_DATA:-false}" = "true" ]; then
     
     # Run seed data script
     uv run python scripts/seed_data.py
-
-    # The LXD development launcher uses this optional marker to distinguish a
-    # successfully seeded database from one whose first startup was interrupted.
-    if [ -n "${SEED_COMPLETION_FILE:-}" ]; then
-        touch "$SEED_COMPLETION_FILE"
-    fi
 else
     echo "SEED_DATA is disabled. Skipping database seeding."
 fi
