@@ -39,6 +39,188 @@ def make_archive(path: Path, filename: str = "dump/toc.dat") -> None:
         archive.writestr(filename, "directory dump")
 
 
+def test_up_arguments_make_load_db_and_db_server_mutually_exclusive() -> None:
+    with pytest.raises(SystemExit) as error:
+        lxd_dev.parse_arguments(["up", "--load-db", "snapshot.zip", "--db-server", "db.internal"])
+
+    assert error.value.code == 2
+
+
+@pytest.mark.parametrize("host", ["db.internal", "db.internal.", "192.0.2.10", "2001:db8::1"])
+def test_validate_db_server_accepts_dns_names_and_bare_ip_addresses(host: str) -> None:
+    assert lxd_dev.validate_db_server(host) == host
+
+
+@pytest.mark.parametrize("host", ["db.internal:5432", "postgres://db.internal", "user@db.internal", "bad host"])
+def test_validate_db_server_rejects_port_or_non_host_input(host: str) -> None:
+    with pytest.raises(SystemExit):
+        lxd_dev.validate_db_server(host)
+
+
+def test_db_url_targets_remote_ipv4_or_ipv6_database_server() -> None:
+    assert lxd_dev.db_url("192.0.2.10") == (
+        "postgresql+pg8000://test_observer_user:test_observer_password@192.0.2.10:5432/test_observer_db"
+    )
+    assert lxd_dev.db_url("2001:db8::1") == (
+        "postgresql+pg8000://test_observer_user:test_observer_password@[2001:db8::1]:5432/test_observer_db"
+    )
+
+
+def test_remote_database_packages_do_not_install_postgres_server(monkeypatch: pytest.MonkeyPatch) -> None:
+    checked: list[str] = []
+    monkeypatch.setattr(lxd_dev, "package_installed", lambda package: checked.append(package) or True)
+
+    lxd_dev.ensure_apt_packages(remote_database=True)
+
+    assert "postgresql-client" in checked
+    assert "postgresql" not in checked
+
+
+def test_database_only_packages_include_postgres_server_without_app_services(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checked: list[str] = []
+    monkeypatch.setattr(lxd_dev, "package_installed", lambda package: checked.append(package) or True)
+
+    lxd_dev.ensure_apt_packages(database_only=True)
+
+    assert "postgresql" in checked
+    assert "postgresql-client" in checked
+    assert "nginx" not in checked
+    assert "php8.3-fpm" not in checked
+
+
+def test_postgres_subnet_cidrs_use_private_addresses_on_default_route_interface(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fake_run(args: list[str], **_kwargs: object) -> subprocess.CompletedProcess[str]:
+        if args[:4] == ["ip", "-j", "route", "get"]:
+            return subprocess.CompletedProcess(args, 0, stdout='[{"dev": "eth0"}]')
+        assert args == ["ip", "-j", "address", "show", "dev", "eth0"]
+        return subprocess.CompletedProcess(
+            args,
+            0,
+            stdout=(
+                '[{"addr_info": ['
+                '{"family":"inet","local":"10.42.0.7","prefixlen":24},'
+                '{"family":"inet","local":"127.0.0.1","prefixlen":8},'
+                '{"family":"inet","local":"8.8.8.8","prefixlen":24}'
+                ']}]'
+            ),
+        )
+
+    monkeypatch.setattr(lxd_dev, "run", fake_run)
+
+    assert lxd_dev.postgres_subnet_cidrs() == ["10.42.0.0/24"]
+
+
+def test_configure_postgres_network_writes_managed_subnet_rule_idempotently(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(lxd_dev, "postgres_subnet_cidrs", lambda: ["10.42.0.0/24"])
+    psql_calls: list[tuple[str, str]] = []
+
+    def fake_psql(database: str, statement: str, *, capture: bool = False) -> subprocess.CompletedProcess[str]:
+        psql_calls.append((database, statement))
+        output = "/etc/postgresql/16/main/pg_hba.conf\n" if statement == "SHOW hba_file" else ""
+        return subprocess.CompletedProcess([], 0, stdout=output if capture else None)
+
+    monkeypatch.setattr(lxd_dev, "postgres_psql", fake_psql)
+    written: list[str] = []
+    commands: list[list[str]] = []
+
+    def fake_sudo(args: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        commands.append(args)
+        if args[:2] == ["cat", "/etc/postgresql/16/main/pg_hba.conf"]:
+            return subprocess.CompletedProcess(
+                args,
+                0,
+                stdout=(
+                    "local all postgres peer\n"
+                    "# BEGIN test-observer-lxd-dev network access\n"
+                    "host test_observer_db test_observer_user 10.1.0.0/16 scram-sha-256\n"
+                    "# END test-observer-lxd-dev network access\n"
+                    "\nhost all all 127.0.0.1/32 scram-sha-256\n"
+                ),
+            )
+        if args[:1] == ["tee"]:
+            written.append(kwargs["input_text"])
+        return subprocess.CompletedProcess(args, 0)
+
+    monkeypatch.setattr(lxd_dev, "sudo", fake_sudo)
+    restarted: list[tuple[str, str]] = []
+    monkeypatch.setattr(lxd_dev, "systemctl", lambda *args: restarted.append(args))
+
+    lxd_dev.configure_postgres_network()
+
+    assert sum("BEGIN test-observer-lxd-dev network access" in content for content in written) == 1
+    assert "host test_observer_db test_observer_user 10.42.0.0/24 scram-sha-256" in written[0]
+    assert "10.1.0.0/16" not in written[0]
+    assert written[0].count("host all all 127.0.0.1/32 scram-sha-256") == 1
+    assert any("listen_addresses" in statement for _, statement in psql_calls)
+    assert restarted == [("restart", "postgresql")]
+    assert ["chown", "root:postgres", "/etc/postgresql/16/main/pg_hba.conf"] in commands
+
+
+def test_setup_database_without_snapshot_leaves_database_contents_untouched(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(lxd_dev, "STATE_DIR", tmp_path / "state")
+    monkeypatch.setattr(lxd_dev, "ensure_noble", lambda: None)
+    monkeypatch.setattr(lxd_dev, "ensure_privileges", lambda: None)
+    monkeypatch.setattr(lxd_dev, "ensure_apt_packages", lambda **_kwargs: None)
+    monkeypatch.setattr(lxd_dev, "systemctl", lambda *_args: None)
+    monkeypatch.setattr(lxd_dev, "configure_postgres_network", lambda: None)
+    monkeypatch.setattr(lxd_dev, "ensure_database", lambda: None)
+    monkeypatch.setattr(lxd_dev, "service_ip", lambda: "10.42.0.7")
+    monkeypatch.setattr(
+        lxd_dev,
+        "restore_snapshot",
+        lambda *_args: pytest.fail("a no-snapshot setup must not replace the database"),
+    )
+
+    lxd_dev.setup_database()
+
+
+def test_setup_database_with_snapshot_uses_the_staged_restore_flow(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    archive = tmp_path / "snapshot.zip"
+    make_archive(archive)
+    monkeypatch.setattr(lxd_dev, "STATE_DIR", tmp_path / "state")
+    monkeypatch.setattr(lxd_dev, "ensure_noble", lambda: None)
+    monkeypatch.setattr(lxd_dev, "ensure_privileges", lambda: None)
+    package_requests: list[dict[str, bool]] = []
+    monkeypatch.setattr(lxd_dev, "ensure_apt_packages", lambda **kwargs: package_requests.append(kwargs))
+    monkeypatch.setattr(lxd_dev, "make_restore_list", lambda *_args: None)
+    monkeypatch.setattr(lxd_dev, "systemctl", lambda *_args: None)
+    monkeypatch.setattr(lxd_dev, "configure_postgres_network", lambda: None)
+    monkeypatch.setattr(lxd_dev, "ensure_database", lambda: None)
+    monkeypatch.setattr(lxd_dev, "ensure_uv", lambda: Path("/home/user/.local/bin/uv"))
+    monkeypatch.setattr(lxd_dev, "run", lambda *_args, **_kwargs: subprocess.CompletedProcess([], 0))
+    restore_calls: list[tuple[Path, Path, Path, dict[str, str]]] = []
+    snapshot_files_exist: list[bool] = []
+
+    def fake_restore_snapshot(
+        archive_dir: Path, restore_list: Path, uv: Path, env: dict[str, str]
+    ) -> None:
+        restore_calls.append((archive_dir, restore_list, uv, env))
+        snapshot_files_exist.append((archive_dir / "toc.dat").is_file())
+
+    monkeypatch.setattr(lxd_dev, "restore_snapshot", fake_restore_snapshot)
+    monkeypatch.setattr(lxd_dev, "service_ip", lambda: "10.42.0.7")
+
+    lxd_dev.setup_database(str(archive))
+
+    assert package_requests == [{"database_only": True}]
+    assert len(restore_calls) == 1
+    _archive_dir, restore_list, uv, env = restore_calls[0]
+    assert snapshot_files_exist == [True]
+    assert restore_list.name.startswith(".lxd-dev-restore-")
+    assert uv == Path("/home/user/.local/bin/uv")
+    assert env["DB_URL"] == lxd_dev.db_url()
+
+
 def test_extract_snapshot_archive_rejects_non_zip(tmp_path: Path) -> None:
     archive = tmp_path / "not-a-zip.zip"
     archive.write_text("not a zip")

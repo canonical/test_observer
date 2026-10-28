@@ -29,9 +29,13 @@ up:
 down:
     @./scripts/down.sh
 
-# Start native LXD services; optionally replace the DB from a zipped pg_dump directory archive
-lxd-dev-up snapshot="":
-    @if [ -n {{ quote(snapshot) }} ]; then scripts/lxd-dev up --snapshot {{ quote(snapshot) }}; else scripts/lxd-dev up; fi
+# Start native LXD services; pass options such as --load-db ZIP or --db-server HOST
+lxd-dev-up *args:
+    @scripts/lxd-dev up {{ args }}
+
+# Set up a shared PostgreSQL container; optionally refresh it from a dump ZIP
+lxd-db-setup *args:
+    @scripts/lxd-dev-db {{ args }}
 
 # Stop the native Ubuntu services (PostgreSQL data is retained)
 lxd-dev-down:
