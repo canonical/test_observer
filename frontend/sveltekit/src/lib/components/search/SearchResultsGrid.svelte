@@ -270,15 +270,15 @@
       field: "version",
     },
     {
-      id: "environment",
-      header: filterHeader("Environment", "environments"),
-      field: "environment",
-    },
-    {
       id: "architecture",
       header: "Architecture",
       field: "architecture",
       filterable: false,
+    },
+    {
+      id: "environment",
+      header: filterHeader("Environment", "environments"),
+      field: "environment",
     },
     {
       id: "testPlan",

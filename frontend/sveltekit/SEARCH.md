@@ -81,8 +81,8 @@ presentation parameters, is a valid unfiltered recent-results request.
 
 The 23 visible columns are ordered Run, Details, Created, Family, Artefact,
 Stage, Archived, Test Case, Category, Execution ID, Execution Status, Rerun
-Requested, Latest Execution, Result status, Track, Version, Environment,
-Architecture, Test Plan, Template ID, Issues, Reviewers and Execution Metadata.
+Requested, Latest Execution, Result status, Track, Version, Architecture,
+Environment, Test Plan, Template ID, Issues, Reviewers and Execution Metadata.
 Created displays UTC `YYYY-MM-DD HH:mm:ss`; fractional seconds and the timezone
 suffix are omitted. Issues, Reviewers and Execution Metadata are the final
 filter-bearing columns. Category, Execution ID and Architecture are separate
@@ -283,8 +283,8 @@ If a result's family has no configured route, the grid shows Run unavailable.
 
 The grid has 23 visible columns in the order listed above: Run, Details, 18
 filter-bearing columns (Created is one range group), Category, Execution ID and
-Architecture. The filter/display columns follow the Flutter result-field order,
-with Category beside Test Case and Architecture beside Environment. Created is
+Architecture. The filter/display columns keep Category beside Test Case and
+place Architecture immediately before Environment. Created is
 shown as UTC `YYYY-MM-DD HH:mm:ss`, without fractional seconds or a timezone
 suffix. Run and Details are the leading action columns and are not filterable;
 Details is also not sortable. There is no selection checkbox. Details is a
