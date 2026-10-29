@@ -26,14 +26,16 @@ function row(index, issue = 73) {
       name: `issue-${issue}-case-${index}`,
       category: "smoke",
       status: "FAILED",
-      created_at: "2026-10-25T12:00:00Z",
+      created_at: new Date(
+        Date.UTC(2026, 9, 25, 12) - index * 1000,
+      ).toISOString(),
       template_id: "template",
       issues: [{ id: issue, key: `QA-${issue}`, title: `Issue ${issue}` }],
     },
     test_execution: {
       id: 7000 + index,
       status: "FAILED",
-      environment: { name: "test lab" },
+      environment: { name: index % 2 === 0 ? "test lab" : "other lab" },
       test_plan: "smoke",
       rerun_is_requested: false,
       execution_is_latest: true,
@@ -41,7 +43,7 @@ function row(index, issue = 73) {
     },
     artefact: {
       id: 42,
-      name: "example artefact",
+      name: index % 3 === 0 ? "example artefact" : "other artefact",
       version: "1.2",
       track: "stable",
       family: index === 624 ? "unconfigured" : "api-family",
@@ -51,6 +53,29 @@ function row(index, issue = 73) {
     },
     artefact_build: { architecture: "amd64" },
   };
+}
+/** Synthetic server predicate over ALL rows, not just the requested block.
+ * Date precision/wire validation is separately exercised by model/mounted tests.
+ * @param {ReturnType<typeof row>} item @param {URLSearchParams} params */
+function matches(item, params) {
+  for (const [key, value] of [
+    ["families", item.artefact.family],
+    ["artefacts", item.artefact.name],
+    ["environments", item.test_execution.environment.name],
+    ["test_cases", item.test_result.name],
+  ]) {
+    const selected = params.getAll(key);
+    if (selected.length && !selected.includes(value)) return false;
+  }
+  const created = Date.parse(item.test_result.created_at);
+  if (params.has("from_date") && created < Date.parse(params.get("from_date")))
+    return false;
+  if (
+    params.has("until_date") &&
+    created > Date.parse(params.get("until_date"))
+  )
+    return false;
+  return true;
 }
 /** @param {number} id */
 function details(id) {
@@ -146,6 +171,12 @@ try {
     const reply = (json, status = 200) =>
       route.fulfill({ status, headers, json });
     if (url.pathname === "/v1/users/me") return reply(me, meStatus);
+    if (url.pathname === "/v1/artefacts/search")
+      return reply({ artefacts: ["example artefact", "other artefact"] });
+    if (url.pathname === "/v1/environments")
+      return reply({ environments: ["test lab", "other lab"] });
+    if (url.pathname === "/v1/test-cases")
+      return reply({ test_cases: [{ test_case: "issue-73-case-0" }] });
     if (/^\/v1\/issues\/\d+$/.test(url.pathname)) {
       const id = Number(url.pathname.split("/").at(-1));
       return reply({
@@ -168,21 +199,18 @@ try {
         return reply({ detail: "Result access failure" }, resultStatus);
       const offset = Number(url.searchParams.get("offset"));
       const limit = Number(url.searchParams.get("limit"));
+      const all =
+        issue === 81
+          ? []
+          : Array.from({ length: total }, (_, n) => row(n, issue)).filter(
+              (item) => matches(item, url.searchParams),
+            );
       return reply({
         count:
-          url.searchParams.get("include_count") === "true"
-            ? issue === 81
-              ? 0
-              : total
-            : null,
+          url.searchParams.get("include_count") === "true" ? all.length : null,
         offset,
         limit,
-        rows:
-          issue === 81
-            ? []
-            : Array.from({ length: Math.min(limit, total - offset) }, (_, n) =>
-                row(offset + n, issue),
-              ),
+        rows: all.slice(offset, offset + limit),
       });
     }
     if (/search-page\/\d+$/.test(url.pathname))
@@ -301,6 +329,210 @@ try {
     .getByText("625 matching test results on the server.", { exact: false })
     .waitFor();
 
+  // The actual Pragma disclosure and leaf editors batch every optional group.
+  const filters = page.locator(".issue-result-filters");
+  const disclosure = filters.getByRole("button", { name: /^Optional filters/ });
+  const apply = filters.getByRole("button", {
+    name: "Apply filters",
+    exact: true,
+  });
+  const clearDrafts = filters.getByRole("button", {
+    name: "Clear optional drafts",
+    exact: true,
+  });
+  const resultReads = () =>
+    requests.filter((r) => r.path.endsWith("search-page"));
+  const group = (name) =>
+    filters.getByRole("region", { name: `${name} filter`, exact: true });
+  async function exact(name, field, value) {
+    const section = group(name);
+    await section.locator(`input[name="${field}"]`).fill(value);
+    await section
+      .getByRole("button", { name: "Add exact value", exact: true })
+      .click();
+  }
+  async function appliedCount(count) {
+    await page
+      .getByText(`${count} matching test results on the server.`, {
+        exact: false,
+      })
+      .waitFor();
+  }
+  async function clearApplied() {
+    await clearDrafts.click();
+    await apply.click();
+    await appliedCount(625);
+  }
+  await disclosure.focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await disclosure.getAttribute("aria-expanded"), "true");
+  let beforeDraft = resultReads().length;
+  const artefactInput = group("Artefact").locator('input[name="artefacts"]');
+  await artefactInput.fill("example");
+  await group("Artefact")
+    .getByRole("button", { name: "example artefact", exact: true })
+    .waitFor();
+  assert.equal(resultReads().length, beforeDraft);
+  assert.equal(await apply.isDisabled(), true);
+  await artefactInput.press("Enter");
+  assert.equal(
+    await apply.isDisabled(),
+    true,
+    "Enter does not select pending lookup text",
+  );
+  await group("Artefact")
+    .getByRole("button", { name: "example artefact", exact: true })
+    .click();
+  assert.equal(
+    resultReads().length,
+    beforeDraft,
+    "suggestion selection is not Apply",
+  );
+  await disclosure.click();
+  await disclosure.click();
+  assert.equal(
+    await group("Artefact")
+      .getByText("example artefact", { exact: true })
+      .count(),
+    1,
+  );
+  await apply.click();
+  await appliedCount(209);
+  assert.match(await disclosure.textContent(), /1 applied groups/);
+  await clearApplied();
+
+  // Each dimension works independently; the synthetic endpoint filters before paging.
+  await group("Family").getByRole("checkbox").first().check();
+  await apply.click();
+  await appliedCount(624);
+  await clearApplied();
+  await exact("Environment", "environments", "test lab");
+  await apply.click();
+  await appliedCount(313);
+  // Filtered row 125 is original result 250, beyond both first-page ceilings.
+  await grid.evaluate(
+    /** @param {HTMLElement} element */ (element) => {
+      const scroller = [...element.querySelectorAll("*")]
+        .filter(
+          (e) =>
+            e.scrollHeight > e.clientHeight + 1 &&
+            /auto|scroll/.test(getComputedStyle(e).overflowY),
+        )
+        .sort(
+          (a, b) =>
+            b.scrollHeight - b.clientHeight - (a.scrollHeight - a.clientHeight),
+        )[0];
+      scroller.scrollTop = 125 * 30;
+    },
+  );
+  await grid.locator('button[data-test-result-id="73250"]').waitFor();
+  assert.ok(
+    resultReads().some((r) => {
+      const p = new URLSearchParams(r.query);
+      return (
+        p.get("offset") === "100" &&
+        p.get("environments") === "test lab" &&
+        p.get("include_count") === "false"
+      );
+    }),
+  );
+  await appliedCount(313);
+  await clearApplied();
+  await exact("Test Case", "test_cases", "issue-73-case-125");
+  await apply.click();
+  await appliedCount(1);
+  await grid.locator('button[data-test-result-id="73125"]').waitFor();
+  await clearApplied();
+
+  const from = filters.locator('input[name="from_date"]');
+  const until = filters.locator('input[name="until_date"]');
+  await from.fill("2026-10-25T12:56:40.000000000+01:00");
+  await apply.click();
+  await appliedCount(201);
+  assert.equal(
+    new URLSearchParams(resultReads().at(-1).query).get("from_date"),
+    "2026-10-25T12:56:40.000000000+01:00",
+  );
+  beforeDraft = resultReads().length;
+  for (const invalid of [
+    "bad",
+    "2026-02-30T00:00:00Z",
+    "2026-10-25T11:56:40.1234561Z",
+    "2026-10-25T11:56:40",
+  ]) {
+    await from.fill(invalid);
+    assert.equal(await apply.isDisabled(), true);
+    await filters
+      .getByRole("alert")
+      .filter({ hasText: "Correct or clear this bound" })
+      .waitFor();
+    assert.equal(resultReads().length, beforeDraft);
+  }
+  await from.fill("2026-10-25T12:00:00.123457Z");
+  await until.fill("2026-10-25T13:00:00.123456+01:00");
+  assert.equal(await apply.isDisabled(), true);
+  await filters
+    .getByText(/From must not be after Until/)
+    .first()
+    .waitFor();
+  await from.fill("");
+  await until.fill("2026-10-25T11:58:20Z");
+  await apply.click();
+  await appliedCount(525);
+  assert.equal(
+    new URLSearchParams(resultReads().at(-1).query).has("from_date"),
+    false,
+  );
+  assert.match(await disclosure.textContent(), /1 applied groups/);
+  await clearApplied();
+
+  await group("Family").getByRole("checkbox").first().check();
+  await exact("Artefact", "artefacts", "example artefact");
+  await exact("Environment", "environments", "test lab");
+  await exact("Test Case", "test_cases", "issue-73-case-0");
+  await from.fill("2026-10-25T13:00:00.000000+01:00");
+  await until.fill("2026-10-25T12:00:00.000000Z");
+  beforeDraft = resultReads().length;
+  await page
+    .getByRole("button", {
+      name: "View details for issue-73-case-0",
+      exact: true,
+    })
+    .click();
+  await dialog.locator("pre").waitFor();
+  assert.equal(resultReads().length, beforeDraft);
+  assert.equal(await dialog.isVisible(), true);
+  // A real native modal prevents background edits; closing retains the draft.
+  await page.keyboard.press("Escape");
+  await apply.click();
+  await appliedCount(1);
+  assert.match(await disclosure.textContent(), /5 applied groups/);
+  assert.equal(await page.locator("dialog[open]").count(), 0);
+  const combined = new URLSearchParams(resultReads().at(-1).query);
+  for (const field of [
+    "families",
+    "artefacts",
+    "environments",
+    "test_cases",
+    "from_date",
+    "until_date",
+  ])
+    assert.ok(combined.has(field));
+  assert.deepEqual(combined.getAll("issues"), ["73"]);
+  beforeDraft = resultReads().length;
+  await clearDrafts.click();
+  assert.equal(resultReads().length, beforeDraft);
+  assert.match(await disclosure.textContent(), /5 applied groups/);
+  await appliedCount(1);
+  await apply.click();
+  await appliedCount(625);
+  assert.match(await disclosure.textContent(), /0 applied groups/);
+  assert.deepEqual(
+    [...new URLSearchParams(resultReads().at(-1).query).keys()].sort(),
+    ["include_count", "issues", "limit", "offset"],
+  );
+  await disclosure.click();
+
   // Delay already-parsed bodies, ignoring AbortSignal, to exercise generation
   // guards rather than relying solely on Chromium's transport cancellation.
   await page.evaluate((base) => {
@@ -322,6 +554,44 @@ try {
       document.body.append(link);
     }
   }, base);
+  await disclosure.click();
+  await page.evaluate(() => (window.__issueQaHold = "families=api-family"));
+  await group("Family").getByRole("checkbox").first().check();
+  await apply.click();
+  await page.waitForFunction(() => window.__issueQaReleases.length === 1);
+  await clearDrafts.click();
+  await apply.click();
+  await appliedCount(625);
+  await page.evaluate(() => {
+    window.__issueQaHold = "";
+    window.__issueQaReleases.splice(0).forEach((release) => release());
+  });
+  await appliedCount(625);
+  assert.match(await disclosure.textContent(), /0 applied groups/);
+
+  await exact("Environment", "environments", "test lab");
+  await page.evaluate(() => (window.__issueQaHold = "search-page/73000"));
+  await page
+    .getByRole("button", {
+      name: "View details for issue-73-case-0",
+      exact: true,
+    })
+    .click();
+  await page.waitForFunction(() => window.__issueQaReleases.length === 1);
+  // Model-level Apply during a native modal (background pointer use is blocked).
+  // This exercises actual dialog teardown before an already-parsed body resumes.
+  await apply.evaluate((element) => element.click());
+  await appliedCount(313);
+  assert.equal(await page.locator("dialog[open]").count(), 0);
+  await page.evaluate(() => {
+    window.__issueQaHold = "";
+    window.__issueQaReleases.splice(0).forEach((release) => release());
+  });
+  assert.equal(await page.locator("dialog[open]").count(), 0);
+  await clearApplied();
+  await page.evaluate(() => (window.__issueQaHold = "artefacts/search"));
+  await group("Artefact").locator('input[name="artefacts"]').fill("obsolete");
+  await page.waitForFunction(() => window.__issueQaReleases.length === 1);
   await page.locator("#qa-issue-80").click();
   await page
     .getByRole("button", {
@@ -329,6 +599,23 @@ try {
       exact: true,
     })
     .waitFor();
+  await page.evaluate(() => {
+    window.__issueQaHold = "";
+    window.__issueQaReleases.splice(0).forEach((release) => release());
+  });
+  assert.match(await disclosure.textContent(), /0 applied groups/);
+  await disclosure.click();
+  assert.equal(
+    await group("Artefact").locator('input[name="artefacts"]').inputValue(),
+    "",
+  );
+  assert.equal(
+    await group("Artefact")
+      .getByRole("button", { name: "example artefact", exact: true })
+      .count(),
+    0,
+  );
+  await disclosure.click();
   await page.evaluate(() => (window.__issueQaHold = "issues=73"));
   await page.locator("#qa-issue-73").click();
   await page.waitForFunction(() => window.__issueQaReleases.length === 1);
@@ -435,6 +722,22 @@ try {
       exact: true,
     })
     .waitFor();
+  const narrowReadCount = resultReads().length;
+  await disclosure.focus();
+  await page.keyboard.press("Enter");
+  assert.equal(await disclosure.getAttribute("aria-expanded"), "true");
+  await group("Environment")
+    .locator('input[name="environments"]')
+    .fill("pending narrow");
+  assert.equal(await apply.isDisabled(), true);
+  await clearDrafts.click();
+  assert.equal(resultReads().length, narrowReadCount);
+  const filterBounds = await filters.boundingBox();
+  assert.ok(
+    filterBounds &&
+      filterBounds.x >= 0 &&
+      Number(filterBounds.x) + Number(filterBounds.width) <= 800,
+  );
   await page.screenshot({
     path: resolve(artifacts, "issue-results-narrow-dark.png"),
     fullPage: true,

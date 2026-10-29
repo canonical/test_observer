@@ -15,14 +15,16 @@
     other,
     // eslint-disable-next-line no-useless-assignment -- Bindable validation output is read by the owning form.
     valid = $bindable(false),
+    text = $bindable(untrack(() => value ?? "")),
   }: {
     field: InstantFilterKey;
     value: IsoInstant | null;
     other: IsoInstant | null;
     valid?: boolean;
+    /** Optional raw-text binding for forms that must validate cleared/invalid edits. */
+    text?: string;
   } = $props();
   const id = $props.id();
-  let text = $state(untrack(() => value ?? ""));
   // This display-only projection can truncate fractions. It is NEVER applied
   // unless the user actually changes the picker; exact restored text stays intact.
   const picker = $derived.by(() => {

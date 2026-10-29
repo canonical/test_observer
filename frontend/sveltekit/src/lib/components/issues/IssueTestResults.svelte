@@ -5,13 +5,18 @@
   import { Button, Link, Spinner } from "@canonical/svelte-ds-app-launchpad";
   import { FetchError, silentApi } from "$lib/api/client";
   import { getApiRoot } from "$lib/config";
-  import { issueResultsQuery } from "$lib/issueTestResults";
+  import {
+    issueResultsQuery,
+    issueResultGroupCount,
+    type IssueResultFilters,
+  } from "$lib/issueTestResults";
   import { TestResultsSearchStore } from "$lib/stores/test-results-search.svelte";
   import { userStore } from "$lib/stores/user.svelte";
   import type { Family } from "$lib/types";
   import type { SearchResultDetails as DetailsData } from "$lib/testResultsSearch";
   import SearchResultDetails from "$lib/components/search/SearchResultDetails.svelte";
   import IssueResultsGrid from "./IssueResultsGrid.svelte";
+  import IssueResultFiltersEditor from "./IssueResultFilters.svelte";
 
   let {
     issueId,
@@ -19,7 +24,25 @@
     base,
   }: { issueId: number; families: Family[]; base: string } = $props();
   const store = new TestResultsSearchStore();
-  const query = $derived(issueResultsQuery(issueId));
+  let applied = $state.raw<{
+    issueId: number;
+    filters: IssueResultFilters;
+  } | null>(null);
+  // Even an unkeyed caller changing issue IDs cannot carry A's filters into B.
+  const query = $derived(
+    issueResultsQuery(
+      issueId,
+      applied?.issueId === issueId ? applied.filters : undefined,
+    ),
+  );
+  $effect.pre(() => {
+    if (applied && applied.issueId !== issueId) applied = null;
+  });
+
+  function applyFilters(filters: IssueResultFilters) {
+    const candidate = issueResultsQuery(issueId, filters);
+    if (!candidate.problems.length) applied = { issueId, filters };
+  }
   // Same display/session context convention as the shared lookup caches. This
   // is invalidation, not a permission grant; the backend remains authoritative.
   const sessionScope = $derived(
@@ -176,6 +199,17 @@
   bind:this={section}
 >
   <h2 id="issue-results-heading">Test Results</h2>
+  {#key issueId}
+    {@const owner = issueId}
+    <IssueResultFiltersEditor
+      {issueId}
+      {families}
+      applied={query.filters}
+      onapply={(filters) => {
+        if (issueId === owner) applyFilters(filters);
+      }}
+    />
+  {/key}
   {#if query.problems.length}
     <p role="alert">{query.problems.join(" ")}</p>
   {:else if modelDataset !== dataset}
@@ -204,7 +238,11 @@
       <div class="loading" role="status"><Spinner /> Loading test results…</div>
     {/if}
     {#if store.state?.rowCount === 0}
-      <p>No test results are attached to this issue.</p>
+      <p>
+        {issueResultGroupCount(query.filters)
+          ? "No test results match the applied filters for this issue."
+          : "No test results are attached to this issue."}
+      </p>
     {:else}
       {#key store.controller}
         <IssueResultsGrid rowModel={store.rowModel} onDetails={showDetails} />

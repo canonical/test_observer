@@ -5,7 +5,11 @@ import { mount, unmount, flushSync } from "svelte";
 import TestResultsSearch from "../src/lib/components/search/TestResultsSearch.svelte";
 import ValueSuggestions from "../src/lib/components/search/ValueSuggestions.svelte";
 import IssueTestResults from "../src/lib/components/issues/IssueTestResults.svelte";
-export { issueResultsQuery } from "../src/lib/issueTestResults";
+export {
+  issueResultsQuery,
+  issueResultGroupCount,
+  emptyIssueResultFilters,
+} from "../src/lib/issueTestResults";
 import { replaceSearchView } from "../src/lib/searchViewNavigation";
 export {
   TestResultsSearchStore,

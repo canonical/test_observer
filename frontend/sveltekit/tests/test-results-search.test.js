@@ -129,6 +129,473 @@ void test("issue results bounded loader reaches beyond 100 and keeps total when 
   }
 });
 
+void test("issue optional filters allow only five groups, freeze snapshots and preserve exact one-sided date wire values", () => {
+  const optional = {
+    families: ["snap", "another-api-family"],
+    artefacts: ["literal λ", "another artefact"],
+    environments: ["lab"],
+    test_cases: ["case 🧪"],
+    from_date: "2026-10-25T12:00:00.123456000+01:00",
+    until_date: "2026-10-25T11:00:00.123457Z",
+  };
+  for (const [field, value] of Object.entries(optional)) {
+    const query = app.issueResultsQuery(73, { [field]: value });
+    assert.deepEqual(query.problems, []);
+    assert.equal(app.issueResultGroupCount(query.filters), 1);
+    const wire = app.searchRangeParams(query.filters, 150, 200);
+    assert.deepEqual(wire.getAll("issues"), ["73"]);
+    assert.deepEqual(
+      wire.getAll(field),
+      Array.isArray(value) ? value : [value],
+    );
+  }
+  const query = app.issueResultsQuery(73, optional);
+  assert.deepEqual(query.problems, []);
+  assert.equal(app.issueResultGroupCount(query.filters), 5);
+  optional.artefacts.push("not applied");
+  assert.deepEqual(query.filters.artefacts, ["literal λ", "another artefact"]);
+  assert.throws(() => query.filters.artefacts.push("not applied"), TypeError);
+  assert.equal(app.issueResultGroupCount(app.issueResultsQuery(73).filters), 0);
+  for (const bad of [
+    { issues: [80] },
+    { test_result_statuses: ["FAILED"] },
+    { from_date: "2026-02-29T00:00:00Z" },
+    { until_date: "2026-01-01T00:00:00.1234561Z" },
+    { from_date: "2026-01-01T00:00:00" },
+    {
+      from_date: "2026-01-01T00:00:00.123457Z",
+      until_date: "2026-01-01T00:00:00.123456Z",
+    },
+    { artefacts: ["one,two"] },
+    { environments: [" "] },
+    { families: "snap" },
+    { test_cases: [42] },
+    null,
+  ]) {
+    // Deliberately test the runtime boundary with malformed, untyped callers.
+    const blocked = app.issueResultsQuery(73, /** @type {never} */ (bad));
+    assert.ok(blocked.problems.length, JSON.stringify(bad));
+    assert.deepEqual(blocked.filters.issues, [73]);
+  }
+});
+
+/** @param {import('happy-dom').HTMLElement} target @param {string} label */
+function issueFilter(target, label) {
+  const section = target.querySelector(`section[aria-label="${label} filter"]`);
+  assert.ok(section);
+  return /** @type {import('happy-dom').HTMLElement} */ (section);
+}
+
+/** @param {import('happy-dom').HTMLElement} target @param {string} label @param {string} field @param {string} value */
+async function selectIssueExact(target, label, field, value) {
+  const section = issueFilter(target, label);
+  await typeOnly(section.querySelector(`input[name="${field}"]`), value);
+  button(section, "Add exact value").click();
+  await flush();
+}
+
+void test("mounted issue filters keep drafts, lookup text, totals and Details separate until Apply; clearing requires Apply", async () => {
+  /** @type {URL[]} */
+  const requests = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    if (request.pathname.endsWith("artefacts/search"))
+      return Promise.resolve(json({ artefacts: ["suggested artefact"] }));
+    if (request.pathname.endsWith("/1"))
+      return Promise.resolve(detailsResponse(detailedResult(1)));
+    return Promise.resolve(
+      response([1], request.searchParams.has("artefacts") ? 150 : 625),
+    );
+  };
+  const ui = mountedIssueResults();
+  const resultRequests = () =>
+    requests.filter((r) => r.pathname.endsWith("search-page"));
+  try {
+    await flush();
+    button(ui.target, "Optional filters").click();
+    const artefact = issueFilter(ui.target, "Artefact");
+    await typeOnly(
+      artefact.querySelector('input[name="artefacts"]'),
+      "suggest",
+    );
+    await new Promise((resolve) => setTimeout(resolve, 290));
+    assert.equal(resultRequests().length, 1);
+    assert.equal(button(ui.target, "Apply filters").disabled, true);
+    assert.match(ui.target.textContent, /Pending text is not a filter/);
+    button(artefact, "suggested artefact").click();
+    await flush();
+    assert.equal(
+      resultRequests().length,
+      1,
+      "selecting a lookup value is still a draft",
+    );
+    await clickInput(issueFilter(ui.target, "Family"), 'input[value="snap"]');
+    await selectIssueExact(ui.target, "Environment", "environments", "lab");
+    await selectIssueExact(ui.target, "Test Case", "test_cases", "case 🧪");
+    await typeOnly(
+      ui.target.querySelector('input[name="from_date"]'),
+      "2026-10-25T12:00:00.123456+01:00",
+    );
+    await typeOnly(
+      ui.target.querySelector('input[name="until_date"]'),
+      "2026-10-25T11:00:00.123457Z",
+    );
+    assert.match(
+      button(ui.target, "Optional filters").textContent,
+      /0 applied groups/,
+    );
+    assert.match(ui.target.textContent, /625 matching test results/);
+    detailsButton(ui.target, 1).click();
+    await flush();
+    assert.equal(detailsDialog().getAttribute("open"), "");
+    button(ui.target, "Optional filters").click();
+    await flush();
+    assert.equal(
+      detailsDialog().getAttribute("open"),
+      "",
+      "draft/collapse does not invalidate Details",
+    );
+    button(ui.target, "Optional filters").click();
+    button(ui.target, "Apply filters").click();
+    await flush();
+    assert.equal(detailsDialog().getAttribute("open"), null);
+    assert.equal(resultRequests().length, 2);
+    assert.match(ui.target.textContent, /150 matching test results/);
+    assert.match(
+      button(ui.target, "Optional filters").textContent,
+      /5 applied groups/,
+    );
+    assert.doesNotMatch(ui.target.textContent, /Changes not applied/);
+    const applied = resultRequests().at(-1).searchParams;
+    for (const [key, values] of Object.entries({
+      issues: ["73"],
+      families: ["snap"],
+      artefacts: ["suggested artefact"],
+      environments: ["lab"],
+      test_cases: ["case 🧪"],
+      from_date: ["2026-10-25T12:00:00.123456+01:00"],
+      until_date: ["2026-10-25T11:00:00.123457Z"],
+    }))
+      assert.deepEqual(applied.getAll(key), values);
+    assert.equal(applied.get("offset"), "0");
+    assert.equal(applied.get("include_count"), "true");
+    button(ui.target, "Clear optional drafts").click();
+    await flush();
+    assert.equal(resultRequests().length, 2);
+    assert.match(
+      button(ui.target, "Optional filters").textContent,
+      /5 applied groups/,
+    );
+    assert.match(ui.target.textContent, /Changes not applied/);
+    button(ui.target, "Apply filters").click();
+    await flush();
+    assert.equal(resultRequests().length, 3);
+    assert.match(
+      button(ui.target, "Optional filters").textContent,
+      /0 applied groups/,
+    );
+    const cleared = resultRequests().at(-1).searchParams;
+    assert.deepEqual([...cleared.keys()].sort(), [
+      "include_count",
+      "issues",
+      "limit",
+      "offset",
+    ]);
+    assert.deepEqual(cleared.getAll("issues"), ["73"]);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("mounted issue dates reject invalid edits and reversed microseconds, support either bound, and never apply stale valid text", async () => {
+  /** @type {URL[]} */
+  const requests = [];
+  globalThis.fetch = (input) => {
+    requests.push(new URL(input instanceof Request ? input.url : input));
+    return Promise.resolve(response([1]));
+  };
+  const ui = mountedIssueResults();
+  try {
+    await flush();
+    button(ui.target, "Optional filters").click();
+    const from = ui.target.querySelector('input[name="from_date"]');
+    const until = ui.target.querySelector('input[name="until_date"]');
+    await typeOnly(from, "2026-01-01T00:00:00.123456000Z");
+    button(ui.target, "Apply filters").click();
+    await flush();
+    assert.equal(requests.at(-1).searchParams.get("from_date"), from.value);
+    assert.equal(requests.at(-1).searchParams.has("until_date"), false);
+    for (const invalid of [
+      "bad",
+      "2026-02-30T00:00:00Z",
+      "2026-01-01T00:00:00.1234561Z",
+      "2026-01-01T00:00:00",
+    ]) {
+      await typeOnly(from, invalid);
+      assert.equal(button(ui.target, "Apply filters").disabled, true);
+      assert.match(ui.target.textContent, /Correct or clear this bound/);
+      button(ui.target, "Apply filters").click();
+      await flush();
+      assert.equal(requests.length, 2);
+      assert.match(
+        button(ui.target, "Optional filters").textContent,
+        /1 applied groups/,
+      );
+    }
+    await typeOnly(from, "2026-01-01T00:00:00.123457Z");
+    await typeOnly(until, "2026-01-01T01:00:00.123456+01:00");
+    assert.equal(button(ui.target, "Apply filters").disabled, true);
+    assert.match(ui.target.textContent, /From must not be after Until/);
+    await typeOnly(from, "");
+    assert.equal(button(ui.target, "Apply filters").disabled, false);
+    button(ui.target, "Apply filters").click();
+    await flush();
+    assert.equal(
+      requests.at(-1).searchParams.has("from_date"),
+      false,
+      "clearing text must not retain old valid bound",
+    );
+    assert.equal(requests.at(-1).searchParams.get("until_date"), until.value);
+    assert.match(
+      button(ui.target, "Optional filters").textContent,
+      /1 applied groups/,
+    );
+    await typeOnly(until, "");
+    button(ui.target, "Apply filters").click();
+    await flush();
+    assert.equal(requests.at(-1).searchParams.has("until_date"), false);
+    assert.equal(requests.at(-1).searchParams.get("issues"), "73");
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("applied issue filters reach later server blocks, preserve totals and reject invalid query reads", async () => {
+  /** @type {URL[]} */
+  const requests = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    const offset = Number(request.searchParams.get("offset"));
+    return Promise.resolve(
+      response(
+        Array.from({ length: 50 }, (_, i) => offset + i + 1),
+        offset === 0 ? 175 : null,
+        50,
+        offset,
+      ),
+    );
+  };
+  const store = new app.TestResultsSearchStore();
+  try {
+    await store.search(
+      app.issueResultsQuery(73, {
+        families: ["snap"],
+        artefacts: ["one", "two"],
+        environments: ["lab"],
+        test_cases: ["case"],
+        until_date: "2026-10-25T11:00:00.123456Z",
+      }),
+      families,
+    );
+    store.controller.setViewport(125, 149);
+    await flush();
+    assert.equal(store.state.rowCount, 175);
+    assert.ok(store.controller.getRows().some((row) => row.id === 126));
+    assert.ok(requests.some((r) => r.searchParams.get("offset") === "100"));
+    for (const request of requests) {
+      assert.deepEqual(request.searchParams.getAll("issues"), ["73"]);
+      assert.deepEqual(request.searchParams.getAll("artefacts"), [
+        "one",
+        "two",
+      ]);
+      assert.deepEqual(request.searchParams.getAll("families"), ["snap"]);
+      assert.deepEqual(request.searchParams.getAll("environments"), ["lab"]);
+      assert.deepEqual(request.searchParams.getAll("test_cases"), ["case"]);
+      assert.equal(
+        request.searchParams.get("until_date"),
+        "2026-10-25T11:00:00.123456Z",
+      );
+    }
+    const count = requests.length;
+    await store.search(app.issueResultsQuery(73, { from_date: "bad" }));
+    assert.equal(requests.length, count);
+    assert.equal(store.controller, null);
+  } finally {
+    store.cancel();
+  }
+});
+
+void test("issue filter apply and A/B transitions discard old parsed bodies, pending lookup text and stale callbacks", async () => {
+  const held = deferred();
+  const lookup = deferred();
+  /** @type {URL[]} */
+  const requests = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    if (request.pathname.endsWith("artefacts/search")) {
+      const res = json({});
+      res.json = () => lookup.promise;
+      return Promise.resolve(res);
+    }
+    if (request.searchParams.get("families") === "snap") {
+      const res = response([99]);
+      res.json = () => held.promise;
+      return Promise.resolve(res);
+    }
+    return Promise.resolve(
+      response([request.searchParams.get("issues") === "80" ? 2 : 1]),
+    );
+  };
+  const ui = mountedIssueResults();
+  try {
+    await flush();
+    button(ui.target, "Optional filters").click();
+    const oldApply = button(ui.target, "Apply filters");
+    await clickInput(issueFilter(ui.target, "Family"), 'input[value="snap"]');
+    await flush();
+    oldApply.click();
+    await flush();
+    button(ui.target, "Clear optional drafts").click();
+    await flush();
+    button(ui.target, "Apply filters").click();
+    await flush();
+    assert.ok(detailsButton(ui.target, 1));
+    held.resolve({ count: 999, rows: [tableResult(99)], limit: 50, offset: 0 });
+    await flush();
+    assert.ok(detailsButton(ui.target, 1));
+    assert.doesNotMatch(ui.target.textContent, /999 matching/);
+    await typeOnly(ui.target.querySelector('input[name="artefacts"]'), "held");
+    await new Promise((resolve) => setTimeout(resolve, 290));
+    ui.handle.changeIssue(80);
+    await flush();
+    assert.ok(detailsButton(ui.target, 2));
+    assert.match(
+      button(ui.target, "Optional filters").textContent,
+      /0 applied groups/,
+    );
+    assert.equal(ui.target.querySelector('input[name="artefacts"]').value, "");
+    lookup.resolve({ artefacts: ["obsolete suggestion"] });
+    oldApply.click();
+    await flush();
+    assert.doesNotMatch(ui.target.textContent, /obsolete suggestion/);
+    assert.equal(requests.at(-1).searchParams.get("issues"), "80");
+    assert.equal(requests.at(-1).searchParams.has("families"), false);
+    ui.handle.changeIssue(73);
+    await flush();
+    assert.match(
+      button(ui.target, "Optional filters").textContent,
+      /0 applied groups/,
+    );
+    assert.equal(requests.at(-1).searchParams.get("issues"), "73");
+    const restoredReads = requests.length;
+    // Even returning to A cannot revive a callback from A's destroyed editor.
+    browser.document.body.append(oldApply);
+    oldApply.click();
+    await flush();
+    oldApply.remove();
+    assert.equal(requests.length, restoredReads);
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("issue filter changes ignore old access-check bodies and Details error responses, including stale row actions", async () => {
+  const sessionBody = deferred();
+  const oldDetails = deferred();
+  let readingSession = false;
+  let holdDetails = false;
+  let bodyReads = 0;
+  /** @type {URL[]} */
+  const requests = [];
+  app.userStore.current = null;
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    if (request.pathname === "/v1/users/me") {
+      const res = json(null);
+      res.json = () => {
+        readingSession = true;
+        return sessionBody.promise;
+      };
+      return Promise.resolve(res);
+    }
+    if (/search-page\/\d+$/.test(request.pathname))
+      return holdDetails
+        ? oldDetails.promise
+        : Promise.resolve(detailsResponse(detailedResult(1)));
+    if (request.searchParams.has("families"))
+      return Promise.resolve(json({}, 403));
+    if (request.searchParams.has("test_cases"))
+      return Promise.resolve(response([]));
+    return Promise.resolve(response([1]));
+  };
+  const ui = mountedIssueResults();
+  try {
+    await flush();
+    button(ui.target, "Optional filters").click();
+    await clickInput(issueFilter(ui.target, "Family"), 'input[value="snap"]');
+    await flush();
+    button(ui.target, "Apply filters").click();
+    await flush();
+    assert.ok(readingSession);
+    button(ui.target, "Clear optional drafts").click();
+    await flush();
+    button(ui.target, "Apply filters").click();
+    await flush();
+    sessionBody.resolve({ id: 987, teams: [], is_admin: false });
+    await flush();
+    assert.equal(app.userStore.current, null);
+    assert.ok(detailsButton(ui.target, 1));
+    assert.doesNotMatch(
+      ui.target.textContent,
+      /permission|need to be logged in/,
+    );
+    const obsoleteTrigger = detailsButton(ui.target, 1);
+    holdDetails = true;
+    obsoleteTrigger.click();
+    await flush();
+    await selectIssueExact(ui.target, "Test Case", "test_cases", "no match");
+    assert.equal(
+      detailsDialog().getAttribute("open"),
+      "",
+      "draft edits retain pending Details",
+    );
+    button(ui.target, "Apply filters").click();
+    await flush();
+    assert.equal(detailsDialog().getAttribute("open"), null);
+    assert.match(
+      ui.target.textContent,
+      /No test results match the applied filters for this issue/,
+    );
+    const failure = json({ detail: "Obsolete Details failure" }, 503);
+    failure.json = () => {
+      bodyReads++;
+      return Promise.resolve({ detail: "Obsolete Details failure" });
+    };
+    oldDetails.resolve(failure);
+    const readCount = requests.length;
+    obsoleteTrigger.click();
+    await flush();
+    assert.equal(requests.length, readCount);
+    assert.equal(
+      bodyReads,
+      0,
+      "silent stale errors do not parse or surface an error body",
+    );
+    assert.equal(detailsDialog().getAttribute("open"), null);
+    assert.doesNotMatch(
+      ui.target.textContent,
+      /Obsolete Details failure|Could not load result details/,
+    );
+  } finally {
+    await ui.destroy();
+    app.userStore.current = null;
+  }
+});
+
 void test("issue results use a separate read-only grid, configured Run route and lazy full Details", async () => {
   /** @type {URL[]} */
   const requests = [];
@@ -182,9 +649,10 @@ void test("issue results use a separate read-only grid, configured Run route and
       "Test plan",
     ]);
     assert.equal(
-      ui.target.querySelectorAll(
-        'input[type="checkbox"], [data-search-grid-menu]',
-      ).length,
+      ui.target
+        .querySelector(".issue-results-grid")
+        .querySelectorAll('input[type="checkbox"], [data-search-grid-menu]')
+        .length,
       0,
     );
     const run = ui.target.querySelector('a[aria-label="View Run for case 1"]');

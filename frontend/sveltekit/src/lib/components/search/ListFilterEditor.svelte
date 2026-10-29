@@ -17,12 +17,14 @@
     value = $bindable(),
     // eslint-disable-next-line no-useless-assignment -- Bindable validation output is read by the owning form.
     valid = $bindable(false),
+    pending = $bindable(false),
     families,
     draftFamilies,
   }: {
     field: ListFilterKey;
     value: string[];
     valid?: boolean;
+    pending?: boolean;
     families: Family[];
     draftFamilies: string[];
   } = $props();
@@ -33,7 +35,6 @@
       field === "artefact_stages",
   );
   let text = $state(untrack(() => value.join(", ")));
-  let pending = $state(false);
   const configured = $derived(
     field === "families"
       ? families.map((family) => ({
