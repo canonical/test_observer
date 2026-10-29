@@ -221,6 +221,20 @@ def test_setup_database_with_snapshot_uses_the_staged_restore_flow(
     assert env["DB_URL"] == lxd_dev.db_url()
 
 
+def test_snapshot_sanitization_promotes_certbot_before_anonymizing_identity() -> None:
+    sanitize_sql = " ".join((SCRIPT_PATH.parents[1] / "scripts/byodb_sanitize.sql").read_text().split())
+    promote_certbot = "SET is_admin = TRUE WHERE email = 'certbot@canonical.com' OR launchpad_handle = 'certbot';"
+    anonymize_users = "SET email = 'snapshot-user-' || id || '@example.invalid'"
+    exclude_certbot = (
+        "WHERE email IS DISTINCT FROM 'certbot@canonical.com' "
+        "AND launchpad_handle IS DISTINCT FROM 'certbot';"
+    )
+
+    assert promote_certbot in sanitize_sql
+    assert sanitize_sql.index(promote_certbot) < sanitize_sql.index(anonymize_users)
+    assert exclude_certbot in sanitize_sql
+
+
 def test_extract_snapshot_archive_rejects_non_zip(tmp_path: Path) -> None:
     archive = tmp_path / "not-a-zip.zip"
     archive.write_text("not a zip")

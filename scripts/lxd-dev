@@ -1231,7 +1231,7 @@ def restore_snapshot(
         progress("Applying current application migrations to the snapshot...")
         run([str(uv), "run", "alembic", "upgrade", "head"], cwd=BACKEND, env=staging_env)
 
-        progress("Sanitizing restored identities, sessions, and API keys...")
+        progress("Sanitizing restored data and preserving certbot's local admin identity...")
         run(
             [
                 "psql", "-X", "--quiet", "--set=ON_ERROR_STOP=1", "--host", "127.0.0.1", "--port", "5432",

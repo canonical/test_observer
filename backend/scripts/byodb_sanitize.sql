@@ -18,10 +18,21 @@ BEGIN;
 -- Remove login sessions and replace personal identity data while preserving
 -- users and their existing reviewer/team relationships in the snapshot.
 DELETE FROM user_session;
+
+-- Snapshot startup skips seed_data.py, which normally gives the local certbot
+-- account admin access. Keep its identity intact so SSO resolves to this row.
+UPDATE app_user
+SET is_admin = TRUE
+WHERE email = 'certbot@canonical.com' OR launchpad_handle = 'certbot';
+
+-- Anonymize other users while preserving certbot's email, name, and
+-- Launchpad handle for local SSO.
 UPDATE app_user
 SET email = 'snapshot-user-' || id || '@example.invalid',
     name = 'Snapshot user ' || id,
-    launchpad_handle = NULL;
+    launchpad_handle = NULL
+WHERE email IS DISTINCT FROM 'certbot@canonical.com'
+  AND launchpad_handle IS DISTINCT FROM 'certbot';
 
 -- Keep application names and permissions, but invalidate every restored key.
 UPDATE application
