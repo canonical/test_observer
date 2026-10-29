@@ -257,8 +257,8 @@ try {
     await page
       .getByRole("heading", { name: "Test Results", exact: true })
       .count(),
-    0,
-    "issue-scoped test results are deliberately excluded from this import",
+    1,
+    "issue details include their own read-only result section",
   );
   assert.equal(
     await page
@@ -267,9 +267,13 @@ try {
     0,
   );
   assert.equal(
-    apiRequests.some((request) => request.path.startsWith("/v1/test-results")),
-    false,
-    "opening issue details does not fetch issue-scoped test results",
+    apiRequests.some(
+      (request) =>
+        request.path === "/v1/test-results/search-page" &&
+        request.url.searchParams.get("issues") === "73",
+    ),
+    true,
+    "opening issue details fetches only their pinned results",
   );
 
   const summary = page.getByText("Attachment Rule #14", { exact: true });

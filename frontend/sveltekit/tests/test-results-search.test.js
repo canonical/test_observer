@@ -53,6 +53,413 @@ const json = (/** @type {unknown} */ body, status = 200) =>
   });
 const flush = () => new Promise((resolve) => setTimeout(resolve, 15));
 
+/** @param {number} [id] */
+function mountedIssueResults(id = 73) {
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const handle = app.mountIssueResults(
+    /** @type {HTMLElement} */ (/** @type {unknown} */ (target)),
+    id,
+    families,
+  );
+  return {
+    target,
+    handle,
+    destroy: async () => {
+      await handle.destroy();
+      target.remove();
+    },
+  };
+}
+
+void test("issue results pin an immutable single issue and fail closed for invalid IDs", () => {
+  const query = app.issueResultsQuery(73);
+  assert.deepEqual(query.filters.issues, [73]);
+  assert.throws(() => {
+    query.filters.issues = [80];
+  }, TypeError);
+  const pinned = query.filters.issues;
+  assert.ok(Array.isArray(pinned));
+  assert.throws(() => pinned.push(80), TypeError);
+  for (const id of [0, -1, 1.5, NaN, Number.MAX_SAFE_INTEGER + 1])
+    assert.ok(app.issueResultsQuery(id).problems.length);
+});
+
+void test("issue results bounded loader reaches beyond 100 and keeps total when count is null", async () => {
+  /** @type {URL[]} */
+  const requests = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    const offset = Number(request.searchParams.get("offset"));
+    const ids = Array.from(
+      { length: Math.min(50, 625 - offset) },
+      (_, n) => offset + n + 1,
+    );
+    return Promise.resolve(
+      response(ids, offset === 0 ? 625 : null, 50, offset),
+    );
+  };
+  const store = new app.TestResultsSearchStore();
+  try {
+    await store.search(app.issueResultsQuery(73), families, "/custom/base");
+    const controller = store.controller;
+    assert.ok(controller);
+    for (let offset = 50; offset <= 600; offset += 50) {
+      controller.setViewport(offset, offset + 24);
+      await flush();
+    }
+    assert.equal(store.state.rowCount, 625);
+    assert.equal(store.response.count, null);
+    assert.ok(controller.getRows().some((row) => row.id === 625));
+    assert.ok(
+      controller.getCacheState().filter((block) => block.status === "loaded")
+        .length <= app.SEARCH_MAX_BLOCKS,
+    );
+    assert.ok(
+      requests.some((r) => Number(r.searchParams.get("offset")) >= 100),
+    );
+    for (const request of requests) {
+      assert.deepEqual(request.searchParams.getAll("issues"), ["73"]);
+      if (request.searchParams.get("offset") !== "0")
+        assert.equal(request.searchParams.get("include_count"), "false");
+    }
+  } finally {
+    store.cancel();
+  }
+});
+
+void test("issue results use a separate read-only grid, configured Run route and lazy full Details", async () => {
+  /** @type {URL[]} */
+  const requests = [];
+  const details = detailedResult(1);
+  const log =
+    '<script>alert("literal")</script>\n  indented 🧪\n' +
+    "long-token".repeat(500);
+  details.test_result.io_log = log;
+  details.test_result.issues = [
+    {
+      issue: {
+        id: 80,
+        source: "github",
+        project: "qa",
+        key: "Q-80",
+        title: "Attached issue",
+        status: "open",
+      },
+    },
+  ];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    return Promise.resolve(
+      request.pathname.endsWith("/1") ? detailsResponse(details) : response(),
+    );
+  };
+  const ui = mountedIssueResults();
+  try {
+    await flush();
+    assert.match(
+      ui.target.textContent,
+      /1 matching test results on the server/,
+    );
+    const headers = [...ui.target.querySelectorAll("thead tr th")].map((n) =>
+      n.textContent.trim(),
+    );
+    assert.deepEqual(headers, [
+      "Run",
+      "Details",
+      "Artefact",
+      "Test case",
+      "Category",
+      "Execution ID",
+      "Execution status",
+      "Result status",
+      "Track",
+      "Version",
+      "Architecture",
+      "Environment",
+      "Test plan",
+    ]);
+    assert.equal(
+      ui.target.querySelectorAll(
+        'input[type="checkbox"], [data-search-grid-menu]',
+      ).length,
+      0,
+    );
+    const run = ui.target.querySelector('a[aria-label="View Run for case 1"]');
+    assert.equal(
+      run?.getAttribute("href"),
+      "/custom/base/configured-route/42?testExecutionId=7&testResultId=1",
+    );
+    assert.equal(requests.length, 1, "no eager Details requests");
+    const trigger = detailsButton(ui.target, 1);
+    trigger.click();
+    await flush();
+    const dialog = detailsDialog();
+    assert.equal(dialog.getAttribute("open"), "");
+    assert.equal(dialog.querySelector("pre")?.textContent, log);
+    assert.equal(dialog.querySelector("script"), null);
+    assert.match(dialog.textContent, /ζ Unicode 🐧/);
+    assert.equal(
+      dialog
+        .querySelector('a[aria-label="View issue Q-80"]')
+        ?.getAttribute("href"),
+      "/custom/base/issues/80",
+    );
+    button(dialog, "Close").click();
+    await flush();
+    assert.equal(browser.document.activeElement, trigger);
+    assert.equal(requests.length, 2, "closing does not fetch");
+    trigger.click();
+    await flush();
+    // Simulate a virtualized cell reused for another row while Details is open.
+    trigger.dataset.testResultId = "999";
+    button(detailsDialog(), "Close").click();
+    await flush();
+    assert.equal(
+      browser.document.activeElement,
+      ui.target.querySelector(".issue-results-grid"),
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+
+void test("issue results ignore late parsed A bodies and close obsolete Details on navigation and session change", async () => {
+  let releaseBody = () => undefined;
+  const body = new Promise((resolve) => {
+    releaseBody = resolve;
+  });
+  let holdDetails = false;
+  const lateDetails = deferred();
+  /** @type {URL[]} */
+  const requests = [];
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    if (/search-page\/\d+$/.test(request.pathname))
+      return holdDetails
+        ? lateDetails.promise
+        : Promise.resolve(detailsResponse(detailedResult(2)));
+    if (request.searchParams.get("issues") === "73") {
+      const held = response([1]);
+      held.json = () => body;
+      return Promise.resolve(held);
+    }
+    return Promise.resolve(response([2]));
+  };
+  const ui = mountedIssueResults();
+  try {
+    await flush();
+    assert.match(ui.target.textContent, /Loading test results/);
+    ui.handle.changeIssue(80);
+    await flush();
+    assert.ok(detailsButton(ui.target, 2));
+    releaseBody({ count: 1, limit: 50, offset: 0, rows: [tableResult(1)] });
+    await flush();
+    assert.equal(
+      ui.target.querySelector('button[data-test-result-id="1"]'),
+      null,
+    );
+    detailsButton(ui.target, 2).click();
+    await flush();
+    assert.equal(detailsDialog().getAttribute("open"), "");
+    // Relevant session changes invalidate both Details and result cache.
+    app.userStore.current = null;
+    globalThis.fetch = (input) => {
+      const request = new URL(input instanceof Request ? input.url : input);
+      requests.push(request);
+      if (request.pathname === "/v1/users/me")
+        return Promise.resolve(json({ id: 945, teams: [], is_admin: false }));
+      return Promise.resolve(response([2]));
+    };
+    await app.userStore.refresh(globalThis.fetch);
+    await flush();
+    assert.equal(detailsDialog().getAttribute("open"), null);
+    holdDetails = true;
+    globalThis.fetch = (input) => {
+      const request = new URL(input instanceof Request ? input.url : input);
+      if (/search-page\/\d+$/.test(request.pathname))
+        return lateDetails.promise;
+      return Promise.resolve(response([2]));
+    };
+    detailsButton(ui.target, 2).click();
+    await flush();
+    ui.handle.changeIssue(81);
+    await flush();
+    lateDetails.resolve(detailsResponse(detailedResult(2)));
+    await flush();
+    assert.equal(detailsDialog().getAttribute("open"), null);
+    for (const request of requests.filter((r) =>
+      r.pathname.endsWith("search-page"),
+    ))
+      assert.equal(request.searchParams.getAll("issues").length, 1);
+  } finally {
+    await ui.destroy();
+    app.userStore.current = null;
+  }
+});
+
+void test("issue results cover empty, error/retry and authoritative 401/403/session-check states", async () => {
+  for (const scenario of ["empty", "error", "login", "forbidden", "unknown"]) {
+    app.userStore.current = null;
+    const profile = { id: 946, teams: [], is_admin: false };
+    if (scenario === "forbidden") {
+      globalThis.fetch = () => Promise.resolve(json(profile));
+      await app.userStore.refresh(globalThis.fetch);
+    }
+    let recover = false;
+    globalThis.fetch = (input) => {
+      const request = new URL(input instanceof Request ? input.url : input);
+      if (request.pathname === "/v1/users/me")
+        return Promise.resolve(
+          scenario === "unknown"
+            ? json({}, 503)
+            : json(scenario === "forbidden" ? profile : null),
+        );
+      if (recover) return Promise.resolve(response([3]));
+      if (scenario === "empty") return Promise.resolve(response([]));
+      return Promise.resolve(
+        json(
+          {},
+          scenario === "login"
+            ? 401
+            : scenario === "forbidden" || scenario === "unknown"
+              ? 403
+              : 503,
+        ),
+      );
+    };
+    const ui = mountedIssueResults();
+    try {
+      await flush();
+      const expected = {
+        empty: /No test results are attached/,
+        error: /Could not load test results/,
+        login: /need to be logged in/,
+        forbidden: /don't have permission/,
+        unknown: /couldn't verify your session/,
+      }[scenario];
+      assert.match(ui.target.textContent, expected);
+      if (scenario === "empty") {
+        assert.match(ui.target.textContent, /0 matching test results/);
+      } else {
+        if (scenario === "login")
+          assert.ok(ui.target.querySelector('a[href*="auth/saml/login"]'));
+        recover = true;
+        button(ui.target, "Retry results").click();
+        await flush();
+        assert.ok(detailsButton(ui.target, 3));
+      }
+    } finally {
+      await ui.destroy();
+    }
+  }
+  app.userStore.current = null;
+});
+
+void test("issue results ignore late access failures, Details errors and unmounted range responses", async () => {
+  const lateAccess = deferred();
+  const lateDetails = deferred();
+  let sessionStarted = false;
+  let holdRange = false;
+  const lateRange = deferred();
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    if (request.pathname === "/v1/users/me") {
+      sessionStarted = true;
+      return lateAccess.promise;
+    }
+    if (request.pathname.endsWith("/2")) return lateDetails.promise;
+    if (request.searchParams.get("issues") === "73")
+      return Promise.resolve(json({}, 403));
+    return holdRange ? lateRange.promise : Promise.resolve(response([2]));
+  };
+  app.userStore.current = null;
+  const ui = mountedIssueResults();
+  try {
+    await flush();
+    assert.ok(sessionStarted);
+    ui.handle.changeIssue(80);
+    await flush();
+    lateAccess.resolve(json(null, 401));
+    await flush();
+    assert.ok(detailsButton(ui.target, 2));
+    assert.doesNotMatch(
+      ui.target.textContent,
+      /need to be logged in|permission/,
+    );
+    detailsButton(ui.target, 2).click();
+    await flush();
+    holdRange = true;
+    ui.handle.changeIssue(81);
+    await flush();
+    lateDetails.resolve(json({ detail: "Late failure from issue A" }, 503));
+    await flush();
+    assert.equal(detailsDialog().getAttribute("open"), null);
+    assert.doesNotMatch(
+      ui.target.textContent,
+      /Could not load result details|Late failure/,
+    );
+  } finally {
+    await ui.destroy();
+  }
+  lateRange.resolve(response([999]));
+  await flush();
+  assert.equal(browser.document.querySelector(".issue-test-results"), null);
+});
+
+void test("issue results Details failures retry, missing-family routes stay unavailable, and unmount ignores pending bodies", async () => {
+  let retry = false;
+  const row = tableResult(1);
+  row.artefact.family = "unconfigured";
+  const details = detailedResult(1);
+  details.artefact.family = "unconfigured";
+  const held = deferred();
+  let pending = false;
+  globalThis.fetch = (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    if (request.pathname.endsWith("/1"))
+      return pending
+        ? held.promise
+        : Promise.resolve(retry ? detailsResponse(details) : json({}, 403));
+    return Promise.resolve(
+      json({ count: 1, limit: 50, offset: 0, rows: [row] }),
+    );
+  };
+  const ui = mountedIssueResults();
+  try {
+    await flush();
+    assert.match(ui.target.textContent, /Run unavailable/);
+    detailsButton(ui.target, 1).click();
+    await flush();
+    assert.match(detailsDialog().textContent, /don't have permission/);
+    retry = true;
+    button(detailsDialog(), "Retry").click();
+    await flush();
+    assert.match(detailsDialog().textContent, /unconfigured/);
+    assert.equal(
+      detailsDialog().querySelector('a[href*="testExecutionId"]'),
+      null,
+    );
+    button(detailsDialog(), "Close").click();
+    await flush();
+    pending = true;
+    detailsButton(ui.target, 1).click();
+    await flush();
+    assert.match(detailsDialog().textContent, /Loading/);
+  } finally {
+    await ui.destroy();
+  }
+  held.resolve(detailsResponse(details));
+  await flush();
+  assert.equal(
+    browser.document.querySelector("dialog.search-result-details[open]"),
+    null,
+  );
+});
+
 function deferred() {
   /** @type {(value: Response) => void} */
   let complete;

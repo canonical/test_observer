@@ -32,6 +32,9 @@
     viewRuleFiltersUrl,
   } from "$lib/issueDetailModel";
   import type { AttachmentRule, IssueDetail } from "$lib/types/issues";
+  import IssueTestResults from "$lib/components/issues/IssueTestResults.svelte";
+
+  let { data } = $props();
 
   let issueId = $derived(page.params.issueId ?? "");
   let issue = $state<IssueDetail | null>(null);
@@ -296,6 +299,14 @@
         <p class="action-error" role="alert">{actionError}</p>
       {/if}
     </section>
+
+    {#key issue.id}
+      <IssueTestResults
+        issueId={issue.id}
+        families={data.artefactFamilies}
+        base={resolve("").replace(/\/$/, "")}
+      />
+    {/key}
 
     <dialog bind:this={deleteDialog} aria-labelledby="delete-dialog-title">
       <h2 id="delete-dialog-title">Delete attachment rule?</h2>

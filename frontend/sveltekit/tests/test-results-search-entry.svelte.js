@@ -4,6 +4,8 @@
 import { mount, unmount, flushSync } from "svelte";
 import TestResultsSearch from "../src/lib/components/search/TestResultsSearch.svelte";
 import ValueSuggestions from "../src/lib/components/search/ValueSuggestions.svelte";
+import IssueTestResults from "../src/lib/components/issues/IssueTestResults.svelte";
+export { issueResultsQuery } from "../src/lib/issueTestResults";
 import { replaceSearchView } from "../src/lib/searchViewNavigation";
 export {
   TestResultsSearchStore,
@@ -126,6 +128,31 @@ export function mountSuggestions(target) {
     },
     get selected() {
       return [...selected];
+    },
+    destroy: () => unmount(component),
+  };
+}
+
+/** @param {HTMLElement} target @param {number} initialId
+ * @param {import('../src/lib/types').Family[]} families */
+export function mountIssueResults(target, initialId, families) {
+  let issueId = $state(initialId);
+  const component = mount(IssueTestResults, {
+    target,
+    props: {
+      get issueId() {
+        return issueId;
+      },
+      families,
+      base: "/custom/base",
+    },
+  });
+  flushSync();
+  return {
+    /** @param {number} id */
+    changeIssue(id) {
+      issueId = id;
+      flushSync();
     },
     destroy: () => unmount(component),
   };
