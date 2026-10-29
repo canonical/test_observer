@@ -53,6 +53,8 @@ from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
+    ChangelogEntity,
+    ChangelogOperation,
     FamilyName,
     IssueSource,
     IssueStatus,
@@ -278,6 +280,19 @@ class UserSession(Base):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("app_user.id", ondelete="CASCADE"), index=True)
     user: Mapped[User] = relationship(back_populates="sessions", foreign_keys=[user_id])
+
+
+class Changelog(Base):
+    __tablename__ = "changelog"
+
+    change_time: Mapped[datetime] = mapped_column(default=func.now())
+    entity: Mapped[ChangelogEntity]
+    entity_id: Mapped[int]
+    author_id: Mapped[int] = mapped_column(ForeignKey("app_user.id"))
+    operation: Mapped[ChangelogOperation]
+    data_diff: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}")
+
+    author: Mapped[User] = relationship(foreign_keys=[author_id])
 
 
 class Notification(Base):
