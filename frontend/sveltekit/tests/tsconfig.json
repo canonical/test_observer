@@ -1,0 +1,10 @@
+// SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+// SPDX-License-Identifier: GPL-3.0-only
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    // The router regression imports SvelteKit's internal JavaScript directly.
+    "maxNodeModuleJsDepth": 1
+  },
+  "include": ["**/*.js"]
+}

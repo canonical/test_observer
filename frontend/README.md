@@ -32,6 +32,26 @@ just up       # start the frontend container
 just down     # stop the frontend container
 ```
 
+### SvelteKit test result search
+
+The read-only `/test-results` page uses per-column filters in the result headers,
+with explicit Search to apply drafts, remote suggestions where supported, and a
+shareable local table view. Results have no row selection, bulk actions, or
+mutation workflows.
+The grid loads compact result rows; the Details action fetches the selected
+result on demand and opens one reusable Pragma modal with execution metadata,
+attached issues and literal IO logs. Closing the modal does not fetch again.
+Issue links intentionally use the future internal issue-detail route;
+that SvelteKit destination currently returns 404 and is not implemented here.
+
+See the canonical [SvelteKit search guide](sveltekit/SEARCH.md) for all field
+labels, editors, URL contracts and repair rules, query and table-view resets,
+layout/native-history guarantees, and the optional real API/SSO browser check.
+
+For local SvelteKit checks, run `npm run check`, `npm run build`, `npm test` and
+`npm run lint` from `frontend/sveltekit` (dependencies: `npm ci`). Automated
+model/URL/API and mounted UI tests do not stand in for live backend/browser QA.
+
 ## Setup
 
 Install flutter snap:
