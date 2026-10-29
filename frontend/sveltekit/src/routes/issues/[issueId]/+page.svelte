@@ -33,6 +33,11 @@
   } from "$lib/issueDetailModel";
   import type { AttachmentRule, IssueDetail } from "$lib/types/issues";
   import IssueTestResults from "$lib/components/issues/IssueTestResults.svelte";
+  import IssueAutoRerun from "$lib/components/issues/IssueAutoRerun.svelte";
+  import {
+    issueAutoRerunSession,
+    issueAutoRerunUpdates as autoRerunUpdates,
+  } from "$lib/issueAutoRerunUpdates";
 
   let { data } = $props();
 
@@ -47,10 +52,26 @@
   let pendingDelete = $state<AttachmentRule | null>(null);
   let deleteDialog = $state<HTMLDialogElement | undefined>(undefined);
   let requestGeneration = 0;
+  const autoRerunSession = $derived(issueAutoRerunSession());
 
   $effect(() => {
     const rawId = issueId;
+    const session = autoRerunSession;
     const generation = ++requestGeneration;
+    const current = () =>
+      generation === requestGeneration && issueAutoRerunSession() === session;
+    const unsubscribe = autoRerunUpdates.subscribe((event) => {
+      if (
+        event.type === "confirmed" &&
+        current() &&
+        issue?.id === event.issueId
+      )
+        issue = { ...issue, auto_rerun_enabled: event.enabled };
+    });
+    const cleanup = () => {
+      ++requestGeneration;
+      unsubscribe();
+    };
     const id = Number(rawId);
     if (!/^[1-9]\d*$/.test(rawId) || !Number.isSafeInteger(id) || id <= 0) {
       issue = null;
@@ -58,7 +79,7 @@
       loadError = "";
       actionError = "";
       pendingDelete = null;
-      return;
+      return cleanup;
     }
 
     issue = null;
@@ -66,24 +87,32 @@
     loadError = "";
     actionError = "";
     pendingDelete = null;
+    const read = autoRerunUpdates.read(session, id);
     void getIssue(id)
       .then((response) => {
-        if (generation !== requestGeneration) return;
-        issue = response;
+        if (!current()) return;
+        issue = {
+          ...response,
+          auto_rerun_enabled: autoRerunUpdates.reconcile(
+            read,
+            response.auto_rerun_enabled,
+          ),
+        };
         loadState = "ready";
       })
       .catch(async (error: unknown) => {
-        if (generation !== requestGeneration) return;
+        if (!current()) return;
         if (error instanceof FetchError && error.status === 404) {
           loadState = "not-found";
           loadError = "Issue not found.";
         } else {
           const message = await issueErrorMessage(error);
-          if (generation !== requestGeneration) return;
+          if (!current()) return;
           loadState = "error";
           loadError = message;
         }
       });
+    return cleanup;
   });
 
   function isCurrentIssue(issueId: number, generation: number): boolean {
@@ -222,6 +251,10 @@
       </div>
       <h1>{issue.title}</h1>
     </header>
+
+    {#key issue.id}
+      <IssueAutoRerun issueId={issue.id} enabled={issue.auto_rerun_enabled} />
+    {/key}
 
     <section class="attachment-rules" aria-labelledby="attachment-rules-title">
       <h2 id="attachment-rules-title">Attachment Rules</h2>

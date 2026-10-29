@@ -9,6 +9,7 @@ export type BulkPermissionAction =
   | "rerun"
   | "attachmentRule"
   | "createIssue"
+  | "autoRerun"
   | "lookupIssue";
 export interface BulkPermissions {
   /** Recheck after opening a dialog AND before submission. This gate is revoked
@@ -59,6 +60,9 @@ export async function refreshBulkPermissions(
           break;
         case "createIssue":
           required.push("change_issue");
+          break;
+        case "autoRerun":
+          required.push("change_issue", "change_auto_rerun");
           break;
         case "lookupIssue":
           required.push("view_issue");

@@ -262,9 +262,9 @@ try {
   );
   assert.equal(
     await page
-      .getByRole("checkbox", { name: "Auto-rerun on new matches" })
+      .getByRole("switch", { name: "Auto-rerun on new matches" })
       .count(),
-    0,
+    1,
   );
   assert.equal(
     apiRequests.some(

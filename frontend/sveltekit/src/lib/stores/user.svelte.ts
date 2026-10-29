@@ -31,6 +31,14 @@ class UserStore {
   current = $state<User | null>(null);
   private sessionConfirmedAdmin = $state(false);
   private refreshGeneration = $state(0);
+  private sessionGeneration = $state(0);
+
+  /** Changes in the confirmed profile/session invalidate session-owned work,
+   * even if A logs out and back in while its consumer is unmounted. Unlike the
+   * authorization version, identical successful refreshes do not change this. */
+  get sessionVersion(): number {
+    return this.sessionGeneration;
+  }
 
   /** Authorization gates are invalidated by ANY later refresh, including a
    * failed or cancelled one that leaves the cached display profile intact. */
@@ -73,9 +81,12 @@ class UserStore {
     if (generation !== this.refreshGeneration || signal?.aborted)
       return "unknown";
     if (result.status === "authenticated") {
+      if (JSON.stringify(this.current) !== JSON.stringify(result.user))
+        ++this.sessionGeneration;
       this.current = result.user;
       this.sessionConfirmedAdmin = result.user.is_admin;
     } else if (result.status === "unauthenticated") {
+      if (this.current !== null) ++this.sessionGeneration;
       this.current = null;
     }
     // On "unknown", keep the cached profile for display, but the flag stays

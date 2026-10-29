@@ -139,7 +139,27 @@ function assertIssueDetail(value: unknown): IssueDetail {
 export async function getIssue(id: number): Promise<IssueDetail> {
   if (!Number.isSafeInteger(id) || id <= 0)
     throw new Error("Invalid issue ID.");
-  return assertIssueDetail(await silentApi<unknown>(`issues/${id}`));
+  const issue = assertIssueDetail(await silentApi<unknown>(`issues/${id}`));
+  if (issue.id !== id)
+    throw new Error("The issues API returned a different issue.");
+  return issue;
+}
+
+export async function setIssueAutoRerunEnabled(
+  id: number,
+  enabled: boolean,
+): Promise<IssueDetail> {
+  if (!Number.isSafeInteger(id) || id <= 0 || typeof enabled !== "boolean")
+    throw new Error("Invalid issue auto-rerun update.");
+  const issue = assertIssueDetail(
+    await silentApi<unknown>(`issues/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ auto_rerun_enabled: enabled }),
+    }),
+  );
+  if (issue.id !== id || issue.auto_rerun_enabled !== enabled)
+    throw new Error("The issues API did not confirm the auto-rerun update.");
+  return issue;
 }
 
 export async function createIssue(url: string): Promise<Issue> {
