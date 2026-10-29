@@ -15,13 +15,795 @@
   SPDX-License-Identifier: GPL-3.0-only
 -->
 
-<div class="stub-page">
-  <h1 class="page-title">Issues</h1>
-  <p class="stub-notice">Coming soon — this page is under active development.</p>
+<script lang="ts">
+  import { page } from "$app/state";
+  import { goto } from "$app/navigation";
+  import { untrack } from "svelte";
+  import { resolve } from "$app/paths";
+  import { createIssue, issueErrorMessage, listIssues } from "$lib/api/issues";
+  import {
+    appendUniqueIssues,
+    externalIssueUrlError,
+    filterIssueRows,
+    issueApiParams,
+    issueFilterKey,
+    ISSUE_PAGE_SIZE,
+    parseIssueFilters,
+  } from "$lib/issuePageModel";
+  import { familyDisplayName, type Family } from "$lib/types";
+  import {
+    DEFAULT_ISSUE_STATUSES,
+    ISSUE_SOURCES,
+    ISSUE_STATUSES,
+    type Issue,
+    type IssueFilters,
+    type IssueSource,
+    type IssueStatus,
+  } from "$lib/types/issues";
+
+  let { data } = $props();
+  const pageUrl = $derived(page.shallow?.url ?? page.url);
+  const families = $derived(
+    (data.artefactFamilies as Family[]).filter((family) => family.api_name),
+  );
+  const familyOptions = $derived(families.map((family) => family.api_name));
+  const filters = $derived(
+    parseIssueFilters(
+      new URLSearchParams(pageUrl.searchParams.toString()),
+      familyOptions,
+    ),
+  );
+  let searchText = $state("");
+  let syncedQuery = "";
+
+  let issues = $state<Issue[]>([]);
+  let knownProjects = $state<string[]>([]);
+  let projectFacetKey = "";
+  let totalCount = $state(0);
+  let nextOffset = $state(0);
+  let initialLoading = $state(true);
+  let loadingMore = $state(false);
+  let loadError = $state("");
+  let failedOffset = $state(0);
+  let generation = 0;
+  let activeFilterKey = "";
+  const hasMore = $derived(nextOffset < totalCount);
+  const visibleIssues = $derived(filterIssueRows(issues, filters));
+  const projectOptions = $derived(
+    [...new Set([...knownProjects, ...filters.projects])].sort((a, b) =>
+      a.localeCompare(b),
+    ),
+  );
+  const groups = $derived.by(() => {
+    const grouped: {
+      key: string;
+      source: IssueSource;
+      project: string;
+      issues: Issue[];
+    }[] = [];
+    for (const issue of visibleIssues) {
+      const key = JSON.stringify([issue.source, issue.project]);
+      let group = grouped.find((candidate) => candidate.key === key);
+      if (!group) {
+        group = {
+          key,
+          source: issue.source,
+          project: issue.project,
+          issues: [],
+        };
+        grouped.push(group);
+      }
+      group.issues.push(issue);
+    }
+    return grouped;
+  });
+
+  let addDialog: HTMLDialogElement;
+  let issueUrl = $state("");
+  let issueUrlError = $state("");
+  let createError = $state("");
+  let creating = $state(false);
+
+  $effect(() => {
+    const query = filters.query;
+    untrack(() => {
+      if (query !== syncedQuery) {
+        syncedQuery = query;
+        searchText = query;
+      }
+    });
+  });
+
+  $effect(() => {
+    const selected = filters;
+    const filterKey = issueFilterKey(selected);
+    untrack(() => {
+      if (filterKey === activeFilterKey) return;
+      activeFilterKey = filterKey;
+      void resetIssueList(selected);
+    });
+  });
+
+  async function resetIssueList(selected: IssueFilters) {
+    const requestGeneration = ++generation;
+    const nextFacetKey = JSON.stringify({
+      sources: [...selected.sources].sort(),
+      statuses: [...selected.statuses].sort(),
+      families: [...selected.families].sort(),
+      query: selected.query,
+    });
+    if (nextFacetKey !== projectFacetKey) {
+      projectFacetKey = nextFacetKey;
+      knownProjects = [];
+    }
+    issues = [];
+    totalCount = 0;
+    nextOffset = 0;
+    loadError = "";
+    failedOffset = 0;
+    initialLoading = true;
+    loadingMore = false;
+    await loadIssuePage(selected, 0, requestGeneration);
+  }
+
+  async function loadIssuePage(
+    selected: IssueFilters,
+    offset: number,
+    requestGeneration: number,
+  ) {
+    if (requestGeneration !== generation) return;
+    if (offset === 0 && issues.length === 0) initialLoading = true;
+    else loadingMore = true;
+    loadError = "";
+    try {
+      const response = await listIssues(issueApiParams(selected, offset));
+      if (requestGeneration !== generation) return;
+      issues = appendUniqueIssues(issues, response.issues);
+      knownProjects = [
+        ...new Set([
+          ...knownProjects,
+          ...response.issues.map((issue) => issue.project),
+        ]),
+      ];
+      totalCount = response.count;
+      nextOffset = response.offset + response.issues.length;
+      failedOffset = nextOffset;
+    } catch (error) {
+      if (requestGeneration !== generation) return;
+      const message = await issueErrorMessage(error);
+      if (requestGeneration !== generation) return;
+      failedOffset = offset;
+      loadError = message;
+    } finally {
+      if (requestGeneration === generation) {
+        initialLoading = false;
+        loadingMore = false;
+      }
+    }
+  }
+
+  function loadMore() {
+    if (initialLoading || loadingMore || !hasMore || loadError) return;
+    void loadIssuePage(filters, nextOffset, generation);
+  }
+
+  function retryLoad() {
+    if (initialLoading || loadingMore) return;
+    void loadIssuePage(filters, failedOffset, generation);
+  }
+
+  function updateFilter(
+    name: "source" | "status" | "family" | "project",
+    values: string[],
+  ) {
+    const next = new URL(pageUrl.href);
+    next.searchParams.delete(name);
+    if (name === "status" && values.length === 0) {
+      // An explicit empty value means all statuses; absence means the default
+      // open + unknown selection.
+      next.searchParams.append(name, "");
+    } else {
+      for (const value of values) next.searchParams.append(name, value);
+    }
+    void goto(next, { reset: false });
+  }
+
+  function toggleValue<T extends string>(
+    selected: T[],
+    value: T,
+    checked: boolean,
+    name: "source" | "status" | "family",
+  ) {
+    const next = checked
+      ? [...selected, value].filter(
+          (item, index, all) => all.indexOf(item) === index,
+        )
+      : selected.filter((item) => item !== value);
+    updateFilter(name, next);
+  }
+
+  function submitSearch(event: SubmitEvent) {
+    event.preventDefault();
+    const next = new URL(pageUrl.href);
+    const query = searchText.trim();
+    if (query) next.searchParams.set("q", query);
+    else next.searchParams.delete("q");
+    void goto(next, { reset: false });
+  }
+
+  function selectProjects(event: Event) {
+    const element = event.currentTarget;
+    if (!(element instanceof HTMLSelectElement)) return;
+    updateFilter(
+      "project",
+      Array.from(element.selectedOptions, (option) => option.value),
+    );
+  }
+
+  function openAddIssue() {
+    issueUrl = "";
+    issueUrlError = "";
+    createError = "";
+    addDialog.showModal();
+  }
+
+  async function submitAddIssue(event: SubmitEvent) {
+    event.preventDefault();
+    const validationError = externalIssueUrlError(issueUrl);
+    if (validationError) {
+      issueUrlError = validationError;
+      return;
+    }
+    creating = true;
+    issueUrlError = "";
+    createError = "";
+    try {
+      await createIssue(issueUrl.trim());
+      addDialog.close();
+      await resetIssueList(filters);
+    } catch (error) {
+      createError = await issueErrorMessage(error);
+    } finally {
+      creating = false;
+    }
+  }
+
+  function closeAddIssue() {
+    if (addDialog.open) addDialog.close();
+  }
+
+  function statusLabel(status: IssueStatus) {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  function issueLinkLabel(issue: Issue) {
+    return issue.source === "jira"
+      ? `${issue.project}-${issue.key}`
+      : `#${issue.key}`;
+  }
+</script>
+
+<svelte:head>
+  <title>Issues — Test Observer</title>
+</svelte:head>
+
+<div class="issues-page">
+  <header class="page-header">
+    <div>
+      <h1>Issues</h1>
+      <p>Browse external issues linked to test executions.</p>
+    </div>
+    <button class="add-issue" type="button" onclick={openAddIssue}
+      >Add issue</button
+    >
+  </header>
+
+  <div class="issues-layout">
+    <aside class="filters" aria-label="Issue filters">
+      <form class="search" role="search" onsubmit={submitSearch}>
+        <label for="issue-search">Search issues</label>
+        <div class="search-control">
+          <input
+            id="issue-search"
+            name="q"
+            type="search"
+            bind:value={searchText}
+            placeholder="Source, project, key, title…"
+          />
+          <button type="submit">Search</button>
+        </div>
+      </form>
+
+      <fieldset>
+        <legend>Source</legend>
+        {#each ISSUE_SOURCES as source (source)}
+          <label class="filter-option">
+            <input
+              type="checkbox"
+              value={source}
+              checked={filters.sources.includes(source)}
+              onchange={(event) =>
+                toggleValue(
+                  filters.sources,
+                  source,
+                  event.currentTarget.checked,
+                  "source",
+                )}
+            />
+            <span>{source.toUpperCase()}</span>
+          </label>
+        {/each}
+      </fieldset>
+
+      <fieldset>
+        <legend>Status</legend>
+        {#each ISSUE_STATUSES as status (status)}
+          <label class="filter-option">
+            <input
+              type="checkbox"
+              value={status}
+              checked={filters.statuses.includes(status)}
+              onchange={(event) =>
+                toggleValue(
+                  filters.statuses,
+                  status,
+                  event.currentTarget.checked,
+                  "status",
+                )}
+            />
+            <span>{statusLabel(status)}</span>
+          </label>
+        {/each}
+        {#if filters.statuses.length === 0}
+          <small>All statuses</small>
+        {:else if filters.statuses.length === DEFAULT_ISSUE_STATUSES.length && DEFAULT_ISSUE_STATUSES.every( (status) => filters.statuses.includes(status) ) && !pageUrl.searchParams.has("status")}
+          <small>Default: open and unknown</small>
+        {/if}
+      </fieldset>
+
+      <fieldset>
+        <legend>Family</legend>
+        {#each families as family (family.api_name)}
+          <label class="filter-option">
+            <input
+              type="checkbox"
+              value={family.api_name}
+              checked={filters.families.includes(family.api_name)}
+              onchange={(event) =>
+                toggleValue(
+                  filters.families,
+                  family.api_name,
+                  event.currentTarget.checked,
+                  "family",
+                )}
+            />
+            <span>{familyDisplayName(family)}</span>
+          </label>
+        {/each}
+      </fieldset>
+
+      <fieldset>
+        <legend>Project</legend>
+        {#if projectOptions.length === 0}
+          <small>Projects appear as issues load.</small>
+        {:else}
+          <select
+            multiple
+            size={Math.min(Math.max(projectOptions.length, 3), 6)}
+            aria-label="Project"
+            onchange={selectProjects}
+          >
+            {#each projectOptions as project (project)}
+              <option
+                value={project}
+                selected={filters.projects.includes(project)}>{project}</option
+              >
+            {/each}
+          </select>
+          <small>Use Ctrl/Cmd to select more than one.</small>
+        {/if}
+      </fieldset>
+    </aside>
+
+    <section class="issue-results" aria-label="Issues">
+      {#if initialLoading}
+        <p class="state" role="status">Loading issues…</p>
+      {:else if loadError && issues.length === 0}
+        <div class="error-state" role="alert">
+          <p>Unable to load issues: {loadError}</p>
+          <button type="button" onclick={retryLoad}>Try again</button>
+        </div>
+      {:else if visibleIssues.length === 0 && !hasMore}
+        <p class="state">No issues found.</p>
+      {:else if visibleIssues.length === 0}
+        <p class="state">No matching issues on the loaded pages yet.</p>
+      {/if}
+
+      {#if loadError && issues.length > 0}
+        <div class="error-state" role="alert">
+          <p>Unable to load more issues: {loadError}</p>
+          <button type="button" onclick={retryLoad}>Try again</button>
+        </div>
+      {/if}
+
+      {#each groups as group (group.key)}
+        <section
+          class="issue-group"
+          aria-label={`${group.source.toUpperCase()} ${group.project}`}
+        >
+          <h2>
+            <span>{group.source.toUpperCase()}</span><span>{group.project}</span
+            >
+          </h2>
+          <ul>
+            {#each group.issues as issue (issue.id)}
+              <li>
+                <div class="issue-summary">
+                  <a
+                    class="external-link"
+                    href={issue.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Open external issue ${issueLinkLabel(issue)} in a new tab`}
+                  >
+                    {issueLinkLabel(issue)}
+                  </a>
+                  <span class={`status status-${issue.status}`}
+                    >{statusLabel(issue.status)}</span
+                  >
+                  <span
+                    class="execution-count"
+                    aria-label={`${issue.test_executions_count ?? 0} test executions`}
+                  >
+                    <span aria-hidden="true">▶</span>
+                    {issue.test_executions_count ?? 0} test {issue.test_executions_count ===
+                    1
+                      ? "execution"
+                      : "executions"}
+                  </span>
+                </div>
+                <a
+                  class="issue-title"
+                  href={`${resolve("/issues")}/${issue.id}`}
+                  >{issue.title || "[No title]"}</a
+                >
+              </li>
+            {/each}
+          </ul>
+        </section>
+      {/each}
+
+      {#if !initialLoading && hasMore && !loadError}
+        <div class="pagination">
+          <button type="button" onclick={loadMore} disabled={loadingMore}>
+            {loadingMore
+              ? "Loading more…"
+              : `Load more issues (${ISSUE_PAGE_SIZE} at a time)`}
+          </button>
+          <span>{visibleIssues.length} matching issues shown</span>
+        </div>
+      {/if}
+    </section>
+  </div>
 </div>
 
+<dialog
+  bind:this={addDialog}
+  aria-labelledby="add-issue-title"
+  oncancel={(event) => {
+    if (creating) event.preventDefault();
+  }}
+>
+  <form class="add-issue-form" onsubmit={submitAddIssue}>
+    <h2 id="add-issue-title">Add issue</h2>
+    <p>Enter a GitHub, Jira, or Launchpad issue URL.</p>
+    <label for="external-issue-url">External issue URL</label>
+    <input
+      id="external-issue-url"
+      type="url"
+      autocomplete="url"
+      bind:value={issueUrl}
+      aria-invalid={!!issueUrlError}
+      aria-describedby={issueUrlError ? "issue-url-error" : undefined}
+      oninput={() => {
+        issueUrlError = "";
+        createError = "";
+      }}
+    />
+    {#if issueUrlError}
+      <p id="issue-url-error" class="form-error" role="alert">
+        {issueUrlError}
+      </p>
+    {/if}
+    {#if createError}
+      <p class="form-error" role="alert">Unable to add issue: {createError}</p>
+    {/if}
+    <div class="dialog-actions">
+      <button
+        type="button"
+        class="secondary"
+        onclick={closeAddIssue}
+        disabled={creating}>Cancel</button
+      >
+      <button type="submit" disabled={creating}
+        >{creating ? "Adding…" : "Add issue"}</button
+      >
+    </div>
+  </form>
+</dialog>
+
 <style>
-  .stub-page { padding: 2rem 0; }
-  .page-title { font-size: 1.75rem; font-weight: 500; margin: 0 0 1rem; }
-  .stub-notice { color: #666; font-size: 1rem; margin: 0; }
+  .issues-page {
+    max-width: 90rem;
+    margin: 0 auto;
+  }
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  h1 {
+    margin: 0;
+    font-size: 1.75rem;
+    font-weight: 500;
+  }
+  .page-header p {
+    margin: 0.35rem 0 0;
+    color: var(--lp-color-text-muted, #666);
+  }
+  button {
+    border: 1px solid var(--lp-color-border-default, #b8b8b8);
+    border-radius: 0.25rem;
+    padding: 0.55rem 0.85rem;
+    color: var(--lp-color-text-default, #222);
+    background: var(--lp-color-background-default, #fff);
+    font: inherit;
+    cursor: pointer;
+  }
+  button:hover:not(:disabled) {
+    background: var(--lp-color-background-hover, #f5f5f5);
+  }
+  button:disabled {
+    cursor: wait;
+    opacity: 0.7;
+  }
+  .add-issue,
+  .dialog-actions button[type="submit"] {
+    color: #fff;
+    background: #77216f;
+    border-color: #77216f;
+  }
+  .issues-layout {
+    display: grid;
+    grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+  }
+  .filters {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+  .search label,
+  fieldset legend {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+  .search-control {
+    display: flex;
+    gap: 0.4rem;
+  }
+  .search-control input {
+    min-width: 0;
+    flex: 1;
+  }
+  input[type="search"],
+  input[type="url"],
+  select {
+    box-sizing: border-box;
+    width: 100%;
+    border: 1px solid var(--lp-color-border-default, #b8b8b8);
+    border-radius: 0.25rem;
+    padding: 0.55rem;
+    color: inherit;
+    background: var(--lp-color-background-default, #fff);
+    font: inherit;
+  }
+  fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  fieldset legend {
+    padding: 0;
+  }
+  .filter-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.45rem 0;
+    cursor: pointer;
+  }
+  .filter-option input {
+    accent-color: #77216f;
+  }
+  small {
+    display: block;
+    margin-top: 0.45rem;
+    color: var(--lp-color-text-muted, #666);
+  }
+  .issue-results {
+    min-width: 0;
+  }
+  .state {
+    padding: 1.5rem;
+    color: var(--lp-color-text-muted, #666);
+  }
+  .error-state {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.8rem 1rem;
+    color: #a40000;
+    background: #f8eeee;
+    border-radius: 0.25rem;
+  }
+  .error-state p {
+    margin: 0;
+  }
+  .issue-group {
+    margin-bottom: 1.25rem;
+  }
+  .issue-group h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--lp-color-border-default, #d9d9d9);
+    font-size: 1rem;
+    font-weight: 400;
+  }
+  .issue-group h2 span:first-child {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+  }
+  .issue-group h2 span:last-child {
+    color: var(--lp-color-text-muted, #666);
+  }
+  .issue-group ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .issue-group li {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--lp-color-border-default, #e5e5e5);
+  }
+  .issue-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.875rem;
+  }
+  .external-link {
+    color: #06c;
+    text-decoration: underline;
+  }
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .status::before {
+    content: "";
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: #666;
+  }
+  .status-open::before {
+    background: #0e8420;
+  }
+  .status-closed::before {
+    background: #77216f;
+  }
+  .execution-count {
+    color: var(--lp-color-text-muted, #666);
+  }
+  .issue-title {
+    width: fit-content;
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--lp-color-text-link, #06c);
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .issue-title:hover {
+    text-decoration: underline;
+  }
+  .pagination {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  .pagination span {
+    color: var(--lp-color-text-muted, #666);
+    font-size: 0.875rem;
+  }
+  dialog {
+    width: min(32rem, calc(100vw - 2rem));
+    padding: 0;
+    border: 0;
+    border-radius: 0.35rem;
+    color: var(--lp-color-text-default, #222);
+    background: var(--lp-color-background-default, #fff);
+    box-shadow: 0 0.5rem 2rem rgb(0 0 0 / 25%);
+  }
+  dialog::backdrop {
+    background: rgb(0 0 0 / 45%);
+  }
+  .add-issue-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    padding: 1.5rem;
+  }
+  .add-issue-form h2 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 500;
+  }
+  .add-issue-form p {
+    margin: 0;
+    color: var(--lp-color-text-muted, #666);
+  }
+  .add-issue-form label {
+    font-weight: 500;
+  }
+  .add-issue-form input {
+    width: 100%;
+  }
+  .add-issue-form .form-error {
+    color: #a40000;
+  }
+  .dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+  }
+  .dialog-actions .secondary {
+    background: transparent;
+  }
+  @media (max-width: 760px) {
+    .issues-layout {
+      grid-template-columns: 1fr;
+    }
+    .filters {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+      align-items: start;
+    }
+    .page-header {
+      align-items: flex-start;
+    }
+    .issue-group li {
+      padding-inline: 0.5rem;
+    }
+  }
 </style>

@@ -108,9 +108,9 @@ Reviewers and Execution Metadata cells render every item as a compact preview,
 but SvGrid keeps row height fixed and clips overflowing preview content. Each
 cell therefore also has a keyboard-accessible **View all …** affordance that
 opens one shared, responsive design-system modal with every complete item and
-wrapping. Issue key/title entries link to the future internal issue route under
-the configured deployment base, in a new tab with `noopener noreferrer`; its
-current 404 is an accepted destination gap. Execution Metadata uses a semantic
+wrapping. Issue key/title entries link to the internal issue-detail route under
+the configured deployment base, in a new tab with `noopener noreferrer`. That
+route displays the issue and its attachment rules. Execution Metadata uses a semantic
 **Category | Value** table, while Issues and Reviewers retain their list layout.
 The modal is centered, bounded by viewport margins and scrolls its body
 internally while keeping its header and close controls available. Its item
@@ -316,11 +316,11 @@ own bounded scrollpane. Wheel/trackpad scrolling over fields, metadata, issues
 or the log continues through that body. The labelled body region is the one
 keyboard scroll stop (PageDown/End); the log adds no Tab stop.
 
-Issue links intentionally target the **future internal** `${base}/issues/${id}`
-path in a new tab with `noopener noreferrer`. The SvelteKit issue detail route is
-not implemented yet: its current 404 is a known, accepted destination gap, not a
-fallback to an external tracker. No issue detail page or rule-management page is
-provided here. Footer **View Run** uses the same configured family route,
+Issue links target the internal `${base}/issues/${id}` path in a new tab with
+`noopener noreferrer`, not an external tracker. The issue-detail page displays
+the issue and supports attachment-rule inspection, enable/disable and confirmed
+deletion. Its issue-scoped test-results and rerun controls remain deferred.
+Footer **View Run** uses the same configured family route,
 deployment base and execution/result deep link as the grid. An unconfigured
 family has no guessed Run route, but its Details still works.
 
@@ -403,7 +403,9 @@ Execution, are active Search column editors backed by all 19 canonical URL/API
 keys. The dedicated Search-page backend response includes the compact row values
 and association summaries those columns need; this is a Search-specific API
 contract and does not change the existing `/v1/test-results` response. Saved
-views and export, issue-detail and attachment-rule management remain deferred.
+views and export remain deferred. Issue details and attachment-rule management
+are available on the separate Issues pages; issue-scoped results and rerun
+controls are not part of their partial implementation.
 Search mutation workflows remain deliberately unwired for this read-only
 experiment.
 
@@ -520,7 +522,7 @@ Shared assertions in `tests/details-layout.browser.js` verify actual scalar row
 geometry, a full-width real metadata table with complete sorted literal text,
 top-aligned cells, wrapping, no descendant scroll containers, and header/footer
 visibility. Available real rows exercise populated/empty logs and issue hrefs
-without requiring the future issue destination to succeed. The JSON report
+without navigating to the issue destination, which has separate browser coverage. The JSON report
 explicitly notes live data gaps; large/complex/malicious examples and zoom use the
 separate browser fixture below, not claims about the seed. Reports/screenshots
 stay outside the repository under `/tmp/opencode`; no login screenshots, traces,

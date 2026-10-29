@@ -41,8 +41,8 @@ mutation workflows.
 The grid loads compact result rows; the Details action fetches the selected
 result on demand and opens one reusable Pragma modal with execution metadata,
 attached issues and literal IO logs. Closing the modal does not fetch again.
-Issue links intentionally use the future internal issue-detail route;
-that SvelteKit destination currently returns 404 and is not implemented here.
+Issue links open the internal SvelteKit issue-detail route, which displays the
+issue and its attachment rules.
 
 See the canonical [SvelteKit search guide](sveltekit/SEARCH.md) for all field
 labels, editors, URL contracts and repair rules, query and table-view resets,
@@ -51,6 +51,25 @@ layout/native-history guarantees, and the optional real API/SSO browser check.
 For local SvelteKit checks, run `npm run check`, `npm run build`, `npm test` and
 `npm run lint` from `frontend/sveltekit` (dependencies: `npm ci`). Automated
 model/URL/API and mounted UI tests do not stand in for live backend/browser QA.
+
+### SvelteKit issues (partial implementation)
+
+`/wip/issues` lists linked external issues with search, source/status/family/project
+filters, fifty-row pages, and an Add issue dialog. Status defaults to open and
+unknown. Project and multi-source filtering apply to the pages loaded so far;
+use Load more to inspect subsequent pages.
+
+`/wip/issues/[issueId]` displays the issue and its attachment rules, including
+complete criteria, View filters links back to Search, enable/disable, and
+confirmed deletion. Issue-scoped test results, bulk reruns, and the auto-rerun
+toggle are not part of this partial import.
+
+The opt-in `npm run test:issues-browser` and `npm run test:issues-detail-browser`
+checks run Chromium against temporary local Vite servers with mocked API
+responses; they do not mutate a live database. Supply externally installed
+Playwright Core via `PLAYWRIGHT_MODULE` and Chromium via `CHROMIUM_EXECUTABLE`,
+as for the [Search browser checks](sveltekit/SEARCH.md#local-checks). No Playwright
+project dependency is required.
 
 ## Setup
 

@@ -13,7 +13,9 @@
     "test": "node --test tests/*.test.js",
     "lint": "svelte-kit sync && prettier --check . && eslint .",
     "lint:fix": "prettier --write . && eslint --fix .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test:issues-browser": "node tests/issues-page.browser.js",
+    "test:issues-detail-browser": "node tests/issue-detail.browser.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
