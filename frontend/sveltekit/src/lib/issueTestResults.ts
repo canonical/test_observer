@@ -9,6 +9,46 @@ import {
   FILTER_DEFINITIONS,
   compareInstants,
 } from "$lib/testResultsSearch";
+import {
+  freezeBulkTarget,
+  type BulkReadiness,
+  type BulkTarget,
+  type Capability,
+} from "$lib/testResultsBulk";
+import { positiveId, selectionQuery } from "$lib/testResultsPredicate";
+
+/** Explicit all-matches opt-in for this issue's APPLIED server query. No draft,
+ * grid, cached row or execution ID participates in this scope. */
+export function issueRerunTarget(
+  issueId: number,
+  applied: AppliedSearch,
+  serverCount: number | null,
+  readiness: BulkReadiness,
+): Capability<BulkTarget> {
+  const pinned = applied.filters.issues;
+  if (
+    !positiveId(issueId) ||
+    !Array.isArray(pinned) ||
+    pinned.length !== 1 ||
+    pinned[0] !== issueId
+  )
+    return {
+      ok: false,
+      reason: "The applied query must pin exactly this issue.",
+    };
+  return freezeBulkTarget(
+    {
+      query: selectionQuery(applied),
+      allMatches: true,
+      matchCount: serverCount ?? 0,
+      explicitIds: [],
+      exclusions: [],
+      executions: [],
+    },
+    applied,
+    readiness,
+  );
+}
 
 export const ISSUE_RESULT_LISTS = [
   "families",

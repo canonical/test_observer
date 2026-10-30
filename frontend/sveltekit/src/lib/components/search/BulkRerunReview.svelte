@@ -2,7 +2,13 @@
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 <script lang="ts">
   import { onDestroy, untrack } from "svelte";
-  import { Button, Link, Modal } from "@canonical/svelte-ds-app-launchpad";
+  import {
+    Button,
+    Checkbox,
+    Link,
+    Modal,
+    TextInput,
+  } from "@canonical/svelte-ds-app-launchpad";
   import { silentApi } from "$lib/api/client";
   import { userStore } from "$lib/stores/user.svelte";
   import {
@@ -71,6 +77,8 @@
   let invalidated = $state(false);
   let openedKey = $state("");
   let reviewedUser = $state<number | null>(null);
+  let reviewedSession = $state(0);
+  let reviewGeneration = 0;
   const currentUserId = $derived(userStore.current?.id ?? null);
   const plan = $derived(
     target
@@ -123,13 +131,15 @@
 
   // Revocation is durable: restoring a selection or logging in as the same user
   // cannot revive a review observed to have changed while an await was pending.
-  $effect(() => {
+  $effect.pre(() => {
     const user = currentUserId;
+    const session = userStore.sessionVersion;
     const fresh = scope(true);
     if (
       open &&
       (openedKey !== reviewKey ||
         user !== reviewedUser ||
+        session !== reviewedSession ||
         !fresh.ok ||
         JSON.stringify(fresh.value) !== JSON.stringify(target))
     ) {
@@ -203,6 +213,7 @@
     if (
       openedKey !== reviewKey ||
       reviewedUser !== (userStore.current?.id ?? null) ||
+      reviewedSession !== userStore.sessionVersion ||
       !fresh.ok ||
       JSON.stringify(fresh.value) !== JSON.stringify(target)
     ) {
@@ -217,8 +228,15 @@
     authController = controller;
     checking = true;
     permissions = null;
+    const generation = reviewGeneration;
     const result = await refreshBulkPermissions(fetch, controller.signal);
-    if (!live || controller.signal.aborted || !open) return;
+    if (
+      !live ||
+      controller.signal.aborted ||
+      generation !== reviewGeneration ||
+      !currentScope()
+    )
+      return;
     permissions = result;
     checking = false;
   }
@@ -237,6 +255,8 @@
     preview = { key: "", count: null, error: "" };
     openedKey = reviewKey;
     reviewedUser = userStore.current?.id ?? null;
+    reviewedSession = userStore.sessionVersion;
+    ++reviewGeneration;
     invalidated = false;
     terminal = false;
     message = "";
@@ -247,6 +267,7 @@
   function close() {
     if (busy) return;
     open = false;
+    ++reviewGeneration;
     authController?.abort();
     countController?.abort();
     ++countGeneration;
@@ -261,6 +282,7 @@
     const action = operation;
     const key = openedKey;
     const bulk = rerunIsBulk(target);
+    const generation = reviewGeneration;
     busy = true;
     onbusy(true);
     message = "";
@@ -286,11 +308,7 @@
         },
       );
       if (!live) return;
-      if (!currentScope()) {
-        message =
-          "The request completed after this review was revoked. Refresh results to inspect the outcome. The current selection has not been cleared.";
-        return;
-      }
+      if (generation !== reviewGeneration || !currentScope()) return;
       open = false;
       onreview(false);
       // Release navigation/busy before the parent's result refresh unmounts us.
@@ -302,7 +320,9 @@
       );
     } catch (cause) {
       const detail = await issueRequestError(cause);
-      if (!live) return;
+      // Parsing an HTTP error body is asynchronous too. An obsolete issue or
+      // session must not receive the old request's message or completion.
+      if (generation !== reviewGeneration || !currentScope()) return;
       terminal = true;
       message =
         sent && ambiguousMutationError(cause)
@@ -381,8 +401,7 @@
             an all-matches query instead.
           </p>
           <label class="option"
-            ><input
-              type="checkbox"
+            ><Checkbox
               bind:checked={exact}
               onchange={() => (acknowledged = false)}
               disabled={busy || invalidated || terminal || !ids?.ok}
@@ -404,16 +423,14 @@
               <dd>{JSON.stringify(value)}</dd>{/each}
           </dl>
           <label class="option"
-            ><input
-              type="checkbox"
+            ><Checkbox
               bind:checked={onlyLatest}
               onchange={() => (acknowledged = false)}
               disabled={busy || invalidated || terminal}
             />Only latest test executions</label
           >
           <label class="option"
-            ><input
-              type="checkbox"
+            ><Checkbox
               bind:checked={excludeArchived}
               onchange={() => (acknowledged = false)}
               disabled={busy || invalidated || terminal}
@@ -452,11 +469,9 @@
         </p>
         {#if operation === "create"}
           <label class="priority"
-            >Priority<input
-              type="number"
-              min="-1000000"
-              max="1000000"
-              step="1"
+            >Priority<TextInput
+              type="text"
+              inputmode="numeric"
               value={priority}
               oninput={(event) => {
                 priority = event.currentTarget.value;
@@ -483,8 +498,7 @@
             onclick={refreshPermissions}>Refresh permissions</Button
           >{/if}
         {#if count !== null && count > 50}<label class="option acknowledgment"
-            ><input
-              type="checkbox"
+            ><Checkbox
               bind:checked={acknowledged}
               disabled={busy || invalidated || terminal}
             />I have reviewed the scope of {count} test results and want to {operation}
@@ -492,13 +506,14 @@
           >{/if}
         {#if invalidated}<p role="alert">
             The selection, applied query or session changed. Close this review
-            and open Bulk actions again. Nothing further will be submitted from
-            this review.
+            and open rerun actions again. Nothing further will be submitted from
+            this review. If a request was already sent, it may still complete;
+            refresh results to inspect its outcome.
           </p>{/if}
         {#if message}<p role="alert">{message}</p>{/if}
         {#if busy}<p role="status">
-            Submitting… Closing and navigation are disabled while the request is
-            in flight.
+            Submitting… Closing is disabled while the request is in flight.
+            Leaving the page cannot undo a dispatched request.
           </p>{/if}
       </Modal.Content.Body>
       <Modal.Content.Footer>
@@ -558,6 +573,10 @@
     flex-shrink: 0;
     flex-wrap: wrap;
   }
+  :global(.bulk-rerun-content .dialog-content-header) {
+    justify-content: space-between;
+    gap: var(--lp-dimension-spacing-inline-s);
+  }
   h2 {
     font-size: 1.25rem;
     margin: 0;
@@ -569,18 +588,18 @@
     font-weight: 550;
   }
   dd {
-    margin: 0 0 0.5rem;
+    margin: 0 0 var(--lp-dimension-spacing-block-xs);
   }
   .option {
     display: flex;
     align-items: start;
-    gap: 0.5rem;
-    margin-block: 1rem;
+    gap: var(--lp-dimension-spacing-inline-s);
+    margin-block: var(--lp-dimension-spacing-block-m);
   }
   .priority {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--lp-dimension-spacing-block-xs);
     max-width: 15rem;
   }
 </style>

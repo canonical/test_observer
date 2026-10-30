@@ -1,13 +1,15 @@
 <!-- SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd. -->
 <!-- SPDX-License-Identifier: GPL-3.0-only -->
 <script lang="ts">
-  import { onDestroy, untrack } from "svelte";
+  import { onDestroy, tick, untrack } from "svelte";
   import { Button, Link, Spinner } from "@canonical/svelte-ds-app-launchpad";
+  import { RestartIcon, DeleteIcon } from "@canonical/svelte-icons";
   import { FetchError, silentApi } from "$lib/api/client";
   import { getApiRoot } from "$lib/config";
   import {
     issueResultsQuery,
     issueResultGroupCount,
+    issueRerunTarget,
     type IssueResultFilters,
   } from "$lib/issueTestResults";
   import { TestResultsSearchStore } from "$lib/stores/test-results-search.svelte";
@@ -17,12 +19,19 @@
   import SearchResultDetails from "$lib/components/search/SearchResultDetails.svelte";
   import IssueResultsGrid from "./IssueResultsGrid.svelte";
   import IssueResultFiltersEditor from "./IssueResultFilters.svelte";
+  import BulkRerunReview from "$lib/components/search/BulkRerunReview.svelte";
 
   let {
     issueId,
     families,
     base,
-  }: { issueId: number; families: Family[]; base: string } = $props();
+    onbusy,
+  }: {
+    issueId: number;
+    families: Family[];
+    base: string;
+    onbusy?: (busy: boolean) => void;
+  } = $props();
   const store = new TestResultsSearchStore();
   let applied = $state.raw<{
     issueId: number;
@@ -49,6 +58,63 @@
     `${getApiRoot()}:${JSON.stringify(userStore.current)}`,
   );
   const dataset = $derived({ query, sessionScope, families, base });
+  let reviewRevision = $state(0);
+  let review: BulkRerunReview;
+  let rerunBusy = $state(false);
+  let reviewing = $state(false);
+  let completion = $state("");
+  let reviewInvoker: {
+    dataset: typeof dataset;
+    trigger: HTMLButtonElement;
+  } | null = null;
+  function startRerun(
+    operation: "create" | "delete",
+    trigger: HTMLButtonElement,
+  ) {
+    reviewInvoker = { dataset, trigger };
+    void review.start(operation);
+  }
+  async function restoreRerunFocus() {
+    const previous = reviewInvoker;
+    // The trigger is disabled while reviewing/loading. Restore only after the
+    // dialog has gone and the current dataset's controls are enabled again.
+    await tick();
+    if (
+      live &&
+      !reviewing &&
+      previous?.dataset === dataset &&
+      previous.trigger.isConnected &&
+      !previous.trigger.disabled
+    )
+      previous.trigger.focus({ preventScroll: true });
+  }
+  // An observed A/B/A query or session transition cannot revive an old review.
+  $effect.pre(() => {
+    void dataset;
+    void userStore.sessionVersion;
+    untrack(() => {
+      ++reviewRevision;
+      completion = "";
+    });
+  });
+  const reviewKey = $derived(`${reviewRevision}:${userStore.sessionVersion}`);
+  function rerunScope(ownSubmission = false) {
+    return issueRerunTarget(issueId, query, store.state?.rowCount ?? null, {
+      available: ready,
+      loading: !ready,
+      moving: false,
+      accessError: !!store.accessError || !!store.error,
+      // Draft editing is deliberately independent of the frozen applied query.
+      unapplied: false,
+      mutating: rerunBusy && !ownSubmission,
+    });
+  }
+  const rerunCapability = $derived(rerunScope());
+  async function refreshResults() {
+    if (!live) return;
+    discardDetails();
+    await store.search(query, families, base);
+  }
   let modelDataset = $state.raw<typeof dataset | null>(null);
   const ready = $derived(
     modelDataset === dataset &&
@@ -199,6 +265,28 @@
   bind:this={section}
 >
   <h2 id="issue-results-heading">Test Results</h2>
+  <div class="rerun-actions" aria-label="Issue result rerun actions">
+    <Button
+      type="button"
+      aria-haspopup="dialog"
+      disabled={!rerunCapability.ok || reviewing}
+      onclick={(event) => startRerun("create", event.currentTarget)}
+      >{#snippet iconLeft()}<RestartIcon />{/snippet}Create rerun requests</Button
+    >
+    <Button
+      type="button"
+      aria-haspopup="dialog"
+      disabled={!rerunCapability.ok || reviewing}
+      onclick={(event) => startRerun("delete", event.currentTarget)}
+      >{#snippet iconLeft()}<DeleteIcon />{/snippet}Delete rerun requests</Button
+    >
+  </div>
+  <p>
+    Rerun actions review all server matches for this issue's applied filters,
+    including results not loaded in the table. Unapplied drafts are not
+    included.
+  </p>
+  {#if completion}<p role="status">{completion}</p>{/if}
   {#key issueId}
     {@const owner = issueId}
     <IssueResultFiltersEditor
@@ -253,6 +341,32 @@
   {/if}
 </section>
 
+<BulkRerunReview
+  bind:this={review}
+  scope={rerunScope}
+  {reviewKey}
+  {loginUrl}
+  onbusy={(busy) => {
+    rerunBusy = busy;
+    onbusy?.(busy);
+  }}
+  onreview={(open) => (reviewing = open)}
+  oncomplete={async (key, message) => {
+    if (!live || key !== reviewKey) return;
+    completion = message;
+    await refreshResults();
+    await restoreRerunFocus();
+  }}
+  onrefresh={async () => {
+    await refreshResults();
+    await restoreRerunFocus();
+  }}
+  onclose={() => {
+    reviewing = false;
+    void restoreRerunFocus();
+  }}
+/>
+
 <SearchResultDetails
   {result}
   active={selection !== null}
@@ -274,5 +388,10 @@
     display: flex;
     gap: var(--lp-dimension-spacing-inline-s);
     align-items: center;
+  }
+  .rerun-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--lp-dimension-spacing-inline-s);
   }
 </style>

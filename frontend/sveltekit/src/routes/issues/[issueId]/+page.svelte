@@ -18,6 +18,7 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { resolve } from "$app/paths";
+  import { beforeNavigate } from "$app/navigation";
   import { FetchError } from "$lib/api/client";
   import {
     deleteAttachmentRule,
@@ -52,6 +53,12 @@
   let pendingDelete = $state<AttachmentRule | null>(null);
   let deleteDialog = $state<HTMLDialogElement | undefined>(undefined);
   let requestGeneration = 0;
+  let rerunBusy = $state(false);
+  // SPA navigation is blocked during dispatch. A hard leave can only request
+  // native browser confirmation; it cannot cancel an already dispatched write.
+  beforeNavigate((navigation) => {
+    if (rerunBusy) navigation.cancel();
+  });
   const autoRerunSession = $derived(issueAutoRerunSession());
 
   $effect(() => {
@@ -338,6 +345,7 @@
         issueId={issue.id}
         families={data.artefactFamilies}
         base={resolve("").replace(/\/$/, "")}
+        onbusy={(busy) => (rerunBusy = busy)}
       />
     {/key}
 
