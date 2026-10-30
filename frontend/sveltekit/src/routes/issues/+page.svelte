@@ -18,15 +18,20 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
-  import { untrack } from "svelte";
+  import { onDestroy, untrack } from "svelte";
+  import { Button } from "@canonical/svelte-ds-app-launchpad";
   import { resolve } from "$app/paths";
-  import { createIssue, issueErrorMessage, listIssues } from "$lib/api/issues";
+  import { createIssue, issueErrorMessage } from "$lib/api/issues";
+  import { getApiRoot } from "$lib/config";
+  import { userStore } from "$lib/stores/user.svelte";
+  import { IssueListPages } from "$lib/issueListPages.svelte";
+  import IssueProjectPicker from "$lib/components/issues/IssueProjectPicker.svelte";
   import {
-    appendUniqueIssues,
     externalIssueUrlError,
     filterIssueRows,
-    issueApiParams,
+    issueActiveGroupCount,
     issueFilterKey,
+    issueProjectFilters,
     ISSUE_PAGE_SIZE,
     parseIssueFilters,
   } from "$lib/issuePageModel";
@@ -36,7 +41,6 @@
     ISSUE_SOURCES,
     ISSUE_STATUSES,
     type Issue,
-    type IssueFilters,
     type IssueSource,
     type IssueStatus,
   } from "$lib/types/issues";
@@ -56,23 +60,29 @@
   let searchText = $state("");
   let syncedQuery = "";
 
-  let issues = $state<Issue[]>([]);
-  let knownProjects = $state<string[]>([]);
-  let projectFacetKey = "";
-  let totalCount = $state(0);
-  let nextOffset = $state(0);
-  let initialLoading = $state(true);
-  let loadingMore = $state(false);
-  let loadError = $state("");
-  let failedOffset = $state(0);
-  let generation = 0;
-  let activeFilterKey = "";
-  const hasMore = $derived(nextOffset < totalCount);
-  const visibleIssues = $derived(filterIssueRows(issues, filters));
+  let filtersVisible = $state(true);
+  const activeGroups = $derived(issueActiveGroupCount(filters));
+  // Session context invalidates both read streams; it does not grant access.
+  const sessionScope = $derived(
+    `${getApiRoot()}:${userStore.sessionVersion}:${JSON.stringify(userStore.current)}`,
+  );
+  const resultScope = $derived(`${sessionScope}:${issueFilterKey(filters)}`);
+  const facetFilters = $derived(issueProjectFilters(filters));
+  const facetScope = $derived(
+    `${sessionScope}:${issueFilterKey(facetFilters)}`,
+  );
+  const results = new IssueListPages(() => resultScope);
+  const projects = new IssueListPages(() => facetScope);
+  const visibleIssues = $derived(filterIssueRows(results.rows, filters));
   const projectOptions = $derived(
-    [...new Set([...knownProjects, ...filters.projects])].sort((a, b) =>
-      a.localeCompare(b),
-    ),
+    [
+      ...new Set([
+        ...filterIssueRows(projects.rows, facetFilters).map(
+          (issue) => issue.project,
+        ),
+        ...filters.projects,
+      ]),
+    ].sort((a, b) => a.localeCompare(b)),
   );
   const groups = $derived.by(() => {
     const grouped: {
@@ -114,89 +124,38 @@
     });
   });
 
-  $effect(() => {
-    const selected = filters;
-    const filterKey = issueFilterKey(selected);
-    untrack(() => {
-      if (filterKey === activeFilterKey) return;
-      activeFilterKey = filterKey;
-      void resetIssueList(selected);
-    });
+  $effect.pre(() => {
+    const scope = resultScope;
+    untrack(() => void results.reset(filters, scope));
   });
 
-  async function resetIssueList(selected: IssueFilters) {
-    const requestGeneration = ++generation;
-    const nextFacetKey = JSON.stringify({
-      sources: [...selected.sources].sort(),
-      statuses: [...selected.statuses].sort(),
-      families: [...selected.families].sort(),
-      query: selected.query,
+  $effect.pre(() => {
+    const scope = facetScope;
+    untrack(() => void projects.reset(facetFilters, scope));
+  });
+
+  onDestroy(() => {
+    results.dispose();
+    projects.dispose();
+  });
+
+  // Compose rapid changes against the most recent intended URL, not a stale
+  // page snapshot while goto is pending. Only the latest navigation can clear it.
+  let pendingUrl: URL | null = null;
+  let navigationRevision = 0;
+  function navigate(next: URL) {
+    pendingUrl = next;
+    const revision = ++navigationRevision;
+    return goto(next, { reset: false }).finally(() => {
+      if (revision === navigationRevision) pendingUrl = null;
     });
-    if (nextFacetKey !== projectFacetKey) {
-      projectFacetKey = nextFacetKey;
-      knownProjects = [];
-    }
-    issues = [];
-    totalCount = 0;
-    nextOffset = 0;
-    loadError = "";
-    failedOffset = 0;
-    initialLoading = true;
-    loadingMore = false;
-    await loadIssuePage(selected, 0, requestGeneration);
-  }
-
-  async function loadIssuePage(
-    selected: IssueFilters,
-    offset: number,
-    requestGeneration: number,
-  ) {
-    if (requestGeneration !== generation) return;
-    if (offset === 0 && issues.length === 0) initialLoading = true;
-    else loadingMore = true;
-    loadError = "";
-    try {
-      const response = await listIssues(issueApiParams(selected, offset));
-      if (requestGeneration !== generation) return;
-      issues = appendUniqueIssues(issues, response.issues);
-      knownProjects = [
-        ...new Set([
-          ...knownProjects,
-          ...response.issues.map((issue) => issue.project),
-        ]),
-      ];
-      totalCount = response.count;
-      nextOffset = response.offset + response.issues.length;
-      failedOffset = nextOffset;
-    } catch (error) {
-      if (requestGeneration !== generation) return;
-      const message = await issueErrorMessage(error);
-      if (requestGeneration !== generation) return;
-      failedOffset = offset;
-      loadError = message;
-    } finally {
-      if (requestGeneration === generation) {
-        initialLoading = false;
-        loadingMore = false;
-      }
-    }
-  }
-
-  function loadMore() {
-    if (initialLoading || loadingMore || !hasMore || loadError) return;
-    void loadIssuePage(filters, nextOffset, generation);
-  }
-
-  function retryLoad() {
-    if (initialLoading || loadingMore) return;
-    void loadIssuePage(filters, failedOffset, generation);
   }
 
   function updateFilter(
     name: "source" | "status" | "family" | "project",
     values: string[],
   ) {
-    const next = new URL(pageUrl.href);
+    const next = new URL((pendingUrl ?? pageUrl).href);
     next.searchParams.delete(name);
     if (name === "status" && values.length === 0) {
       // An explicit empty value means all statuses; absence means the default
@@ -205,39 +164,41 @@
     } else {
       for (const value of values) next.searchParams.append(name, value);
     }
-    void goto(next, { reset: false });
+    return navigate(next);
   }
 
-  function toggleValue<T extends string>(
-    selected: T[],
-    value: T,
+  function toggleValue(
+    value: string,
     checked: boolean,
-    name: "source" | "status" | "family",
+    name: "source" | "status" | "family" | "project",
   ) {
+    const current = parseIssueFilters(
+      new URLSearchParams((pendingUrl ?? pageUrl).searchParams.toString()),
+      familyOptions,
+    );
+    const selected =
+      name === "source"
+        ? current.sources
+        : name === "status"
+          ? current.statuses
+          : name === "family"
+            ? current.families
+            : current.projects;
     const next = checked
       ? [...selected, value].filter(
           (item, index, all) => all.indexOf(item) === index,
         )
       : selected.filter((item) => item !== value);
-    updateFilter(name, next);
+    return updateFilter(name, next);
   }
 
   function submitSearch(event: SubmitEvent) {
     event.preventDefault();
-    const next = new URL(pageUrl.href);
+    const next = new URL((pendingUrl ?? pageUrl).href);
     const query = searchText.trim();
     if (query) next.searchParams.set("q", query);
     else next.searchParams.delete("q");
-    void goto(next, { reset: false });
-  }
-
-  function selectProjects(event: Event) {
-    const element = event.currentTarget;
-    if (!(element instanceof HTMLSelectElement)) return;
-    updateFilter(
-      "project",
-      Array.from(element.selectedOptions, (option) => option.value),
-    );
+    navigate(next);
   }
 
   function openAddIssue() {
@@ -260,7 +221,10 @@
     try {
       await createIssue(issueUrl.trim());
       addDialog.close();
-      await resetIssueList(filters);
+      // Creation can add a project without changing facet scope. Invalidate its
+      // older pages too, but keep this independent read out of Add's pending state.
+      void projects.reset(facetFilters, facetScope);
+      await results.reset(filters, resultScope);
     } catch (error) {
       createError = await issueErrorMessage(error);
     } finally {
@@ -298,8 +262,26 @@
     >
   </header>
 
-  <div class="issues-layout">
-    <aside class="filters" aria-label="Issue filters">
+  <div class="filter-disclosure">
+    <Button
+      aria-expanded={filtersVisible}
+      aria-controls="issue-filters"
+      onclick={() => (filtersVisible = !filtersVisible)}
+      >{filtersVisible ? "Hide filters" : "Show filters"}</Button
+    >
+    <span role="status"
+      >{activeGroups} active filter {activeGroups === 1
+        ? "group"
+        : "groups"}</span
+    >
+  </div>
+  <div class="issues-layout" class:filters-hidden={!filtersVisible}>
+    <aside
+      id="issue-filters"
+      class="filters"
+      aria-label="Issue filters"
+      hidden={!filtersVisible}
+    >
       <form class="search" role="search" onsubmit={submitSearch}>
         <label for="issue-search">Search issues</label>
         <div class="search-control">
@@ -323,12 +305,7 @@
               value={source}
               checked={filters.sources.includes(source)}
               onchange={(event) =>
-                toggleValue(
-                  filters.sources,
-                  source,
-                  event.currentTarget.checked,
-                  "source",
-                )}
+                toggleValue(source, event.currentTarget.checked, "source")}
             />
             <span>{source.toUpperCase()}</span>
           </label>
@@ -344,12 +321,7 @@
               value={status}
               checked={filters.statuses.includes(status)}
               onchange={(event) =>
-                toggleValue(
-                  filters.statuses,
-                  status,
-                  event.currentTarget.checked,
-                  "status",
-                )}
+                toggleValue(status, event.currentTarget.checked, "status")}
             />
             <span>{statusLabel(status)}</span>
           </label>
@@ -371,7 +343,6 @@
               checked={filters.families.includes(family.api_name)}
               onchange={(event) =>
                 toggleValue(
-                  filters.families,
                   family.api_name,
                   event.currentTarget.checked,
                   "family",
@@ -382,47 +353,67 @@
         {/each}
       </fieldset>
 
-      <fieldset>
-        <legend>Project</legend>
-        {#if projectOptions.length === 0}
-          <small>Projects appear as issues load.</small>
-        {:else}
-          <select
-            multiple
-            size={Math.min(Math.max(projectOptions.length, 3), 6)}
-            aria-label="Project"
-            onchange={selectProjects}
+      <IssueProjectPicker
+        options={projectOptions}
+        selected={filters.projects}
+        ontoggle={(project, checked) =>
+          toggleValue(project, checked, "project")}
+      >
+        <small id="project-discovery-help">
+          Options come from separately loaded issue pages matching the other
+          filters, without a project restriction. Selected projects are always
+          retained.
+          {#if projects.hasMore || projects.initialLoading || projects.error}
+            Discovery is incomplete; searching only checks loaded options.
+          {:else}
+            All {projects.nextOffset} issue rows in this discovery have been checked.
+          {/if}
+        </small>
+        {#if projects.initialLoading}
+          <small role="status">Loading project options…</small>
+        {:else if projects.error}
+          <div role="alert">
+            <p>Unable to load project options: {projects.error}</p>
+            <Button density="dense" onclick={() => void projects.retry()}
+              >Retry project options</Button
+            >
+          </div>
+        {:else if projects.hasMore}
+          <Button
+            density="dense"
+            disabled={projects.loadingMore}
+            onclick={() => void projects.more()}
           >
-            {#each projectOptions as project (project)}
-              <option
-                value={project}
-                selected={filters.projects.includes(project)}>{project}</option
-              >
-            {/each}
-          </select>
-          <small>Use Ctrl/Cmd to select more than one.</small>
+            {projects.loadingMore
+              ? "Loading project options…"
+              : "Load more project options"}
+          </Button>
         {/if}
-      </fieldset>
+      </IssueProjectPicker>
     </aside>
 
     <section class="issue-results" aria-label="Issues">
-      {#if initialLoading}
+      {#if results.initialLoading}
         <p class="state" role="status">Loading issues…</p>
-      {:else if loadError && issues.length === 0}
+      {:else if results.error && results.rows.length === 0}
         <div class="error-state" role="alert">
-          <p>Unable to load issues: {loadError}</p>
-          <button type="button" onclick={retryLoad}>Try again</button>
+          <p>Unable to load issues: {results.error}</p>
+          <button type="button" onclick={() => void results.retry()}
+            >Try again</button
+          >
         </div>
-      {:else if visibleIssues.length === 0 && !hasMore}
+      {:else if visibleIssues.length === 0 && !results.hasMore}
         <p class="state">No issues found.</p>
       {:else if visibleIssues.length === 0}
         <p class="state">No matching issues on the loaded pages yet.</p>
       {/if}
 
-      {#if loadError && issues.length > 0}
+      {#if results.error && results.rows.length > 0}
         <div class="error-state" role="alert">
-          <p>Unable to load more issues: {loadError}</p>
-          <button type="button" onclick={retryLoad}>Try again</button>
+          <p>Unable to load more issues: {results.error}</p>
+          <button type="button" onclick={() => void results.retry()}
+            >Try again</button
+          >
         </div>
       {/if}
 
@@ -473,10 +464,14 @@
         </section>
       {/each}
 
-      {#if !initialLoading && hasMore && !loadError}
+      {#if !results.initialLoading && results.hasMore && !results.error}
         <div class="pagination">
-          <button type="button" onclick={loadMore} disabled={loadingMore}>
-            {loadingMore
+          <button
+            type="button"
+            onclick={() => void results.more()}
+            disabled={results.loadingMore}
+          >
+            {results.loadingMore
               ? "Loading more…"
               : `Load more issues (${ISSUE_PAGE_SIZE} at a time)`}
           </button>
@@ -581,6 +576,19 @@
     gap: 1.5rem;
     align-items: start;
   }
+  .filter-disclosure {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--lp-dimension-spacing-inline-s);
+    margin-bottom: var(--lp-dimension-spacing-inline-m);
+  }
+  .issues-layout.filters-hidden {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .filters[hidden] {
+    display: none;
+  }
   .filters {
     display: flex;
     flex-direction: column;
@@ -601,8 +609,7 @@
     flex: 1;
   }
   input[type="search"],
-  input[type="url"],
-  select {
+  input[type="url"] {
     box-sizing: border-box;
     width: 100%;
     border: 1px solid var(--lp-color-border-default, #b8b8b8);

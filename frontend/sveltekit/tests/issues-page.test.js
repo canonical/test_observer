@@ -98,7 +98,7 @@ void test("API requests use fifty-row pages, repeated status/family filters, and
     0,
   );
   assert.equal(singleSelection.get("source"), "github");
-  assert.equal(singleSelection.has("project"), false);
+  assert.equal(singleSelection.get("project"), "team/repo");
   assert.equal(model.ISSUE_PAGE_SIZE, 50);
 });
 
@@ -116,6 +116,16 @@ void test("source and project selections filter locally while unselected dimensi
     query: "",
   };
   assert.deepEqual(
+    model
+      .filterIssueRows(rows, {
+        ...filters,
+        sources: [],
+        projects: ["OPS", "other/repo"],
+      })
+      .map((row) => row.id),
+    [2, 3],
+  );
+  assert.deepEqual(
     model.filterIssueRows(rows, filters).map((row) => row.id),
     [3],
   );
@@ -125,6 +135,57 @@ void test("source and project selections filter locally while unselected dimensi
       .map((row) => row.id),
     [1, 2, 3],
   );
+});
+
+void test("active groups compare applied status sets to defaults, including unrestricted status", () => {
+  const defaults = model.parseIssueFilters(new URLSearchParams(), ["snap"]);
+  assert.equal(model.issueActiveGroupCount(defaults), 0);
+  assert.equal(
+    model.issueActiveGroupCount({ ...defaults, statuses: ["unknown", "open"] }),
+    0,
+  );
+  assert.equal(model.issueActiveGroupCount({ ...defaults, statuses: [] }), 1);
+  assert.equal(
+    model.issueActiveGroupCount({
+      ...defaults,
+      statuses: ["open", "closed", "unknown"],
+    }),
+    1,
+  );
+  assert.equal(
+    model.issueActiveGroupCount({
+      sources: ["jira", "github"],
+      statuses: ["closed"],
+      families: ["snap"],
+      projects: ["A", "B"],
+      query: "needle",
+    }),
+    5,
+  );
+});
+
+void test("project discovery removes only the project constraint and has independent identity", () => {
+  const filters = model.parseIssueFilters(
+    new URLSearchParams(
+      "source=jira&source=github&family=snap&status=closed&q=needle&project=A",
+    ),
+    ["snap"],
+  );
+  const discovery = model.issueProjectFilters(filters);
+  assert.deepEqual(discovery, { ...filters, projects: [] });
+  assert.equal(filters.projects[0], "A");
+  assert.equal(
+    model.issueFilterKey(discovery),
+    model.issueFilterKey(
+      model.issueProjectFilters({ ...filters, projects: ["B", "C"] }),
+    ),
+  );
+  const params = model.issueApiParams(discovery, 50);
+  assert.equal(params.has("project"), false);
+  assert.equal(params.has("source"), false);
+  assert.deepEqual(params.getAll("status"), ["closed"]);
+  assert.deepEqual(params.getAll("families"), ["snap"]);
+  assert.equal(params.get("q"), "needle");
 });
 
 void test("pagination accumulation deduplicates overlap and duplicates within an incoming page", () => {

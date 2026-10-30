@@ -68,8 +68,8 @@ export function parseIssueFilters(
   };
 }
 
-/** Build a bounded API page query. A single source uses its server-side
- * filter; source multi-select and project selection are applied to each page. */
+/** Build a bounded API page query. Singular source/project filters use the
+ * server; multi-selections retain local OR semantics across loaded pages. */
 export function issueApiParams(
   filters: IssueFilters,
   offset: number,
@@ -79,10 +79,31 @@ export function issueApiParams(
     offset: String(offset),
   });
   if (filters.sources.length === 1) params.set("source", filters.sources[0]);
+  if (filters.projects.length === 1) params.set("project", filters.projects[0]);
   for (const status of filters.statuses) params.append("status", status);
   for (const family of filters.families) params.append("families", family);
   if (filters.query) params.set("q", filters.query);
   return params;
+}
+
+/** Discover projects independently of the selected project(s), but within all
+ * other applied conditions. Multi-source OR is still evaluated locally. */
+export function issueProjectFilters(filters: IssueFilters): IssueFilters {
+  return { ...filters, projects: [] };
+}
+
+/** Count applied non-default groups, not values or pending input text. */
+export function issueActiveGroupCount(filters: IssueFilters): number {
+  const defaultStatuses =
+    filters.statuses.length === DEFAULT_ISSUE_STATUSES.length &&
+    DEFAULT_ISSUE_STATUSES.every((status) => filters.statuses.includes(status));
+  return [
+    filters.sources.length > 0,
+    !defaultStatuses,
+    filters.families.length > 0,
+    filters.projects.length > 0,
+    filters.query.length > 0,
+  ].filter(Boolean).length;
 }
 
 /** Filter the server-paged rows by local multi-select dimensions. */
