@@ -218,6 +218,65 @@ try {
         details(Number(url.pathname.split("/").at(-1))),
         detailsStatus,
       );
+    // The configured route differs from the API family. Include a newer run so
+    // following either View Run must expand the exact older execution/result,
+    // not merely navigate to the correct artefact or its latest run.
+    if (url.pathname === "/v1/artefacts/42")
+      return reply({
+        ...row(125).artefact,
+        status: "UNDECIDED",
+        created_at: "2026-10-25T12:00:00Z",
+        due_date: null,
+        comment: "",
+        all_environment_reviews_count: 0,
+        completed_environment_reviews_count: 0,
+      });
+    if (url.pathname === "/v1/artefacts/42/builds")
+      return reply([
+        {
+          id: 88,
+          architecture: "amd64",
+          revision: 1,
+          test_executions: [8000, 7125].map((id) => ({
+            id,
+            status: "FAILED",
+            test_plan: "smoke",
+            created_at: "2026-10-25T12:00:00Z",
+            environment: { id: 5, name: "test lab", architecture: "amd64" },
+            ci_link: null,
+            c3_link: null,
+            relevant_links: [],
+            execution_metadata: {},
+            is_triaged: false,
+          })),
+        },
+      ]);
+    if (/^\/v1\/test-executions\/\d+\/test-results$/.test(url.pathname)) {
+      const execution = Number(url.pathname.split("/")[3]);
+      return reply([
+        {
+          id: execution === 7125 ? 73125 : 73999,
+          name: `Deep linked case ${execution}`,
+          status: "FAILED",
+          created_at: "2026-10-25T12:00:00Z",
+          category: "smoke",
+          comment: "",
+          template_id: "template",
+          io_log: `Exact run target ${execution}`,
+          previous_results: [],
+          issues: [],
+        },
+      ]);
+    }
+    if (
+      url.pathname.startsWith("/v1/artefacts/42/") ||
+      [
+        "/v1/environments/reported-issues",
+        "/v1/test-cases/reported-issues",
+      ].includes(url.pathname) ||
+      url.pathname.endsWith("/status_update")
+    )
+      return reply([]);
     return reply({ detail: "Unmocked endpoint" }, 404);
   });
   await page.goto(`${base}/issues/73?issues=80&offset=500`);
@@ -742,6 +801,58 @@ try {
     path: resolve(artifacts, "issue-results-narrow-dark.png"),
     fullPage: true,
   });
+  for (const source of ["grid", "Details"]) {
+    await page.goto(`${base}/issues/73`);
+    await page
+      .getByRole("button", {
+        name: "View details for issue-73-case-0",
+        exact: true,
+      })
+      .waitFor();
+    await scrollTo(125);
+    let target = grid.getByRole("link", {
+      name: "View Run for issue-73-case-125",
+      exact: true,
+    });
+    if (source === "Details") {
+      await trigger.click();
+      await dialog.locator("pre").waitFor();
+      target = dialog.getByRole("link", {
+        name: "View Run for issue-73-case-125",
+        exact: true,
+      });
+    }
+    await target.click();
+    await page.waitForURL(
+      `${base}/configured-route/42?testExecutionId=7125&testResultId=73125`,
+    );
+    await page
+      .getByRole("heading", { name: "other artefact", exact: true })
+      .waitFor();
+    const literal = page.getByText("Exact run target 7125", { exact: true });
+    await literal.waitFor({ state: "visible" });
+    assert.equal(
+      await literal.evaluate((e) => {
+        for (
+          let parent = e.parentElement;
+          parent;
+          parent = parent.parentElement
+        )
+          if (parent.tagName === "DETAILS" && !parent.open) return false;
+        return true;
+      }),
+      true,
+      "actual artefact page expands every target ancestor",
+    );
+    assert.equal(
+      await page.locator("dialog[open]").count(),
+      0,
+      "Details top layer is removed on actual Run navigation",
+    );
+  }
+  assert.ok(
+    requests.some((r) => r.path === "/v1/test-executions/7125/test-results"),
+  );
   assert.ok(requests.every((r) => r.method === "GET"));
   assert.deepEqual(pageErrors, []);
   passed = true;

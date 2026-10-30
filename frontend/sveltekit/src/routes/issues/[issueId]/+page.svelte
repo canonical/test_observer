@@ -16,6 +16,19 @@
 -->
 
 <script lang="ts">
+  import { tick } from "svelte";
+  import {
+    Button,
+    Chip,
+    Link,
+    Modal,
+    Spinner,
+  } from "@canonical/svelte-ds-app-launchpad";
+  import {
+    ArrowLeftIcon,
+    DeleteIcon,
+    ExternalLinkIcon,
+  } from "@canonical/svelte-icons";
   import { page, navigating } from "$app/state";
   import { resolve } from "$app/paths";
   import { afterNavigate, beforeNavigate } from "$app/navigation";
@@ -52,8 +65,13 @@
   let loadError = $state("");
   let actionError = $state("");
   let busyRuleIds = $state<{ issueId: number; ruleId: number }[]>([]);
-  let pendingDelete = $state<AttachmentRule | null>(null);
-  let deleteDialog = $state<HTMLDialogElement | undefined>(undefined);
+  let pendingDelete = $state<{
+    rule: AttachmentRule;
+    issueId: number;
+    generation: number;
+    trigger: HTMLButtonElement;
+  } | null>(null);
+  let rulesHeading = $state<HTMLHeadingElement>();
   let requestGeneration = 0;
   let rerunBusy = $state(false);
   // SPA navigation is blocked during dispatch. A hard leave can only request
@@ -182,7 +200,7 @@
   }
 
   async function toggleRule(rule: AttachmentRule) {
-    if (!issue) return;
+    if (!issue || isRuleBusy(rule.id)) return;
     const issueIdAtStart = issue.id;
     const generationAtStart = requestGeneration;
     setBusy(issueIdAtStart, rule.id, true);
@@ -206,14 +224,38 @@
     }
   }
 
-  function openDeleteConfirmation(rule: AttachmentRule) {
-    pendingDelete = rule;
-    deleteDialog?.showModal();
+  function openDeleteConfirmation(
+    rule: AttachmentRule,
+    trigger: HTMLButtonElement,
+  ) {
+    if (!issue || pendingDelete || isRuleBusy(rule.id)) return;
+    actionError = "";
+    pendingDelete = {
+      rule,
+      issueId: issue.id,
+      generation: requestGeneration,
+      trigger,
+    };
+  }
+
+  async function closeDelete(owner: NonNullable<typeof pendingDelete>) {
+    if (pendingDelete !== owner || isRuleBusy(owner.rule.id)) return;
+    pendingDelete = null;
+    await tick();
+    if (pendingDelete || !isCurrentIssue(owner.issueId, owner.generation))
+      return;
+    // Native return handles a surviving invoker. A deleted rule needs a current,
+    // persistent destination; never focus into another issue/session owner.
+    if (owner.trigger.isConnected && !owner.trigger.disabled)
+      owner.trigger.focus({ preventScroll: true });
+    else rulesHeading?.focus({ preventScroll: true });
   }
 
   async function confirmDelete() {
     if (!issue || !pendingDelete) return;
-    const rule = pendingDelete;
+    const owner = pendingDelete;
+    const rule = owner.rule;
+    if (isRuleBusy(rule.id)) return;
     const issueIdAtStart = issue.id;
     const generationAtStart = requestGeneration;
     setBusy(issueIdAtStart, rule.id, true);
@@ -222,8 +264,8 @@
       await deleteAttachmentRule(issueIdAtStart, rule.id);
       if (isCurrentIssue(issueIdAtStart, generationAtStart) && issue) {
         updateIssueRules(removeAttachmentRule(issue.attachment_rules, rule.id));
-        pendingDelete = null;
-        deleteDialog?.close();
+        setBusy(issueIdAtStart, rule.id, false);
+        void closeDelete(owner);
       }
     } catch (error) {
       const message = await issueErrorMessage(error);
@@ -245,41 +287,55 @@
 
 <main class="issue-detail-page" aria-live="polite">
   {#if loadState === "loading"}
-    <p class="state-message" role="status">Loading issue…</p>
+    <p class="state-message loading" role="status">
+      <Spinner /> Loading issue…
+    </p>
   {:else if loadState === "invalid"}
     <section class="state-message" role="alert">
       <h1>Invalid issue ID</h1>
       <p>Issue IDs must be positive whole numbers.</p>
-      <a href={resolve("issues")}>Back to issues</a>
+      <Link href={resolve("issues")}>Back to issues</Link>
     </section>
   {:else if loadState === "not-found"}
     <section class="state-message" role="alert">
       <h1>Issue not found</h1>
       <p>{loadError}</p>
-      <a href={resolve("issues")}>Back to issues</a>
+      <Link href={resolve("issues")}>Back to issues</Link>
     </section>
   {:else if loadState === "error"}
     <section class="state-message" role="alert">
       <h1>Unable to load issue</h1>
       <p>{loadError}</p>
-      <a href={resolve("issues")}>Back to issues</a>
+      <Link href={resolve("issues")}>Back to issues</Link>
     </section>
   {:else if issue}
-    <a class="back-link" href={resolve("issues")}>← Issues</a>
+    <Link class="back-link" href={resolve("issues")}
+      ><ArrowLeftIcon /> Issues</Link
+    >
     <header class="issue-header">
       <div class="issue-identity">
         <span class="source">{issue.source}</span>
         <span class="project">{issue.project}</span>
-        <a
+        <Link
           class="external-issue"
           href={issue.url}
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`Open external issue ${issue.key} in a new tab`}
         >
-          {issue.key}<span aria-hidden="true"> ↗</span>
-        </a>
-        <span class={`status status-${issue.status}`}>{issue.status}</span>
+          {issue.key}<ExternalLinkIcon />
+        </Link>
+        <Chip
+          class="status"
+          readonly
+          density="dense"
+          value={issue.status}
+          severity={issue.status === "open"
+            ? "positive"
+            : issue.status === "unknown"
+              ? "caution"
+              : "neutral"}
+        />
       </div>
       <h1>{issue.title}</h1>
     </header>
@@ -289,7 +345,9 @@
     {/key}
 
     <section class="attachment-rules" aria-labelledby="attachment-rules-title">
-      <h2 id="attachment-rules-title">Attachment Rules</h2>
+      <h2 id="attachment-rules-title" tabindex="-1" bind:this={rulesHeading}>
+        Attachment Rules
+      </h2>
       {#if issue.attachment_rules.length === 0}
         <p>No attachment rules.</p>
       {:else}
@@ -306,21 +364,29 @@
             >
               <summary>
                 <span>Attachment Rule #{rule.id}</span>
-                <span
-                  class:enabled={rule.enabled}
-                  class:disabled={!rule.enabled}
+                <Chip
                   class="rule-state"
-                  >{rule.enabled ? "Enabled" : "Disabled"}</span
-                >
+                  readonly
+                  density="dense"
+                  severity={rule.enabled ? "positive" : "neutral"}
+                  value={rule.enabled ? "Enabled" : "Disabled"}
+                />
               </summary>
               <div class="rule-content">
                 <div class="rule-actions">
-                  <a href={viewRuleFiltersUrl(resolve(""), issue.id, rule)}
-                    >View filters</a
+                  <Link href={viewRuleFiltersUrl(resolve(""), issue.id, rule)}
+                    >View filters</Link
                   >
-                  <button
+                  <Button
                     type="button"
                     disabled={isRuleBusy(rule.id)}
+                    loading={isRuleBusy(rule.id)}
+                    aria-busy={isRuleBusy(rule.id)}
+                    aria-label={isRuleBusy(rule.id)
+                      ? "Saving…"
+                      : rule.enabled
+                        ? "Disable"
+                        : "Enable"}
                     onclick={() => void toggleRule(rule)}
                   >
                     {isRuleBusy(rule.id)
@@ -328,15 +394,18 @@
                       : rule.enabled
                         ? "Disable"
                         : "Enable"}
-                  </button>
-                  <button
-                    class="danger-button"
+                  </Button>
+                  <Button
+                    severity="negative"
                     type="button"
                     disabled={isRuleBusy(rule.id)}
-                    onclick={() => openDeleteConfirmation(rule)}
+                    aria-haspopup="dialog"
+                    onclick={(event) =>
+                      openDeleteConfirmation(rule, event.currentTarget)}
                   >
+                    {#snippet iconLeft()}<DeleteIcon />{/snippet}
                     Delete
-                  </button>
+                  </Button>
                 </div>
                 {#if criteria.length}
                   <dl class="criteria-list">
@@ -367,7 +436,7 @@
           {/each}
         </div>
       {/if}
-      {#if actionError}
+      {#if actionError && !pendingDelete}
         <p class="action-error" role="alert">{actionError}</p>
       {/if}
     </section>
@@ -381,31 +450,68 @@
       />
     {/key}
 
-    <dialog bind:this={deleteDialog} aria-labelledby="delete-dialog-title">
-      <h2 id="delete-dialog-title">Delete attachment rule?</h2>
-      <p>
-        Are you sure you want to delete Attachment Rule #{pendingDelete?.id}?
-      </p>
-      <div class="dialog-actions">
-        <button
-          type="button"
-          onclick={() => {
-            pendingDelete = null;
-            deleteDialog?.close();
-          }}>Cancel</button
+    {#if pendingDelete}
+      {#key pendingDelete}
+        {@const owner = pendingDelete}
+        {@const deleting = isRuleBusy(owner.rule.id)}
+        <Modal
+          open={true}
+          class="delete-rule-dialog"
+          closeOnOutsideClick={!deleting}
+          aria-labelledby="delete-dialog-title"
+          oncancel={(event) => {
+            if (deleting) event.preventDefault();
+            else void closeDelete(owner);
+          }}
+          onclose={(event) => {
+            if (!event.currentTarget.open) void closeDelete(owner);
+          }}
         >
-        <button
-          class="danger-button"
-          type="button"
-          disabled={pendingDelete !== null && isRuleBusy(pendingDelete.id)}
-          onclick={() => void confirmDelete()}
-        >
-          {pendingDelete !== null && isRuleBusy(pendingDelete.id)
-            ? "Deleting…"
-            : "Delete rule"}
-        </button>
-      </div>
-    </dialog>
+          <Modal.Content class="delete-rule-content">
+            <Modal.Content.Header>
+              <h2 id="delete-dialog-title">Delete attachment rule?</h2>
+              <Modal.Content.Header.CloseButton
+                aria-label="Close delete confirmation"
+                disabled={deleting}
+                onclick={() => void closeDelete(owner)}
+              />
+            </Modal.Content.Header>
+            <Modal.Content.Body
+              class="delete-rule-body"
+              role="region"
+              aria-label="Delete attachment rule content"
+              tabindex={0}
+              aria-busy={deleting}
+            >
+              <p>
+                Are you sure you want to delete Attachment Rule #{owner.rule
+                  .id}?
+              </p>
+              {#if actionError}<p class="action-error" role="alert">
+                  {actionError}
+                </p>{/if}
+            </Modal.Content.Body>
+            <Modal.Content.Footer>
+              <Button
+                type="button"
+                disabled={deleting}
+                onclick={() => void closeDelete(owner)}>Cancel</Button
+              >
+              <Button
+                severity="negative"
+                type="button"
+                loading={deleting}
+                aria-busy={deleting}
+                aria-label={deleting ? "Deleting…" : "Delete rule"}
+                disabled={deleting}
+                onclick={() => void confirmDelete()}
+                >{deleting ? "Deleting…" : "Delete rule"}</Button
+              >
+            </Modal.Content.Footer>
+          </Modal.Content>
+        </Modal>
+      {/key}
+    {/if}
   {/if}
 </main>
 
@@ -420,8 +526,10 @@
     padding: 2rem 0;
   }
 
-  .back-link {
-    display: inline-block;
+  :global(.issue-detail-page .back-link) {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lp-dimension-spacing-inline-xs);
     margin-bottom: 1.5rem;
   }
 
@@ -441,33 +549,11 @@
     font-weight: 600;
   }
 
-  .external-issue {
+  :global(.issue-detail-page .external-issue) {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--lp-dimension-spacing-inline-xs);
     font-weight: 600;
-  }
-
-  .status,
-  .rule-state {
-    border-radius: 1rem;
-    padding: 0.2rem 0.65rem;
-    font-size: 0.85rem;
-    font-weight: 600;
-  }
-
-  .status-open,
-  .rule-state.enabled {
-    color: #0e8420;
-    background: #d9f2dd;
-  }
-
-  .status-closed,
-  .rule-state.disabled {
-    color: #5e5e5e;
-    background: #eee;
-  }
-
-  .status-unknown {
-    color: #8a5d00;
-    background: #fff1c2;
   }
 
   .issue-header h1 {
@@ -484,7 +570,7 @@
   }
 
   .rule {
-    border: 1px solid #d9d9d9;
+    border: 1px solid var(--lp-color-border-default);
     border-radius: 0.4rem;
   }
 
@@ -515,34 +601,12 @@
     padding: 0 1rem 1rem;
   }
 
-  .rule-actions,
-  .dialog-actions {
+  .rule-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
     align-items: center;
     margin: 0.25rem 0 1rem;
-  }
-
-  button,
-  .rule-actions a {
-    border: 1px solid #777;
-    border-radius: 0.25rem;
-    background: transparent;
-    padding: 0.45rem 0.75rem;
-    color: inherit;
-    font: inherit;
-    text-decoration: none;
-    cursor: pointer;
-  }
-
-  button:disabled {
-    opacity: 0.65;
-    cursor: wait;
-  }
-
-  .danger-button {
-    color: #c7162b;
   }
 
   .criteria-list {
@@ -552,7 +616,7 @@
   .criterion {
     display: grid;
     grid-template-columns: minmax(10rem, 15rem) 1fr;
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--lp-color-border-default);
     padding: 0.65rem 0;
     gap: 0.75rem;
   }
@@ -583,18 +647,39 @@
   }
 
   .action-error {
-    color: #c7162b;
+    color: var(--lp-color-negative);
   }
-
-  dialog {
-    max-width: min(32rem, calc(100vw - 2rem));
-    border: 1px solid #999;
-    border-radius: 0.4rem;
-    padding: 1.5rem;
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: var(--lp-dimension-spacing-inline-s);
   }
-
-  dialog::backdrop {
-    background: rgb(0 0 0 / 45%);
+  :global(html:has(dialog.delete-rule-dialog[open])) {
+    overflow: hidden;
+  }
+  :global(dialog.ds.modal.delete-rule-dialog) {
+    width: min(32rem, calc(100vw - 2 * var(--lp-dimension-spacing-inline-m)));
+    max-width: calc(100vw - 2 * var(--lp-dimension-spacing-inline-m));
+    max-height: calc(100dvh - 2 * var(--lp-dimension-spacing-block-m));
+    padding: 0;
+    overflow: hidden;
+    color: var(--lp-color-text-default);
+    background: var(--lp-color-background-default);
+  }
+  :global(.delete-rule-dialog .delete-rule-content) {
+    max-height: calc(100dvh - 2 * var(--lp-dimension-spacing-block-m));
+    min-height: 0;
+    box-sizing: border-box;
+  }
+  :global(.delete-rule-dialog .dialog-content-header),
+  :global(.delete-rule-dialog .dialog-content-footer) {
+    flex-shrink: 0;
+  }
+  :global(.delete-rule-dialog .delete-rule-body) {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    overflow-wrap: anywhere;
   }
 
   @media (max-width: 600px) {

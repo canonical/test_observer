@@ -151,6 +151,9 @@
         form={`${id}-form`}
         severity="brand"
         disabled={creating}
+        loading={creating}
+        aria-label={creating ? "Adding…" : "Add issue"}
+        aria-busy={creating}
       >
         {creating ? "Adding…" : "Add issue"}
       </Button>

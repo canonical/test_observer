@@ -16,14 +16,27 @@
 -->
 
 <script lang="ts">
-  import { page } from "$app/state";
+  import { page, navigating } from "$app/state";
   import { beforeNavigate, goto } from "$app/navigation";
-  import { onDestroy, untrack } from "svelte";
-  import { Button } from "@canonical/svelte-ds-app-launchpad";
+  import { onDestroy, tick, untrack } from "svelte";
+  import {
+    Button,
+    Checkbox,
+    Chip,
+    Link,
+    Spinner,
+    TextInput,
+  } from "@canonical/svelte-ds-app-launchpad";
+  import {
+    ExternalLinkIcon,
+    PlayIcon,
+    SearchIcon,
+  } from "@canonical/svelte-icons";
   import { resolve } from "$app/paths";
   import { getApiRoot } from "$lib/config";
   import { userStore } from "$lib/stores/user.svelte";
   import { IssueListPages } from "$lib/issueListPages.svelte";
+  import { FocusIntent } from "$lib/focusIntent";
   import IssueProjectPicker from "$lib/components/issues/IssueProjectPicker.svelte";
   import AddIssue from "$lib/components/issues/AddIssue.svelte";
   import {
@@ -73,6 +86,21 @@
   );
   const results = new IssueListPages(() => resultScope);
   const projects = new IssueListPages(() => facetScope);
+  const focusIntent = new FocusIntent();
+  let issuesPage = $state<HTMLDivElement>();
+  let resultsRegion = $state<HTMLElement>();
+  let focusOwner: {
+    session: string;
+    from: string;
+    to: string;
+    navigation: boolean;
+    started: boolean;
+    arrived: boolean;
+  } | null = null;
+  function cancelFocus() {
+    focusIntent.cancel();
+    focusOwner = null;
+  }
   const visibleIssues = $derived(filterIssueRows(results.rows, filters));
   const projectOptions = $derived(
     [
@@ -113,8 +141,34 @@
   let addNavigation = $state(0);
   const addContext = $derived(`${resultScope}:${addNavigation}`);
   let addFeedback = $state<{ context: string; message: string } | null>(null);
-  beforeNavigate(() => {
+  beforeNavigate((navigation) => {
     ++addNavigation;
+    // Exactly the initiating goto may cross the owner boundary. Any further
+    // navigation (including A/B/A or history) cancels that operation's return.
+    if (
+      focusOwner?.navigation &&
+      !focusOwner.started &&
+      navigation.to?.url.href === focusOwner.to
+    )
+      focusOwner.started = true;
+    else cancelFocus();
+  });
+
+  $effect.pre(() => {
+    const session = sessionScope;
+    const href = pageUrl.href;
+    const visible = filtersVisible;
+    untrack(() => {
+      const owner = focusOwner;
+      if (!owner) return;
+      if (
+        owner.session !== session ||
+        !visible ||
+        (href !== owner.to && (owner.arrived || href !== owner.from))
+      )
+        cancelFocus();
+      else if (href === owner.to) owner.arrived = true;
+    });
   });
 
   $effect(() => {
@@ -138,6 +192,7 @@
   });
 
   onDestroy(() => {
+    cancelFocus();
     results.dispose();
     projects.dispose();
   });
@@ -146,17 +201,83 @@
   // page snapshot while goto is pending. Only the latest navigation can clear it.
   let pendingUrl: URL | null = null;
   let navigationRevision = 0;
-  function navigate(next: URL) {
+  function navigate(next: URL, source: HTMLElement | null = null) {
     pendingUrl = next;
     const revision = ++navigationRevision;
-    return goto(next, { reset: false }).finally(() => {
-      if (revision === navigationRevision) pendingUrl = null;
-    });
+    const owner = {
+      session: sessionScope,
+      from: pageUrl.href,
+      to: next.href,
+      navigation: true,
+      started: false,
+      arrived: false,
+    };
+    focusOwner = owner;
+    const intent = focusIntent.begin(
+      source,
+      () =>
+        focusOwner === owner &&
+        owner.session === sessionScope &&
+        pageUrl.href === owner.to &&
+        !navigating.to &&
+        filtersVisible,
+    );
+    return goto(next, { reset: false })
+      .then(async () => {
+        await tick();
+        intent.restore();
+      })
+      .finally(() => {
+        intent.cancel();
+        if (focusOwner === owner) focusOwner = null;
+        if (revision === navigationRevision) pendingUrl = null;
+      });
+  }
+
+  async function readPage(
+    stream: IssueListPages,
+    action: "more" | "retry",
+    source: HTMLButtonElement,
+    facet = false,
+  ) {
+    if (stream.initialLoading || stream.loadingMore) return;
+    const owner = {
+      session: sessionScope,
+      from: pageUrl.href,
+      to: pageUrl.href,
+      navigation: false,
+      started: false,
+      arrived: true,
+    };
+    focusOwner = owner;
+    const intent = focusIntent.begin(
+      source,
+      () =>
+        focusOwner === owner &&
+        owner.session === sessionScope &&
+        pageUrl.href === owner.to &&
+        !!issuesPage?.isConnected &&
+        !navigating.to &&
+        (!facet || filtersVisible),
+    );
+    try {
+      await stream[action]();
+      await tick();
+      intent.restore(() =>
+        facet
+          ? issuesPage?.querySelector<HTMLInputElement>("#project-search")
+          : resultsRegion,
+      );
+    } finally {
+      intent.cancel();
+      if (focusOwner === owner) focusOwner = null;
+    }
   }
 
   function updateFilter(
     name: "source" | "status" | "family" | "project",
     values: string[],
+    source: HTMLElement | null = null,
   ) {
     const next = new URL((pendingUrl ?? pageUrl).href);
     next.searchParams.delete(name);
@@ -167,13 +288,14 @@
     } else {
       for (const value of values) next.searchParams.append(name, value);
     }
-    return navigate(next);
+    return navigate(next, source);
   }
 
   function toggleValue(
     value: string,
     checked: boolean,
     name: "source" | "status" | "family" | "project",
+    source: HTMLElement | null = null,
   ) {
     const current = parseIssueFilters(
       new URLSearchParams((pendingUrl ?? pageUrl).searchParams.toString()),
@@ -192,7 +314,7 @@
           (item, index, all) => all.indexOf(item) === index,
         )
       : selected.filter((item) => item !== value);
-    return updateFilter(name, next);
+    return updateFilter(name, next, source);
   }
 
   function submitSearch(event: SubmitEvent) {
@@ -201,10 +323,17 @@
     const query = searchText.trim();
     if (query) next.searchParams.set("q", query);
     else next.searchParams.delete("q");
-    navigate(next);
+    const form = event.currentTarget as HTMLFormElement;
+    const active = form.ownerDocument.activeElement;
+    void navigate(
+      next,
+      active instanceof HTMLElement && form.contains(active) ? active : null,
+    );
   }
 
   function issueAdded(id: number) {
+    // Same-scope stream resets also supersede an older paging/retry intent.
+    cancelFocus();
     // Capture duplicate knowledge before either reset clears its loaded rows.
     // Only the main stream counts, including rows hidden by local OR filters.
     addFeedback = {
@@ -231,7 +360,7 @@
   <title>Issues — Test Observer</title>
 </svelte:head>
 
-<div class="issues-page">
+<div class="issues-page" bind:this={issuesPage}>
   <header class="page-header">
     <div>
       <h1>Issues</h1>
@@ -250,8 +379,10 @@
     <Button
       aria-expanded={filtersVisible}
       aria-controls="issue-filters"
-      onclick={() => (filtersVisible = !filtersVisible)}
-      >{filtersVisible ? "Hide filters" : "Show filters"}</Button
+      onclick={() => {
+        cancelFocus();
+        filtersVisible = !filtersVisible;
+      }}>{filtersVisible ? "Hide filters" : "Show filters"}</Button
     >
     <span role="status"
       >{activeGroups} active filter {activeGroups === 1
@@ -269,14 +400,16 @@
       <form class="search" role="search" onsubmit={submitSearch}>
         <label for="issue-search">Search issues</label>
         <div class="search-control">
-          <input
+          <TextInput
             id="issue-search"
             name="q"
             type="search"
             bind:value={searchText}
             placeholder="Source, project, key, title…"
           />
-          <button type="submit">Search</button>
+          <Button type="submit"
+            >{#snippet iconLeft()}<SearchIcon />{/snippet}Search</Button
+          >
         </div>
       </form>
 
@@ -284,12 +417,16 @@
         <legend>Source</legend>
         {#each ISSUE_SOURCES as source (source)}
           <label class="filter-option">
-            <input
-              type="checkbox"
+            <Checkbox
               value={source}
               checked={filters.sources.includes(source)}
               onchange={(event) =>
-                toggleValue(source, event.currentTarget.checked, "source")}
+                toggleValue(
+                  source,
+                  event.currentTarget.checked,
+                  "source",
+                  event.currentTarget,
+                )}
             />
             <span>{source.toUpperCase()}</span>
           </label>
@@ -300,12 +437,16 @@
         <legend>Status</legend>
         {#each ISSUE_STATUSES as status (status)}
           <label class="filter-option">
-            <input
-              type="checkbox"
+            <Checkbox
               value={status}
               checked={filters.statuses.includes(status)}
               onchange={(event) =>
-                toggleValue(status, event.currentTarget.checked, "status")}
+                toggleValue(
+                  status,
+                  event.currentTarget.checked,
+                  "status",
+                  event.currentTarget,
+                )}
             />
             <span>{statusLabel(status)}</span>
           </label>
@@ -321,8 +462,7 @@
         <legend>Family</legend>
         {#each families as family (family.api_name)}
           <label class="filter-option">
-            <input
-              type="checkbox"
+            <Checkbox
               value={family.api_name}
               checked={filters.families.includes(family.api_name)}
               onchange={(event) =>
@@ -330,6 +470,7 @@
                   family.api_name,
                   event.currentTarget.checked,
                   "family",
+                  event.currentTarget,
                 )}
             />
             <span>{familyDisplayName(family)}</span>
@@ -354,11 +495,17 @@
           {/if}
         </small>
         {#if projects.initialLoading}
-          <small role="status">Loading project options…</small>
+          <small class="loading" role="status"
+            ><Spinner /> Loading project options…</small
+          >
         {:else if projects.error}
           <div role="alert">
             <p>Unable to load project options: {projects.error}</p>
-            <Button density="dense" onclick={() => void projects.retry()}
+            <Button
+              density="dense"
+              onclick={(
+                event: MouseEvent & { currentTarget: HTMLButtonElement },
+              ) => void readPage(projects, "retry", event.currentTarget, true)}
               >Retry project options</Button
             >
           </div>
@@ -366,7 +513,14 @@
           <Button
             density="dense"
             disabled={projects.loadingMore}
-            onclick={() => void projects.more()}
+            loading={projects.loadingMore}
+            aria-busy={projects.loadingMore}
+            aria-label={projects.loadingMore
+              ? "Loading project options…"
+              : "Load more project options"}
+            onclick={(
+              event: MouseEvent & { currentTarget: HTMLButtonElement },
+            ) => void readPage(projects, "more", event.currentTarget, true)}
           >
             {projects.loadingMore
               ? "Loading project options…"
@@ -376,14 +530,22 @@
       </IssueProjectPicker>
     </aside>
 
-    <section class="issue-results" aria-label="Issues">
+    <section
+      class="issue-results"
+      aria-label="Issues"
+      tabindex="-1"
+      bind:this={resultsRegion}
+    >
       {#if results.initialLoading}
-        <p class="state" role="status">Loading issues…</p>
+        <p class="state loading" role="status"><Spinner /> Loading issues…</p>
       {:else if results.error && results.rows.length === 0}
         <div class="error-state" role="alert">
           <p>Unable to load issues: {results.error}</p>
-          <button type="button" onclick={() => void results.retry()}
-            >Try again</button
+          <Button
+            type="button"
+            onclick={(event) =>
+              void readPage(results, "retry", event.currentTarget)}
+            >Try again</Button
           >
         </div>
       {:else if visibleIssues.length === 0 && !results.hasMore}
@@ -395,8 +557,11 @@
       {#if results.error && results.rows.length > 0}
         <div class="error-state" role="alert">
           <p>Unable to load more issues: {results.error}</p>
-          <button type="button" onclick={() => void results.retry()}
-            >Try again</button
+          <Button
+            type="button"
+            onclick={(event) =>
+              void readPage(results, "retry", event.currentTarget)}
+            >Try again</Button
           >
         </div>
       {/if}
@@ -414,33 +579,41 @@
             {#each group.issues as issue (issue.id)}
               <li>
                 <div class="issue-summary">
-                  <a
+                  <Link
                     class="external-link"
                     href={issue.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={`Open external issue ${issueLinkLabel(issue)} in a new tab`}
                   >
-                    {issueLinkLabel(issue)}
-                  </a>
-                  <span class={`status status-${issue.status}`}
-                    >{statusLabel(issue.status)}</span
-                  >
+                    {issueLinkLabel(issue)}<ExternalLinkIcon />
+                  </Link>
+                  <Chip
+                    class="status"
+                    readonly
+                    density="dense"
+                    severity={issue.status === "open"
+                      ? "positive"
+                      : issue.status === "unknown"
+                        ? "caution"
+                        : "neutral"}
+                    value={statusLabel(issue.status)}
+                  />
                   <span
                     class="execution-count"
                     aria-label={`${issue.test_executions_count ?? 0} test executions`}
                   >
-                    <span aria-hidden="true">▶</span>
+                    <PlayIcon aria-hidden="true" />
                     {issue.test_executions_count ?? 0} test {issue.test_executions_count ===
                     1
                       ? "execution"
                       : "executions"}
                   </span>
                 </div>
-                <a
+                <Link
                   class="issue-title"
                   href={`${resolve("/issues")}/${issue.id}`}
-                  >{issue.title || "[No title]"}</a
+                  >{issue.title || "[No title]"}</Link
                 >
               </li>
             {/each}
@@ -450,15 +623,21 @@
 
       {#if !results.initialLoading && results.hasMore && !results.error}
         <div class="pagination">
-          <button
+          <Button
             type="button"
-            onclick={() => void results.more()}
+            onclick={(event) =>
+              void readPage(results, "more", event.currentTarget)}
             disabled={results.loadingMore}
+            loading={results.loadingMore}
+            aria-busy={results.loadingMore}
+            aria-label={results.loadingMore
+              ? "Loading more…"
+              : `Load more issues (${ISSUE_PAGE_SIZE} at a time)`}
           >
             {results.loadingMore
               ? "Loading more…"
               : `Load more issues (${ISSUE_PAGE_SIZE} at a time)`}
-          </button>
+          </Button>
           <span>{visibleIssues.length} matching issues shown</span>
         </div>
       {/if}
@@ -485,23 +664,7 @@
   }
   .page-header p {
     margin: 0.35rem 0 0;
-    color: var(--lp-color-text-muted, #666);
-  }
-  button {
-    border: 1px solid var(--lp-color-border-default, #b8b8b8);
-    border-radius: 0.25rem;
-    padding: 0.55rem 0.85rem;
-    color: var(--lp-color-text-default, #222);
-    background: var(--lp-color-background-default, #fff);
-    font: inherit;
-    cursor: pointer;
-  }
-  button:hover:not(:disabled) {
-    background: var(--lp-color-background-hover, #f5f5f5);
-  }
-  button:disabled {
-    cursor: wait;
-    opacity: 0.7;
+    color: var(--lp-color-text-muted);
   }
   .add-feedback:not(:empty) {
     margin-bottom: var(--lp-dimension-spacing-block-m);
@@ -538,21 +701,12 @@
   }
   .search-control {
     display: flex;
-    gap: 0.4rem;
+    flex-wrap: wrap;
+    gap: var(--lp-dimension-spacing-inline-xs);
   }
-  .search-control input {
+  .search-control :global(input) {
     min-width: 0;
     flex: 1;
-  }
-  input[type="search"] {
-    box-sizing: border-box;
-    width: 100%;
-    border: 1px solid var(--lp-color-border-default, #b8b8b8);
-    border-radius: 0.25rem;
-    padding: 0.55rem;
-    color: inherit;
-    background: var(--lp-color-background-default, #fff);
-    font: inherit;
   }
   fieldset {
     min-width: 0;
@@ -570,20 +724,17 @@
     margin: 0.45rem 0;
     cursor: pointer;
   }
-  .filter-option input {
-    accent-color: #77216f;
-  }
   small {
     display: block;
     margin-top: 0.45rem;
-    color: var(--lp-color-text-muted, #666);
+    color: var(--lp-color-text-muted);
   }
   .issue-results {
     min-width: 0;
   }
   .state {
     padding: 1.5rem;
-    color: var(--lp-color-text-muted, #666);
+    color: var(--lp-color-text-muted);
   }
   .error-state {
     display: flex;
@@ -592,8 +743,8 @@
     gap: 1rem;
     margin-bottom: 1rem;
     padding: 0.8rem 1rem;
-    color: #a40000;
-    background: #f8eeee;
+    color: var(--lp-color-negative);
+    background: var(--lp-color-background-negative-default);
     border-radius: 0.25rem;
   }
   .error-state p {
@@ -608,7 +759,7 @@
     gap: 1rem;
     margin: 0;
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid var(--lp-color-border-default, #d9d9d9);
+    border-bottom: 1px solid var(--lp-color-border-default);
     font-size: 1rem;
     font-weight: 400;
   }
@@ -618,7 +769,7 @@
     letter-spacing: 0.08em;
   }
   .issue-group h2 span:last-child {
-    color: var(--lp-color-text-muted, #666);
+    color: var(--lp-color-text-muted);
   }
   .issue-group ul {
     margin: 0;
@@ -630,7 +781,7 @@
     flex-direction: column;
     gap: 0.55rem;
     padding: 0.85rem 1rem;
-    border-bottom: 1px solid var(--lp-color-border-default, #e5e5e5);
+    border-bottom: 1px solid var(--lp-color-border-default);
   }
   .issue-summary {
     display: flex;
@@ -639,42 +790,22 @@
     gap: 1rem;
     font-size: 0.875rem;
   }
-  .external-link {
-    color: #06c;
-    text-decoration: underline;
-  }
-  .status {
+  :global(.issues-page .external-link),
+  .execution-count {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
   }
-  .status::before {
-    content: "";
-    width: 0.55rem;
-    height: 0.55rem;
-    border-radius: 50%;
-    background: #666;
-  }
-  .status-open::before {
-    background: #0e8420;
-  }
-  .status-closed::before {
-    background: #77216f;
-  }
   .execution-count {
-    color: var(--lp-color-text-muted, #666);
+    color: var(--lp-color-text-muted);
   }
-  .issue-title {
+  :global(.issues-page .issue-title) {
     width: fit-content;
     max-width: 100%;
     overflow: hidden;
-    color: var(--lp-color-text-link, #06c);
     text-decoration: none;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  .issue-title:hover {
-    text-decoration: underline;
   }
   .pagination {
     display: flex;
@@ -684,8 +815,13 @@
     padding: 1rem;
   }
   .pagination span {
-    color: var(--lp-color-text-muted, #666);
+    color: var(--lp-color-text-muted);
     font-size: 0.875rem;
+  }
+  .loading {
+    display: flex;
+    align-items: center;
+    gap: var(--lp-dimension-spacing-inline-s);
   }
   @media (max-width: 760px) {
     .issues-layout {

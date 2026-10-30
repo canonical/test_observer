@@ -110,7 +110,7 @@ cell therefore also has a keyboard-accessible **View all …** affordance that
 opens one shared, responsive design-system modal with every complete item and
 wrapping. Issue key/title entries link to the internal issue-detail route under
 the configured deployment base, in a new tab with `noopener noreferrer`. That
-route displays the issue and its attachment rules. Execution Metadata uses a semantic
+route supports issue results and rule/rerun workflows (see [Issues](#issues-workflows)). Execution Metadata uses a semantic
 **Category | Value** table, while Issues and Reviewers retain their list layout.
 The modal is centered, bounded by viewport margins and scrolls its body
 internally while keeping its header and close controls available. Its item
@@ -319,7 +319,7 @@ keyboard scroll stop (PageDown/End); the log adds no Tab stop.
 Issue links target the internal `${base}/issues/${id}` path in a new tab with
 `noopener noreferrer`, not an external tracker. The issue-detail page displays
 the issue and supports attachment-rule inspection, enable/disable and confirmed
-deletion. Its issue-scoped test-results and rerun controls remain deferred.
+deletion, plus the separate [issue-scoped result and rerun workflows](#issues-workflows).
 Footer **View Run** uses the same configured family route,
 deployment base and execution/result deep link as the grid. An unconfigured
 family has no guessed Run route, but its Details still works.
@@ -403,16 +403,80 @@ Execution, are active Search column editors backed by all 19 canonical URL/API
 keys. The dedicated Search-page backend response includes the compact row values
 and association summaries those columns need; this is a Search-specific API
 contract and does not change the existing `/v1/test-results` response. Saved
-views and export remain deferred. Issue details and attachment-rule management
-are available on the separate Issues pages; issue-scoped results and rerun
-controls are not part of their partial implementation.
+views and export remain deferred. Issue details, attachment-rule management,
+issue-scoped results and rerun controls are available on the separate Issues pages.
 Search mutation workflows remain deliberately unwired for this read-only
 experiment.
+
+## Issues workflows
+
+`/wip/issues` has URL-backed source/status/family/project filters, explicit search
+submission, preserved hide/show state and Load more. Open + unknown is the
+default status selection; explicit empty status means all. Single-project
+selection uses the API, while multi-project OR and multi-source selection operate
+over loaded pages. Project options come from a separate bounded stream without a
+project restriction but with the other filters. Discovery/search is partial until
+the user loads further discovery pages, not an exhaustive server facet. Selected
+projects remain available even when absent from those pages.
+
+Add issue uses supported external tracker URLs and the server's get-or-create
+contract. It reports already added only when the returned safe ID was known in
+the loaded main stream before refresh; unseen/facet-only IDs get neutral success
+wording. Both streams refresh independently after confirmed success.
+
+`/wip/issues/{id}` displays identity and complete attachment-rule criteria.
+Native disclosures retain inspection and one-shot `?attachmentRule={id}` focus
+and attention through loading, direct links and history. View filters navigates
+to Search with the issue and complete rule predicate. Enable/disable uses the
+confirmed response; deletion requires a Pragma confirmation modal with pending
+locks, inline errors and focus return (or the rules heading if the rule disappears).
+There is no issue edit/delete, rule-criteria editor or result attach/detach UI.
+
+The issue result grid uses the same compact block-loading infrastructure and
+lazy Details modal as Search, with Architecture immediately before Environment,
+configured View Run execution/result links and bounded cache. It can browse
+beyond 100 matches; the exact server count is retained when later blocks return
+`count: null`. This is offset browsing, not a server snapshot. Optional Family,
+Artefact, Environment, Test Case and inclusive From/Until bounds use explicit
+draft/Apply. Dates count as one optional group; pending suggestion input is not
+a selected condition. Clearing drafts needs Apply and never clears the immutable
+issue scope. Query/session/issue invalidation closes obsolete Details.
+
+Auto-rerun is independent of result availability. It checks a fresh session and
+keeps the last confirmed value while pending or after rejection. A same-session
+confirmed update reconciles on return to that issue; stale owners cannot update
+another issue/session. Bulk create/delete rerun review freezes the applied query
+and covers all effective server matches, including unloaded rows, not draft or
+cache-only selection. Creation defaults to latest executions and excluding
+archived artefacts; deletion does not silently inherit those defaults. Priority,
+preview counts, large-operation acknowledgement and eligibility remain part of
+review. View matching results opens the exact effective preview/write predicate
+in a protected new Search tab; opening it does not mutate or dismiss review.
+Session/scope changes invalidate review and ambiguous writes require refresh,
+not an automatic retry.
+
+Read access is server-authoritative: issues require `view_issue`; result reads
+require `view_test`. Add requires `change_issue`, rule writes require
+`change_attachment_rule`, auto-rerun requires both `change_issue` and
+`change_auto_rerun`, and query bulk reruns require both `change_rerun` and
+`change_rerun_bulk`. Ordinary grants can suffice, not just administrator status.
+401/403 and failed session verification are recoverable local states, never
+permission grants. Global Search remains read-only even when opened from review.
+
+The controls use installed Pragma 0.33 components and theme tokens. Badge is a
+numeric indicator, so textual issue/rule states use read-only Chip. Native rule
+disclosures and the UTC datetime picker are retained where no corresponding
+installed editable component exists. Narrow tests establish control/modal
+reachability, not full-page mobile support: the pre-existing expanded shell
+sidebar clips content at 390px.
 
 ## Local checks
 
 From `frontend/sveltekit`, install locked dependencies with `npm ci`, then run
 `npm run check`, `npm run build`, `npm test`, and `npm run lint`.
+The [test guide](tests/README.md) lists all opt-in mocked Issues runners and
+their evidence boundaries. No browser dependency belongs in the project just
+to run these checks.
 `tests/test-results-search.test.js` tests the backend/OpenAPI and URL contracts,
 initial unfiltered recent-page defaults, races, auth revalidation, the absence of
 Search-page selection/mutation controls, and actual mounted Pragma controls and
@@ -451,6 +515,12 @@ a real-browser visual test; real top-layer layout, keyboard traversal, and
 desktop/800px screenshots require separate browser QA.
 
 ### Native history browser regression
+
+The live history/Details runners below emit post-login screenshots and
+record-specific links. Review that behavior against your privacy policy before
+running them. Under a no-live-payload/no-live-screenshot policy, do not run them
+unchanged: use bounded sanitized SAML + API-read smoke and the separate mocked
+current-branch UI regressions instead. See the [test guide](tests/README.md#conditional-real-sso-and-read-only-api-checks).
 
 `tests/search-view-history.browser.js` is an opt-in integration check against a
 running Vite frontend and real seeded API/SSO stack, not part of the mocked

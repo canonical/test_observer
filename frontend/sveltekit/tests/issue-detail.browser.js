@@ -45,6 +45,11 @@ otherIssue.id = 80;
 otherIssue.key = "80";
 otherIssue.title = "A different issue with the same rule ID";
 let holdNextPatch = false;
+let deleteFailure = "";
+let holdDelete = false;
+let deleteStarted = () => undefined;
+let releaseDelete = () => undefined;
+let deleteGate = Promise.resolve();
 let signalHeldPatchStart = () => undefined;
 const heldPatchStarted = new Promise((resolve) => {
   signalHeldPatchStart = resolve;
@@ -220,6 +225,18 @@ try {
       url.pathname === "/v1/issues/73/attachment-rules/14" &&
       request.method() === "DELETE"
     ) {
+      if (holdDelete) {
+        deleteStarted();
+        await deleteGate;
+      }
+      if (deleteFailure) {
+        await route.fulfill({
+          status: 403,
+          headers: cors,
+          json: { detail: deleteFailure },
+        });
+        return;
+      }
       detail.attachment_rules = detail.attachment_rules.filter(
         (rule) => rule.id !== 14,
       );
@@ -358,8 +375,17 @@ try {
 
   await page.getByRole("button", { name: "Disable", exact: true }).click();
   await page.getByRole("button", { name: "Enable", exact: true }).waitFor();
+  assert.equal(
+    await page.locator(".rule-state .value").textContent(),
+    "Disabled",
+    "read-only Pragma state updates after confirmation",
+  );
   await page.getByRole("button", { name: "Enable", exact: true }).click();
   await page.getByRole("button", { name: "Disable", exact: true }).waitFor();
+  assert.equal(
+    await page.locator(".rule-state .value").textContent(),
+    "Enabled",
+  );
   const patchRequests = apiRequests.filter(
     (request) => request.method === "PATCH",
   );
@@ -374,9 +400,20 @@ try {
     [{ enabled: false }, { enabled: false }, { enabled: true }],
   );
 
-  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  const deleteTrigger = page.getByRole("button", {
+    name: "Delete",
+    exact: true,
+  });
+  await deleteTrigger.focus();
+  await page.keyboard.press("Enter");
   const confirm = page.getByRole("dialog", { name: "Delete attachment rule?" });
   await confirm.waitFor();
+  assert.equal(
+    await confirm.evaluate(
+      (e) => e.matches(":modal") && e.classList.contains("ds"),
+    ),
+    true,
+  );
   assert.equal(
     apiRequests.filter((request) => request.method === "DELETE").length,
     0,
@@ -384,15 +421,153 @@ try {
   );
   await confirm.getByRole("button", { name: "Cancel" }).click();
   await confirm.waitFor({ state: "hidden" });
-  await page.getByRole("button", { name: "Delete", exact: true }).click();
+  assert.equal(
+    await deleteTrigger.evaluate((e) => document.activeElement === e),
+    true,
+  );
+  await deleteTrigger.click();
+  await confirm.waitFor();
+  await page.keyboard.press("Escape");
+  await confirm.waitFor({ state: "hidden" });
+  assert.equal(
+    await deleteTrigger.evaluate((e) => document.activeElement === e),
+    true,
+  );
+
+  // Integrated rule actions use the installed Modal in both themes and constrained
+  // viewports. Long permission errors are literal; only the body scrolls and the
+  // real header/footer stay reachable. All DELETE traffic is intercepted above.
+  deleteFailure =
+    "<script>not executable</script>\n" +
+    "Long literal permission failure 🧪 ".repeat(350);
+  const modalGeometry = [];
+  for (const [theme, width, height] of [
+    ["light", 1440, 900],
+    ["dark", 1440, 900],
+    ["light", 800, 420],
+    ["dark", 390, 600],
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.emulateMedia({ colorScheme: theme });
+    await deleteTrigger.click();
+    await confirm.waitFor();
+    await confirm
+      .getByRole("button", { name: "Delete rule", exact: true })
+      .click();
+    await confirm.getByRole("alert").waitFor();
+    assert.equal(await confirm.getByRole("alert").textContent(), deleteFailure);
+    assert.equal(await confirm.locator("script").count(), 0);
+    const body = confirm.getByRole("region", {
+      name: "Delete attachment rule content",
+    });
+    await body.focus();
+    await page.keyboard.press("End");
+    await page.waitForFunction(() => {
+      const e = document.querySelector(".delete-rule-body");
+      return e.scrollTop + e.clientHeight >= e.scrollHeight - 2;
+    });
+    const geometry = await confirm.evaluate((e) => {
+      const rect = e.getBoundingClientRect();
+      const header = e
+        .querySelector(".dialog-content-header")
+        .getBoundingClientRect();
+      const footer = e
+        .querySelector(".dialog-content-footer")
+        .getBoundingClientRect();
+      const body = e.querySelector(".delete-rule-body");
+      return {
+        inside:
+          rect.left >= 0 &&
+          rect.right <= innerWidth + 1 &&
+          rect.top >= 0 &&
+          rect.bottom <= innerHeight + 1,
+        header: header.top >= rect.top && header.bottom <= rect.bottom,
+        footer: footer.top >= rect.top && footer.bottom <= rect.bottom,
+        scrolls: body.scrollHeight > body.clientHeight,
+      };
+    });
+    assert.deepEqual(geometry, {
+      inside: true,
+      header: true,
+      footer: true,
+      scrolls: true,
+    });
+    modalGeometry.push({ theme, width, height, ...geometry });
+    for (let i = 0; i < 8; i++) {
+      await page.keyboard.press("Tab");
+      assert.equal(
+        await confirm.evaluate(
+          (e) =>
+            Boolean(e.contains(document.activeElement)) ||
+            document.activeElement === document.body,
+        ),
+        true,
+        "native keyboard focus cannot reach background controls",
+      );
+    }
+    await confirm.getByRole("button", { name: "Cancel", exact: true }).click();
+    await confirm.waitFor({ state: "hidden" });
+    assert.equal(
+      await deleteTrigger.evaluate((e) => document.activeElement === e),
+      true,
+    );
+  }
+  await page.setViewportSize({ width: 1440, height: 900 });
+  deleteFailure = "";
+  holdDelete = true;
+  const deletionStarted = new Promise((resolve) => (deleteStarted = resolve));
+  deleteGate = new Promise((resolve) => (releaseDelete = resolve));
+  await deleteTrigger.click();
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "Delete rule" })
     .click();
+  await deletionStarted;
+  const beforeDuplicate = apiRequests.filter(
+    (r) => r.method === "DELETE",
+  ).length;
+  assert.equal(
+    await confirm
+      .getByRole("button", { name: "Deleting…", exact: true })
+      .isDisabled(),
+    true,
+  );
+  assert.equal(
+    await confirm
+      .getByRole("button", { name: "Cancel", exact: true })
+      .isDisabled(),
+    true,
+  );
+  assert.equal(
+    await confirm
+      .getByRole("button", { name: "Close delete confirmation" })
+      .isDisabled(),
+    true,
+  );
+  await confirm
+    .getByRole("button", { name: "Deleting…", exact: true })
+    .evaluate((e) =>
+      e.dispatchEvent(new MouseEvent("click", { bubbles: true })),
+    );
+  await page.keyboard.press("Escape");
+  assert.equal(
+    await confirm.isVisible(),
+    true,
+    "pending write cannot be dismissed with Escape",
+  );
+  assert.equal(
+    apiRequests.filter((r) => r.method === "DELETE").length,
+    beforeDuplicate,
+    "synchronous duplicate dispatch is fenced",
+  );
+  releaseDelete();
   await page.getByText("No attachment rules.", { exact: true }).waitFor();
+  await page.waitForFunction(
+    () => document.activeElement?.id === "attachment-rules-title",
+  );
   assert.equal(
     apiRequests.filter((request) => request.method === "DELETE").length,
-    1,
+    5,
   );
 
   const detailRequestCount = apiRequests.filter(
@@ -465,6 +640,9 @@ try {
     "an old error body cannot overwrite the newly loaded issue",
   );
   assert.deepEqual(pageErrors, []);
+  process.stdout.write(
+    `Mocked delete-modal geometry: ${JSON.stringify(modalGeometry)}\n`,
+  );
   process.stdout.write(
     "Issue detail Chromium smoke: PASS (deep link, invalid/not-found/error states, expansion, base-aware filters, enable/disable and confirmed deletion; API mocked only).\n",
   );
