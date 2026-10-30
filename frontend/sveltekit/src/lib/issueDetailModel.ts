@@ -22,6 +22,16 @@ export interface RuleCriterion {
   values: string[];
 }
 
+/** A deep link identifies exactly one positive, safe rule ID, never a list. */
+export function attachmentRuleTarget(
+  params: Pick<URLSearchParams, "getAll">,
+): number | null {
+  const values = params.getAll("attachmentRule");
+  if (values.length !== 1 || !/^[1-9]\d*$/.test(values[0])) return null;
+  const id = Number(values[0]);
+  return Number.isSafeInteger(id) ? id : null;
+}
+
 /** Human-readable full filter summary in the same vocabulary as the rule editor. */
 export function attachmentRuleCriteria(rule: AttachmentRule): RuleCriterion[] {
   const criteria: RuleCriterion[] = RULE_FILTERS.flatMap(([field, label]) => {

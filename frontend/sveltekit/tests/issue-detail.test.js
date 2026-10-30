@@ -51,6 +51,47 @@ const rule = {
   execution_metadata: { "ci:provider": ["GitHub Actions", "Buildkite"] },
 };
 
+void test("attachment-rule targets accept only one strict positive safe integer", () => {
+  for (const value of ["1", "14", String(Number.MAX_SAFE_INTEGER)])
+    assert.equal(
+      model.attachmentRuleTarget(
+        new URLSearchParams({ attachmentRule: value }),
+      ),
+      Number(value),
+    );
+  for (const value of [
+    "",
+    "0",
+    "-1",
+    "01",
+    "+14",
+    " 14",
+    "14 ",
+    "1.5",
+    "1e2",
+    "14,15",
+    "NaN",
+    "Infinity",
+    "9007199254740992",
+    "１４",
+  ])
+    assert.equal(
+      model.attachmentRuleTarget(
+        new URLSearchParams({ attachmentRule: value }),
+      ),
+      null,
+      value,
+    );
+  for (const query of [
+    "",
+    "other=14",
+    "attachmentRule=14&attachmentRule=15",
+    "attachmentRule=14&attachmentRule=14",
+    "attachmentRule=14&attachmentRule=",
+  ])
+    assert.equal(model.attachmentRuleTarget(new URLSearchParams(query)), null);
+});
+
 void test("rule criteria shows every supported attachment filter", () => {
   assert.deepEqual(model.attachmentRuleCriteria(rule), [
     { label: "Family", values: ["snap", "deb"] },

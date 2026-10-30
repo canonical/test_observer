@@ -16,9 +16,9 @@
 -->
 
 <script lang="ts">
-  import { page } from "$app/state";
+  import { page, navigating } from "$app/state";
   import { resolve } from "$app/paths";
-  import { beforeNavigate } from "$app/navigation";
+  import { afterNavigate, beforeNavigate } from "$app/navigation";
   import { FetchError } from "$lib/api/client";
   import {
     deleteAttachmentRule,
@@ -28,10 +28,12 @@
   } from "$lib/api/issues";
   import {
     attachmentRuleCriteria,
+    attachmentRuleTarget,
     removeAttachmentRule,
     replaceAttachmentRule,
     viewRuleFiltersUrl,
   } from "$lib/issueDetailModel";
+  import { attachmentRuleAttention } from "$lib/attachmentRuleAttention";
   import type { AttachmentRule, IssueDetail } from "$lib/types/issues";
   import IssueTestResults from "$lib/components/issues/IssueTestResults.svelte";
   import IssueAutoRerun from "$lib/components/issues/IssueAutoRerun.svelte";
@@ -60,6 +62,29 @@
     if (rerunBusy) navigation.cancel();
   });
   const autoRerunSession = $derived(issueAutoRerunSession());
+  const url = $derived(page.shallow?.url ?? page.url);
+  // Shallow history can show a different pathname without loading that issue.
+  // Never attend a same-ID rule in the still-mounted, different issue.
+  const targetRuleId = $derived(
+    url.pathname === page.url.pathname
+      ? attachmentRuleTarget(url.searchParams)
+      : null,
+  );
+  // Preserve this event's identity through rule mutations, auto-rerun
+  // confirmations and unrelated query changes. A/B/A is a fresh event.
+  const ruleTarget = $derived({
+    issueId,
+    ruleId: targetRuleId,
+    session: autoRerunSession,
+  });
+  let navigationMounted = $state(false);
+  afterNavigate(() => (navigationMounted = true));
+  const ruleAttentionReady = $derived(
+    navigationMounted &&
+      !navigating.to &&
+      loadState === "ready" &&
+      issue?.id === Number(issueId),
+  );
 
   $effect(() => {
     const rawId = issueId;
@@ -271,7 +296,14 @@
         <div class="rules-list">
           {#each issue.attachment_rules as rule (rule.id)}
             {@const criteria = attachmentRuleCriteria(rule)}
-            <details class="rule">
+            <details
+              class="rule"
+              class:rule-targeted={rule.id === targetRuleId}
+              use:attachmentRuleAttention={{
+                target: rule.id === targetRuleId ? ruleTarget : null,
+                ready: ruleAttentionReady,
+              }}
+            >
               <summary>
                 <span>Attachment Rule #{rule.id}</span>
                 <span
@@ -464,6 +496,19 @@
     padding: 0.9rem 1rem;
     cursor: pointer;
     font-weight: 600;
+    scroll-margin-block: var(--lp-dimension-spacing-block-l);
+  }
+
+  .rule-targeted {
+    border-color: var(--lp-color-border-highlight);
+    box-shadow: 0 0 0 var(--lp-dimension-stroke-thickness-default)
+      var(--lp-color-border-highlight);
+  }
+
+  .rule summary:focus {
+    outline: var(--lp-dimension-stroke-thickness-large) solid
+      var(--lp-color-border-focus);
+    outline-offset: var(--lp-dimension-spacing-inline-xxs);
   }
 
   .rule-content {
