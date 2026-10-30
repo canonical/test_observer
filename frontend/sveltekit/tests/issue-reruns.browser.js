@@ -68,7 +68,12 @@ before(async () => {
   await mkdir(artifacts, { recursive: true });
   server = await createServer({
     cacheDir: resolve(artifacts, "vite-cache"),
-    server: { host: "127.0.0.1", port: 0 },
+    server: {
+      host: "127.0.0.1",
+      port: 0,
+      // Only this disposable test server serves the shared-review fixture entry.
+      fs: { allow: [resolve("tests")] },
+    },
   });
   await server.listen();
   base = `http://127.0.0.1:${server.httpServer.address().port}/wip`;
@@ -95,6 +100,9 @@ async function fixture() {
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
+  context.on("page", (tab) =>
+    tab.on("pageerror", (error) => errors.push(error.message)),
+  );
   const state = {
     me: structuredClone(user),
     count: 125,
@@ -107,7 +115,7 @@ async function fixture() {
         null
       ),
   };
-  await page.route("**/wip/families.json", (route) =>
+  await context.route("**/wip/families.json", (route) =>
     route.fulfill({
       json: {
         families: [
@@ -122,7 +130,9 @@ async function fixture() {
       },
     }),
   );
-  await page.route("http://localhost:30000/**", (route) => {
+  // Context interception also protects new Search tabs: no request can escape
+  // to a real API, including any unexpected mutation.
+  await context.route("http://localhost:30000/**", (route) => {
     const request = route.request();
     const url = new URL(request.url());
     const method = request.method();
@@ -262,6 +272,88 @@ const ack = (review) =>
   review.getByRole("checkbox", { name: /I have reviewed the scope/ });
 const previews = (state) =>
   state.calls.filter((call) => call.path === "/v1/test-results");
+const matchesLink = (review) =>
+  review.getByRole("link", {
+    name: "View matching results (opens in a new tab)",
+    exact: true,
+  });
+const predicateEntries = (params) =>
+  [...params]
+    .filter(([key]) => !["limit", "offset", "include_count"].includes(key))
+    .sort(([a], [b]) => a.localeCompare(b));
+
+async function inspectInSearch(f, review) {
+  const { page, state } = f;
+  const link = matchesLink(review);
+  await link.waitFor();
+  assert.equal(await link.getAttribute("target"), "_blank");
+  assert.equal(await link.getAttribute("rel"), "noopener noreferrer");
+  assert.equal(await link.evaluate((a) => a.matches("a.ds.link")), true);
+  const expected = new URLSearchParams(previews(state).at(-1).params);
+  expected.delete("limit");
+  const href = new URL(await link.getAttribute("href"), base);
+  assert.equal(href.pathname, "/wip/test-results");
+  assert.deepEqual(
+    predicateEntries(href.searchParams),
+    predicateEntries(expected),
+  );
+  for (const key of ["limit", "offset", "view", "priority"])
+    assert.equal(href.searchParams.has(key), false);
+  const originalUrl = page.url();
+  const before = state.calls.length;
+  const beforeWrites = state.writes.length;
+  const beforePreviews = previews(state).length;
+  const checked = await ack(review).isChecked();
+  await link.focus();
+  const popupPromise = page.waitForEvent("popup");
+  await page.keyboard.press("Enter");
+  const popup = await popupPromise;
+  try {
+    await popup.waitForLoadState("domcontentloaded");
+    await popup
+      .getByRole("heading", { name: "Search test results", exact: true })
+      .waitFor();
+    await popup.locator(".results-grid").waitFor();
+    await popup.waitForFunction(() =>
+      document.body.textContent.includes("625"),
+    );
+    assert.equal(new URL(popup.url()).pathname, "/wip/test-results");
+    assert.equal(await popup.evaluate(() => window.opener === null), true);
+    assert.equal(await popup.evaluate(() => document.referrer), "");
+    const requests = state.calls
+      .slice(before)
+      .filter((call) => call.path === "/v1/test-results/search-page");
+    assert.ok(requests.length > 0);
+    for (const call of requests) {
+      assert.equal(call.method, "GET");
+      const actual = new URLSearchParams(call.params);
+      assert.deepEqual(predicateEntries(actual), predicateEntries(expected));
+      assert.ok(Number(actual.get("limit")) > 0);
+    }
+    assert.equal(await popup.getByRole("checkbox").count(), 0);
+    assert.equal(
+      await popup
+        .getByRole("button", {
+          name: /rerun requests|Attach issue|Detach issue|Create attachment rule/i,
+        })
+        .count(),
+      0,
+    );
+    assert.equal(state.writes.length, beforeWrites);
+    assert.equal(previews(state).length, beforePreviews);
+  } finally {
+    await popup.close();
+  }
+  await page.bringToFront();
+  assert.equal(page.url(), originalUrl);
+  assert.equal(await review.isVisible(), true);
+  assert.equal(
+    await review.evaluate((dialog) => dialog.matches(":modal")),
+    true,
+  );
+  assert.equal(await ack(review).isChecked(), checked);
+  assert.equal(await link.evaluate((a) => document.activeElement === a), true);
+}
 async function waitEnabled(locator) {
   await locator
     .page()
@@ -318,6 +410,22 @@ void test("native issue create uses all applied filters beyond loaded rows, not 
     assert.equal(await ack(review).isChecked(), false);
     await ack(review).check();
     await waitEnabled(submit(review));
+    await inspectInSearch(f, review);
+    assert.equal(
+      await review
+        .getByRole("textbox", { name: "Priority", exact: true })
+        .inputValue(),
+      "42",
+    );
+    assert.equal(
+      await review
+        .getByRole("checkbox", {
+          name: "Only latest test executions",
+          exact: true,
+        })
+        .isChecked(),
+      false,
+    );
     await submit(review).click();
     await page.getByText(/Create rerun request completed/).waitFor();
     assert.equal(state.writes.length, 1);
@@ -348,10 +456,7 @@ void test("native issue create uses all applied filters beyond loaded rows, not 
           new URLSearchParams(call.params).get("offset") === "0",
       ).length >= 3,
     );
-    assert.equal(
-      await page.getByRole("link", { name: "View matching results" }).count(),
-      0,
-    );
+    assert.equal(await matchesLink(page).count(), 0);
   } finally {
     await f.close();
   }
@@ -385,6 +490,7 @@ void test("native deletion defaults exclude creation guards and submits only the
       0,
     );
     await ack(review).check();
+    await inspectInSearch(f, review);
     await submit(review, "Delete").click();
     await f.page.getByText(/Delete rerun request completed/).waitFor();
     assert.deepEqual(f.state.writes, [
@@ -401,6 +507,154 @@ void test("native deletion defaults exclude creation guards and submits only the
   }
 });
 
+void test("native shared opt-in inspection navigates actual Search with exact repeated/metadata/date predicates; pending options, invalid plans and stale sessions fail closed", async () => {
+  const f = await fixture();
+  try {
+    // Test-only shared-consumer fixture, not extra issue-page filter fields or a
+    // production route/hook. It mounts the same installed Pragma review/modal.
+    await f.page.evaluate(
+      async (entry) => {
+        const { mountReview } = await import(entry);
+        const target = document.createElement("div");
+        document.body.append(target);
+        window.__inspectionFixture = mountReview(
+          target,
+          {
+            kind: "query",
+            queryKey: "metadata-fixture",
+            count: 625,
+            filters: {
+              issues: [73],
+              artefacts: ["literal & + / ? # 雪", "second artefact"],
+              environments: ["lab α", "lab β"],
+              artefact_stages: ["", "stable"],
+              reviewer_ids: [4, 9],
+              execution_metadata: {
+                "key:雪, with spaces": [
+                  "value:é, + /",
+                  " other literal value ",
+                ],
+                other: ["😀"],
+              },
+              from_date: "2026-10-25T12:00:00.123456000+02:30",
+              until_date: "2026-10-26T01:02:03.654321-03:00",
+            },
+          },
+          "/wip/test-results",
+        );
+        await window.__inspectionFixture.start("create");
+      },
+      `/wip/@fs${resolve("tests/issue-reruns-entry.svelte.js")}`,
+    );
+    const review = f.page.locator("dialog.bulk-rerun-review[open]");
+    await matchesLink(review).waitFor();
+    const initial = new URL(
+      await matchesLink(review).getAttribute("href"),
+      base,
+    );
+    assert.deepEqual(initial.searchParams.getAll("artefacts"), [
+      "literal & + / ? # 雪",
+      "second artefact",
+    ]);
+    assert.deepEqual(initial.searchParams.getAll("artefact_stages"), [
+      "",
+      "stable",
+    ]);
+    assert.equal(
+      initial.searchParams.get("from_date"),
+      "2026-10-25T12:00:00.123456000+02:30",
+    );
+    assert.equal(
+      initial.searchParams.get("until_date"),
+      "2026-10-26T01:02:03.654321-03:00",
+    );
+    const pairs = initial.searchParams
+      .getAll("execution_metadata")
+      .map((pair) =>
+        pair
+          .split(":")
+          .map((part) => Buffer.from(part, "base64").toString("utf8")),
+      );
+    assert.deepEqual(pairs, [
+      ["key:雪, with spaces", "value:é, + /"],
+      ["key:雪, with spaces", " other literal value "],
+      ["other", "😀"],
+    ]);
+    assert.equal(initial.searchParams.get("rerun_is_requested"), "false");
+    assert.equal(initial.searchParams.get("execution_is_latest"), "true");
+    assert.equal(initial.searchParams.get("artefact_is_archived"), "false");
+    await ack(review).check();
+    await inspectInSearch(f, review);
+
+    await f.page.evaluate(
+      () => (window.__rerunHold = { path: "/v1/test-results", method: "GET" }),
+    );
+    await review
+      .getByRole("checkbox", {
+        name: "Only latest test executions",
+        exact: true,
+      })
+      .uncheck();
+    await f.page.waitForFunction(() => window.__rerunReleases.length === 1);
+    assert.equal(await matchesLink(review).count(), 0);
+    await review.getByText(/Counting matching/).waitFor();
+    await f.release();
+    await matchesLink(review).waitFor();
+    const changed = new URL(
+      await matchesLink(review).getAttribute("href"),
+      base,
+    );
+    assert.equal(changed.searchParams.has("execution_is_latest"), false);
+    assert.equal(changed.searchParams.get("artefact_is_archived"), "false");
+    assert.equal(await ack(review).isChecked(), false);
+    await review
+      .getByRole("checkbox", {
+        name: "Exclude archived artefacts",
+        exact: true,
+      })
+      .uncheck();
+    await matchesLink(review).waitFor();
+    await inspectInSearch(f, review);
+    const unguardedOptions = new URL(
+      await matchesLink(review).getAttribute("href"),
+      base,
+    );
+    assert.equal(
+      unguardedOptions.searchParams.has("execution_is_latest"),
+      false,
+    );
+    assert.equal(
+      unguardedOptions.searchParams.has("artefact_is_archived"),
+      false,
+    );
+    assert.equal(
+      unguardedOptions.searchParams.get("rerun_is_requested"),
+      "false",
+    );
+    await review
+      .getByRole("textbox", { name: "Priority", exact: true })
+      .fill("invalid");
+    assert.equal(await matchesLink(review).count(), 0);
+    await review
+      .getByRole("textbox", { name: "Priority", exact: true })
+      .fill("0");
+    await matchesLink(review).waitFor();
+    f.state.me = null;
+    await f.refresh();
+    await review.getByText(/session changed/).waitFor();
+    assert.equal(await matchesLink(review).count(), 0);
+    f.state.me = structuredClone(user);
+    await f.refresh();
+    assert.equal(await matchesLink(review).count(), 0);
+    assert.equal(f.state.writes.length, 0);
+  } finally {
+    await f.page.evaluate(async () => {
+      await window.__inspectionFixture?.destroy();
+    });
+    await f.close();
+  }
+});
+
 void test("native zero and failed previews cannot write; a rejected write is terminal with an explicit refresh path", async () => {
   const f = await fixture();
   try {
@@ -413,6 +667,7 @@ void test("native zero and failed previews cannot write; a rejected write is ter
     review = await f.open();
     await review.getByText(/Count preview failed/).waitFor();
     assert.equal(await submit(review).isEnabled(), false);
+    assert.equal(await matchesLink(review).count(), 0);
     await review
       .getByRole("button", { name: "Close and refresh results", exact: true })
       .click();
@@ -424,6 +679,7 @@ void test("native zero and failed previews cannot write; a rejected write is ter
     await submit(review).click();
     await review.getByText(/Refresh results or permissions/).waitFor();
     assert.equal(await submit(review).isEnabled(), false);
+    assert.equal(await matchesLink(review).count(), 0);
     assert.equal(f.state.writes.length, 1);
     await review
       .getByRole("button", { name: "Close and refresh results", exact: true })

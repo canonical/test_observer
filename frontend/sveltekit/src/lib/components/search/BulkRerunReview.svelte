@@ -28,6 +28,7 @@
   import {
     previewRerunCount,
     rerunIsBulk,
+    rerunSearchUrl,
     type RerunOperation,
   } from "$lib/testResultsReruns";
 
@@ -35,6 +36,7 @@
     scope,
     reviewKey,
     loginUrl,
+    searchDestination,
     onbusy,
     onreview,
     oncomplete,
@@ -44,6 +46,8 @@
     scope: (ownSubmission?: boolean) => Capability<BulkTarget>;
     reviewKey: string;
     loginUrl: string;
+    /** Explicit opt-in; unrelated consumers must not infer Search from login. */
+    searchDestination?: string;
     onbusy: (busy: boolean) => void;
     onreview: (open: boolean) => void;
     oncomplete: (key: string, message: string) => Promise<void>;
@@ -128,6 +132,32 @@
       count > 0 &&
       (count <= 50 || acknowledged),
   );
+  const matchingResultsUrl = $derived(
+    open &&
+      !busy &&
+      !checking &&
+      !invalidated &&
+      !terminal &&
+      permission.ok &&
+      plan?.ok &&
+      target?.kind === "query" &&
+      preview.key === previewKey &&
+      count !== null &&
+      !preview.error &&
+      searchDestination &&
+      plan.value.payload.test_results_filters
+      ? rerunSearchUrl(
+          plan.value.payload.test_results_filters,
+          searchDestination,
+        )
+      : null,
+  );
+
+  function inspectMatches(event: MouseEvent) {
+    // Recheck synchronously too: a previously rendered link cannot outlive its
+    // scope/session, even if an external change precedes Svelte's next flush.
+    if (!matchingResultsUrl || !currentScope()) event.preventDefault();
+  }
 
   // Revocation is durable: restoring a selection or logging in as the same user
   // cannot revive a review observed to have changed while an await was pending.
@@ -460,6 +490,16 @@
             </p>{:else if count !== null}<p role="status">
               Matches {count} test results; rerun requests are grouped, so the count
               may differ.
+              {#if matchingResultsUrl}
+                <Link
+                  href={matchingResultsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onclick={inspectMatches}
+                  onauxclick={inspectMatches}
+                  >View matching results (opens in a new tab)</Link
+                >
+              {/if}
             </p>{/if}
         {/if}
         <p>

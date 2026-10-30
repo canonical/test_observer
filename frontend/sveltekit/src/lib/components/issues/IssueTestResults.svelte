@@ -346,6 +346,7 @@
   scope={rerunScope}
   {reviewKey}
   {loginUrl}
+  searchDestination={`${base}/test-results`}
   onbusy={(busy) => {
     rerunBusy = busy;
     onbusy?.(busy);
