@@ -17,17 +17,17 @@
 
 <script lang="ts">
   import { page } from "$app/state";
-  import { goto } from "$app/navigation";
+  import { beforeNavigate, goto } from "$app/navigation";
   import { onDestroy, untrack } from "svelte";
   import { Button } from "@canonical/svelte-ds-app-launchpad";
   import { resolve } from "$app/paths";
-  import { createIssue, issueErrorMessage } from "$lib/api/issues";
   import { getApiRoot } from "$lib/config";
   import { userStore } from "$lib/stores/user.svelte";
   import { IssueListPages } from "$lib/issueListPages.svelte";
   import IssueProjectPicker from "$lib/components/issues/IssueProjectPicker.svelte";
+  import AddIssue from "$lib/components/issues/AddIssue.svelte";
   import {
-    externalIssueUrlError,
+    addedIssueFeedback,
     filterIssueRows,
     issueActiveGroupCount,
     issueFilterKey,
@@ -108,11 +108,14 @@
     return grouped;
   });
 
-  let addDialog: HTMLDialogElement;
-  let issueUrl = $state("");
-  let issueUrlError = $state("");
-  let createError = $state("");
-  let creating = $state(false);
+  // Fence writes as soon as navigation starts, not only after page.url updates.
+  // Keying the dialog also keeps queued native events on their original owner.
+  let addNavigation = $state(0);
+  const addContext = $derived(`${resultScope}:${addNavigation}`);
+  let addFeedback = $state<{ context: string; message: string } | null>(null);
+  beforeNavigate(() => {
+    ++addNavigation;
+  });
 
   $effect(() => {
     const query = filters.query;
@@ -201,39 +204,16 @@
     navigate(next);
   }
 
-  function openAddIssue() {
-    issueUrl = "";
-    issueUrlError = "";
-    createError = "";
-    addDialog.showModal();
-  }
-
-  async function submitAddIssue(event: SubmitEvent) {
-    event.preventDefault();
-    const validationError = externalIssueUrlError(issueUrl);
-    if (validationError) {
-      issueUrlError = validationError;
-      return;
-    }
-    creating = true;
-    issueUrlError = "";
-    createError = "";
-    try {
-      await createIssue(issueUrl.trim());
-      addDialog.close();
-      // Creation can add a project without changing facet scope. Invalidate its
-      // older pages too, but keep this independent read out of Add's pending state.
-      void projects.reset(facetFilters, facetScope);
-      await results.reset(filters, resultScope);
-    } catch (error) {
-      createError = await issueErrorMessage(error);
-    } finally {
-      creating = false;
-    }
-  }
-
-  function closeAddIssue() {
-    if (addDialog.open) addDialog.close();
+  function issueAdded(id: number) {
+    // Capture duplicate knowledge before either reset clears its loaded rows.
+    // Only the main stream counts, including rows hidden by local OR filters.
+    addFeedback = {
+      context: addContext,
+      message: addedIssueFeedback(id, results.rows),
+    };
+    // Both independent reads refresh, neither owns the mutation/dialog lock.
+    void projects.reset(facetFilters, facetScope);
+    void results.reset(filters, resultScope);
   }
 
   function statusLabel(status: IssueStatus) {
@@ -257,10 +237,14 @@
       <h1>Issues</h1>
       <p>Browse external issues linked to test executions.</p>
     </div>
-    <button class="add-issue" type="button" onclick={openAddIssue}
-      >Add issue</button
-    >
+    {#key addContext}
+      <AddIssue getContext={() => addContext} onadded={issueAdded} />
+    {/key}
   </header>
+
+  <div role="status" aria-live="polite" aria-atomic="true" class="add-feedback">
+    {#if addFeedback?.context === addContext}{addFeedback.message}{/if}
+  </div>
 
   <div class="filter-disclosure">
     <Button
@@ -482,51 +466,6 @@
   </div>
 </div>
 
-<dialog
-  bind:this={addDialog}
-  aria-labelledby="add-issue-title"
-  oncancel={(event) => {
-    if (creating) event.preventDefault();
-  }}
->
-  <form class="add-issue-form" onsubmit={submitAddIssue}>
-    <h2 id="add-issue-title">Add issue</h2>
-    <p>Enter a GitHub, Jira, or Launchpad issue URL.</p>
-    <label for="external-issue-url">External issue URL</label>
-    <input
-      id="external-issue-url"
-      type="url"
-      autocomplete="url"
-      bind:value={issueUrl}
-      aria-invalid={!!issueUrlError}
-      aria-describedby={issueUrlError ? "issue-url-error" : undefined}
-      oninput={() => {
-        issueUrlError = "";
-        createError = "";
-      }}
-    />
-    {#if issueUrlError}
-      <p id="issue-url-error" class="form-error" role="alert">
-        {issueUrlError}
-      </p>
-    {/if}
-    {#if createError}
-      <p class="form-error" role="alert">Unable to add issue: {createError}</p>
-    {/if}
-    <div class="dialog-actions">
-      <button
-        type="button"
-        class="secondary"
-        onclick={closeAddIssue}
-        disabled={creating}>Cancel</button
-      >
-      <button type="submit" disabled={creating}
-        >{creating ? "Adding…" : "Add issue"}</button
-      >
-    </div>
-  </form>
-</dialog>
-
 <style>
   .issues-page {
     max-width: 90rem;
@@ -564,11 +503,8 @@
     cursor: wait;
     opacity: 0.7;
   }
-  .add-issue,
-  .dialog-actions button[type="submit"] {
-    color: #fff;
-    background: #77216f;
-    border-color: #77216f;
+  .add-feedback:not(:empty) {
+    margin-bottom: var(--lp-dimension-spacing-block-m);
   }
   .issues-layout {
     display: grid;
@@ -608,8 +544,7 @@
     min-width: 0;
     flex: 1;
   }
-  input[type="search"],
-  input[type="url"] {
+  input[type="search"] {
     box-sizing: border-box;
     width: 100%;
     border: 1px solid var(--lp-color-border-default, #b8b8b8);
@@ -751,51 +686,6 @@
   .pagination span {
     color: var(--lp-color-text-muted, #666);
     font-size: 0.875rem;
-  }
-  dialog {
-    width: min(32rem, calc(100vw - 2rem));
-    padding: 0;
-    border: 0;
-    border-radius: 0.35rem;
-    color: var(--lp-color-text-default, #222);
-    background: var(--lp-color-background-default, #fff);
-    box-shadow: 0 0.5rem 2rem rgb(0 0 0 / 25%);
-  }
-  dialog::backdrop {
-    background: rgb(0 0 0 / 45%);
-  }
-  .add-issue-form {
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-    padding: 1.5rem;
-  }
-  .add-issue-form h2 {
-    margin: 0;
-    font-size: 1.35rem;
-    font-weight: 500;
-  }
-  .add-issue-form p {
-    margin: 0;
-    color: var(--lp-color-text-muted, #666);
-  }
-  .add-issue-form label {
-    font-weight: 500;
-  }
-  .add-issue-form input {
-    width: 100%;
-  }
-  .add-issue-form .form-error {
-    color: #a40000;
-  }
-  .dialog-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.6rem;
-    margin-top: 0.5rem;
-  }
-  .dialog-actions .secondary {
-    background: transparent;
   }
   @media (max-width: 760px) {
     .issues-layout {

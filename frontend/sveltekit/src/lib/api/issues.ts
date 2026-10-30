@@ -167,7 +167,7 @@ export async function createIssue(url: string): Promise<Issue> {
     method: "PUT",
     body: JSON.stringify({ url }),
   });
-  if (!response || !Number.isSafeInteger(response.id)) {
+  if (!response || !Number.isSafeInteger(response.id) || response.id <= 0) {
     throw new Error("The issues API returned an invalid issue.");
   }
   return response;

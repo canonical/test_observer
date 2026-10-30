@@ -915,16 +915,17 @@ try {
         await page
           .getByRole("link", { name: "Fixture issue 51", exact: true })
           .waitFor();
-        // The new facet request is still parsing. Creating must finish with the
-        // result refresh, just as before, not wait for this independent stream.
+        // The new facet request is still parsing. Add's mutation lock must not
+        // wait for this independent read stream.
         await page
           .getByRole("button", { name: "Add issue", exact: true })
           .click();
         await dialog.waitFor();
-        await page.waitForFunction(
-          () =>
-            !document.querySelector('.dialog-actions button[type="submit"]')
-              .disabled,
+        assert.equal(
+          await dialog
+            .getByRole("button", { name: "Add issue", exact: true })
+            .isEnabled(),
+          true,
         );
         await dialog.press("Escape");
         await dialog.waitFor({ state: "hidden" });

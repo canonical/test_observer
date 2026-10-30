@@ -252,3 +252,20 @@ void test("external issue URLs must match supported secure tracker issue forms",
     assert.ok(model.externalIssueUrlError(url), url);
   }
 });
+
+void test("Add feedback uses only loaded main IDs and never claims an unseen issue is new", () => {
+  const loaded = [issue(7, "github", "hidden/by-local-filter")];
+  assert.equal(
+    model.addedIssueFeedback(7, loaded),
+    "Issue 7 is already added to Test Observer.",
+  );
+  assert.equal(
+    model.addedIssueFeedback(8, loaded),
+    "Issue 8 is available in Test Observer.",
+  );
+  for (const id of [0, -1, 1.5, "7", NaN, Number.MAX_SAFE_INTEGER + 1])
+    assert.throws(
+      () => model.addedIssueFeedback(id, loaded),
+      /Invalid issue ID/,
+    );
+});

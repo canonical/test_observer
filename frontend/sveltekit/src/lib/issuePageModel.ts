@@ -176,3 +176,16 @@ export function issueFilterKey(filters: IssueFilters): string {
     query: filters.query,
   });
 }
+
+// Duplicate knowledge is limited to loaded main-result rows, not facets or the
+// submitted URL. The get-or-create API does not tell us whether an unseen ID is new.
+export function addedIssueFeedback(
+  id: number,
+  loaded: Pick<Issue, "id">[],
+): string {
+  if (!Number.isSafeInteger(id) || id <= 0)
+    throw new Error("Invalid issue ID.");
+  return loaded.some((issue) => issue.id === id)
+    ? `Issue ${id} is already added to Test Observer.`
+    : `Issue ${id} is available in Test Observer.`;
+}
