@@ -48,6 +48,7 @@ from sqlalchemy.orm import (
     relationship,
 )
 from sqlalchemy.sql import ColumnElement, func
+from sqlalchemy_declarative_extensions import declarative_database
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
@@ -62,6 +63,7 @@ from test_observer.data_access.models_enums import (
 )
 
 
+@declarative_database
 class Base(DeclarativeBase):
     """Base model for all the models"""
 
