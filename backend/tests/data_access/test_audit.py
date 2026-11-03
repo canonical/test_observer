@@ -19,7 +19,8 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.audit import set_audit_context, set_connection_audit_context
-from test_observer.data_access.models import ChangeAuthor
+from test_observer.data_access.models import Artefact, ChangeAuthor
+from test_observer.data_access.models_enums import FamilyName
 from tests.data_generator import DataGenerator
 
 
@@ -179,3 +180,85 @@ def test_change_author_has_unique_actor_columns(db_session: Session) -> None:
         with pytest.raises(IntegrityError), db_session.begin_nested():
             db_session.add(duplicate)
             db_session.flush()
+
+
+def test_artefact_changes_are_audited_with_context(db_session: Session) -> None:
+    set_audit_context(db_session, user_id=12)
+    artefact = DataGenerator(db_session).gen_artefact(name="audit-test-artefact")
+
+    artefact.comment = "reviewed"
+    db_session.commit()
+    db_session.delete(artefact)
+    db_session.commit()
+
+    history = db_session.execute(
+        text("SELECT audit_operation, audit_author_id FROM artefact_audit WHERE id = :id ORDER BY audit_pk"),
+        {"id": artefact.id},
+    ).all()
+    assert [row.audit_operation for row in history] == ["I", "U", "D"]
+    assert all(row.audit_author_id == _session_author_id(db_session) for row in history)
+    author = db_session.get(ChangeAuthor, _session_author_id(db_session))
+    assert author is not None
+    assert author.user_id == 12
+
+
+def test_environment_review_changes_are_audited(db_session: Session) -> None:
+    generator = DataGenerator(db_session)
+    artefact = generator.gen_artefact(name="audit-review-artefact")
+    build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    review = generator.gen_artefact_build_environment_review(build, environment)
+
+    review.review_comment = "reviewed"
+    db_session.commit()
+    db_session.delete(review)
+    db_session.commit()
+
+    history = db_session.execute(
+        text(
+            "SELECT audit_operation, audit_author_id "
+            "FROM artefact_build_environment_review_audit WHERE id = :id ORDER BY audit_pk"
+        ),
+        {"id": review.id},
+    ).all()
+    assert [row.audit_operation for row in history] == ["I", "U", "D"]
+    assert all(row.audit_author_id == _session_author_id(db_session) for row in history)
+
+
+def test_cascading_artefact_delete_is_audited_for_environment_review(db_session: Session) -> None:
+    generator = DataGenerator(db_session)
+    artefact = generator.gen_artefact(name="audit-cascade-artefact")
+    build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    review = generator.gen_artefact_build_environment_review(build, environment)
+    review_id = review.id
+
+    db_session.delete(artefact)
+    db_session.commit()
+
+    history = db_session.execute(
+        text(
+            "SELECT audit_operation, audit_author_id "
+            "FROM artefact_build_environment_review_audit WHERE id = :id ORDER BY audit_pk"
+        ),
+        {"id": review_id},
+    ).all()
+    assert [row.audit_operation for row in history] == ["I", "D"]
+    assert all(row.audit_author_id == _session_author_id(db_session) for row in history)
+
+
+def test_audited_write_without_context_fails(db_session: Session) -> None:
+    db_session.info.pop("_audit_author")
+    db_session.info.pop("author_id")
+    db_session.execute(text("SELECT set_config('audit.author_id', '', true)"))
+
+    db_session.add(
+        Artefact(
+            name="missing-audit-context",
+            version="1",
+            stage="beta",
+            family=FamilyName.snap,
+        )
+    )
+    with pytest.raises(DBAPIError, match="invalid input syntax for type integer"):
+        db_session.flush()
