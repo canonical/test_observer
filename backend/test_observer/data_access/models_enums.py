@@ -131,9 +131,3 @@ class IssueStatus(StrEnum):
 class NotificationType(StrEnum):
     USER_ASSIGNED_ARTEFACT_REVIEW = "USER_ASSIGNED_ARTEFACT_REVIEW"
     USER_ASSIGNED_ENVIRONMENT_REVIEW = "USER_ASSIGNED_ENVIRONMENT_REVIEW"
-
-
-class ChangelogOperation(StrEnum):
-    INSERT = "INSERT"
-    UPDATE = "UPDATE"
-    DELETE = "DELETE"
