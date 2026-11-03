@@ -19,7 +19,9 @@ from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     Enum,
@@ -28,6 +30,7 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
+    Text,
     UniqueConstraint,
     and_,
     case,
@@ -53,7 +56,6 @@ from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
-    ChangelogEntity,
     ChangelogOperation,
     FamilyName,
     IssueSource,
@@ -283,16 +285,44 @@ class UserSession(Base):
 
 
 class Changelog(Base):
+    """
+    Append-only audit log of row changes, populated by database triggers.
+
+    There are intentionally no foreign keys: entries must outlive both the
+    audited rows and the actors (users, applications) that changed them.
+    """
+
     __tablename__ = "changelog"
+    __table_args__ = (
+        Index(None, "table_name", "record_id", "id"),
+        CheckConstraint(
+            "jsonb_typeof(triggered_by) = 'object' AND triggered_by <> '{}'::jsonb",
+            name="changelog_triggered_by_check",
+        ),
+    )
 
-    change_time: Mapped[datetime] = mapped_column(default=func.now())
-    entity: Mapped[ChangelogEntity]
-    entity_id: Mapped[int]
-    author_id: Mapped[int] = mapped_column(ForeignKey("app_user.id"))
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    # Rows are inserted by triggers, so defaults must live in the database
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    # Entries are never updated
+    updated_at = None  # type: ignore[assignment]
+
+    table_name: Mapped[str] = mapped_column(Text)
+    # Text so that tables with non-integer primary keys can be audited
+    record_id: Mapped[str] = mapped_column(Text)
     operation: Mapped[ChangelogOperation]
-    data_diff: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict, server_default="{}")
+    # NEW row on INSERT and UPDATE, OLD row on DELETE
+    data_snapshot: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    # Actors behind the change, e.g. {"user": {"id": 1}, "application": {"id": 2}} or {"system": "celery"}
+    triggered_by: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    # Groups rows changed in the same transaction (e.g. cascaded deletes)
+    transaction_id: Mapped[int] = mapped_column(BigInteger)
 
-    author: Mapped[User] = relationship(foreign_keys=[author_id])
+    def __repr__(self) -> str:
+        return (
+            f"Changelog(id={self.id!r}, created_at={self.created_at!r}, table_name={self.table_name!r}, "
+            f"record_id={self.record_id!r}, operation={self.operation!r}, transaction_id={self.transaction_id!r})"
+        )
 
 
 class Notification(Base):
