@@ -43,6 +43,8 @@ class BulkEnvironmentReviewDialog extends ConsumerStatefulWidget {
 class _BulkEnvironmentReviewDialogState
     extends ConsumerState<BulkEnvironmentReviewDialog> {
   late TextEditingController reviewCommentController;
+  final ScrollController _selectedEnvironmentsScrollController =
+      ScrollController();
   List<EnvironmentReviewDecision> reviewDecisions = [];
 
   bool get _canApprove {
@@ -89,6 +91,7 @@ class _BulkEnvironmentReviewDialogState
   @override
   void dispose() {
     reviewCommentController.dispose();
+    _selectedEnvironmentsScrollController.dispose();
     super.dispose();
   }
 
@@ -112,28 +115,31 @@ class _BulkEnvironmentReviewDialogState
                 border: Border.all(color: Colors.grey[300]!),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (var i = 0; i < widget.environments.length; i++) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: Spacing.level2,
-                        vertical: Spacing.level1,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          '${widget.environments[i].environment.name} '
-                          '(${widget.environments[i].environment.architecture})',
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
+              constraints: const BoxConstraints(maxHeight: 240),
+              child: Scrollbar(
+                controller: _selectedEnvironmentsScrollController,
+                thumbVisibility: true,
+                child: ListView.separated(
+                  controller: _selectedEnvironmentsScrollController,
+                  shrinkWrap: true,
+                  itemCount: widget.environments.length,
+                  itemBuilder: (context, index) => Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: Spacing.level2,
+                      vertical: Spacing.level1,
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${widget.environments[index].environment.name} '
+                        '(${widget.environments[index].environment.architecture})',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
-                    if (i != widget.environments.length - 1)
+                  ),
+                  separatorBuilder: (context, index) =>
                       Divider(height: 1, color: Colors.grey[300]),
-                  ],
-                ],
+                ),
               ),
             ),
             const SizedBox(height: Spacing.level4),
