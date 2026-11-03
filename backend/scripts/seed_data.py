@@ -46,6 +46,7 @@ from test_observer.controllers.issues.models import (
 )
 from test_observer.controllers.artefacts.models import TestExecutionRelevantLinkCreate
 
+from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import (
     Application,
     Artefact,
@@ -770,6 +771,7 @@ SAMPLE_ISSUE_ATTACHMENT_SEQUENCE = [
 
 def seed_data(client: TestClient | requests.Session, session: Session | None = None):
     session = session or SessionLocal()
+    set_audit_context(session, automation="scripts.seed_data")
 
     # Check if data has already been seeded by looking for existing users or artefacts
     existing_users = session.scalar(select(User).limit(1))
