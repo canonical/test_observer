@@ -18,6 +18,7 @@
 <script lang="ts">
   import favicon from '$lib/assets/logo.png';
   import { page, navigating } from '$app/state';
+  import { beforeNavigate } from '$app/navigation';
   import { onMount } from 'svelte';
   import { resolve } from '$app/paths';
   import { SideNavigation, Badge, Spinner } from '@canonical/svelte-ds-app-launchpad';
@@ -36,12 +37,31 @@
   import { userStore } from '$lib/stores/user.svelte';
   import { notificationsStore } from '$lib/stores/notifications.svelte';
   import { themeStore } from '$lib/stores/theme.svelte';
+  import { VIEW_PARAM } from '$lib/gridViewUrl';
+  import { familyDisplayName } from '$lib/types';
   import '../app.css';
 
   let { data, children } = $props();
   let expanded = $state(true);
 
   const pathname = $derived(page.url.pathname);
+  let viewTraversal = $state<Promise<void> | null>(null);
+  beforeNavigate((navigation) => {
+    viewTraversal = null;
+    const from = page.shallow?.url ?? page.url;
+    const to = navigation.to?.url;
+    if (navigation.type !== 'popstate' || !to || from.href === to.href) return;
+    const source = new URL(from.href);
+    const target = new URL(to.href);
+    source.searchParams.delete(VIEW_PARAM);
+    target.searchParams.delete(VIEW_PARAM);
+    // Only a grid-view history change may keep the mounted page interactive.
+    // Neither navigating.shallow (absent at runtime) nor a hook's shallow flag
+    // distinguishes retained views on different backend queries. Capture the
+    // visible source before page updates, and bind the exemption to this nav.
+    if (source.href === target.href) viewTraversal = navigation.complete;
+  });
+  const blockingNavigation = $derived(!!navigating.to && navigating.complete !== viewTraversal);
 
   $effect(() => {
     themeStore.init();
@@ -83,7 +103,7 @@
 
     {#each data.artefactFamilies as family (family.name)}
       <SideNavigation.NavigationItem href={resolve(family.name)} selected={pathname.startsWith(resolve(family.name))}>
-        {family.name.charAt(0).toUpperCase() + family.name.slice(1)}
+        {familyDisplayName(family)}
       </SideNavigation.NavigationItem>
     {/each}
 
@@ -138,13 +158,13 @@
   </SideNavigation>
 
   <div class="content-region">
-    <main class="main-content" aria-busy={!!navigating.to}>
-      <div class="page-content" inert={!!navigating.to}>
+    <main class="main-content" aria-busy={blockingNavigation}>
+      <div class="page-content" inert={blockingNavigation}>
         {@render children()}
       </div>
     </main>
 
-    {#if navigating.to}
+    {#if blockingNavigation}
       <div class="loading-overlay" role="status" aria-live="polite">
         <div class="loading-viewport">
           <div class="loading-box">

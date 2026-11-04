@@ -15,13 +15,35 @@
   SPDX-License-Identifier: GPL-3.0-only
 -->
 
-<div class="stub-page">
-  <h1 class="page-title">Search Results</h1>
-  <p class="stub-notice">Coming soon — this page is under active development.</p>
-</div>
+<script lang="ts">
+  import { page, navigating } from "$app/state";
+  import { beforeNavigate, goto, replaceState } from "$app/navigation";
+  import { resolve } from "$app/paths";
+  import TestResultsSearch from "$lib/components/search/TestResultsSearch.svelte";
+  import { replaceSearchView } from "$lib/searchViewNavigation";
+  let { data } = $props();
+  let bulkBusy = $state(false);
+  beforeNavigate((navigation) => {
+    if (bulkBusy) navigation.cancel();
+  });
 
-<style>
-  .stub-page { padding: 2rem 0; }
-  .page-title { font-size: 1.75rem; font-weight: 500; margin: 0 0 1rem; }
-  .stub-notice { color: #666; font-size: 1rem; margin: 0; }
-</style>
+  // SvelteKit 3 keeps the loaded page URL separate from shallow history.
+  // Use both for reloads, normal navigation AND browser back/forward.
+  const url = $derived(page.shallow?.url ?? page.url);
+</script>
+
+<svelte:head><title>Search test results — Test Observer</title></svelte:head>
+<TestResultsSearch
+  url={new URL(url.href)}
+  families={data.artefactFamilies}
+  base={resolve("").replace(/\/$/, "")}
+  onBusyChange={(busy) => (bulkBusy = busy)}
+  navigate={(url) => goto(url)}
+  replaceView={(encoded, sourceHref) =>
+    replaceSearchView(encoded, sourceHref, {
+      currentUrl: () => (navigating.to ? null : new URL(location.href)),
+      // replaceState updates history without starting a navigation. It
+      // retains scroll, focus and the page state.
+      replace: (next) => replaceState(next, page.state),
+    })}
+/>

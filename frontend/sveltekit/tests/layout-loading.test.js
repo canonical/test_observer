@@ -40,6 +40,9 @@ before(async () => {
             alias: {
               $lib: resolve("src/lib"),
               "$app/state": resolve("tests/layout-loading-state.svelte.js"),
+              "$app/navigation": resolve(
+                "tests/layout-loading-state.svelte.js",
+              ),
             },
           },
           build: {
@@ -132,6 +135,7 @@ void test("navigation makes only the page inert and keeps status and shell contr
     // a navigation lock or click interception while another request is pending.
     const link = sidebar.querySelector('a[href="/alpha"]');
     assert.ok(link);
+    assert.equal(link.textContent.trim(), "Alpha");
     const click = new browserWindow.MouseEvent("click", {
       bubbles: true,
       cancelable: true,
@@ -196,6 +200,99 @@ void test("navigation makes only the page inert and keeps status and shell contr
     assert.equal(target.querySelector(".loading-overlay"), null);
   } finally {
     setDestination(null);
+    await unmountLayout(component);
+    target.remove();
+  }
+});
+
+void test("view-only native histories never block, even while public page URLs update", async () => {
+  assert.ok(harness);
+  const { mountLayout, setDestination, setPageUrl, unmountLayout } = harness;
+  const loaded = "/alpha?artefacts=one&artefacts=two&limit=2#anchor";
+  const first = `${loaded.replace("#anchor", "")}&view=first#anchor`;
+  const second = `${loaded.replace("#anchor", "")}&view=second#anchor`;
+  setPageUrl(loaded, first);
+  const target = browserWindow.document.createElement("div");
+  browserWindow.document.body.append(target);
+  // @ts-expect-error Happy DOM's element types differ from the DOM lib types.
+  const component = mountLayout(target);
+  try {
+    const main = target.querySelector("main");
+    const page = target.querySelector(".page-content");
+    const action = target.querySelector("#page-action");
+    assert.ok(main && page && action);
+    for (const destination of [second, first, second, first]) {
+      setDestination(destination, { type: "popstate", shallow: true });
+      assert.equal(page.hasAttribute("inert"), false);
+      assert.equal(main.getAttribute("aria-busy"), "false");
+      assert.equal(target.querySelector(".loading-overlay"), null);
+      assert.equal(target.querySelector("#page-action"), action);
+      // Native Forward can update page.shallow before clearing navigating.
+      // The exemption must not disappear when the visible source becomes to.
+      setPageUrl(loaded, destination);
+      assert.equal(page.hasAttribute("inert"), false);
+      assert.equal(target.querySelector(".loading-overlay"), null);
+      setDestination(null);
+    }
+    // Returning to the original no-view entry is presentation-only too.
+    setDestination(loaded, { type: "popstate", shallow: true });
+    assert.equal(page.hasAttribute("inert"), false);
+    assert.equal(target.querySelector(".loading-overlay"), null);
+  } finally {
+    setDestination(null);
+    setPageUrl("/alpha");
+    await unmountLayout(component);
+    target.remove();
+  }
+});
+
+void test("query, pagination, other-route and non-history navigations retain blocking protection", async () => {
+  assert.ok(harness);
+  const { mountLayout, setDestination, setPageUrl, unmountLayout } = harness;
+  const loaded = "/alpha?artefacts=one&limit=2";
+  const visible = `${loaded}&view=first`;
+  setPageUrl(loaded, visible);
+  const target = browserWindow.document.createElement("div");
+  browserWindow.document.body.append(target);
+  // @ts-expect-error Happy DOM's element types differ from the DOM lib types.
+  const component = mountLayout(target);
+  try {
+    const main = target.querySelector("main");
+    const page = target.querySelector(".page-content");
+    assert.ok(main && page);
+    for (const [destination, type] of [
+      ["/alpha?artefacts=two&limit=2&view=second", "popstate"],
+      [`${loaded}&offset=2&view=second`, "popstate"],
+      ["/beta?artefacts=one&limit=2&view=second", "popstate"],
+      [`${loaded}&unknown=blocks&view=second`, "popstate"],
+      [`${loaded}&view=first&artefacts=two`, "popstate"],
+      [visible, "popstate"],
+      [`${loaded}&view=second`, "goto"],
+      [`${loaded}&view=second`, "link"],
+      [`${loaded}&view=second`, "form"],
+    ]) {
+      // A restored entry with a retained view can have shallow=true in the
+      // hook even though the backend query or loaded route actually changes.
+      setDestination(destination, { type, shallow: type === "popstate" });
+      assert.equal(page.hasAttribute("inert"), true, `${type} ${destination}`);
+      assert.equal(main.getAttribute("aria-busy"), "true");
+      assert.ok(target.querySelector(".loading-overlay"));
+      setDestination(null);
+      assert.equal(page.hasAttribute("inert"), false);
+    }
+    setDestination(`${loaded}&view=second`, {
+      type: "popstate",
+      shallow: true,
+    });
+    assert.equal(page.hasAttribute("inert"), false);
+    // SvelteKit may skip beforeNavigate for a superseding navigation. Its
+    // distinct complete promise must not inherit a previous exemption.
+    setDestination("/beta", { notify: false });
+    assert.equal(page.hasAttribute("inert"), true);
+    assert.ok(target.querySelector(".loading-overlay"));
+  } finally {
+    setDestination(null);
+    setPageUrl("/alpha");
     await unmountLayout(component);
     target.remove();
   }

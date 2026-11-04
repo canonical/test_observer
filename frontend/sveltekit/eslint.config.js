@@ -26,7 +26,8 @@ export default defineConfig(
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
       parserOptions: {
-        projectService: { allowDefaultProject: ["tests/*.js"] },
+        // Tests have their own tsconfig, avoiding per-file default projects.
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
         extraFileExtensions: [".svelte"],
       },

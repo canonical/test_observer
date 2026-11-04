@@ -356,7 +356,7 @@ function jsonResponse(data) {
   });
 }
 
-void test("sidebar toggle names its action in both states", async () => {
+void test("artefact breadcrumb uses the configured family route and sidebar toggle names its action in both states", async () => {
   if (!browserWindow || !mountArtefactPage || !unmountCommentEditor) {
     throw new Error("Artefact page browser test modules were not loaded");
   }
@@ -383,9 +383,8 @@ void test("sidebar toggle names its action in both states", async () => {
     data: {
       artefactId: 1,
       family: {
-        name: "snaps",
+        name: "custom-ROUTE",
         api_name: "snap",
-        friendly_name: "Snaps",
         stages: [],
         columns: [],
         filters: [],
@@ -395,6 +394,9 @@ void test("sidebar toggle names its action in both states", async () => {
   const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
   try {
     await flush();
+    const familyLink = target.querySelector('a[href="custom-ROUTE"]');
+    assert.ok(familyLink, target.innerHTML);
+    assert.equal(familyLink.textContent.trim(), "Custom-ROUTE");
     const toggle = target.querySelector("button.sidebar-toggle");
     assert.ok(toggle, target.innerHTML);
     assert.equal(toggle.getAttribute("aria-label"), "Hide sidebar");
@@ -418,6 +420,35 @@ void test("sidebar toggle names its action in both states", async () => {
     target.remove();
     globalThis.fetch = originalFetch;
   }
+});
+
+void test("dashboard title uses the configured family route rather than its API name", async () => {
+  if (!vite || !render) throw new Error("SSR test modules were not loaded");
+  const { default: DashboardHeader } =
+    /** @type {typeof import('../src/lib/components/dashboard/DashboardHeader.svelte')} */ (
+      await vite.ssrLoadModule(
+        "/src/lib/components/dashboard/DashboardHeader.svelte",
+      )
+    );
+  const { body } = render(DashboardHeader, {
+    props: {
+      family: {
+        name: "custom-ROUTE",
+        api_name: "different-api-name",
+        stages: [],
+        columns: [],
+        filters: [],
+      },
+      count: 0,
+      filtered: false,
+      onClear: () => assert.fail("Rendering must not clear filters"),
+      onShare: () => "https://observer.example/custom-ROUTE",
+      onExport: () => "unavailable",
+      exportAvailable: false,
+    },
+  });
+  assert.match(body, /<h1[^>]*>Custom-ROUTE<\/h1>/);
+  assert.doesNotMatch(body, /different-api-name/);
 });
 
 void test("superseded session responses return no authorization evidence", async () => {
