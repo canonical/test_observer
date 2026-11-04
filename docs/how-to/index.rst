@@ -14,6 +14,7 @@ Before you can submit test results or use the Test Observer dashboard, you need 
 
     access-rest-api
     authenticate
+    manage-api-keys
 
 Submitting test results
 -----------------------

@@ -28,6 +28,10 @@ Get an API Key
 
 3. Receive your API key
 
+Test Observer administrators can follow :doc:`How to Manage Applications and
+API Keys <manage-api-keys>` to manage applications and their keys through the
+REST API.
+
 Use an API Key
 ==============
 
