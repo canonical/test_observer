@@ -12,6 +12,7 @@ Before you can submit test results or use the Test Observer dashboard, you need 
 .. toctree::
     :maxdepth: 1
 
+    access-rest-api
     authenticate
 
 Submitting test results
