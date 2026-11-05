@@ -41,23 +41,30 @@ create an API key.
    act as you until the session expires. Do not share it or save it in scripts,
    source control, or shell history.
 3. Set the API URL and make a request, supplying both the cookie and the CSRF
-   header:
+   header. This example passes the cookie to ``curl`` through standard input
+   rather than placing it in the command-line arguments:
 
    .. code-block:: bash
 
       API_URL="https://test-observer-api.canonical.com"
       read -rsp "Session cookie: " SESSION_COOKIE
       echo
-      curl --get --cookie "session=${SESSION_COOKIE}" --header "X-CSRF-Token: 1" "${API_URL}/v1/..."
+      curl --config - <<EOF
+      url = "${API_URL}/v1/..."
+      cookie = "session=${SESSION_COOKIE}"
+      header = "X-CSRF-Token: 1"
+      EOF
       unset SESSION_COOKIE
 
 Replace ``/v1/...`` with the path of the endpoint you want to call, as shown
 in the Swagger UI or OpenAPI reference. Include ``X-CSRF-Token`` on requests
 authenticated with a session cookie, including ``GET`` requests. For requests
 with a JSON body, add the appropriate method, content type, and body (for
-example, ``--request POST``, ``--header 'Content-Type: application/json'``, and
-``--data '{...}'``). The endpoint's documentation describes its required
-parameters and body.
+example, add ``request = "POST"``, ``header = "Content-Type: application/json"``,
+and ``data = "{...}"`` to the ``curl`` configuration). The endpoint's
+documentation describes its required parameters and body. Avoid shell tracing
+or verbose ``curl`` output while handling session cookies, since they may
+expose credentials in logs.
 
 Use an API key for scripts and automation
 =========================================

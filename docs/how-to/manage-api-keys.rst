@@ -85,6 +85,15 @@ If an application's key may have been exposed, send
 previous key stops working immediately. Update the integration's secret with
 the new key; requests using the old key will fail.
 
+After rotating, promptly notify the team responsible for the integration and
+any teams that depend on it. Identify the affected credential by the
+application's name and ID, and explain that the previous key has been
+invalidated so consumers can update their secret. Do not send the old or new
+key in the notification; share the replacement through your approved secrets
+store. Test Observer does not record which external integrations use an
+application key, so consult your team's integration inventory to identify all
+affected consumers.
+
 Test Observer does not provide a separate key-expiration setting or endpoint.
 To invalidate a key while keeping the application, rotate it. An application
 can also rotate its own key with ``POST /v1/applications/me/rotate`` when
