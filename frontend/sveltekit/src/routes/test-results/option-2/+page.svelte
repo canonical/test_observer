@@ -10,7 +10,18 @@
 -->
 
 <script lang="ts">
+  import { page } from "$app/state";
+  import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import SearchOptionPlaceholder from "$lib/components/search/SearchOptionPlaceholder.svelte";
+  let { data } = $props();
+  const url = $derived(page.shallow?.url ?? page.url);
 </script>
 
-<SearchOptionPlaceholder option={2} />
+<SearchOptionPlaceholder
+  option={2}
+  url={new URL(url.href)}
+  routePath={resolve("test-results/option-2")}
+  families={data.artefactFamilies}
+  navigate={(next) => goto(next)}
+/>
