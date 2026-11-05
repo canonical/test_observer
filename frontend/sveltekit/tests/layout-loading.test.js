@@ -104,8 +104,14 @@ after(async () => {
 
 void test("navigation makes only the page inert and keeps status and shell controls available", async () => {
   assert.ok(harness);
-  const { mountLayout, setDestination, unmountLayout, flushSync, showError } =
-    harness;
+  const {
+    mountLayout,
+    setDestination,
+    setPageUrl,
+    unmountLayout,
+    flushSync,
+    showError,
+  } = harness;
   const target = browserWindow.document.createElement("div");
   browserWindow.document.body.append(target);
   // @ts-expect-error Happy DOM's element types differ from the DOM lib types.
@@ -118,20 +124,47 @@ void test("navigation makes only the page inert and keeps status and shell contr
     assert.ok(main && page && action && sidebar);
     const mainRoutes = [...sidebar.querySelectorAll("a[href]")]
       .filter((link) =>
-        ["/test-results", "/alpha", "/beta", "/issues"].includes(
-          link.getAttribute("href"),
-        ),
+        [
+          "/test-results",
+          "/test-results/option-2",
+          "/test-results/option-3",
+          "/test-results/option-4",
+          "/alpha",
+          "/beta",
+          "/issues",
+        ].includes(link.getAttribute("href")),
       )
       .map((link) => ({
         href: link.getAttribute("href"),
         label: link.textContent.trim(),
       }));
     assert.deepEqual(mainRoutes, [
-      { href: "/test-results", label: "Search" },
+      { href: "/test-results", label: "Search (Option 1)" },
+      { href: "/test-results/option-2", label: "Search (Option 2)" },
+      { href: "/test-results/option-3", label: "Search (Option 3)" },
+      { href: "/test-results/option-4", label: "Search (Option 4)" },
       { href: "/alpha", label: "Alpha" },
       { href: "/beta", label: "Beta" },
       { href: "/issues", label: "Issues" },
     ]);
+
+    setPageUrl("/test-results/option-3");
+    /** @type {[string, boolean][]} */
+    const expectedSelection = [
+      ["/test-results", false],
+      ["/test-results/option-2", false],
+      ["/test-results/option-3", true],
+      ["/test-results/option-4", false],
+    ];
+    for (const [href, selected] of expectedSelection) {
+      const link = /** @type {HTMLAnchorElement | null} */ (
+        sidebar.querySelector(`a[href="${href}"]`)
+      );
+      assert.ok(link);
+      assert.equal(link.classList.contains("selected"), selected, href);
+    }
+    setPageUrl("/alpha");
+
     assert.equal(main.getAttribute("aria-busy"), "false");
     assert.equal(page.hasAttribute("inert"), false);
     assert.equal(target.querySelector(".loading-overlay"), null);

@@ -130,11 +130,22 @@
 
     <SideNavigation.NavigationItem
       href={resolve("test-results")}
-      selected={pathname.startsWith(resolve("test-results"))}
+      selected={pathname === resolve("test-results")}
     >
       {#snippet icon()}<SearchIcon />{/snippet}
-      Search
+      Search (Option 1)
     </SideNavigation.NavigationItem>
+
+    {#each [2, 3, 4] as option (option)}
+      {@const route = `test-results/option-${option}`}
+      <SideNavigation.NavigationItem
+        href={resolve(route)}
+        selected={pathname === resolve(route)}
+      >
+        {#snippet icon()}<SearchIcon />{/snippet}
+        Search (Option {option})
+      </SideNavigation.NavigationItem>
+    {/each}
 
     {#each data.artefactFamilies as family (family.name)}
       <SideNavigation.NavigationItem
