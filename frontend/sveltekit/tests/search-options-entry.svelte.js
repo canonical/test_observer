@@ -3,6 +3,7 @@
 
 import { flushSync, mount, unmount } from "svelte";
 import { SvelteURL } from "svelte/reactivity";
+import SearchOption2 from "../src/lib/components/search/SearchOption2.svelte";
 import SearchOptionPlaceholder from "../src/lib/components/search/SearchOptionPlaceholder.svelte";
 
 export * from "../src/lib/searchOptionsPagination";
@@ -15,24 +16,27 @@ export { emptyFilters } from "../src/lib/testResultsSearch";
 export function mountSearchOption(target, initialUrl, families, option = 2) {
   let url = $state(initialUrl);
   const navigations = [];
-  const component = mount(SearchOptionPlaceholder, {
-    target,
-    props: {
-      option,
-      get url() {
-        return url;
-      },
-      routePath: `/custom/base/test-results/option-${option}`,
-      families,
-      /** @param {string | URL} next */
-      navigate(next) {
-        const nextUrl = new SvelteURL(next, url.origin);
-        navigations.push(nextUrl);
-        url = nextUrl;
-        return Promise.resolve();
+  const component = mount(
+    option === 2 ? SearchOption2 : SearchOptionPlaceholder,
+    {
+      target,
+      props: {
+        get url() {
+          return url;
+        },
+        routePath: `/custom/base/test-results/option-${option}`,
+        families,
+        ...(option === 2 ? { base: "/custom/base" } : { option }),
+        /** @param {string | URL} next */
+        navigate(next) {
+          const nextUrl = new SvelteURL(next, url.origin);
+          navigations.push(nextUrl);
+          url = nextUrl;
+          return Promise.resolve();
+        },
       },
     },
-  });
+  );
   flushSync();
   return {
     navigations,

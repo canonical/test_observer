@@ -13,15 +13,15 @@
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
   import { resolve } from "$app/paths";
-  import SearchOptionPlaceholder from "$lib/components/search/SearchOptionPlaceholder.svelte";
+  import SearchOption2 from "$lib/components/search/SearchOption2.svelte";
   let { data } = $props();
   const url = $derived(page.shallow?.url ?? page.url);
 </script>
 
-<SearchOptionPlaceholder
-  option={2}
+<SearchOption2
   url={new URL(url.href)}
   routePath={resolve("test-results/option-2")}
   families={data.artefactFamilies}
+  base={resolve("").replace(/\/$/, "")}
   navigate={(next) => goto(next)}
 />
