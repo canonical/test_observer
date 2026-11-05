@@ -90,9 +90,10 @@ any teams that depend on it. Identify the affected credential by the
 application's name and ID, and explain that the previous key has been
 invalidated so consumers can update their secret. Do not send the old or new
 key in the notification; share the replacement through your approved secrets
-store. Test Observer does not record which external integrations use an
-application key, so consult your team's integration inventory to identify all
-affected consumers.
+store. Test Observer does not record who created or owns an application. Use
+its name and any available context to make a best-effort attempt to identify
+and contact the likely owner; a name may mention a team, project, or engineer,
+but it does not guarantee who owns the application.
 
 Test Observer does not provide a separate key-expiration setting or endpoint.
 To invalidate a key while keeping the application, rotate it. An application
