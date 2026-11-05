@@ -10,12 +10,13 @@
 -->
 
 <script lang="ts">
-  import { onDestroy, untrack } from "svelte";
+  import { onDestroy, tick, untrack } from "svelte";
   import { SvelteURLSearchParams } from "svelte/reactivity";
   import {
     Button,
     Link,
     Spinner,
+    SidePanel,
     Table,
   } from "@canonical/svelte-ds-app-launchpad";
   import { SearchIcon } from "@canonical/svelte-icons";
@@ -51,6 +52,7 @@
   } from "$lib/searchOptionsPagination";
   import type { SearchOptionsAccessError } from "$lib/searchOptionsPagination";
   import SearchGridFilterHeader from "./SearchGridFilterHeader.svelte";
+  import SearchGridFilterMenu from "./SearchGridFilterMenu.svelte";
   import SearchGridValueCell from "./SearchGridValueCell.svelte";
   import SearchGridValueDialog from "./SearchGridValueDialog.svelte";
   import ViewRunLink from "./ViewRunLink.svelte";
@@ -63,12 +65,14 @@
     families,
     base,
     navigate,
+    variant = 2,
   }: {
     url: URL;
     routePath: string;
     families: Family[];
     base: string;
     navigate: (url: string | URL) => Promise<unknown>;
+    variant?: 2 | 3;
   } = $props();
 
   interface SearchGridValueItem {
@@ -113,7 +117,31 @@
   let activeValueDialog = $state<ValueDialogSelection | null>(null);
   let invalidatedValueDialog = $state<ValueDialogSelection | null>(null);
   let tableRegion = $state<HTMLElement>();
+  let filterPanelOpen = $state(false);
+  let filterPanelTrigger = $state<HTMLButtonElement>();
+  let filterPanelBody = $state<HTMLElement>();
   let live = true;
+
+  const filterGroups: { label: string; key: SearchFilter }[] = [
+    { label: "Created", key: "from_date" },
+    { label: "Family", key: "families" },
+    { label: "Artefact", key: "artefacts" },
+    { label: "Stage", key: "artefact_stages" },
+    { label: "Archived", key: "artefact_is_archived" },
+    { label: "Test Case", key: "test_cases" },
+    { label: "Execution Status", key: "test_execution_statuses" },
+    { label: "Rerun Requested", key: "rerun_is_requested" },
+    { label: "Latest Execution", key: "execution_is_latest" },
+    { label: "Result status", key: "test_result_statuses" },
+    { label: "Track", key: "artefact_tracks" },
+    { label: "Version", key: "artefact_versions" },
+    { label: "Environment", key: "environments" },
+    { label: "Test Plan", key: "test_plans" },
+    { label: "Template ID", key: "template_ids" },
+    { label: "Issues", key: "issues" },
+    { label: "Reviewers", key: "reviewer_ids" },
+    { label: "Execution Metadata", key: "execution_metadata" },
+  ];
 
   const search = $derived(parseSearchOptions(url.searchParams, families));
   let selectedPageSize = $derived(search.pageSize);
@@ -276,6 +304,7 @@
 
   function apply() {
     if (moving) return;
+    filterPanelOpen = false;
     const params = resetSearchOptionsPage(
       editedSearchParams(drafts, url.searchParams, editedFields),
     );
@@ -284,6 +313,7 @@
 
   function clearAll() {
     if (moving) return;
+    filterPanelOpen = false;
     drafts = emptyFilters();
     editedFields = [];
     const params = new SvelteURLSearchParams();
@@ -315,6 +345,20 @@
     return navigateWith(
       searchOptionsPageSizeParams(url.searchParams, pageSize),
     );
+  }
+
+  async function openFilterPanel(event: MouseEvent) {
+    filterPanelTrigger = event.currentTarget as HTMLButtonElement;
+    filterPanelOpen = true;
+    await tick();
+    filterPanelBody
+      ?.querySelector<HTMLElement>("input, select, button")
+      ?.focus({ preventScroll: true });
+  }
+
+  function restoreFilterTriggerFocus() {
+    filterPanelOpen = false;
+    void tick().then(() => filterPanelTrigger?.focus({ preventScroll: true }));
   }
 
   function retry() {
@@ -467,16 +511,33 @@
 </script>
 
 <svelte:head>
-  <title>Search (Option 2) — Test Observer</title>
+  <title>Search (Option {variant}) — Test Observer</title>
 </svelte:head>
 
 <section class="search-page" aria-labelledby="search-option-title">
-  <h1 id="search-option-title">Search (Option 2)</h1>
-  <p>
-    Set exact server-side filters from the result columns, then Search. Values
-    within a field match any; different fields must all match.
-  </p>
+  <h1 id="search-option-title">Search (Option {variant})</h1>
+  {#if variant === 2}
+    <p>
+      Set exact server-side filters from the result columns, then Search. Values
+      within a field match any; different fields must all match.
+    </p>
+  {:else}
+    <p>
+      Set exact server-side filters in the filter panel, then Search. Values
+      within a field match any; different fields must all match.
+    </p>
+  {/if}
   <div class="filter-actions" role="group" aria-label="Test result filters">
+    {#if variant === 3}
+      <Button
+        type="button"
+        density="dense"
+        aria-haspopup="dialog"
+        aria-controls="search-option-3-filter-panel"
+        aria-expanded={filterPanelOpen}
+        onclick={openFilterPanel}>Filters</Button
+      >
+    {/if}
     <form
       aria-label="Apply confirmed search filters"
       onsubmit={(event) => {
@@ -498,6 +559,82 @@
       {/if}
     </form>
   </div>
+  {#if variant === 3}
+    <SidePanel
+      id="search-option-3-filter-panel"
+      class="search-option-filter-panel"
+      aria-labelledby="search-option-3-filter-title"
+      bind:open={filterPanelOpen}
+      onclose={restoreFilterTriggerFocus}
+    >
+      {#snippet children(commandfor, close)}
+        <SidePanel.Content>
+          <SidePanel.Content.Header>
+            <h2 id="search-option-3-filter-title">Test result filters</h2>
+            <SidePanel.Content.Header.CloseButton
+              {commandfor}
+              command="close"
+              aria-label="Close filters"
+              onclick={() => {
+                close();
+                restoreFilterTriggerFocus();
+              }}
+            />
+          </SidePanel.Content.Header>
+          <SidePanel.Content.Body>
+            <div class="filter-panel-body" bind:this={filterPanelBody}>
+              {#each filterGroups as group (group.key)}
+                <section
+                  class="filter-group"
+                  aria-labelledby={`search-option-3-filter-${group.key}`}
+                >
+                  <h3 id={`search-option-3-filter-${group.key}`}>
+                    {group.label}
+                  </h3>
+                  <SearchGridFilterMenu
+                    filterKey={group.key}
+                    filters={drafts}
+                    {families}
+                    {invalidFields}
+                    disabled={moving}
+                    open={filterPanelOpen}
+                    deferIdLabelHydration
+                    onedit={onFilterEdit}
+                  />
+                </section>
+              {/each}
+            </div>
+          </SidePanel.Content.Body>
+          <SidePanel.Content.Footer>
+            <Button
+              type="button"
+              density="dense"
+              onclick={() => {
+                close();
+                restoreFilterTriggerFocus();
+              }}>Close</Button
+            >
+            <Button
+              type="button"
+              density="dense"
+              disabled={moving}
+              onclick={clearAll}>Clear all</Button
+            >
+            <Button
+              type="button"
+              severity="brand"
+              density="dense"
+              disabled={moving}
+              onclick={() => {
+                apply();
+                close();
+              }}>Search</Button
+            >
+          </SidePanel.Content.Footer>
+        </SidePanel.Content>
+      {/snippet}
+    </SidePanel>
+  {/if}
   {#if unapplied}
     <p class="draft-notice" role="status">
       Changes not applied. Search to update results{!hasDrafts
@@ -585,161 +722,234 @@
       aria-label="Search results table"
       tabindex="-1"
     >
-      <Table class="search-option-table" aria-label="Test results">
-        <thead>
-          <tr>
-            <th scope="col">Run</th>
-            <th scope="col">Details</th>
-            <th scope="col">{@render filterHeader("Created", "from_date")}</th>
-            <th scope="col">{@render filterHeader("Family", "families")}</th>
-            <th scope="col">{@render filterHeader("Artefact", "artefacts")}</th>
-            <th scope="col"
-              >{@render filterHeader("Stage", "artefact_stages")}</th
-            >
-            <th scope="col"
-              >{@render filterHeader("Archived", "artefact_is_archived")}</th
-            >
-            <th scope="col"
-              >{@render filterHeader("Test Case", "test_cases")}</th
-            >
-            <th scope="col">Category</th>
-            <th scope="col">Execution ID</th>
-            <th scope="col"
-              >{@render filterHeader(
-                "Execution Status",
-                "test_execution_statuses",
-              )}</th
-            >
-            <th scope="col"
-              >{@render filterHeader(
-                "Rerun Requested",
-                "rerun_is_requested",
-              )}</th
-            >
-            <th scope="col"
-              >{@render filterHeader(
-                "Latest Execution",
-                "execution_is_latest",
-              )}</th
-            >
-            <th scope="col"
-              >{@render filterHeader(
-                "Result status",
-                "test_result_statuses",
-              )}</th
-            >
-            <th scope="col"
-              >{@render filterHeader("Track", "artefact_tracks")}</th
-            >
-            <th scope="col"
-              >{@render filterHeader("Version", "artefact_versions")}</th
-            >
-            <th scope="col">Architecture</th>
-            <th scope="col"
-              >{@render filterHeader("Environment", "environments")}</th
-            >
-            <th scope="col"
-              >{@render filterHeader("Test Plan", "test_plans")}</th
-            >
-            <th scope="col"
-              >{@render filterHeader("Template ID", "template_ids")}</th
-            >
-            <th scope="col">{@render filterHeader("Issues", "issues")}</th>
-            <th scope="col"
-              >{@render filterHeader("Reviewers", "reviewer_ids")}</th
-            >
-            <th scope="col"
-              >{@render filterHeader(
-                "Execution Metadata",
-                "execution_metadata",
-              )}</th
-            >
-          </tr>
-        </thead>
-        <tbody>
-          {#each rows as row (row.id)}
-            {@const configuredFamily = families.find(
-              (family) => family.api_name === row.family,
-            )}
+      {#if variant === 3}
+        <Table
+          class="search-option-table search-option-table-compact"
+          aria-label="Test results"
+        >
+          <thead>
             <tr>
-              <td><ViewRunLink href={row.href} name={row.testCase} /></td>
-              <td>
-                <DetailsButton
-                  name={row.testCase}
-                  resultId={row.id}
-                  prepare={() =>
-                    document.dispatchEvent(
-                      new Event("search-grid-close-menus"),
-                    )}
-                  show={(trigger) => showDetails(row.id, trigger)}
-                />
-              </td>
-              <td>{formatUtcDateTime(row.createdAt)}</td>
-              <td>
-                {configuredFamily
-                  ? familyDisplayName(configuredFamily)
-                  : row.family}
-              </td>
-              <td>{row.artefact}</td>
-              <td>{row.stage === "" ? "(none)" : (row.stage ?? "—")}</td>
-              <td>{row.archived ? "Yes" : "No"}</td>
-              <td>{row.testCase}</td>
-              <td>{row.category}</td>
-              <td>{row.execution}</td>
-              <td>{row.executionStatus}</td>
-              <td>{row.rerunRequested ? "Yes" : "No"}</td>
-              <td>{row.latestExecution ? "Yes" : "No"}</td>
-              <td>{row.status}</td>
-              <td>{row.track}</td>
-              <td>{row.version}</td>
-              <td>{row.architecture}</td>
-              <td>{row.environment}</td>
-              <td>{row.testPlan}</td>
-              <td>{row.templateId}</td>
-              <td>
-                <SearchGridValueCell
-                  heading="Issues"
-                  itemLabel="issue"
-                  items={issueItems(row)}
-                  ownerKey={`${row.id}:issues`}
-                  onshow={showValueDialog}
-                />
-              </td>
-              <td>
-                <SearchGridValueCell
-                  heading="Reviewers"
-                  itemLabel="reviewer"
-                  items={reviewerItems(row)}
-                  ownerKey={`${row.id}:reviewers`}
-                  onshow={showValueDialog}
-                />
-              </td>
-              <td>
-                <SearchGridValueCell
-                  heading="Execution Metadata"
-                  itemLabel="metadata pair"
-                  itemLayout="metadata-table"
-                  items={metadataItems(row)}
-                  ownerKey={`${row.id}:executionMetadata`}
-                  onshow={showValueDialog}
-                />
-              </td>
+              <th scope="col">Artefact</th>
+              <th scope="col">Test Case</th>
+              <th scope="col">Test Execution ID</th>
+              <th scope="col">Status</th>
+              <th scope="col">Track</th>
+              <th scope="col">Version</th>
+              <th scope="col">Environment</th>
+              <th scope="col">Test Plan</th>
+              <th scope="col">Actions</th>
             </tr>
-          {:else}
+          </thead>
+          <tbody>
+            {#each rows as row (row.id)}
+              <tr>
+                <td>{row.artefact}</td>
+                <td>
+                  <div class="compact-test-case">
+                    <span>{row.testCase}</span>
+                    {#if row.category}<span class="compact-category"
+                        >{row.category}</span
+                      >{/if}
+                  </div>
+                </td>
+                <td>{row.execution}</td>
+                <td class="compact-status">{row.status}</td>
+                <td>{row.track}</td>
+                <td>{row.version}</td>
+                <td title="{row.architecture}/{row.environment}">
+                  {row.architecture}/{row.environment}
+                </td>
+                <td>{row.testPlan || "Unknown"}</td>
+                <td>
+                  <div class="compact-actions">
+                    <DetailsButton
+                      name={row.testCase}
+                      resultId={row.id}
+                      prepare={() =>
+                        document.dispatchEvent(
+                          new Event("search-grid-close-menus"),
+                        )}
+                      show={(trigger) => showDetails(row.id, trigger)}
+                    />
+                    <ViewRunLink href={row.href} name={row.testCase} />
+                  </div>
+                </td>
+              </tr>
+            {:else}
+              <tr>
+                <td colspan="9">
+                  {#if search.problems.length}
+                    Correct or clear the blocked search to load results.
+                  {:else if loading || !response}
+                    Loading test results…
+                  {:else}
+                    No test results match the applied conditions.
+                  {/if}
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </Table>
+      {:else}
+        <Table class="search-option-table" aria-label="Test results">
+          <thead>
             <tr>
-              <td colspan="23">
-                {#if search.problems.length}
-                  Correct or clear the blocked search to load results.
-                {:else if loading || !response}
-                  Loading test results…
-                {:else}
-                  No test results match the applied conditions.
-                {/if}
-              </td>
+              <th scope="col">Run</th>
+              <th scope="col">Details</th>
+              <th scope="col">{@render filterHeader("Created", "from_date")}</th
+              >
+              <th scope="col">{@render filterHeader("Family", "families")}</th>
+              <th scope="col"
+                >{@render filterHeader("Artefact", "artefacts")}</th
+              >
+              <th scope="col"
+                >{@render filterHeader("Stage", "artefact_stages")}</th
+              >
+              <th scope="col"
+                >{@render filterHeader("Archived", "artefact_is_archived")}</th
+              >
+              <th scope="col"
+                >{@render filterHeader("Test Case", "test_cases")}</th
+              >
+              <th scope="col">Category</th>
+              <th scope="col">Execution ID</th>
+              <th scope="col"
+                >{@render filterHeader(
+                  "Execution Status",
+                  "test_execution_statuses",
+                )}</th
+              >
+              <th scope="col"
+                >{@render filterHeader(
+                  "Rerun Requested",
+                  "rerun_is_requested",
+                )}</th
+              >
+              <th scope="col"
+                >{@render filterHeader(
+                  "Latest Execution",
+                  "execution_is_latest",
+                )}</th
+              >
+              <th scope="col"
+                >{@render filterHeader(
+                  "Result status",
+                  "test_result_statuses",
+                )}</th
+              >
+              <th scope="col"
+                >{@render filterHeader("Track", "artefact_tracks")}</th
+              >
+              <th scope="col"
+                >{@render filterHeader("Version", "artefact_versions")}</th
+              >
+              <th scope="col">Architecture</th>
+              <th scope="col"
+                >{@render filterHeader("Environment", "environments")}</th
+              >
+              <th scope="col"
+                >{@render filterHeader("Test Plan", "test_plans")}</th
+              >
+              <th scope="col"
+                >{@render filterHeader("Template ID", "template_ids")}</th
+              >
+              <th scope="col">{@render filterHeader("Issues", "issues")}</th>
+              <th scope="col"
+                >{@render filterHeader("Reviewers", "reviewer_ids")}</th
+              >
+              <th scope="col"
+                >{@render filterHeader(
+                  "Execution Metadata",
+                  "execution_metadata",
+                )}</th
+              >
             </tr>
-          {/each}
-        </tbody>
-      </Table>
+          </thead>
+          <tbody>
+            {#each rows as row (row.id)}
+              {@const configuredFamily = families.find(
+                (family) => family.api_name === row.family,
+              )}
+              <tr>
+                <td><ViewRunLink href={row.href} name={row.testCase} /></td>
+                <td>
+                  <DetailsButton
+                    name={row.testCase}
+                    resultId={row.id}
+                    prepare={() =>
+                      document.dispatchEvent(
+                        new Event("search-grid-close-menus"),
+                      )}
+                    show={(trigger) => showDetails(row.id, trigger)}
+                  />
+                </td>
+                <td>{formatUtcDateTime(row.createdAt)}</td>
+                <td>
+                  {configuredFamily
+                    ? familyDisplayName(configuredFamily)
+                    : row.family}
+                </td>
+                <td>{row.artefact}</td>
+                <td>{row.stage === "" ? "(none)" : (row.stage ?? "—")}</td>
+                <td>{row.archived ? "Yes" : "No"}</td>
+                <td>{row.testCase}</td>
+                <td>{row.category}</td>
+                <td>{row.execution}</td>
+                <td>{row.executionStatus}</td>
+                <td>{row.rerunRequested ? "Yes" : "No"}</td>
+                <td>{row.latestExecution ? "Yes" : "No"}</td>
+                <td>{row.status}</td>
+                <td>{row.track}</td>
+                <td>{row.version}</td>
+                <td>{row.architecture}</td>
+                <td>{row.environment}</td>
+                <td>{row.testPlan}</td>
+                <td>{row.templateId}</td>
+                <td>
+                  <SearchGridValueCell
+                    heading="Issues"
+                    itemLabel="issue"
+                    items={issueItems(row)}
+                    ownerKey={`${row.id}:issues`}
+                    onshow={showValueDialog}
+                  />
+                </td>
+                <td>
+                  <SearchGridValueCell
+                    heading="Reviewers"
+                    itemLabel="reviewer"
+                    items={reviewerItems(row)}
+                    ownerKey={`${row.id}:reviewers`}
+                    onshow={showValueDialog}
+                  />
+                </td>
+                <td>
+                  <SearchGridValueCell
+                    heading="Execution Metadata"
+                    itemLabel="metadata pair"
+                    itemLayout="metadata-table"
+                    items={metadataItems(row)}
+                    ownerKey={`${row.id}:executionMetadata`}
+                    onshow={showValueDialog}
+                  />
+                </td>
+              </tr>
+            {:else}
+              <tr>
+                <td colspan="23">
+                  {#if search.problems.length}
+                    Correct or clear the blocked search to load results.
+                  {:else if loading || !response}
+                    Loading test results…
+                  {:else}
+                    No test results match the applied conditions.
+                  {/if}
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </Table>
+      {/if}
     </div>
 
     {#if !search.problems.length && response && range}
@@ -819,6 +1029,9 @@
     color: var(--lp-color-text-muted);
   }
   .filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin-top: 0.75rem;
   }
   .filter-actions form {
@@ -883,5 +1096,64 @@
   .pager select {
     min-height: 2rem;
     font: inherit;
+  }
+  :global(.search-option-filter-panel) {
+    max-width: min(33.5rem, 100vw);
+  }
+  .filter-panel-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: calc(100vh - 11rem);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+  .filter-group {
+    min-width: 0;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--lp-color-border-default);
+  }
+  .filter-group h3 {
+    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+  .filter-group :global(.grid-filter-menu) {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+  .filter-group :global(.grid-filter-menu > .hint) {
+    margin-bottom: 0.4rem;
+  }
+  :global(.search-option-table-compact) {
+    min-width: 1000px;
+  }
+  :global(.search-option-table-compact td) {
+    max-width: 16rem;
+    white-space: normal;
+  }
+  .compact-test-case {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 8rem;
+  }
+  .compact-category {
+    color: var(--lp-color-text-muted);
+    font-size: 0.75rem;
+  }
+  .compact-status {
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  .compact-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
   }
 </style>

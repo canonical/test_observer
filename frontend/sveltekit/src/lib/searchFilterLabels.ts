@@ -161,7 +161,7 @@ const sessionCache = new SearchFilterLabelCache();
 /** Re-evaluated reactively by the editor, invalidating labels on login/logout,
  * permission/profile or API-root changes. No extra /me calls or authorization claims. */
 export function searchFilterLabelCache(): SearchFilterLabelCache {
-  const scope = `${getApiRoot()}:${JSON.stringify(userStore.current)}`;
+  const scope = `${getApiRoot()}:${userStore.sessionVersion}:${JSON.stringify(userStore.current)}`;
   if (scope !== sessionScope) {
     sessionCache.clear();
     sessionScope = scope;

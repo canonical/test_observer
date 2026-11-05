@@ -6,6 +6,7 @@
   @typescript-eslint/no-unsafe-assignment,
   @typescript-eslint/no-unsafe-call,
   @typescript-eslint/no-unsafe-member-access,
+  @typescript-eslint/no-unsafe-return,
   @typescript-eslint/require-await
 */
 
@@ -139,9 +140,9 @@ after(async () => {
   await browser.happyDOM.abort();
 });
 
-function allFiltersUrl() {
+function allFiltersUrl(option = 2) {
   return new URL(
-    "http://localhost/custom/base/test-results/option-2?" +
+    `http://localhost/custom/base/test-results/option-${option}?` +
       [
         "families=snap",
         "test_result_statuses=FAILED",
@@ -396,22 +397,24 @@ void test("option scaffold navigates under base path", async () => {
       count: 76,
       offset,
       limit,
-      rows: Array.from(
-        { length: Math.min(limit, 76 - offset) },
-        (_, index) => ({ id: offset + index + 1 }),
+      rows: Array.from({ length: Math.min(limit, 76 - offset) }, (_, index) =>
+        resultRow(offset + index + 1),
       ),
     });
   };
   const target = browser.document.createElement("div");
   browser.document.body.append(target);
-  const ui = app.mountSearchOption(target, allFiltersUrl(), [family], 3);
+  const ui = app.mountSearchOption(target, allFiltersUrl(3), [family], 3);
   try {
     await flush();
     assert.match(target.textContent, /Showing 51–75 of 76 results/);
-    assert.equal(target.querySelector("select")?.value, "25");
-    assert.equal(requests[0].pathname, "/v1/test-results/search-page");
-    assert.equal(requests[0].searchParams.get("offset"), "50");
-    assert.equal(requests[0].searchParams.get("limit"), "25");
+    assert.equal(target.querySelector(".pager select")?.value, "25");
+    const initialRequest = requests.find(
+      (request) => request.pathname === "/v1/test-results/search-page",
+    );
+    assert.ok(initialRequest);
+    assert.equal(initialRequest.searchParams.get("offset"), "50");
+    assert.equal(initialRequest.searchParams.get("limit"), "25");
 
     const next = [...target.querySelectorAll("button")].find(
       (button) => button.textContent.trim() === "Next",
@@ -430,7 +433,7 @@ void test("option scaffold navigates under base path", async () => {
     );
 
     await flush();
-    const select = target.querySelector("select");
+    const select = target.querySelector(".pager select");
     assert.ok(select);
     select.value = "100";
     select.dispatchEvent(new browser.Event("change", { bubbles: true }));
@@ -441,7 +444,7 @@ void test("option scaffold navigates under base path", async () => {
     await waitFor(() =>
       target.textContent.includes("Showing 1–76 of 76 results"),
     );
-    assert.equal(target.querySelector("select")?.value, "100");
+    assert.equal(target.querySelector(".pager select")?.value, "100");
 
     const defaultUrl = new URL(
       "http://localhost/custom/base/test-results/option-3?families=snap",
@@ -450,7 +453,7 @@ void test("option scaffold navigates under base path", async () => {
     await waitFor(() =>
       target.textContent.includes("Showing 1–50 of 76 results"),
     );
-    assert.equal(target.querySelector("select")?.value, "50");
+    assert.equal(target.querySelector(".pager select")?.value, "50");
 
     const badUrl = new URL(ui.url);
     badUrl.searchParams.append("page", "2");
@@ -520,10 +523,10 @@ void test("option scaffolds revalidate auth, present access states, and retry", 
   );
   try {
     await waitFor(() =>
-      Boolean(forbiddenTarget.querySelector('.message[role="alert"] button')),
+      Boolean(forbiddenTarget.querySelector('[role="alert"] button')),
     );
     assert.match(forbiddenTarget.textContent, /don't have permission/);
-    forbiddenTarget.querySelector('.message[role="alert"] button').click();
+    forbiddenTarget.querySelector('[role="alert"] button').click();
     await waitFor(() =>
       forbiddenTarget.textContent.includes("No test results"),
     );
@@ -552,10 +555,10 @@ void test("option scaffolds revalidate auth, present access states, and retry", 
   );
   try {
     await waitFor(() =>
-      Boolean(uncertainTarget.querySelector('.message[role="alert"] button')),
+      Boolean(uncertainTarget.querySelector('[role="alert"] button')),
     );
     assert.match(uncertainTarget.textContent, /couldn't verify your session/);
-    uncertainTarget.querySelector('.message[role="alert"] button').click();
+    uncertainTarget.querySelector('[role="alert"] button').click();
     await waitFor(() => Boolean(uncertainTarget.querySelector("a[href]")));
     assert.equal(sessionChecks, 2);
   } finally {
@@ -573,7 +576,11 @@ void test("option routes use shared paging and base-aware resolution", async () 
     assert.match(source, /resolve\("test-results\/option-/);
     assert.match(
       source,
-      option === 2 ? /SearchOption2/ : /SearchOptionPlaceholder/,
+      option === 2
+        ? /SearchOption2/
+        : option === 3
+          ? /SearchOption3/
+          : /SearchOptionPlaceholder/,
     );
     assert.match(source, /navigate=\{\(next\) => goto\(next\)\}/);
   }
@@ -883,6 +890,659 @@ void test("Option 2 renders the ordered Pragma table and server-backed filters",
   } finally {
     await ui.destroy();
     target.remove();
+  }
+});
+
+void test("Option 3 SidePanel search preserves shared filtering and compact table behavior", async () => {
+  assert.ok(app);
+  const requests = [];
+  const serverRows = [resultRow(12), resultRow(8)];
+  globalThis.fetch = async (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    if (request.pathname === "/v1/test-results/search-page/12")
+      return json(detailResult(12));
+    const offset = Number(request.searchParams.get("offset"));
+    const limit = Number(request.searchParams.get("limit"));
+    return json({ count: 100, offset, limit, rows: serverRows });
+  };
+
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const ui = app.mountSearchOption(target, allFiltersUrl(3), [family], 3);
+  try {
+    await waitFor(() =>
+      target.textContent.includes("Showing 51–52 of 100 results"),
+    );
+    const headers = [...target.querySelectorAll("thead th")].map((header) =>
+      header.textContent.trim(),
+    );
+    assert.deepEqual(headers, [
+      "Artefact",
+      "Test Case",
+      "Test Execution ID",
+      "Status",
+      "Track",
+      "Version",
+      "Environment",
+      "Test Plan",
+      "Actions",
+    ]);
+
+    const request = requests.find(
+      (item) => item.pathname === "/v1/test-results/search-page",
+    );
+    assert.ok(request);
+    assert.equal(request.searchParams.get("offset"), "50");
+    assert.equal(request.searchParams.get("limit"), "25");
+    assert.equal(request.searchParams.get("include_count"), "true");
+    assert.deepEqual(
+      [...new Set(request.searchParams.keys())]
+        .filter((key) => !["offset", "limit", "include_count"].includes(key))
+        .sort(),
+      [
+        "artefact_is_archived",
+        "artefact_stages",
+        "artefact_tracks",
+        "artefact_versions",
+        "artefacts",
+        "environments",
+        "execution_is_latest",
+        "execution_metadata",
+        "families",
+        "from_date",
+        "issues",
+        "rerun_is_requested",
+        "reviewer_ids",
+        "template_ids",
+        "test_cases",
+        "test_execution_statuses",
+        "test_plans",
+        "test_result_statuses",
+        "until_date",
+      ],
+    );
+    assert.equal(request.searchParams.get("test_execution_statuses"), "PASSED");
+
+    const filterTrigger = target.querySelector(
+      'button[aria-controls="search-option-3-filter-panel"]',
+    );
+    const panel = target.querySelector("dialog.search-option-filter-panel");
+    assert.ok(filterTrigger);
+    assert.ok(panel);
+    assert.equal(panel.open, false);
+    filterTrigger.click();
+    await waitFor(() => panel.open);
+    await waitFor(
+      () =>
+        browser.document.activeElement ===
+        target.querySelector('[data-search-grid-filter="from_date"]'),
+    );
+    assert.equal(filterTrigger.getAttribute("aria-expanded"), "true");
+    assert.equal(target.querySelectorAll(".filter-group").length, 18);
+    const canonicalFields = [
+      "families",
+      "test_result_statuses",
+      "test_execution_statuses",
+      "artefacts",
+      "artefact_versions",
+      "artefact_tracks",
+      "environments",
+      "test_plans",
+      "test_cases",
+      "artefact_stages",
+      "artefact_is_archived",
+      "rerun_is_requested",
+      "execution_is_latest",
+      "issues",
+      "reviewer_ids",
+      "execution_metadata",
+      "from_date",
+      "until_date",
+      "template_ids",
+    ];
+    const editorFields = new Set(
+      [...target.querySelectorAll("[data-search-grid-filter]")].map((element) =>
+        element.getAttribute("data-search-grid-filter"),
+      ),
+    );
+    for (const key of canonicalFields) assert.ok(editorFields.has(key), key);
+
+    const closePanel = target.querySelector('[aria-label="Close filters"]');
+    assert.ok(closePanel);
+    closePanel.click();
+    await waitFor(() => !panel.open);
+    await waitFor(() => browser.document.activeElement === filterTrigger);
+    assert.equal(filterTrigger.getAttribute("aria-expanded"), "false");
+
+    const rows = [...target.querySelectorAll("tbody tr")];
+    assert.equal(rows.length, 2);
+    assert.deepEqual(
+      rows.map(
+        (row) =>
+          row.querySelector("[data-test-result-id]")?.dataset.testResultId,
+      ),
+      ["12", "8"],
+      "rows remain in API response order",
+    );
+    const cells = rows[0].querySelectorAll("td");
+    assert.equal(cells[0].textContent, "artefact-12");
+    assert.match(cells[1].textContent, /case-12/);
+    assert.match(cells[1].textContent, /category-12/);
+    assert.equal(cells[2].textContent, "212");
+    assert.equal(cells[3].textContent, "FAILED");
+    assert.equal(cells[4].textContent, "stable");
+    assert.equal(cells[5].textContent, "1.12");
+    assert.equal(cells[6].textContent.trim(), "amd64/environment-12");
+    assert.equal(cells[7].textContent, "plan-12");
+    assert.equal(cells[8].querySelectorAll("[data-test-result-id]").length, 1);
+    assert.equal(cells[8].querySelectorAll("a").length, 1);
+
+    const run = cells[8].querySelector('a[aria-label="View Run for case-12"]');
+    assert.ok(run);
+    const runUrl = new URL(run.href);
+    assert.equal(runUrl.pathname, "/custom/base/snaps/112");
+    assert.equal(runUrl.searchParams.get("testExecutionId"), "212");
+    assert.equal(runUrl.searchParams.get("testResultId"), "12");
+    assert.equal(
+      requests.filter((item) =>
+        item.pathname.startsWith("/v1/test-results/search-page/"),
+      ).length,
+      0,
+      "Details remains lazy until its action is used",
+    );
+
+    const details = cells[8].querySelector("[data-test-result-id]");
+    assert.ok(details);
+    details.click();
+    await waitFor(() =>
+      requests.some(
+        (item) => item.pathname === "/v1/test-results/search-page/12",
+      ),
+    );
+    await waitFor(() =>
+      Boolean(target.querySelector("dialog.search-result-details[open]")),
+    );
+    const detailsDialog = target.querySelector("dialog.search-result-details");
+    assert.ok(detailsDialog);
+    detailsDialog.close();
+    await waitFor(() => !detailsDialog.open);
+    await waitFor(() => browser.document.activeElement === details);
+
+    filterTrigger.click();
+    await waitFor(() => panel.open);
+    const versionInput = target.querySelector(
+      '[data-search-grid-filter="artefact_versions"]',
+    );
+    assert.ok(versionInput);
+    versionInput.value = "2.0";
+    versionInput.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    await flush();
+    assert.match(target.textContent, /Changes not applied/);
+    assert.equal(
+      requests.filter(
+        (item) => item.pathname === "/v1/test-results/search-page",
+      ).length,
+      1,
+      "editor changes remain drafts and do not fetch results",
+    );
+
+    target
+      .querySelector(
+        ".search-option-filter-panel .ds.dialog-content-footer button:last-child",
+      )
+      .click();
+    await waitFor(() => ui.url.searchParams.get("artefact_versions") === "2.0");
+    await waitFor(() => ui.url.searchParams.get("page") === "1");
+    await waitFor(
+      () =>
+        requests.filter(
+          (item) => item.pathname === "/v1/test-results/search-page",
+        ).length === 2,
+    );
+    assert.equal(ui.url.searchParams.get("page_size"), "25");
+    const appliedRequest = requests.filter(
+      (item) => item.pathname === "/v1/test-results/search-page",
+    )[1];
+    assert.equal(appliedRequest.searchParams.get("offset"), "0");
+    assert.equal(appliedRequest.searchParams.get("limit"), "25");
+    assert.equal(appliedRequest.searchParams.get("artefact_versions"), "2.0");
+    assert.equal(
+      appliedRequest.searchParams.get("test_execution_statuses"),
+      "PASSED",
+    );
+    await waitFor(
+      () => target.querySelectorAll("tbody [data-test-result-id]").length === 2,
+    );
+    assert.equal(
+      [...target.querySelectorAll("tbody tr")]
+        .map(
+          (row) =>
+            row.querySelector("[data-test-result-id]")?.dataset.testResultId,
+        )
+        .join(","),
+      "12,8",
+    );
+  } finally {
+    await ui.destroy();
+    target.remove();
+  }
+});
+
+void test("Option 3 defers selected issue and reviewer label requests until Filters opens", async () => {
+  assert.ok(app);
+  const requests = [];
+  let resolveIssueResponse;
+  let resolveReviewerResponse;
+  const issueResponse = new Promise((resolve) => {
+    resolveIssueResponse = resolve;
+  });
+  const reviewerResponse = new Promise((resolve) => {
+    resolveReviewerResponse = resolve;
+  });
+  const issuePath = "/v1/issues/901";
+  const reviewerPath = "/v1/users/902";
+  globalThis.fetch = (input, options = {}) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push({ request, signal: options.signal });
+    if (request.pathname === issuePath) return issueResponse;
+    if (request.pathname === reviewerPath) return reviewerResponse;
+    const offset = Number(request.searchParams.get("offset"));
+    const limit = Number(request.searchParams.get("limit"));
+    return json({ count: 1, offset, limit, rows: [resultRow(1)] });
+  };
+
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const url = new URL(
+    "http://localhost/custom/base/test-results/option-3?page=1&page_size=25&issues=901&reviewer_ids=902",
+  );
+  const ui = app.mountSearchOption(target, url, [family], 3);
+  try {
+    await waitFor(() =>
+      target.textContent.includes("Showing 1–1 of 1 results"),
+    );
+    const detailRequestCount = (pathname) =>
+      requests.filter((item) => item.request.pathname === pathname).length;
+    assert.equal(detailRequestCount(issuePath), 0);
+    assert.equal(detailRequestCount(reviewerPath), 0);
+    const initialSearch = requests.find(
+      (item) => item.request.pathname === "/v1/test-results/search-page",
+    );
+    assert.ok(initialSearch);
+    assert.equal(initialSearch.request.searchParams.get("issues"), "901");
+    assert.equal(initialSearch.request.searchParams.get("reviewer_ids"), "902");
+
+    const trigger = target.querySelector(
+      'button[aria-controls="search-option-3-filter-panel"]',
+    );
+    assert.ok(trigger);
+    trigger.click();
+    const panel = target.querySelector("dialog.search-option-filter-panel");
+    assert.ok(panel);
+    await waitFor(() => panel.open);
+    await waitFor(
+      () =>
+        detailRequestCount(issuePath) === 1 &&
+        detailRequestCount(reviewerPath) === 1,
+    );
+
+    const issueRequest = requests.find(
+      (item) => item.request.pathname === issuePath,
+    );
+    const reviewerRequest = requests.find(
+      (item) => item.request.pathname === reviewerPath,
+    );
+    assert.ok(issueRequest?.signal);
+    assert.ok(reviewerRequest?.signal);
+    target.querySelector('[aria-label="Close filters"]').click();
+    await waitFor(() => !panel.open);
+    await flush();
+    assert.equal(issueRequest.signal.aborted, false);
+    assert.equal(reviewerRequest.signal.aborted, false);
+
+    trigger.click();
+    await waitFor(() => panel.open);
+    assert.equal(detailRequestCount(issuePath), 1);
+    assert.equal(detailRequestCount(reviewerPath), 1);
+    assert.equal(ui.url.searchParams.get("issues"), "901");
+    assert.equal(ui.url.searchParams.get("reviewer_ids"), "902");
+
+    resolveIssueResponse(
+      json({
+        id: 901,
+        source: "launchpad",
+        project: "test-project",
+        key: "BUG-901",
+        title: "Seeded issue label",
+      }),
+    );
+    resolveReviewerResponse(
+      json({ id: 902, name: "Seeded reviewer", launchpad_handle: "reviewer" }),
+    );
+    await waitFor(
+      () =>
+        target.textContent.includes("Seeded issue label") &&
+        target.textContent.includes("Seeded reviewer"),
+    );
+
+    target.querySelector('[aria-label="Close filters"]').click();
+    await waitFor(() => !panel.open);
+    trigger.click();
+    await waitFor(() => panel.open);
+    assert.match(target.textContent, /Seeded issue label/);
+    assert.match(target.textContent, /Seeded reviewer/);
+    assert.equal(detailRequestCount(issuePath), 1);
+    assert.equal(detailRequestCount(reviewerPath), 1);
+    assert.equal(ui.url.searchParams.get("issues"), "901");
+    assert.equal(ui.url.searchParams.get("reviewer_ids"), "902");
+  } finally {
+    await ui.destroy();
+    target.remove();
+  }
+});
+
+void test("Option 3 invalidates selected ID labels across logout/login while Filters is closed or open", async () => {
+  assert.ok(app);
+  const profile = {
+    id: 915,
+    email: "same-profile@example.test",
+    name: "Same Profile",
+    launchpad_handle: "same-profile",
+    teams: [],
+    is_admin: false,
+  };
+  await app.userStore.refresh(() => Promise.resolve(json(null)));
+  await app.userStore.refresh(() => Promise.resolve(json(profile)));
+  const loadedSessionVersion = app.userStore.sessionVersion;
+
+  const requests = [];
+  let issueLabelRequests = 0;
+  let reviewerLabelRequests = 0;
+  const pendingIssueLabels = [];
+  const pendingReviewerLabels = [];
+  const issuePath = "/v1/issues/911";
+  const reviewerPath = "/v1/users/912";
+  globalThis.fetch = (input, options = {}) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    if (request.pathname === issuePath) {
+      issueLabelRequests += 1;
+      if (issueLabelRequests > 2) {
+        return new Promise((resolve, reject) => {
+          const pending = { resolve, signal: options.signal };
+          pendingIssueLabels.push(pending);
+          if (options.signal?.aborted) {
+            reject(new Error("Issue label request aborted"));
+            return;
+          }
+          options.signal?.addEventListener(
+            "abort",
+            () => {
+              reject(new Error("Issue label request aborted"));
+            },
+            { once: true },
+          );
+        });
+      }
+      return json({
+        id: 911,
+        source: "launchpad",
+        project: "test-project",
+        key: "BUG-911",
+        title:
+          issueLabelRequests === 1
+            ? "Stale private issue label"
+            : "Fresh private issue label",
+      });
+    }
+    if (request.pathname === reviewerPath) {
+      reviewerLabelRequests += 1;
+      if (reviewerLabelRequests > 2) {
+        return new Promise((resolve, reject) => {
+          const pending = { resolve, signal: options.signal };
+          pendingReviewerLabels.push(pending);
+          if (options.signal?.aborted) {
+            reject(new Error("Reviewer label request aborted"));
+            return;
+          }
+          options.signal?.addEventListener(
+            "abort",
+            () => {
+              reject(new Error("Reviewer label request aborted"));
+            },
+            { once: true },
+          );
+        });
+      }
+      return json({
+        id: 912,
+        name: "Same Profile Reviewer",
+        launchpad_handle: "same-profile",
+        email:
+          reviewerLabelRequests === 1
+            ? "stale-private@example.test"
+            : "fresh-private@example.test",
+      });
+    }
+    const offset = Number(request.searchParams.get("offset"));
+    const limit = Number(request.searchParams.get("limit"));
+    return json({ count: 1, offset, limit, rows: [resultRow(1)] });
+  };
+
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const ui = app.mountSearchOption(
+    target,
+    new URL(
+      "http://localhost/custom/base/test-results/option-3?page=1&page_size=25&issues=911&reviewer_ids=912",
+    ),
+    [family],
+    3,
+  );
+  try {
+    await waitFor(() =>
+      target.textContent.includes("Showing 1–1 of 1 results"),
+    );
+    const trigger = target.querySelector(
+      'button[aria-controls="search-option-3-filter-panel"]',
+    );
+    const panel = target.querySelector("dialog.search-option-filter-panel");
+    assert.ok(trigger);
+    assert.ok(panel);
+    assert.equal(issueLabelRequests, 0);
+    assert.equal(reviewerLabelRequests, 0);
+
+    trigger.click();
+    await waitFor(() => panel.open);
+    await waitFor(
+      () =>
+        target.textContent.includes("Stale private issue label") &&
+        target.textContent.includes("stale-private@example.test"),
+    );
+    assert.equal(issueLabelRequests, 1);
+    assert.equal(reviewerLabelRequests, 1);
+    target.querySelector('[aria-label="Close filters"]').click();
+    await waitFor(() => !panel.open);
+
+    await app.userStore.refresh(() => Promise.resolve(json(null)));
+    assert.equal(app.userStore.sessionVersion, loadedSessionVersion + 1);
+    await waitFor(
+      () =>
+        !target.textContent.includes("Stale private issue label") &&
+        !target.textContent.includes("stale-private@example.test"),
+    );
+    assert.equal(issueLabelRequests, 1);
+    assert.equal(reviewerLabelRequests, 1);
+
+    await app.userStore.refresh(() => Promise.resolve(json(profile)));
+    assert.equal(app.userStore.sessionVersion, loadedSessionVersion + 2);
+    await flush();
+    assert.equal(app.userStore.current?.id, profile.id);
+    assert.equal(
+      target.textContent.includes("Stale private issue label"),
+      false,
+    );
+    assert.equal(
+      target.textContent.includes("stale-private@example.test"),
+      false,
+    );
+    assert.equal(issueLabelRequests, 1);
+    assert.equal(reviewerLabelRequests, 1);
+
+    trigger.click();
+    await waitFor(() => panel.open);
+    await waitFor(
+      () =>
+        target.textContent.includes("Fresh private issue label") &&
+        target.textContent.includes("fresh-private@example.test"),
+    );
+    assert.equal(issueLabelRequests, 2);
+    assert.equal(reviewerLabelRequests, 2);
+    assert.equal(ui.url.searchParams.get("issues"), "911");
+    assert.equal(ui.url.searchParams.get("reviewer_ids"), "912");
+    const searchRequest = requests.find(
+      (request) => request.pathname === "/v1/test-results/search-page",
+    );
+    assert.ok(searchRequest);
+    assert.equal(searchRequest.searchParams.get("issues"), "911");
+    assert.equal(searchRequest.searchParams.get("reviewer_ids"), "912");
+
+    await app.userStore.refresh(() => Promise.resolve(json(null)));
+    assert.equal(app.userStore.sessionVersion, loadedSessionVersion + 3);
+    await waitFor(
+      () => issueLabelRequests === 3 && reviewerLabelRequests === 3,
+    );
+    assert.equal(pendingIssueLabels[0].signal.aborted, false);
+    assert.equal(pendingReviewerLabels[0].signal.aborted, false);
+
+    await app.userStore.refresh(() => Promise.resolve(json(profile)));
+    assert.equal(app.userStore.sessionVersion, loadedSessionVersion + 4);
+    await waitFor(
+      () => issueLabelRequests === 4 && reviewerLabelRequests === 4,
+    );
+    await flush();
+    assert.equal(
+      pendingIssueLabels[0].signal.aborted,
+      true,
+      "logout-session work is canceled by the subsequent login transition",
+    );
+    assert.equal(pendingReviewerLabels[0].signal.aborted, true);
+    assert.equal(
+      pendingIssueLabels[1].signal.aborted,
+      false,
+      "the reviewer editor must not abort the current-session issue lookup",
+    );
+    assert.equal(
+      pendingReviewerLabels[1].signal.aborted,
+      false,
+      "both current-session lookups remain live",
+    );
+    pendingIssueLabels[1].resolve(
+      json({
+        id: 911,
+        source: "launchpad",
+        project: "test-project",
+        key: "BUG-911",
+        title: "Open-session current issue label",
+      }),
+    );
+    pendingReviewerLabels[1].resolve(
+      json({
+        id: 912,
+        name: "Same Profile Reviewer",
+        launchpad_handle: "same-profile",
+        email: "open-session-current@example.test",
+      }),
+    );
+    await waitFor(
+      () =>
+        target.textContent.includes("Open-session current issue label") &&
+        target.textContent.includes("open-session-current@example.test"),
+    );
+    assert.equal(issueLabelRequests, 4, "no duplicate issue lookups");
+    assert.equal(reviewerLabelRequests, 4, "no duplicate reviewer lookups");
+    assert.equal(ui.url.searchParams.get("issues"), "911");
+    assert.equal(ui.url.searchParams.get("reviewer_ids"), "912");
+  } finally {
+    await ui.destroy();
+    target.remove();
+    await app.userStore.refresh(() => Promise.resolve(json(null)));
+  }
+});
+
+void test("Option 3 blocks unknown filters and reports recoverable network errors", async () => {
+  assert.ok(app);
+  let requests = 0;
+  let shouldFail = false;
+  globalThis.fetch = async (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    if (request.pathname !== "/v1/test-results/search-page") return json({});
+    requests += 1;
+    if (shouldFail) return json({ detail: "unavailable" }, 503);
+    const offset = Number(request.searchParams.get("offset"));
+    const limit = Number(request.searchParams.get("limit"));
+    return json({ count: 1, offset, limit, rows: [resultRow(1)] });
+  };
+
+  const blockedTarget = browser.document.createElement("div");
+  browser.document.body.append(blockedTarget);
+  const blockedUrl = new URL(
+    "http://localhost/custom/base/test-results/option-3?page=2&page_size=25&execution_is_latest=maybe&hidden_filter=keep",
+  );
+  const blocked = app.mountSearchOption(blockedTarget, blockedUrl, [family], 3);
+  try {
+    await waitFor(() => Boolean(blockedTarget.querySelector('[role="alert"]')));
+    assert.equal(requests, 0);
+    blockedTarget
+      .querySelector('button[aria-controls="search-option-3-filter-panel"]')
+      .click();
+    await waitFor(
+      () =>
+        blockedTarget.querySelector("dialog.search-option-filter-panel").open,
+    );
+    assert.ok(
+      blockedTarget.querySelector(
+        '[data-search-grid-clear="execution_is_latest"]',
+      ),
+      "malformed active fields remain editable for explicit repair",
+    );
+    const clearAll = [...blockedTarget.querySelectorAll("button")].find(
+      (button) => button.textContent.trim() === "Clear all",
+    );
+    assert.ok(clearAll);
+    clearAll.click();
+    await waitFor(() => requests === 1);
+    assert.equal(blocked.url.searchParams.has("hidden_filter"), false);
+    assert.equal(blocked.url.searchParams.get("page_size"), "25");
+  } finally {
+    await blocked.destroy();
+    blockedTarget.remove();
+  }
+
+  shouldFail = true;
+  const errorTarget = browser.document.createElement("div");
+  browser.document.body.append(errorTarget);
+  const errorUi = app.mountSearchOption(
+    errorTarget,
+    new URL("http://localhost/custom/base/test-results/option-3"),
+    [family],
+    3,
+  );
+  try {
+    await waitFor(() => Boolean(errorTarget.querySelector('[role="alert"]')));
+    assert.match(errorTarget.textContent, /Could not load test results/);
+    shouldFail = false;
+    [...errorTarget.querySelectorAll("button")]
+      .find((button) => button.textContent.trim() === "Retry")
+      .click();
+    await waitFor(() =>
+      errorTarget.textContent.includes("Showing 1–1 of 1 results"),
+    );
+    assert.equal(requests, 3);
+  } finally {
+    await errorUi.destroy();
+    errorTarget.remove();
   }
 });
 

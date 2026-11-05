@@ -249,6 +249,7 @@
     aria-controls={showCategories ? `${id}-categories` : undefined}
     aria-expanded={showCategories}
     aria-activedescendant={categoryActiveDescendant}
+    data-search-grid-filter="execution_metadata"
     value={category}
     {disabled}
     oninput={(event) => {
@@ -327,6 +328,7 @@
     aria-controls={showValues ? `${id}-values` : undefined}
     aria-expanded={showValues}
     aria-activedescendant={valueActiveDescendant}
+    data-search-grid-filter="execution_metadata"
     bind:value={text}
     oninput={() => {
       if (disabled) return;

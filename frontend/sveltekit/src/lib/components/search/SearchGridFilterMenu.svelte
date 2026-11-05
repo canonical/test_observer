@@ -24,6 +24,7 @@
     searchFilterLabelCache,
   } from "$lib/searchFilterLabels";
   import type { IdFilterKey } from "$lib/searchFilterLabels";
+  import { userStore } from "$lib/stores/user.svelte";
   import IdFilterEditor from "./IdFilterEditor.svelte";
   import MetadataFilterEditor from "./MetadataFilterEditor.svelte";
   import ListFilterEditor from "./ListFilterEditor.svelte";
@@ -56,6 +57,7 @@
     invalidFields = [],
     disabled = false,
     open = false,
+    deferIdLabelHydration = false,
     onedit,
   }: {
     filterKey: MenuFilter;
@@ -64,6 +66,7 @@
     invalidFields?: SearchFilter[];
     disabled?: boolean;
     open?: boolean;
+    deferIdLabelHydration?: boolean;
     onedit: (key: SearchFilter, next: SearchFilters) => void;
   } = $props();
 
@@ -83,6 +86,7 @@
     snapshot: string;
     controller: AbortController;
   } | null = null;
+  let observedLabelSessionVersion = userStore.sessionVersion;
   let componentLive = true;
   onDestroy(() => {
     componentLive = false;
@@ -159,13 +163,27 @@
 
   $effect(() => {
     if (filterKey !== "issues" && filterKey !== "reviewer_ids") return;
+    let cache: ReturnType<typeof searchFilterLabelCache> | undefined;
+    if (deferIdLabelHydration) {
+      const sessionVersion = userStore.sessionVersion;
+      cache = searchFilterLabelCache();
+      if (sessionVersion !== observedLabelSessionVersion) {
+        observedLabelSessionVersion = sessionVersion;
+        ++labelGeneration;
+        activeLabelRequest?.controller.abort();
+        activeLabelRequest = null;
+        idLabels = {};
+        observedLabelSnapshot = "";
+      }
+      if (!open) return;
+    }
     const kind: IdFilterKey = filterKey;
     const snapshot = idLabelSnapshot;
     if (snapshot === observedLabelSnapshot) return;
     observedLabelSnapshot = snapshot;
     if (activeLabelRequest) activeLabelRequest.controller.abort();
     const [selected] = JSON.parse(snapshot) as [IdFilter, string];
-    const cache = searchFilterLabelCache();
+    const labelCache = cache ?? searchFilterLabelCache();
     const generation = ++labelGeneration;
     const controller = new AbortController();
     activeLabelRequest = { snapshot, controller };
@@ -173,11 +191,11 @@
     idLabels = Object.fromEntries(
       ids.map((id) => [
         idLabelKey(kind, id),
-        cache.peek(kind, id) ?? loadingIdLabel(id),
+        labelCache.peek(kind, id) ?? loadingIdLabel(id),
       ]),
     );
     for (const id of ids) {
-      void cache.load(kind, id, controller.signal).then((value) => {
+      void labelCache.load(kind, id, controller.signal).then((value) => {
         if (
           value !== undefined &&
           !controller.signal.aborted &&
