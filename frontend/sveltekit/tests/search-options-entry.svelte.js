@@ -5,7 +5,7 @@ import { flushSync, mount, unmount } from "svelte";
 import { SvelteURL } from "svelte/reactivity";
 import SearchOption2 from "../src/lib/components/search/SearchOption2.svelte";
 import SearchOption3 from "../src/lib/components/search/SearchOption3.svelte";
-import SearchOptionPlaceholder from "../src/lib/components/search/SearchOptionPlaceholder.svelte";
+import SearchOption4 from "../src/lib/components/search/SearchOption4.svelte";
 
 export * from "../src/lib/searchOptionsPagination";
 export { emptyFilters } from "../src/lib/testResultsSearch";
@@ -19,11 +19,7 @@ export function mountSearchOption(target, initialUrl, families, option = 2) {
   let url = $state(initialUrl);
   const navigations = [];
   const component = mount(
-    option === 2
-      ? SearchOption2
-      : option === 3
-        ? SearchOption3
-        : SearchOptionPlaceholder,
+    option === 2 ? SearchOption2 : option === 3 ? SearchOption3 : SearchOption4,
     {
       target,
       props: {
@@ -32,9 +28,7 @@ export function mountSearchOption(target, initialUrl, families, option = 2) {
         },
         routePath: `/custom/base/test-results/option-${option}`,
         families,
-        ...(option === 2 || option === 3
-          ? { base: "/custom/base" }
-          : { option }),
+        base: "/custom/base",
         /** @param {string | URL} next */
         navigate(next) {
           const nextUrl = new SvelteURL(next, url.origin);

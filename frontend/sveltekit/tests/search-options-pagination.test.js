@@ -40,6 +40,18 @@ const json = (body, status = 200) =>
   });
 const flush = () => new Promise((resolve) => setTimeout(resolve, 10));
 
+class TestResizeObserver {
+  #targets = new Set();
+
+  observe(target) {
+    this.#targets.add(target);
+  }
+
+  disconnect() {
+    this.#targets.clear();
+  }
+}
+
 async function waitFor(check) {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     if (check()) return;
@@ -85,9 +97,12 @@ before(async () => {
     "HTMLSelectElement",
     "HTMLTextAreaElement",
     "Event",
+    "KeyboardEvent",
     "MouseEvent",
     "CustomEvent",
+    "CSS",
     "MutationObserver",
+    "ResizeObserver",
     "getComputedStyle",
     "requestAnimationFrame",
   ]) {
@@ -97,15 +112,80 @@ before(async () => {
     );
     Object.defineProperty(globalThis, name, {
       configurable: true,
-      value: name === "window" ? browser : Reflect.get(browser, name),
+      value:
+        name === "window"
+          ? browser
+          : name === "ResizeObserver"
+            ? TestResizeObserver
+            : Reflect.get(browser, name),
     });
   }
-  // eslint-disable-next-line @typescript-eslint/unbound-method -- Preserve the test DOM method receiver explicitly below.
+  // Happy DOM does not implement native Popovers. Model the public toggle,
+  // trigger and light-dismiss behavior used by the condition-chip editor.
+  /** @type {Set<import('happy-dom').HTMLElement>} */
+  const openPopovers = new Set();
+  const popoverToggle = (name, oldState, newState) =>
+    Object.assign(new browser.Event(name), { oldState, newState });
+  /** @param {import('happy-dom').HTMLElement} element */
+  function hidePopover(element) {
+    if (!openPopovers.has(element)) return;
+    element.dispatchEvent(popoverToggle("beforetoggle", "open", "closed"));
+    openPopovers.delete(element);
+    element.removeAttribute("data-test-open");
+    element.dispatchEvent(popoverToggle("toggle", "open", "closed"));
+  }
+  /** @param {import('happy-dom').HTMLElement} element */
+  function showPopover(element) {
+    if (openPopovers.has(element)) return;
+    for (const other of openPopovers) hidePopover(other);
+    element.dispatchEvent(popoverToggle("beforetoggle", "closed", "open"));
+    openPopovers.add(element);
+    element.setAttribute("data-test-open", "");
+    element.dispatchEvent(popoverToggle("toggle", "closed", "open"));
+  }
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- Preserve the receiver explicitly in this test adapter.
+  const originalFocus = browser.HTMLElement.prototype.focus;
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- Preserve the receiver explicitly in this test adapter.
   const originalMatches = browser.Element.prototype.matches;
   browser.Element.prototype.matches = function (selector) {
+    if (selector === ":popover-open")
+      return this.hasAttribute("data-test-open");
     if (selector === ":modal") return this.hasAttribute("data-test-modal");
     return originalMatches.call(this, selector);
   };
+  browser.HTMLElement.prototype.focus = function (...args) {
+    const popover = this.closest("[popover]");
+    if (popover && !popover.hasAttribute("data-test-open")) return;
+    originalFocus.apply(this, args);
+  };
+  Object.defineProperties(browser.HTMLElement.prototype, {
+    showPopover: {
+      value() {
+        showPopover(this);
+      },
+    },
+    hidePopover: {
+      value() {
+        hidePopover(this);
+      },
+    },
+  });
+  browser.document.addEventListener("click", (event) => {
+    const target = /** @type {import('happy-dom').Element} */ (event.target);
+    const trigger = target.closest("button[popovertarget]");
+    const popover = trigger
+      ? browser.document.getElementById(
+          trigger.getAttribute("popovertarget") ?? "",
+        )
+      : null;
+    if (popover) {
+      if (openPopovers.has(popover)) hidePopover(popover);
+      else showPopover(popover);
+      return;
+    }
+    for (const open of openPopovers)
+      if (!open.contains(target)) hidePopover(open);
+  });
   const dialogToggleEvent = (name, oldState, newState) =>
     Object.assign(new browser.Event(name), { oldState, newState });
   browser.HTMLDialogElement.prototype.showModal = function () {
@@ -580,7 +660,7 @@ void test("option routes use shared paging and base-aware resolution", async () 
         ? /SearchOption2/
         : option === 3
           ? /SearchOption3/
-          : /SearchOptionPlaceholder/,
+          : /SearchOption4/,
     );
     assert.match(source, /navigate=\{\(next\) => goto\(next\)\}/);
   }
@@ -1122,6 +1202,715 @@ void test("Option 3 SidePanel search preserves shared filtering and compact tabl
         )
         .join(","),
       "12,8",
+    );
+  } finally {
+    await ui.destroy();
+    target.remove();
+  }
+});
+
+void test("Option 4 chip filters preserve exact server search and compact row actions", async () => {
+  assert.ok(app);
+  const requests = [];
+  const serverRows = [resultRow(12), resultRow(8)];
+  globalThis.fetch = async (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    if (request.pathname === "/v1/test-results/search-page/12")
+      return json(detailResult(12));
+    if (request.pathname === "/v1/issues/42")
+      return json({
+        id: 42,
+        source: "launchpad",
+        project: "proj",
+        key: "BUG-42",
+        title: "Issue 42",
+      });
+    if (request.pathname === "/v1/users/43")
+      return json({
+        id: 43,
+        name: "Reviewer 43",
+        launchpad_handle: "reviewer-43",
+      });
+    const offset = Number(request.searchParams.get("offset"));
+    const limit = Number(request.searchParams.get("limit"));
+    return json({ count: 100, offset, limit, rows: serverRows });
+  };
+
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const ui = app.mountSearchOption(target, allFiltersUrl(4), [family], 4);
+  try {
+    await waitFor(() =>
+      target.textContent.includes("Showing 51–52 of 100 results"),
+    );
+    const headers = [...target.querySelectorAll("thead th")].map((header) =>
+      header.textContent.trim(),
+    );
+    assert.deepEqual(headers, [
+      "Artefact",
+      "Test Case",
+      "Test Execution ID",
+      "Status",
+      "Track",
+      "Version",
+      "Environment",
+      "Test Plan",
+      "Actions",
+    ]);
+
+    const conditions = target.querySelector(
+      '[aria-label="Confirmed search filters"]',
+    );
+    assert.ok(conditions);
+    assert.equal(
+      conditions.querySelectorAll(".condition").length,
+      19,
+      "all 19 canonical fields, including both date bounds, render as chips",
+    );
+    const canonicalKeys = [
+      "families",
+      "test_result_statuses",
+      "test_execution_statuses",
+      "artefacts",
+      "artefact_versions",
+      "artefact_tracks",
+      "environments",
+      "test_plans",
+      "test_cases",
+      "artefact_stages",
+      "artefact_is_archived",
+      "rerun_is_requested",
+      "execution_is_latest",
+      "issues",
+      "reviewer_ids",
+      "execution_metadata",
+      "from_date",
+      "until_date",
+      "template_ids",
+    ];
+    const initialRequest = requests.find(
+      (request) => request.pathname === "/v1/test-results/search-page",
+    );
+    assert.ok(initialRequest);
+    assert.equal(initialRequest.searchParams.get("offset"), "50");
+    assert.equal(initialRequest.searchParams.get("limit"), "25");
+    assert.equal(initialRequest.searchParams.get("include_count"), "true");
+    assert.deepEqual(
+      [...new Set(initialRequest.searchParams.keys())]
+        .filter((key) => !["offset", "limit", "include_count"].includes(key))
+        .sort(),
+      [...canonicalKeys].sort(),
+    );
+    assert.equal(
+      initialRequest.searchParams.get("artefact_is_archived"),
+      "false",
+    );
+    assert.equal(
+      initialRequest.searchParams.get("execution_is_latest"),
+      "false",
+    );
+    assert.equal(
+      initialRequest.searchParams.get("test_execution_statuses"),
+      "PASSED",
+    );
+
+    const rows = [...target.querySelectorAll("tbody tr")];
+    assert.equal(rows.length, 2);
+    assert.deepEqual(
+      rows.map(
+        (row) =>
+          row.querySelector("[data-test-result-id]")?.dataset.testResultId,
+      ),
+      ["12", "8"],
+      "server row order is retained without local filtering",
+    );
+    const cells = rows[0].querySelectorAll("td");
+    assert.equal(cells[0].textContent, "artefact-12");
+    assert.match(cells[1].textContent, /case-12/);
+    assert.match(cells[1].textContent, /category-12/);
+    assert.equal(cells[2].textContent, "212");
+    assert.equal(cells[3].textContent, "FAILED");
+    assert.equal(cells[4].textContent, "stable");
+    assert.equal(cells[5].textContent, "1.12");
+    assert.equal(cells[6].textContent.trim(), "amd64/environment-12");
+    assert.equal(cells[7].textContent, "plan-12");
+    const run = cells[8].querySelector('a[aria-label="View Run for case-12"]');
+    assert.ok(run);
+    const runUrl = new URL(run.href);
+    assert.equal(runUrl.pathname, "/custom/base/snaps/112");
+    assert.equal(runUrl.searchParams.get("testExecutionId"), "212");
+    assert.equal(runUrl.searchParams.get("testResultId"), "12");
+
+    assert.equal(
+      requests.filter((request) =>
+        request.pathname.startsWith("/v1/test-results/search-page/"),
+      ).length,
+      0,
+      "Details remains on demand",
+    );
+    const details = cells[8].querySelector("[data-test-result-id]");
+    assert.ok(details);
+    details.click();
+    await waitFor(() =>
+      requests.some(
+        (request) => request.pathname === "/v1/test-results/search-page/12",
+      ),
+    );
+    const detailsDialog = target.querySelector("dialog.search-result-details");
+    assert.ok(detailsDialog);
+    await waitFor(() => detailsDialog.open);
+    detailsDialog.close();
+    await waitFor(() => !detailsDialog.open);
+    await waitFor(() => browser.document.activeElement === details);
+
+    const submitSearch = async () => {
+      target
+        .querySelector('form[aria-label="Apply confirmed search filters"]')
+        .dispatchEvent(
+          new browser.Event("submit", { bubbles: true, cancelable: true }),
+        );
+    };
+    const pageRequests = () =>
+      requests.filter(
+        (request) => request.pathname === "/v1/test-results/search-page",
+      );
+
+    target
+      .querySelector('[aria-label="Remove Execution Status filter"]')
+      .click();
+    assert.equal(ui.url.searchParams.get("test_execution_statuses"), "PASSED");
+    assert.equal(pageRequests().length, 1, "removing a chip is draft-only");
+    await submitSearch();
+    await waitFor(() => !ui.url.searchParams.has("test_execution_statuses"));
+    await waitFor(() => pageRequests().length === 2);
+    assert.equal(ui.url.searchParams.get("page"), "1");
+    assert.equal(ui.url.searchParams.get("page_size"), "25");
+    assert.equal(pageRequests()[1].searchParams.get("offset"), "0");
+    assert.equal(pageRequests()[1].searchParams.get("limit"), "25");
+    assert.equal(pageRequests()[1].searchParams.get("include_count"), "true");
+    assert.equal(pageRequests()[1].searchParams.get("artefacts"), "widget");
+
+    const addTrigger = [...target.querySelectorAll("button")].find((button) =>
+      button.textContent.includes("+ Add filter"),
+    );
+    assert.ok(addTrigger);
+    addTrigger.click();
+    await waitFor(() =>
+      Boolean(
+        target.querySelector(
+          '.condition-popover[aria-label="Add filter"] .filter-list',
+        ),
+      ),
+    );
+    const executionStatusOption = [
+      ...target.querySelectorAll(
+        '.condition-popover[aria-label="Add filter"] .filter-list button',
+      ),
+    ].find((button) => button.textContent.trim() === "Execution Status");
+    assert.ok(
+      executionStatusOption,
+      "inactive SvelteKit-only field is offered",
+    );
+    executionStatusOption.click();
+    await waitFor(() =>
+      Boolean(target.querySelector('form[aria-label="Edit Execution Status"]')),
+    );
+    const passed = target.querySelector(
+      'form[aria-label="Edit Execution Status"] input[value="PASSED"]',
+    );
+    assert.ok(passed);
+    passed.click();
+    assert.equal(passed.checked, true);
+    const addForm = target.querySelector(
+      'form[aria-label="Edit Execution Status"]',
+    );
+    const addFilter = [
+      ...target.querySelectorAll(
+        'form[aria-label="Edit Execution Status"] button',
+      ),
+    ].find((button) => button.textContent.trim() === "Add filter");
+    assert.ok(addFilter);
+    await waitFor(() => !addFilter.disabled);
+    addForm.dispatchEvent(
+      new browser.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    assert.equal(
+      pageRequests().length,
+      2,
+      "adding a chip does not fetch results",
+    );
+    await waitFor(() => target.textContent.includes("Changes not applied"));
+    assert.equal(ui.url.searchParams.has("test_execution_statuses"), false);
+    await submitSearch();
+    await waitFor(
+      () => ui.url.searchParams.get("test_execution_statuses") === "PASSED",
+    );
+    await waitFor(() => pageRequests().length === 3);
+    assert.equal(ui.url.searchParams.get("page"), "1");
+    assert.equal(ui.url.searchParams.get("page_size"), "25");
+    assert.equal(
+      pageRequests()[2].searchParams.get("test_execution_statuses"),
+      "PASSED",
+    );
+    await waitFor(
+      () => target.querySelectorAll("tbody [data-test-result-id]").length === 2,
+    );
+    assert.deepEqual(
+      [...target.querySelectorAll("tbody [data-test-result-id]")].map(
+        (button) => button.dataset.testResultId,
+      ),
+      ["12", "8"],
+      "the server response remains in its original order after exact filter changes",
+    );
+
+    const executionChip = target.querySelector(
+      'button[aria-label^="Edit Execution Status:"]',
+    );
+    assert.ok(executionChip);
+    executionChip.click();
+    await waitFor(() =>
+      Boolean(target.querySelector('form[aria-label="Edit Execution Status"]')),
+    );
+    const editForm = target.querySelector(
+      'form[aria-label="Edit Execution Status"]',
+    );
+    const passedEdit = editForm.querySelector('input[value="PASSED"]');
+    const failedEdit = editForm.querySelector('input[value="FAILED"]');
+    assert.ok(passedEdit);
+    assert.ok(failedEdit);
+    passedEdit.click();
+    failedEdit.click();
+    const save = [...editForm.querySelectorAll("button")].find(
+      (button) => button.textContent.trim() === "Save changes",
+    );
+    assert.ok(save);
+    await waitFor(() => !save.disabled);
+    editForm.dispatchEvent(
+      new browser.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await waitFor(() => target.textContent.includes("Changes not applied"));
+    assert.equal(ui.url.searchParams.get("test_execution_statuses"), "PASSED");
+    assert.equal(pageRequests().length, 3, "editing a chip stays a draft");
+    await submitSearch();
+    await waitFor(
+      () => ui.url.searchParams.get("test_execution_statuses") === "FAILED",
+    );
+    await waitFor(() => pageRequests().length === 4);
+    assert.equal(
+      pageRequests()[3].searchParams.get("test_execution_statuses"),
+      "FAILED",
+    );
+    assert.equal(pageRequests()[3].searchParams.get("offset"), "0");
+    await waitFor(
+      () => target.querySelectorAll("tbody [data-test-result-id]").length === 2,
+    );
+
+    target
+      .querySelector('[aria-label="Remove Execution Status filter"]')
+      .click();
+    assert.equal(ui.url.searchParams.get("test_execution_statuses"), "FAILED");
+    assert.equal(pageRequests().length, 4);
+    await submitSearch();
+    await waitFor(() => !ui.url.searchParams.has("test_execution_statuses"));
+    await waitFor(() => pageRequests().length === 5);
+    assert.equal(pageRequests()[4].searchParams.get("artefacts"), "widget");
+    assert.equal(
+      pageRequests()[4].searchParams.has("test_execution_statuses"),
+      false,
+    );
+  } finally {
+    await ui.destroy();
+    target.remove();
+  }
+});
+
+void test("Option 4 hydrates only a bounded set of ID labels when an ID editor opens", async () => {
+  assert.ok(app);
+  const issueIds = Array.from({ length: 250 }, (_, index) => 20001 + index);
+  const reviewerIds = Array.from({ length: 200 }, (_, index) => 30001 + index);
+  const requests = [];
+  const labelRequests = [];
+  const issueResolvers = new Map();
+  const issueSignals = new Map();
+  globalThis.fetch = async (input, options = {}) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    const issue = /^\/v1\/issues\/(\d+)$/.exec(request.pathname);
+    if (issue) {
+      labelRequests.push(request);
+      const id = Number(issue[1]);
+      issueSignals.set(id, options.signal);
+      return new Promise((resolve) => {
+        issueResolvers.set(id, () => {
+          resolve(
+            json({
+              id,
+              source: "launchpad",
+              project: "test-project",
+              key: `BUG-${id}`,
+              title: `Issue detail ${id}`,
+            }),
+          );
+        });
+      });
+    }
+    const reviewer = /^\/v1\/users\/(\d+)$/.exec(request.pathname);
+    if (reviewer) {
+      labelRequests.push(request);
+      const id = Number(reviewer[1]);
+      return json({
+        id,
+        name: `Reviewer detail ${id}`,
+        launchpad_handle: `reviewer-${id}`,
+      });
+    }
+    return json({
+      count: 0,
+      offset: Number(request.searchParams.get("offset")),
+      limit: Number(request.searchParams.get("limit")),
+      rows: [],
+    });
+  };
+
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const ui = app.mountSearchOption(
+    target,
+    new URL(
+      `http://localhost/custom/base/test-results/option-4?issues=${issueIds.join(",")}&reviewer_ids=${reviewerIds.join(",")}`,
+    ),
+    [family],
+    4,
+  );
+  try {
+    await waitFor(() =>
+      target.textContent.includes("No test results (0 total)"),
+    );
+    assert.equal(
+      labelRequests.length,
+      0,
+      "mounting a large URL-backed ID filter sends no label-detail requests",
+    );
+    const issueChip = target.querySelector(
+      'button[aria-label^="Edit Issues:"]',
+    );
+    const reviewerChip = target.querySelector(
+      'button[aria-label^="Edit Reviewers:"]',
+    );
+    assert.ok(issueChip);
+    assert.ok(reviewerChip);
+    assert.match(issueChip.textContent, new RegExp(`#${issueIds[0]} \\+249`));
+    assert.match(
+      reviewerChip.textContent,
+      new RegExp(`#${reviewerIds[0]} \\+199`),
+    );
+    assert.doesNotMatch(issueChip.textContent, /loading/i);
+    assert.doesNotMatch(reviewerChip.textContent, /loading/i);
+
+    const pageRequest = requests.find(
+      (request) => request.pathname === "/v1/test-results/search-page",
+    );
+    assert.ok(pageRequest);
+    assert.deepEqual(
+      pageRequest.searchParams.getAll("issues"),
+      issueIds.map(String),
+      "large issue filters remain complete in the server request",
+    );
+    assert.deepEqual(
+      pageRequest.searchParams.getAll("reviewer_ids"),
+      reviewerIds.map(String),
+      "large reviewer filters remain complete in the server request",
+    );
+
+    issueChip.click();
+    await waitFor(() =>
+      Boolean(target.querySelector('form[aria-label="Edit Issues"]')),
+    );
+    await waitFor(
+      () =>
+        labelRequests.filter((request) =>
+          request.pathname.startsWith("/v1/issues/"),
+        ).length === 10,
+    );
+    assert.deepEqual(
+      labelRequests
+        .filter((request) => request.pathname.startsWith("/v1/issues/"))
+        .map((request) => Number(request.pathname.split("/").at(-1))),
+      issueIds.slice(0, 10),
+      "only the first ten selected issue IDs are hydrated",
+    );
+    assert.equal(
+      labelRequests.filter((request) =>
+        request.pathname.startsWith("/v1/users/"),
+      ).length,
+      0,
+      "opening Issues does not hydrate reviewer labels",
+    );
+    const issueForm = target.querySelector('form[aria-label="Edit Issues"]');
+    assert.equal(
+      issueForm.querySelectorAll('[aria-label="Selected details"] li').length,
+      issueIds.length,
+      "the editor retains every selected issue ID",
+    );
+    issueForm
+      .querySelector(`[aria-label="Remove selected ${issueIds[0]}"]`)
+      .click();
+    await waitFor(
+      () =>
+        issueForm.querySelectorAll('[aria-label="Selected details"] li')
+          .length ===
+        issueIds.length - 1,
+    );
+    assert.equal(
+      labelRequests.filter((request) =>
+        request.pathname.startsWith("/v1/issues/"),
+      ).length,
+      10,
+      "editing the draft does not restart or expand label hydration",
+    );
+    assert.ok(
+      [...issueSignals.values()].every((signal) => signal && !signal.aborted),
+      "editing the draft does not cancel the bounded initial lookups",
+    );
+    for (const id of issueIds.slice(0, 10)) issueResolvers.get(id)?.();
+    await waitFor(() =>
+      issueForm.textContent.includes(`Issue detail ${issueIds[1]}`),
+    );
+    assert.match(
+      target
+        .querySelector('button[aria-label^="Edit Issues:"]')
+        .getAttribute("aria-label"),
+      new RegExp(`Issue detail ${issueIds[0]}`),
+      "a resolved bounded lookup supplies a precise chip label",
+    );
+    [...issueForm.querySelectorAll("button")]
+      .find((button) => button.textContent.trim() === "Cancel")
+      .click();
+    await waitFor(
+      () => !target.querySelector('form[aria-label="Edit Issues"]'),
+    );
+
+    reviewerChip.click();
+    await waitFor(() =>
+      Boolean(target.querySelector('form[aria-label="Edit Reviewers"]')),
+    );
+    await waitFor(
+      () =>
+        labelRequests.filter((request) =>
+          request.pathname.startsWith("/v1/users/"),
+        ).length === 10,
+    );
+    assert.deepEqual(
+      labelRequests
+        .filter((request) => request.pathname.startsWith("/v1/users/"))
+        .map((request) => Number(request.pathname.split("/").at(-1))),
+      reviewerIds.slice(0, 10),
+      "only the first ten selected reviewer IDs are hydrated",
+    );
+    const reviewerForm = target.querySelector(
+      'form[aria-label="Edit Reviewers"]',
+    );
+    assert.equal(
+      reviewerForm.querySelectorAll('[aria-label="Selected details"] li')
+        .length,
+      reviewerIds.length,
+      "the editor retains every selected reviewer ID",
+    );
+    await waitFor(() =>
+      reviewerForm.textContent.includes(`Reviewer detail ${reviewerIds[0]}`),
+    );
+    assert.match(
+      target
+        .querySelector('button[aria-label^="Edit Reviewers:"]')
+        .getAttribute("aria-label"),
+      new RegExp(`Reviewer detail ${reviewerIds[0]}`),
+      "a resolved bounded lookup supplies a precise reviewer chip label",
+    );
+    assert.equal(labelRequests.length, 20);
+    assert.equal(
+      requests.filter(
+        (request) => request.pathname === "/v1/test-results/search-page",
+      ).length,
+      1,
+      "opening ID editors does not refetch test results",
+    );
+  } finally {
+    for (const resolveIssue of issueResolvers.values()) resolveIssue();
+    await ui.destroy();
+    target.remove();
+  }
+});
+
+void test("Option 4 picker exposes every filter and malformed/unknown raw conditions remain blocking", async () => {
+  assert.ok(app);
+  const requests = [];
+  globalThis.fetch = async (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    if (request.pathname === "/v1/test-results/search-page")
+      return json({
+        count: 0,
+        offset: Number(request.searchParams.get("offset")),
+        limit: Number(request.searchParams.get("limit")),
+        rows: [],
+      });
+    return json({ detail: "not found" }, 404);
+  };
+
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const ui = app.mountSearchOption(
+    target,
+    new URL(
+      "http://localhost/custom/base/test-results/option-4?execution_is_latest=maybe&hidden_filter=keep&page=2&page_size=25",
+    ),
+    [family],
+    4,
+  );
+  try {
+    await waitFor(() => Boolean(target.querySelector('[role="alert"]')));
+    assert.equal(
+      requests.length,
+      0,
+      "malformed and unknown filters block requests",
+    );
+    assert.ok(
+      target.querySelector(
+        '[aria-label="Edit Latest Execution: Invalid URL value"]',
+      ),
+    );
+
+    const addTrigger = [...target.querySelectorAll("button")].find((button) =>
+      button.textContent.includes("+ Add filter"),
+    );
+    assert.ok(addTrigger);
+    addTrigger.click();
+    await waitFor(() =>
+      Boolean(
+        target.querySelector(
+          '.condition-popover[aria-label="Add filter"] .filter-list',
+        ),
+      ),
+    );
+    const options = [
+      ...target.querySelectorAll(
+        '.condition-popover[aria-label="Add filter"] .filter-list button',
+      ),
+    ].map((button) => button.textContent.trim());
+    assert.equal(options.length, 18);
+    for (const label of [
+      "Family",
+      "Result status",
+      "Execution Status",
+      "Issues",
+      "Reviewers",
+      "Artefact",
+      "Artefact Version",
+      "Artefact Stage",
+      "Artefact Track",
+      "Archived",
+      "Rerun Requested",
+      "Environment",
+      "Test Case",
+      "Test Plan",
+      "Template ID",
+      "Execution Metadata",
+      "Created — From",
+      "Created — Until",
+    ])
+      assert.ok(options.includes(label), label);
+
+    const templateOption = options.includes("Template ID")
+      ? [
+          ...target.querySelectorAll(
+            '.condition-popover[aria-label="Add filter"] .filter-list button',
+          ),
+        ].find((button) => button.textContent.trim() === "Template ID")
+      : null;
+    assert.ok(templateOption);
+    templateOption.click();
+    await waitFor(() =>
+      Boolean(target.querySelector('form[aria-label="Edit Template ID"]')),
+    );
+    const templateForm = target.querySelector(
+      'form[aria-label="Edit Template ID"]',
+    );
+    assert.ok(templateForm);
+    const templateInput = templateForm.querySelector("input");
+    assert.ok(templateInput);
+    templateInput.value = "template-7";
+    templateInput.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    const addTemplate = [...templateForm.querySelectorAll("button")].find(
+      (button) => button.textContent.trim() === "Add filter",
+    );
+    assert.ok(addTemplate);
+    await waitFor(() => !addTemplate.disabled);
+    templateForm.dispatchEvent(
+      new browser.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    assert.equal(requests.length, 0, "unrelated chip edits remain drafts");
+    target
+      .querySelector('form[aria-label="Apply confirmed search filters"]')
+      .dispatchEvent(
+        new browser.Event("submit", { bubbles: true, cancelable: true }),
+      );
+    await waitFor(
+      () => ui.url.searchParams.get("template_ids") === "template-7",
+    );
+    assert.equal(ui.url.searchParams.get("execution_is_latest"), "maybe");
+    assert.equal(ui.url.searchParams.get("hidden_filter"), "keep");
+    assert.equal(ui.url.searchParams.get("page"), "1");
+    assert.equal(ui.url.searchParams.get("page_size"), "25");
+    assert.equal(
+      requests.length,
+      0,
+      "raw blockers survive an unrelated Search",
+    );
+
+    const removeInvalid = target.querySelector(
+      '[aria-label="Remove Latest Execution filter"]',
+    );
+    assert.ok(removeInvalid);
+    await waitFor(() => !removeInvalid.disabled);
+    removeInvalid.click();
+    await waitFor(
+      () =>
+        !target.querySelector(
+          '[aria-label="Edit Latest Execution: Invalid URL value"]',
+        ),
+    );
+    target
+      .querySelector('form[aria-label="Apply confirmed search filters"]')
+      .dispatchEvent(
+        new browser.Event("submit", { bubbles: true, cancelable: true }),
+      );
+    await waitFor(() => !ui.url.searchParams.has("execution_is_latest"));
+    assert.equal(ui.url.searchParams.get("hidden_filter"), "keep");
+    assert.equal(
+      requests.length,
+      0,
+      "removing one invalid field cannot erase unknown constraints",
+    );
+
+    const clear = [...target.querySelectorAll("button")].find(
+      (button) => button.textContent.trim() === "Clear all",
+    );
+    assert.ok(clear);
+    await waitFor(() => !clear.disabled);
+    clear.click();
+    await waitFor(() =>
+      target.textContent.includes("No test results (0 total)"),
+    );
+    assert.equal(ui.url.search, "?page_size=25");
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].searchParams.get("offset"), "0");
+    assert.equal(requests[0].searchParams.get("limit"), "25");
+    assert.equal(requests[0].searchParams.get("include_count"), "true");
+    assert.deepEqual(
+      [...requests[0].searchParams.keys()],
+      ["offset", "limit", "include_count"],
+      "Clear all explicitly removes raw blockers while retaining valid page size",
     );
   } finally {
     await ui.destroy();

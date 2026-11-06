@@ -53,6 +53,7 @@
   import type { SearchOptionsAccessError } from "$lib/searchOptionsPagination";
   import SearchGridFilterHeader from "./SearchGridFilterHeader.svelte";
   import SearchGridFilterMenu from "./SearchGridFilterMenu.svelte";
+  import SearchConditions from "./SearchConditions.svelte";
   import SearchGridValueCell from "./SearchGridValueCell.svelte";
   import SearchGridValueDialog from "./SearchGridValueDialog.svelte";
   import ViewRunLink from "./ViewRunLink.svelte";
@@ -72,7 +73,7 @@
     families: Family[];
     base: string;
     navigate: (url: string | URL) => Promise<unknown>;
-    variant?: 2 | 3;
+    variant?: 2 | 3 | 4;
   } = $props();
 
   interface SearchGridValueItem {
@@ -165,6 +166,9 @@
             problem.startsWith("Invalid date range:"),
           )),
     ),
+  );
+  const chipInvalidFields = $derived(
+    invalidFields.filter((key) => !editedFields.includes(key)),
   );
   const datasetKey = $derived(
     `${url.origin}${url.pathname}?${queryString}:${reapply}`,
@@ -521,10 +525,15 @@
       Set exact server-side filters from the result columns, then Search. Values
       within a field match any; different fields must all match.
     </p>
-  {:else}
+  {:else if variant === 3}
     <p>
       Set exact server-side filters in the filter panel, then Search. Values
       within a field match any; different fields must all match.
+    </p>
+  {:else}
+    <p>
+      Add or edit exact server-side filter chips, then Search. Values within a
+      field match any; different fields must all match.
     </p>
   {/if}
   <div class="filter-actions" role="group" aria-label="Test result filters">
@@ -537,6 +546,15 @@
         aria-expanded={filterPanelOpen}
         onclick={openFilterPanel}>Filters</Button
       >
+    {/if}
+    {#if variant === 4}
+      <SearchConditions
+        bind:filters={drafts}
+        {families}
+        invalidFields={chipInvalidFields}
+        disabled={moving}
+        onedit={onFilterEdit}
+      />
     {/if}
     <form
       aria-label="Apply confirmed search filters"
@@ -722,7 +740,7 @@
       aria-label="Search results table"
       tabindex="-1"
     >
-      {#if variant === 3}
+      {#if variant === 3 || variant === 4}
         <Table
           class="search-option-table search-option-table-compact"
           aria-label="Test results"

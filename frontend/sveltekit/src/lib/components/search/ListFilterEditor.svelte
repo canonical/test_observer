@@ -4,7 +4,7 @@
   import { untrack } from "svelte";
   import { Checkbox, TextInput } from "@canonical/svelte-ds-app-launchpad";
   import { listValues } from "$lib/testResultsFilters";
-  import { RESULT_STATUSES } from "$lib/testResultsSearch";
+  import { EXECUTION_STATUSES, RESULT_STATUSES } from "$lib/testResultsSearch";
   import type { ListFilterKey } from "$lib/searchFilterEditor";
   import { statusDisplayName } from "$lib/searchFilterEditor";
   import type { Family } from "$lib/types";
@@ -32,6 +32,7 @@
   const choice = $derived(
     field === "families" ||
       field === "test_result_statuses" ||
+      field === "test_execution_statuses" ||
       field === "artefact_stages",
   );
   let text = $state(untrack(() => value.join(", ")));
@@ -46,12 +47,17 @@
             value: status,
             label: statusDisplayName(status),
           }))
-        : [
-            ...new Set(["", ...families.flatMap((family) => family.stages)]),
-          ].map((stage) => ({
-            value: stage,
-            label: stage === "" ? "(none)" : stage,
-          })),
+        : field === "test_execution_statuses"
+          ? EXECUTION_STATUSES.map((status) => ({
+              value: status,
+              label: statusDisplayName(status),
+            }))
+          : [
+              ...new Set(["", ...families.flatMap((family) => family.stages)]),
+            ].map((stage) => ({
+              value: stage,
+              label: stage === "" ? "(none)" : stage,
+            })),
   );
   const unknown = $derived(
     value.filter((item) => !configured.some((option) => option.value === item)),
@@ -85,6 +91,9 @@
     {#if unknown.length}<p class="hint">
         Unconfigured selections are retained. Uncheck them explicitly to remove
         them.
+      </p>{/if}
+    {#if field === "test_execution_statuses"}<p class="hint">
+        Exact test execution statuses.
       </p>{/if}
     {#if field === "artefact_stages"}<p class="hint">
         Stages from all configured families. (none) matches an explicitly empty
