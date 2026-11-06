@@ -224,6 +224,106 @@ async function waitForSearchRequestCount(option, count, description) {
   return searchRequests(option).at(-1);
 }
 
+async function assertFilterMenuLayout(option, editor) {
+  if (option === 3)
+    await editor.evaluate(async (menu) => {
+      const panel = menu.closest("#search-option-3-filter-panel");
+      if (panel)
+        await Promise.all(
+          panel
+            .getAnimations()
+            .map((animation) => animation.finished.catch(() => undefined)),
+        );
+    });
+
+  const layout = await editor.evaluate((menu) => {
+    const hint = menu.querySelector(":scope > .hint");
+    const overlay = menu.closest(".menu-anchor, #search-option-3-filter-panel");
+    const scrollRegion =
+      menu.closest(".menu-anchor") ?? menu.closest(".filter-panel-body");
+    if (
+      !(hint instanceof HTMLElement) ||
+      !(overlay instanceof HTMLElement) ||
+      !(scrollRegion instanceof HTMLElement)
+    )
+      throw new Error("Filter menu text or bounded overlay is missing");
+
+    const range = document.createRange();
+    range.selectNodeContents(hint);
+    const hintLines = new Set(
+      [...range.getClientRects()].map((rect) => Math.round(rect.top)),
+    );
+    const overlayRect = overlay.getBoundingClientRect();
+    const scrollRegionStyle = getComputedStyle(scrollRegion);
+    const menuStyle = getComputedStyle(menu);
+    return {
+      whiteSpace: menuStyle.whiteSpace,
+      minWidth: menuStyle.minWidth,
+      overflowWrap: menuStyle.overflowWrap,
+      menuClientWidth: menu.clientWidth,
+      menuScrollWidth: menu.scrollWidth,
+      hintClientWidth: hint.clientWidth,
+      hintScrollWidth: hint.scrollWidth,
+      hintLineCount: hintLines.size,
+      overlay: {
+        left: overlayRect.left,
+        top: overlayRect.top,
+        right: overlayRect.right,
+        bottom: overlayRect.bottom,
+      },
+      scrollRegion: {
+        maxHeight: Number.parseFloat(scrollRegionStyle.maxHeight),
+        overflowY: scrollRegionStyle.overflowY,
+      },
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    };
+  });
+
+  assert.equal(
+    layout.whiteSpace,
+    "normal",
+    `Option ${option} filter menu overrides inherited nowrap`,
+  );
+  assert.equal(layout.minWidth, "0px");
+  assert.equal(layout.overflowWrap, "anywhere");
+  assert.ok(
+    layout.hintLineCount > 1,
+    `Option ${option} descriptive filter text wraps across lines`,
+  );
+  assert.ok(
+    layout.hintScrollWidth <= Number(layout.hintClientWidth) + 1,
+    `Option ${option} descriptive filter text is not horizontally clipped`,
+  );
+  assert.ok(
+    layout.menuScrollWidth <= Number(layout.menuClientWidth) + 1,
+    `Option ${option} filter menu has no horizontal overflow`,
+  );
+  assert.ok(
+    layout.overlay.left >= 0,
+    `Option ${option} overlay starts in viewport`,
+  );
+  assert.ok(
+    layout.overlay.top >= 0 &&
+      layout.overlay.right <= Number(layout.viewport.width) + 1 &&
+      layout.overlay.bottom <= Number(layout.viewport.height) + 1,
+    `Option ${option} filter overlay remains within the viewport: ${JSON.stringify(layout)}`,
+  );
+  assert.ok(
+    layout.scrollRegion.maxHeight <= Number(layout.viewport.height) + 1,
+    `Option ${option} filter content is bounded by the viewport height`,
+  );
+  assert.ok(
+    ["auto", "scroll"].includes(layout.scrollRegion.overflowY),
+    `Option ${option} bounded filter content remains scrollable`,
+  );
+  return {
+    descriptiveTextLines: layout.hintLineCount,
+    horizontalOverflow: false,
+    overlayWithinViewport: true,
+    boundedAndScrollable: true,
+  };
+}
+
 function assertPageRequest(
   request,
   offset,
@@ -444,6 +544,10 @@ async function assertCreatedDateEditing(page, option) {
       : 'input[type="datetime-local"][data-search-grid-filter-picker="from_date"]';
 
   let editor = await openCreatedEditor(page, option);
+  const filterMenuLayout =
+    option === 1 || option === 2 || option === 2.5 || option === 3
+      ? await assertFilterMenuLayout(option, editor)
+      : null;
   const picker = editor.locator(pickerSelector);
   assert.equal(await picker.inputValue(), "2026-01-02T03:04:05");
   assert.equal(await editor.locator('input[type="text"]').count(), 0);
@@ -566,6 +670,7 @@ async function assertCreatedDateEditing(page, option) {
   await applyDateChange(page, option, next, correctedFrom, reversedUntil);
 
   return {
+    filterMenuLayout,
     datetimeLocalOnly: true,
     restoredZuluWholeSeconds: initialFrom,
     minutePrecisionSerializedAsUtcWholeSeconds: minutePickerFrom,

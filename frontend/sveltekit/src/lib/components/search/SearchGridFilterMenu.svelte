@@ -623,12 +623,16 @@
   .grid-filter-menu {
     box-sizing: border-box;
     width: min(20rem, calc(100vw - 1rem));
+    min-width: 0;
+    max-width: 100%;
     padding: 0.75rem;
     color: var(--lp-color-text-default);
     background: var(--lp-color-background-default);
     border: 1px solid var(--lp-color-border-default);
     border-radius: 0.375rem;
     box-shadow: 0 0.5rem 1.5rem rgb(0 0 0 / 20%);
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   .hint {
     margin: 0 0 0.65rem;
