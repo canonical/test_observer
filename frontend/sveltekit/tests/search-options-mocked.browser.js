@@ -68,7 +68,7 @@ const filters = new URLSearchParams([
   ["issues", "42"],
   ["reviewer_ids", "43"],
   ["execution_metadata", "Y2F0ZWdvcnk=:dmFsdWU="],
-  ["from_date", "2026-01-02T03:04:05.123456Z"],
+  ["from_date", "2026-01-02T03:04:05Z"],
   ["until_date", "2026-01-03T03:04:05Z"],
   ["template_ids", "template-9"],
 ]);
@@ -199,8 +199,8 @@ function assertCanonicalFilters(request, expected = expectedFilters) {
     [...new Set(params.keys())]
       .filter((key) => filterKeys.includes(key))
       .sort(),
-    [...filterKeys].sort(),
-    `Option ${request.option} sends all and only the 19 canonical filter keys`,
+    filterKeys.filter((key) => expected[key].length > 0).sort(),
+    `Option ${request.option} sends only active canonical filter keys`,
   );
   assert.equal(params.has("page"), false, "page is presentation-only");
   assert.equal(
@@ -379,10 +379,6 @@ async function openCreatedEditor(page, option, field = "from_date") {
   return editor;
 }
 
-function exactDateInput(editor, field = "from_date") {
-  return editor.locator(`input[name="${field}"]`);
-}
-
 async function submitSearch(page, option) {
   if (option === 4) {
     const save = page.getByRole("button", {
@@ -427,49 +423,21 @@ async function applyDateChange(
   return request;
 }
 
-async function assertBlockedDateEdit(
-  page,
-  option,
-  field,
-  invalidValue,
-  expectedProblem,
-) {
-  const editor = await openCreatedEditor(page, option, field);
-  const input = exactDateInput(editor, field);
-  await input.fill(invalidValue);
+async function closeCreatedEditor(page, option, editor) {
   if (option === 4) {
-    await page.waitForFunction((fieldName) => {
-      const element = document.querySelector(
-        `form[aria-label^="Edit Created"] input[name="${fieldName}"]`,
-      );
-      return (
-        element?.getAttribute("aria-invalid") === "true" &&
-        element.closest("form")?.querySelector('button[type="submit"]')
-          ?.disabled
-      );
-    }, field);
-    return { editor, input };
+    await editor.getByRole("button", { name: "Cancel", exact: true }).click();
+  } else if (option === 3) {
+    await page.getByRole("button", { name: "Close filters" }).click();
+  } else {
+    await page.keyboard.press("Escape");
   }
-
-  const before = searchRequests(option).length;
-  await submitSearch(page, option);
-  await page
-    .getByRole("alert")
-    .filter({ hasText: expectedProblem })
-    .waitFor({ state: "visible" });
-  assert.equal(
-    searchRequests(option).length,
-    before,
-    `Option ${option} blocks ${field} without an API request`,
-  );
-  return { editor: null, input: null };
+  await editor.waitFor({ state: "hidden" });
 }
 
 async function assertCreatedDateEditing(page, option) {
-  const initialFrom = "2026-01-02T03:04:05.123456Z";
+  const initialFrom = "2026-01-02T03:04:05Z";
   const initialUntil = "2026-01-03T03:04:05Z";
-  const pickerFrom = "2026-01-02T04:05:06Z";
-  const exactOffset = "2026-01-02T04:06:07.123456+05:30";
+  const minutePickerFrom = "2026-01-02T04:05:00Z";
   const pickerSelector =
     option === 4
       ? 'input[type="datetime-local"][name="from_date-picker"]'
@@ -478,66 +446,134 @@ async function assertCreatedDateEditing(page, option) {
   let editor = await openCreatedEditor(page, option);
   const picker = editor.locator(pickerSelector);
   assert.equal(await picker.inputValue(), "2026-01-02T03:04:05");
-  assert.equal(await exactDateInput(editor).inputValue(), initialFrom);
-  await picker.fill("2026-01-02T04:05:06");
-  assert.equal(await exactDateInput(editor).inputValue(), pickerFrom);
-  let next = { ...activeExpectedFilters, from_date: [pickerFrom] };
-  await applyDateChange(page, option, next, pickerFrom, initialUntil);
+  assert.equal(await editor.locator('input[type="text"]').count(), 0);
+  if (option === 4) {
+    assert.equal(
+      await editor.locator("h2").innerText(),
+      "Created — From (UTC)",
+    );
+    const chipLabel = await page
+      .locator('button[aria-label^="Edit Created — From:"]')
+      .getAttribute("aria-label");
+    assert.doesNotMatch(chipLabel ?? "", /\(UTC\)/);
+  } else {
+    assert.deepEqual(await editor.locator("h3.bound-label").allTextContents(), [
+      "Created — From (UTC)",
+      "Created — To (UTC)",
+    ]);
+    assert.equal(
+      await editor.locator('input[type="datetime-local"]').count(),
+      2,
+    );
+  }
+  assert.equal(await picker.inputValue(), "2026-01-02T03:04:05");
+  let next = { ...activeExpectedFilters, from_date: [minutePickerFrom] };
+  await picker.fill("2026-01-02T04:05");
+  await applyDateChange(page, option, next, minutePickerFrom, initialUntil);
+
+  // Restore an accepted legacy offset/fraction query. The controls must remain
+  // blank, and closing them must not rewrite either raw value or issue a request.
+  const rawFrom = "2026-01-02T04:04:05.123456+01:00";
+  const rawUntil = "2026-01-03T03:04:05.000000-04:00";
+  const legacyUrl = new URL(page.url());
+  legacyUrl.searchParams.set("from_date", rawFrom);
+  legacyUrl.searchParams.set("until_date", rawUntil);
+  const legacyExpected = {
+    ...activeExpectedFilters,
+    from_date: [rawFrom],
+    until_date: [rawUntil],
+  };
+  const beforeLegacy = searchRequests(option).length;
+  await page.goto(legacyUrl.href, { waitUntil: "domcontentloaded" });
+  await page.locator("tbody [data-test-result-id]").first().waitFor();
+  const legacyRequest = await waitForSearchRequestCount(
+    option,
+    beforeLegacy + 1,
+    `Option ${option} restored legacy date request`,
+  );
+  assertPageRequest(legacyRequest, 0, 50, legacyExpected);
+  activeExpectedFilters = legacyExpected;
+  assertUrlFilters(page, legacyExpected);
 
   editor = await openCreatedEditor(page, option);
-  await exactDateInput(editor).fill(exactOffset);
-  assert.equal(
-    await editor.locator(pickerSelector).inputValue(),
-    "2026-01-01T22:36:07",
-    "the picker projects an offset timestamp into UTC without changing its exact text",
-  );
-  next = { ...activeExpectedFilters, from_date: [exactOffset] };
-  await applyDateChange(page, option, next, exactOffset, initialUntil);
-
-  const precision = await assertBlockedDateEdit(
-    page,
-    option,
-    "from_date",
-    "2026-01-02T04:06:07.1234567Z",
-    "Invalid from_date",
-  );
   if (option === 4) {
-    await precision.input.fill(exactOffset);
-    next = { ...activeExpectedFilters, from_date: [exactOffset] };
-    await applyDateChange(page, option, next, exactOffset, initialUntil);
-  } else {
-    editor = await openCreatedEditor(page, option);
-    await exactDateInput(editor).fill(exactOffset);
-    next = { ...activeExpectedFilters, from_date: [exactOffset] };
-    await applyDateChange(page, option, next, exactOffset, initialUntil);
-  }
-
-  const reversed = await assertBlockedDateEdit(
-    page,
-    option,
-    "until_date",
-    "2026-01-01T22:36:07.123455Z",
-    "Invalid date range",
-  );
-  if (option === 4) {
-    await reversed.input.fill(initialUntil);
-    next = { ...activeExpectedFilters, until_date: [initialUntil] };
-    await applyDateChange(page, option, next, exactOffset, initialUntil);
-  } else {
+    assert.equal(
+      await editor.locator("h2").innerText(),
+      "Created — From (UTC)",
+    );
+    assert.equal(await editor.locator(pickerSelector).inputValue(), "");
+    assert.equal(await editor.locator("[data-utc-picker-note]").count(), 1);
+    await closeCreatedEditor(page, option, editor);
     editor = await openCreatedEditor(page, option, "until_date");
-    await exactDateInput(editor, "until_date").fill(initialUntil);
-    next = { ...activeExpectedFilters, until_date: [initialUntil] };
-    await applyDateChange(page, option, next, exactOffset, initialUntil);
+    assert.equal(await editor.locator("h2").innerText(), "Created — To (UTC)");
+    assert.equal(
+      await editor.locator('input[type="datetime-local"]').inputValue(),
+      "",
+    );
+    assert.equal(await editor.locator("[data-utc-picker-note]").count(), 1);
+  } else {
+    assert.deepEqual(
+      await editor
+        .locator('input[type="datetime-local"]')
+        .evaluateAll((items) => items.map((item) => item.value)),
+      ["", ""],
+    );
+    assert.equal(await editor.locator("[data-utc-picker-note]").count(), 2);
+    assert.equal(await editor.locator('input[type="text"]').count(), 0);
   }
+  const beforeClose = searchRequests(option).length;
+  await closeCreatedEditor(page, option, editor);
+  assert.equal(searchRequests(option).length, beforeClose);
+  assertUrlFilters(page, legacyExpected);
+
+  const unrelated = await editStatusAndApply(page, option);
+  assert.equal(unrelated.from_date[0], rawFrom);
+  assert.equal(unrelated.until_date[0], rawUntil);
+
+  editor = await openCreatedEditor(page, option);
+  await editor.locator(pickerSelector).fill("2026-01-02T05:06:07");
+  const selectedFrom = "2026-01-02T05:06:07Z";
+  next = { ...activeExpectedFilters, from_date: [selectedFrom] };
+  await applyDateChange(page, option, next, selectedFrom, rawUntil);
+
+  editor = await openCreatedEditor(page, option);
+  await editor.locator(pickerSelector).fill("");
+  next = { ...activeExpectedFilters, from_date: [] };
+  await applyDateChange(page, option, next, null, rawUntil);
+
+  // A reversed legacy range remains blocked until a picker explicitly corrects
+  // one bound. The other raw bound and page size survive the correction.
+  const reversedFrom = "2026-01-04T00:00:00Z";
+  const reversedUntil = "2026-01-03T00:00:00Z";
+  const reversedUrl = new URL(page.url());
+  reversedUrl.searchParams.set("from_date", reversedFrom);
+  reversedUrl.searchParams.set("until_date", reversedUntil);
+  const beforeReversed = searchRequests(option).length;
+  await page.goto(reversedUrl.href, { waitUntil: "domcontentloaded" });
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "Invalid date range" })
+    .waitFor({ state: "visible" });
+  assert.equal(searchRequests(option).length, beforeReversed);
+  const correctedFrom = "2026-01-02T23:59:59Z";
+  editor = await openCreatedEditor(page, option);
+  await editor.locator(pickerSelector).fill("2026-01-02T23:59:59");
+  next = {
+    ...activeExpectedFilters,
+    from_date: [correctedFrom],
+    until_date: [reversedUntil],
+  };
+  await applyDateChange(page, option, next, correctedFrom, reversedUntil);
 
   return {
-    pickerControlAndExactText: true,
-    initialPickerUtcProjection: "2026-01-02T03:04:05",
-    pickerSerializesZuluAtSeconds: pickerFrom,
-    exactOffsetAndMicrosecondsPreserved: exactOffset,
-    offsetPickerUtcProjection: "2026-01-01T22:36:07",
-    invalidPrecisionBlockedAndCorrected: true,
-    reversedMicrosecondRangeBlockedAndCorrected: true,
+    datetimeLocalOnly: true,
+    restoredZuluWholeSeconds: initialFrom,
+    minutePrecisionSerializedAsUtcWholeSeconds: minutePickerFrom,
+    legacyOffsetAndFractionShownBlankAndPreserved: [rawFrom, rawUntil],
+    noOpCloseAndUnrelatedSearchPreserveRawValues: true,
+    pickerEditReplacesOnlyFrom: selectedFrom,
+    clearingFromPreservesUntil: rawUntil,
+    reversedLegacyRangeBlockedAndCorrected: true,
     unrelatedFiltersAndPageSizePreserved: true,
   };
 }
@@ -1192,7 +1228,7 @@ async function testOption(page, option, pageOrigin) {
 
   const pager = option === 1 ? null : await assertPagerNavigation(page, option);
   const dates = await assertCreatedDateEditing(page, option);
-  const updatedFilters = await editStatusAndApply(page, option);
+  const updatedFilters = activeExpectedFilters;
   const appliedRequests = searchRequests(option);
   const appliedRequest = appliedRequests.at(-1);
   assert.ok(appliedRequest);

@@ -363,6 +363,20 @@ void test("page parsing keeps presentation state separate", () => {
     { category: "category", values: ["value"] },
   ]);
   assert.equal(valid.filters.test_execution_statuses[0], "PASSED");
+
+  const rawFrom = "2026-01-02T04:04:05.123456+01:30";
+  const rawUntil = "2026-01-03T03:04:05.123456000Z";
+  const legacy = parseSearchOptions(
+    new URLSearchParams(
+      `from_date=${encodeURIComponent(rawFrom)}&until_date=${encodeURIComponent(rawUntil)}&page=2&page_size=25`,
+    ),
+    [family],
+  );
+  assert.deepEqual(legacy.problems, []);
+  assert.equal(legacy.filters.from_date, rawFrom);
+  assert.equal(legacy.filters.until_date, rawUntil);
+  assert.equal(legacy.page, 2);
+  assert.equal(legacy.pageSize, 25);
 });
 
 void test("page transitions preserve filters and page size", () => {
@@ -1054,12 +1068,29 @@ void test("Option 2.5 has a dedicated aligned filter row and exact drafts", asyn
     assert.equal(picker.getAttribute("step"), "1");
     assert.equal(untilPicker.getAttribute("type"), "datetime-local");
     assert.equal(untilPicker.getAttribute("step"), "1");
-    assert.equal(exactDate.value, "2026-01-02T03:04:05.123456+01:30");
-    assert.equal(exactUntil.value, "2026-01-03T03:04:05.000000-04:00");
-    exactDate.value = "2026-01-02T03:04:05.654321+01:30";
-    exactDate.dispatchEvent(new browser.Event("input", { bubbles: true }));
-    exactUntil.value = "2026-01-03T03:04:05.000001-04:00";
-    exactUntil.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    assert.equal(picker.value, "", "offset/fraction values are not projected");
+    assert.equal(
+      untilPicker.value,
+      "",
+      "offset/fraction values are not projected",
+    );
+    const dateEditor = target.querySelector(".date-filter");
+    assert.ok(dateEditor);
+    assert.equal(dateEditor.querySelectorAll('input[type="text"]').length, 0);
+    assert.equal(
+      dateEditor.querySelectorAll("[data-utc-picker-note]").length,
+      2,
+    );
+    assert.deepEqual(
+      [...dateEditor.querySelectorAll(".bound-label")].map((heading) =>
+        heading.textContent.trim(),
+      ),
+      ["Created — From (UTC)", "Created — To (UTC)"],
+    );
+    picker.value = "2026-01-02T03:04:06";
+    picker.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    untilPicker.value = "2026-01-03T03:04:06";
+    untilPicker.dispatchEvent(new browser.Event("input", { bubbles: true }));
     await flush();
     assert.equal(
       requests.filter(
@@ -1089,14 +1120,8 @@ void test("Option 2.5 has a dedicated aligned filter row and exact drafts", asyn
       "stable",
       "beta",
     ]);
-    assert.equal(
-      ui.url.searchParams.get("from_date"),
-      "2026-01-02T03:04:05.654321+01:30",
-    );
-    assert.equal(
-      ui.url.searchParams.get("until_date"),
-      "2026-01-03T03:04:05.000001-04:00",
-    );
+    assert.equal(ui.url.searchParams.get("from_date"), "2026-01-02T03:04:06Z");
+    assert.equal(ui.url.searchParams.get("until_date"), "2026-01-03T03:04:06Z");
     const appliedRequest = requests.filter(
       (request) => request.pathname === "/v1/test-results/search-page",
     )[1];
@@ -1109,11 +1134,11 @@ void test("Option 2.5 has a dedicated aligned filter row and exact drafts", asyn
     ]);
     assert.equal(
       appliedRequest.searchParams.get("from_date"),
-      "2026-01-02T03:04:05.654321+01:30",
+      "2026-01-02T03:04:06Z",
     );
     assert.equal(
       appliedRequest.searchParams.get("until_date"),
-      "2026-01-03T03:04:05.000001-04:00",
+      "2026-01-03T03:04:06Z",
     );
     assert.equal(appliedRequest.searchParams.get("families"), "snap");
     assert.equal(
@@ -1672,7 +1697,7 @@ void test("Option 3 SidePanel search preserves shared filtering and compact tabl
   }
 });
 
-void test("Options 2–3 Created editors share UTC picker and exact range behavior", async () => {
+void test("Options 2–3 Created editors use UTC-only pickers and preserve one-sided bounds", async () => {
   assert.ok(app);
   for (const option of [2, 3]) {
     const requests = [];
@@ -1698,7 +1723,7 @@ void test("Options 2–3 Created editors share UTC picker and exact range behavi
         (request) => request.pathname === "/v1/test-results/search-page",
       );
     const openCreated = async () => {
-      if (option === 2) {
+      if (option === 2 || option === 2.5) {
         const menu = target.querySelector(
           '[data-search-grid-menu="from_date"]',
         );
@@ -1713,14 +1738,16 @@ void test("Options 2–3 Created editors share UTC picker and exact range behavi
               ?.closest("[hidden]"),
         );
       } else {
-        const panel = target.querySelector("dialog.search-option-filter-panel");
-        if (!panel.open)
-          target
-            .querySelector(
-              'button[aria-controls="search-option-3-filter-panel"]',
-            )
-            ?.click();
-        await waitFor(() => panel.open);
+        const isOpen = () =>
+          target.querySelector("dialog.search-option-filter-panel")?.open;
+        if (!isOpen()) {
+          const trigger = target.querySelector(
+            'button[aria-controls="search-option-3-filter-panel"]',
+          );
+          assert.ok(trigger, `Option ${option} filter trigger is mounted`);
+          trigger.click();
+        }
+        await waitFor(() => isOpen());
       }
     };
     const setInput = async (selector, value) => {
@@ -1749,49 +1776,48 @@ void test("Options 2–3 Created editors share UTC picker and exact range behavi
     try {
       await waitFor(() => searchRequests().length === 1);
       await openCreated();
-      const fromTextSelector = '[data-search-grid-filter="from_date"]';
       const fromPickerSelector = '[data-search-grid-filter-picker="from_date"]';
-      const fromText = target.querySelector(fromTextSelector);
       const fromPicker = target.querySelector(fromPickerSelector);
-      assert.ok(fromText);
       assert.ok(fromPicker);
-      assert.equal(fromText.type, "text");
       assert.equal(fromPicker.type, "datetime-local");
+      assert.equal(fromPicker.value, "");
       assert.equal(
-        fromText.value,
-        "2026-01-02T04:04:05.123456+01:00",
-        `Option ${option} keeps the restored offset and microseconds`,
+        target.querySelector('[data-search-grid-filter-picker="until_date"]')
+          .value,
+        "",
       );
-      assert.equal(fromPicker.value, "2026-01-02T03:04:05");
+      const dateEditor = target.querySelector(".date-filter");
+      assert.ok(dateEditor);
+      assert.equal(dateEditor.querySelectorAll('input[type="text"]').length, 0);
       assert.equal(
-        target.querySelector('[data-search-grid-filter="until_date"]').value,
-        "2026-01-03T03:04:05.123456000Z",
+        dateEditor.querySelectorAll("[data-utc-picker-note]").length,
+        2,
+      );
+      assert.deepEqual(
+        [...dateEditor.querySelectorAll(".bound-label")].map((heading) =>
+          heading.textContent.trim(),
+        ),
+        ["Created — From (UTC)", "Created — To (UTC)"],
+      );
+      assert.equal(
+        target.querySelector('[data-search-grid-filter-picker="until_date"]')
+          .value,
+        "",
       );
 
-      await setInput(fromPickerSelector, "2026-01-02T04:05:06");
+      await setInput(fromPickerSelector, "2026-01-02T03:04:04");
       assert.equal(
-        target.querySelector(fromTextSelector).value,
-        "2026-01-02T04:05:06Z",
-        `Option ${option} serializes a picker choice as a UTC instant`,
+        target.querySelector(fromPickerSelector).value,
+        "2026-01-02T03:04:04",
       );
       assert.equal(searchRequests().length, 1, "date edits remain drafts");
-      const invalid = "2026-01-02T04:05:06.1234567Z";
-      await setInput(fromTextSelector, invalid);
-      assert.match(target.textContent, /microsecond/);
-      assert.equal(searchRequests().length, 1, "invalid drafts do not fetch");
-      await setInput(fromTextSelector, "2026-01-02T04:05:06.123456Z");
-      const reversed = "2026-01-04T00:00:00Z";
-      await setInput(fromTextSelector, reversed);
-      assert.match(target.textContent, /From must not be after Until/);
-      assert.equal(searchRequests().length, 1, "reversed drafts do not fetch");
-      await setInput(fromTextSelector, "2026-01-02T04:05:06.123456Z");
       submit();
       await waitFor(() => ui.url.searchParams.get("page") === "1");
       await waitFor(() => searchRequests().length === 2);
       assert.equal(ui.url.searchParams.get("page_size"), "25");
       assert.equal(
         ui.url.searchParams.get("from_date"),
-        "2026-01-02T04:05:06.123456Z",
+        "2026-01-02T03:04:04Z",
       );
       assert.equal(
         ui.url.searchParams.get("until_date"),
@@ -2125,6 +2151,186 @@ void test("Option 4 chip filters preserve exact server search and compact row ac
       pageRequests()[4].searchParams.has("test_execution_statuses"),
       false,
     );
+  } finally {
+    await ui.destroy();
+    target.remove();
+  }
+});
+
+void test("Option 4 Created dialogs preserve legacy values and edit one UTC bound", async () => {
+  assert.ok(app);
+  const requests = [];
+  globalThis.fetch = async (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    const offset = Number(request.searchParams.get("offset"));
+    const limit = Number(request.searchParams.get("limit"));
+    return json({ count: 100, offset, limit, rows: [resultRow(12)] });
+  };
+
+  const from = "2026-01-02T04:04:05.123456+01:00";
+  const until = "2026-01-03T03:04:05.123456000Z";
+  const initialUrl = new URL(
+    `http://localhost/custom/base/test-results/option-4?artefacts=widget&test_result_statuses=PASSED&from_date=${encodeURIComponent(from)}&until_date=${encodeURIComponent(until)}&page=3&page_size=25`,
+  );
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const ui = app.mountSearchOption(target, initialUrl, [family], 4);
+  const pageRequests = () =>
+    requests.filter(
+      (request) => request.pathname === "/v1/test-results/search-page",
+    );
+  const openBound = async (field = "from_date") => {
+    const bound = field === "from_date" ? "From" : "Until";
+    const trigger = target.querySelector(
+      `button[aria-label^="Edit Created — ${bound}:"]`,
+    );
+    assert.ok(trigger);
+    assert.doesNotMatch(trigger.getAttribute("aria-label") ?? "", /\(UTC\)/);
+    trigger.click();
+    await waitFor(() =>
+      Boolean(
+        target.querySelector(`form[aria-label="Edit Created — ${bound}"]`),
+      ),
+    );
+    return target.querySelector(`form[aria-label="Edit Created — ${bound}"]`);
+  };
+  const saveBound = async (form) => {
+    const save = [...form.querySelectorAll("button")].find(
+      (button) => button.textContent.trim() === "Save changes",
+    );
+    assert.ok(save);
+    await waitFor(() => !save.disabled);
+    save.click();
+    await flush();
+  };
+  const apply = async (expectedCount) => {
+    target
+      .querySelector('form[aria-label="Apply confirmed search filters"]')
+      .dispatchEvent(
+        new browser.Event("submit", { bubbles: true, cancelable: true }),
+      );
+    await waitFor(() => pageRequests().length === expectedCount);
+  };
+
+  try {
+    await waitFor(() => pageRequests().length === 1);
+    const form = await openBound();
+    assert.equal(form.querySelector("h2")?.textContent, "Created — From (UTC)");
+    assert.deepEqual(
+      [...form.querySelectorAll("h2, h3")]
+        .filter((heading) => heading.textContent.includes("(UTC)"))
+        .map((heading) => heading.textContent),
+      ["Created — From (UTC)"],
+      "the Option 4 dialog has one UTC heading and no duplicate bound heading",
+    );
+    const picker = form.querySelector('input[type="datetime-local"]');
+    assert.ok(picker);
+    assert.equal(
+      picker.getAttribute("aria-label"),
+      "Created — From (UTC)",
+      "the input keeps its accessible name without a visible bound heading",
+    );
+    assert.equal(
+      picker.value,
+      "",
+      "offset/fraction values stay out of the picker",
+    );
+    assert.equal(form.querySelectorAll('input[type="text"]').length, 0);
+    assert.equal(form.querySelectorAll("[data-utc-picker-note]").length, 1);
+    const cancel = [...form.querySelectorAll("button")].find(
+      (button) => button.textContent.trim() === "Cancel",
+    );
+    assert.ok(cancel);
+    cancel.click();
+    await flush();
+    assert.equal(
+      pageRequests().length,
+      1,
+      "closing without edits does not fetch",
+    );
+    assert.equal(ui.url.searchParams.get("from_date"), from);
+    assert.equal(ui.url.searchParams.get("until_date"), until);
+
+    const statusTrigger = target.querySelector(
+      'button[aria-label^="Edit Result status:"]',
+    );
+    assert.ok(statusTrigger);
+    statusTrigger.click();
+    await waitFor(() =>
+      Boolean(target.querySelector('form[aria-label="Edit Result status"]')),
+    );
+    const statusForm = target.querySelector(
+      'form[aria-label="Edit Result status"]',
+    );
+    statusForm.querySelector('input[value="PASSED"]').click();
+    statusForm.querySelector('input[value="FAILED"]').click();
+    await saveBound(statusForm);
+    await apply(2);
+    assert.equal(pageRequests()[1].searchParams.get("from_date"), from);
+    assert.equal(pageRequests()[1].searchParams.get("until_date"), until);
+    assert.equal(
+      pageRequests()[1].searchParams.get("test_result_statuses"),
+      "FAILED",
+    );
+    assert.equal(ui.url.searchParams.get("page_size"), "25");
+
+    const editFrom = await openBound();
+    const fromPicker = editFrom.querySelector('input[type="datetime-local"]');
+    assert.ok(fromPicker);
+    fromPicker.value = "2026-01-02T04:05:06";
+    fromPicker.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    await flush();
+    await saveBound(editFrom);
+    await apply(3);
+    assert.equal(ui.url.searchParams.get("from_date"), "2026-01-02T04:05:06Z");
+    assert.equal(ui.url.searchParams.get("until_date"), until);
+    assert.equal(
+      pageRequests()[2].searchParams.get("from_date"),
+      "2026-01-02T04:05:06Z",
+    );
+    assert.equal(pageRequests()[2].searchParams.get("until_date"), until);
+    assert.equal(ui.url.searchParams.get("page_size"), "25");
+
+    const clearFrom = await openBound();
+    const clearedPicker = clearFrom.querySelector(
+      'input[type="datetime-local"]',
+    );
+    assert.ok(clearedPicker);
+    clearedPicker.value = "";
+    clearedPicker.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    await flush();
+    await saveBound(clearFrom);
+    await apply(4);
+    assert.equal(ui.url.searchParams.has("from_date"), false);
+    assert.equal(ui.url.searchParams.get("until_date"), until);
+    assert.equal(pageRequests()[3].searchParams.has("from_date"), false);
+    assert.equal(pageRequests()[3].searchParams.get("until_date"), until);
+
+    const reversedUrl = new URL(ui.url);
+    reversedUrl.searchParams.set("from_date", "2026-01-04T00:00:00Z");
+    reversedUrl.searchParams.set("until_date", "2026-01-03T00:00:00Z");
+    ui.restore(reversedUrl);
+    await flush();
+    assert.match(target.textContent, /Invalid date range/);
+    assert.equal(
+      pageRequests().length,
+      4,
+      "reversed legacy bounds block requests",
+    );
+    const correctFrom = await openBound();
+    const correction = correctFrom.querySelector(
+      'input[type="datetime-local"]',
+    );
+    assert.ok(correction);
+    correction.value = "2026-01-02T23:59:59";
+    correction.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    await flush();
+    await saveBound(correctFrom);
+    await apply(5);
+    assert.equal(ui.url.searchParams.get("from_date"), "2026-01-02T23:59:59Z");
+    assert.equal(ui.url.searchParams.get("until_date"), "2026-01-03T00:00:00Z");
+    assert.equal(ui.url.searchParams.get("page_size"), "25");
   } finally {
     await ui.destroy();
     target.remove();

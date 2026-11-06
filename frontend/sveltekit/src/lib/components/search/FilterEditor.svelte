@@ -13,18 +13,20 @@
   import BooleanFilterEditor from "./BooleanFilterEditor.svelte";
   import IdFilterEditor from "./IdFilterEditor.svelte";
   import MetadataFilterEditor from "./MetadataFilterEditor.svelte";
-  import InstantFilterEditor from "./InstantFilterEditor.svelte";
+  import SearchDateFilterEditor from "./SearchDateFilterEditor.svelte";
 
   let {
     field,
     filters = $bindable(),
     valid = $bindable(false),
+    allowEmpty = false,
     families,
     labels,
   }: {
     field: SearchFilter;
     filters: SearchFilters;
     valid?: boolean;
+    allowEmpty?: boolean;
     families: Family[];
     labels: Record<string, string>;
   } = $props();
@@ -47,10 +49,11 @@
 {:else if field === "execution_metadata"}
   <MetadataFilterEditor bind:value={filters.execution_metadata} bind:valid />
 {:else if isInstantFilter(field)}
-  <InstantFilterEditor
+  <SearchDateFilterEditor
     {field}
     bind:value={filters[field]}
     other={field === "from_date" ? filters.until_date : filters.from_date}
+    {allowEmpty}
     bind:valid
   />
 {/if}

@@ -28,7 +28,7 @@
   import IdFilterEditor from "./IdFilterEditor.svelte";
   import MetadataFilterEditor from "./MetadataFilterEditor.svelte";
   import ListFilterEditor from "./ListFilterEditor.svelte";
-  import InstantFilterEditor from "./InstantFilterEditor.svelte";
+  import SearchDateFilterEditor from "./SearchDateFilterEditor.svelte";
   import {
     isLookupList,
     suggestionScope,
@@ -565,23 +565,21 @@
     </label>
   {:else if filterKey === "from_date"}
     <div class="date-filter">
-      <InstantFilterEditor
+      <SearchDateFilterEditor
         field="from_date"
         value={filters.from_date}
         other={filters.until_date}
-        boundLabel="Test-result Created — From (inclusive)"
-        textPlaceholder="2026-01-01T00:00:00Z"
+        boundLabel="Created — From (UTC)"
         text={fromDateText}
         filterAttribute="from_date"
         {disabled}
         ontextchange={(value) => setDate("from_date", value)}
       />
-      <InstantFilterEditor
+      <SearchDateFilterEditor
         field="until_date"
         value={filters.until_date}
         other={filters.from_date}
-        boundLabel="Test-result Created — Until (inclusive)"
-        textPlaceholder="2026-01-31T23:59:59Z"
+        boundLabel="Created — To (UTC)"
         text={untilDateText}
         filterAttribute="until_date"
         {disabled}

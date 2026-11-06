@@ -270,21 +270,25 @@ The editor accepts separate category/value inputs, not wire encoding or delimite
 parsing. Categories and values each require 1–200 Unicode characters. Invalid
 encoding, UTF-8 or lengths block the search locally.
 
-The **Created — From/Until** bounds apply inclusively to `TestResult.created_at`
-in all five variants. Options 1–3 expose the same native UTC picker and exact
-timestamp text controls in their filter editors; Option 4 exposes the same date
-editor through its editable filter chips. The picker is a convenience for
-choosing a new second-precision UTC instant, not the source of truth for a
-restored timestamp.
+The **Created — From/To** bounds apply inclusively to `TestResult.created_at`
+in all five variants. Each Search date editor exposes only a native
+`datetime-local` picker with whole-second precision. The selected wall-clock
+fields are interpreted as UTC (not browser-local time) and serialize as
+`YYYY-MM-DDTHH:mm:ssZ`; if the browser supplies minute precision, `:00` is
+appended. The picker never converts through the browser timezone.
 
-The inputs retain the exact timestamp text, not a local-time conversion or
-rounding. The UTC picker projects a valid bound into UTC
-`YYYY-MM-DDTHH:mm:ss` and omits fractional seconds only in that display. Merely
-opening or leaving the picker unchanged does not alter the exact timestamp.
-Changing the picker writes the selected second as an ISO timestamp ending in
-`Z`. The exact-text control accepts explicit `Z` or `±HH:MM` offsets and
-preserves the supplied offset and fractional digits exactly through the URL and
-API request.
+The existing URL parser and API continue to accept valid offset and fractional
+timestamps. Restored query values remain the source of truth and are preserved
+byte-for-byte in the URL/API when the editor is merely opened/closed or another
+filter is changed. Only an existing canonical UTC whole-second `...Z` value is
+shown in the picker. A valid offset or fractional value that cannot be
+represented there appears as an empty picker with a note to select a new UTC
+time or clear that bound; it is never projected, rounded or silently dropped.
+Changing a picker explicitly replaces only its bound with the selected UTC
+whole-second instant, and clearing it removes only that bound. Options 1–3 show
+the bound headings **Created — From (UTC)** and **Created — To (UTC)**. Option 4
+keeps its chip labels without the timezone suffix and shows `(UTC)` in the open
+date-editor heading.
 
 Timestamps must be valid
 Gregorian ISO instants (`YYYY-MM-DDTHH:mm:ss[.fraction]Z` or an explicit `±HH:MM`
@@ -639,7 +643,7 @@ desktop/800px screenshots require separate browser QA.
 
 `tests/search-options-pagination.test.js` covers the actual Options 2, 2.5, 3
 and 4 routes and their mounted Pragma tables, including the dedicated Option 2.5
-filter row, Created-first compact order, shared UTC/exact date editors, page and
+filter row, Created-first compact order, UTC-only date editors with raw legacy-value preservation, page and
 page-size URL/API mapping, page-window edges, numeric jumps, and direct
 out-of-range canonicalization. The mocked Chromium runner adds native picker,
 real table scrolling and visible-pager evidence.

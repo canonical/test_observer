@@ -95,6 +95,12 @@
     if (key === "execution_metadata") return "Execution Metadata";
     return FILTER_DEFINITIONS[key].label;
   };
+  const editorHeading = (key: SearchFilter) =>
+    key === "from_date"
+      ? "Created — From (UTC)"
+      : key === "until_date"
+        ? "Created — To (UTC)"
+        : label(key);
   const available = $derived(
     EDITABLE_SEARCH_FILTERS.filter(
       (key) =>
@@ -302,7 +308,17 @@
 
   async function confirm(event: SubmitEvent, source: Source) {
     event.preventDefault();
-    if (!field || !valid || !filterIsActive(field, editorDraft)) return;
+    if (
+      !field ||
+      !valid ||
+      (!filterIsActive(field, editorDraft) &&
+        !(
+          source !== "add" &&
+          (field === "from_date" || field === "until_date") &&
+          filterIsActive(field, filters)
+        ))
+    )
+      return;
     const key = field;
     const next = cloneFilters(editorDraft);
     close(source, false);
@@ -382,7 +398,7 @@
             aria-label={`Edit ${label(field)}`}
             onsubmit={(event) => confirm(event, source)}
           >
-            <h2>{label(field)}</h2>
+            <h2>{editorHeading(field)}</h2>
             {#if invalidFields.includes(field)}
               <p class="hint">
                 The original URL value is invalid. Save an explicit replacement
@@ -394,6 +410,9 @@
                 {field}
                 bind:filters={editorDraft}
                 bind:valid
+                allowEmpty={source !== "add" &&
+                  (field === "from_date" || field === "until_date") &&
+                  filterIsActive(field, filters)}
                 {families}
                 labels={editorLabels}
               />

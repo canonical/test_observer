@@ -82,11 +82,14 @@ header-filter layout, Option 2.5's separate aligned second filter row and actual
 `/test-results/option-2-5` route, and the ten-column Created-first compact tables
 for Options 3 and 4. Every variant is checked for its exact 19-key filter request,
 synthetic contradictory status, stable API row order, configured base-path Run
-URL and Details fetched only on demand. Created-date browser coverage verifies
-the native UTC `datetime-local` picker and exact-text editor, UTC projection,
-picker `Z` serialization, exact offset/microsecond preservation, invalid
-precision and reversed-range blocking, then exact corrected requests while
-preserving other filters and `page_size` where applicable.
+URL and Details fetched only on demand. Created-date browser coverage runs in
+`America/Los_Angeles` and verifies that every option exposes only native
+`datetime-local` controls, canonical UTC whole-second restoration, and UTC
+wall-clock serialization (including browsers that omit seconds). Offset and
+fractional legacy values remain blank with an actionable note and are preserved
+across no-op close/unrelated Search; explicit picker edits replace only one bound,
+and clearing, reversed-range blocking/correction, other filters and `page_size`
+are covered across the five routes.
 
 For Options 2, 2.5, 3 and 4, the runner checks the page-window center and edges,
 numeric jumps and lower/upper clamping, exact range/count plus
