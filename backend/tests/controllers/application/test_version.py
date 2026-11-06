@@ -40,7 +40,7 @@ def test_version_remote_unauthenticated(test_client: TestClient):
     """Test that remote unauthenticated access to version endpoint is denied"""
     try:
         # Simulate remote access without authentication by raising 401
-        def remote_unauthenticated():
+        def remote_unauthenticated() -> None:
             raise HTTPException(status_code=401, detail="Not authenticated")
 
         app.dependency_overrides[local_or_authenticated] = remote_unauthenticated
