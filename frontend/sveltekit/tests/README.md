@@ -58,7 +58,39 @@ npm run test:issues-detail-browser
 | `node --test tests/issue-reruns.browser.js`           | Frozen all-match create/delete scope, effective preview/write/inspection predicates, protected real Search popup, options, permissions, held/ambiguous writes and focus                                                               |
 | `node --test tests/attachment-rule-target.browser.js` | One-shot rule attention through delayed loading, history, issue switching and rule actions                                                                                                                                            |
 | `node tests/search-grid-mocked.browser.js`            | Read-only global Search, all columns/editors, Architecture/Environment order, drafts/history, full-value dialogs, Details and scrolling                                                                                               |
+| `node tests/search-options-mocked.browser.js`         | Options 1–4 Chromium comparison: navigation, distinct UIs, exact filters, pagination, row order, Run/Details; synthetic APIs only                                                                                                     |
 | `node tests/search-result-details-fixture.browser.js` | Actual Details component with long literal logs/metadata, light/dark viewport/zoom matrix and single-body scrolling; no API/SSO                                                                                                       |
+
+### Cross-option Search browser QA
+
+`tests/search-options-mocked.browser.js` starts and closes its own loopback Vite
+server and runs the four real SvelteKit routes in Chromium. It defaults to the
+`/custom/base` deployment path; set `BASE_PATH` to check another base. All
+Test Observer API requests (including `/v1/users/me`, result ranges, Details,
+and filter-label lookups) are intercepted and answered with synthetic fixtures.
+The mock intentionally returns the same rows for changed filters, making local
+filtering or sorting observable. It uses no live API, SSO, credentials, database,
+screenshots, or production-identifying data. This browser check complements the
+Option 2–4 unit/mounted pagination tests rather than replacing them.
+
+Playwright Core and Chromium must already be available externally. Neither is
+added to the project manifest or lockfile. For example:
+
+```sh
+PLAYWRIGHT_MODULE=/tmp/opencode/search-options-qa/node_modules/playwright-core/index.mjs \
+CHROMIUM_EXECUTABLE=/tmp/opencode/search-options-qa/browsers/chromium-1194/chrome-linux/chrome \
+BASE_PATH=/custom/base \
+QA_ARTIFACT_DIR=/tmp/opencode/search-options-mocked \
+node tests/search-options-mocked.browser.js
+```
+
+`PLAYWRIGHT_MODULE` may instead identify another external Playwright Core
+module. Set `CHROMIUM_EXECUTABLE` to an existing Chromium binary, or omit it and
+set `PLAYWRIGHT_BROWSERS_PATH` to an existing Playwright browser cache. Reports
+and the isolated Vite cache are written below `QA_ARTIFACT_DIR` (default
+`/tmp/opencode/search-options-mocked`); the JSON report is `report.json`. No
+screenshots or other browser payload artifacts are produced. Choose a distinct
+artifact directory for each run if failed reports should be retained.
 
 For Node-based browser runners, the same JUnit flags may precede the file path.
 Reports/screenshots go outside the repository. Use a distinct artifact directory

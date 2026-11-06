@@ -11,6 +11,52 @@ back/forward restore the search. The Search page has no row selection or mutatio
 actions; reusable issue/rerun/rule components remain available to other workflows.
 This is the canonical SvelteKit search guide.
 
+## Search prototype routes (Options 1–4)
+
+The four prototype routes share the same exact server-side Search filters and
+read-only result actions, but intentionally compare different table/filter
+presentations. They are not expected to look or behave identically as tables:
+
+| Option | Route                    | Prototype presentation and pagination                                                                                                                                                                                                              |
+| ------ | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1      | `/test-results`          | Existing SvGrid table with 23 columns, 18 column-filter editors, and infinite server range requests. The URL's legacy `limit`/`offset` values are stripped; they do not control the grid. SvGrid requests its own ranges in default 50-row blocks. |
+| 2      | `/test-results/option-2` | Pragma wide Table with 23 columns and the exact-filter controls in the relevant column headers.                                                                                                                                                    |
+| 3      | `/test-results/option-3` | Pragma SidePanel filter surface with a compact table of nine Flutter-style columns.                                                                                                                                                                |
+| 4      | `/test-results/option-4` | Historical-style editable filter chips with a compact table of the same nine Flutter-style columns.                                                                                                                                                |
+
+Options 2–4 share URL presentation state: `page` is 1-based and defaults to 1;
+`page_size` defaults to 50 and accepts 25, 50, or 100. A page request maps to
+API `offset=(page - 1) * page_size` and `limit=page_size`, and asks the API for
+the exact count with `include_count=true`. Applying a filter resets `page` to 1
+while retaining `page_size`. Option 1 does not use this presentation state: the browser's
+infinite scroll requests SvGrid ranges, strips legacy URL `limit`/`offset`, and
+starts with `offset=0&limit=50`.
+
+Every option carries the same 19 canonical exact filters to
+`/v1/test-results/search-page`: `families`, `test_result_statuses`,
+`test_execution_statuses`, `artefacts`, `artefact_versions`, `artefact_tracks`,
+`environments`, `test_plans`, `test_cases`, `artefact_stages`,
+`artefact_is_archived`, `rerun_is_requested`, `execution_is_latest`, `issues`,
+`reviewer_ids`, `execution_metadata`, `from_date`, `until_date`, and
+`template_ids`. In particular, `test_execution_statuses` is a canonical filter
+in every route. Alternatives within a field are exact-match ORs; different
+fields are combined server-side. No option filters or sorts only the rows
+already loaded in the browser.
+
+All four remain read-only: configured Run links retain the deployment base and
+execution/result deep links, and Details is fetched lazily for a selected row.
+API authorization remains authoritative for result and Details reads; 401/403
+responses are revalidated against the current session and presented as the
+appropriate login, forbidden, or session-check state. These shared contracts do
+not make the presentations equivalent: Options 1–2 show the wide 23-column
+table (with different grid/table mechanics), while Options 3–4 show only nine
+compact Flutter-style columns and expose filters in a SidePanel or editable
+chips, respectively.
+
+The opt-in cross-option browser QA uses actual Chromium and mocks every API call
+with synthetic loopback fixtures. It does not require or contact a live API,
+SSO service, database, or credentials and is not live integration evidence.
+
 ## Column filters and applying a search
 
 All 18 filter groups start in their own SvGrid column header and open an anchored
@@ -474,9 +520,9 @@ sidebar clips content at 390px.
 
 From `frontend/sveltekit`, install locked dependencies with `npm ci`, then run
 `npm run check`, `npm run build`, `npm test`, and `npm run lint`.
-The [test guide](tests/README.md) lists all opt-in mocked Issues runners and
-their evidence boundaries. No browser dependency belongs in the project just
-to run these checks.
+The [test guide](tests/README.md) lists the opt-in mocked Issues and Search
+browser runners and their evidence boundaries. No browser dependency belongs
+in the project just to run these checks.
 `tests/test-results-search.test.js` tests the backend/OpenAPI and URL contracts,
 initial unfiltered recent-page defaults, races, auth revalidation, the absence of
 Search-page selection/mutation controls, and actual mounted Pragma controls and
