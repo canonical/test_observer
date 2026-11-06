@@ -75,18 +75,22 @@ const filters = new URLSearchParams([
 const expectedFilters = Object.fromEntries(
   filterKeys.map((key) => [key, filters.getAll(key)]),
 );
+let activeExpectedFilters = expectedFilters;
 
 // The same deliberately unchanged response is returned for every exact query.
 // Rows are descending by ID (the server order) and intentionally contradict
 // test_result_statuses=PASSED to catch local filtering in every prototype.
-const rows = Array.from({ length: 120 }, (_, index) => {
+const rows = Array.from({ length: 300 }, (_, index) => {
   const id = 12000 - index;
+  const createdAt = new Date(
+    Date.UTC(2026, 9, 28, 12, 59 - index),
+  ).toISOString();
   return {
     test_result: {
       id,
       name: `synthetic-case-${String(index).padStart(3, "0")}`,
       category: "synthetic-category",
-      created_at: `2026-10-${String(28 - Math.floor(index / 24)).padStart(2, "0")}T12:${String(59 - (index % 60)).padStart(2, "0")}:00Z`,
+      created_at: createdAt,
       template_id: "template-9",
       status: "FAILED",
       issues: [{ id: 42, key: "QA-42", title: "Synthetic issue" }],
@@ -213,6 +217,433 @@ async function waitForNode(check, description, timeoutMs = 12000) {
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   assert.fail(`Timed out waiting for ${description}.`);
+}
+
+async function waitForSearchRequestCount(option, count, description) {
+  await waitForNode(() => searchRequests(option).length >= count, description);
+  return searchRequests(option).at(-1);
+}
+
+function assertPageRequest(
+  request,
+  offset,
+  limit,
+  expected = activeExpectedFilters,
+) {
+  assert.ok(request, "a page request was recorded");
+  const params = new URLSearchParams(request.search);
+  assert.equal(params.get("offset"), String(offset));
+  assert.equal(params.get("limit"), String(limit));
+  assert.equal(params.get("include_count"), "true");
+  assertCanonicalFilters(request, expected);
+}
+
+function assertUrlFilters(page, expected) {
+  const params = new URL(page.url()).searchParams;
+  for (const key of filterKeys)
+    assert.deepEqual(
+      params.getAll(key),
+      expected[key],
+      `URL retains exact filter ${key}`,
+    );
+}
+
+async function assertPagerPages(page, expectedPages, expectedGaps) {
+  assert.deepEqual(
+    await page
+      .locator(".pager-pages button")
+      .evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute("aria-label")),
+      ),
+    expectedPages.map((number) => `Page ${number}`),
+  );
+  assert.equal(await page.locator(".pager-gap").count(), expectedGaps);
+}
+
+async function assertPagerNavigation(page, option) {
+  const initialUrl = new URL(page.url());
+  assert.equal(initialUrl.searchParams.get("page_size"), "25");
+  assert.equal(
+    await page.locator(".pager .range").innerText(),
+    "Showing 51–75 of 300 results",
+  );
+  await assertPagerPages(page, [1, 2, 3, 4, 12], 1);
+
+  async function jump(value, expectedPage, offset, pageSize, pages, gaps) {
+    const before = searchRequests(option).length;
+    const responsePromise = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return (
+        response.request().method() === "GET" &&
+        url.pathname === searchPath &&
+        url.searchParams.get("offset") === String(offset) &&
+        url.searchParams.get("limit") === String(pageSize)
+      );
+    });
+    await page.locator("#search-options-page-jump").fill(String(value));
+    await page.getByRole("button", { name: "Go", exact: true }).click();
+    assert.equal((await responsePromise).status(), 200);
+    await page.waitForURL(
+      (url) =>
+        url.pathname === initialUrl.pathname &&
+        url.searchParams.get("page") === String(expectedPage) &&
+        url.searchParams.get("page_size") === String(pageSize),
+    );
+    const request = await waitForSearchRequestCount(
+      option,
+      before + 1,
+      `Option ${option} page ${expectedPage} API request`,
+    );
+    assertPageRequest(request, offset, pageSize);
+    assertUrlFilters(page, activeExpectedFilters);
+    assert.equal(
+      await page.locator(".pager .range").innerText(),
+      `Showing ${Number(offset) + 1}–${Math.min(Number(offset) + Number(pageSize), 300)} of 300 results`,
+    );
+    await assertPagerPages(page, pages, gaps);
+  }
+
+  await jump(6, 6, 125, 25, [1, 5, 6, 7, 12], 2);
+  await jump(999, 12, 275, 25, [1, 11, 12], 1);
+  await jump(0, 1, 0, 25, [1, 2, 12], 1);
+
+  const beforeSizeChange = searchRequests(option).length;
+  const sizeResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      response.request().method() === "GET" &&
+      url.pathname === searchPath &&
+      url.searchParams.get("offset") === "0" &&
+      url.searchParams.get("limit") === "50"
+    );
+  });
+  await page.locator(".pager select").selectOption("50");
+  assert.equal((await sizeResponse).status(), 200);
+  await page.waitForURL(
+    (url) =>
+      url.searchParams.get("page") === "1" &&
+      url.searchParams.get("page_size") === "50",
+  );
+  const sizeRequest = await waitForSearchRequestCount(
+    option,
+    beforeSizeChange + 1,
+    `Option ${option} page-size API request`,
+  );
+  assertPageRequest(sizeRequest, 0, 50);
+  assertUrlFilters(page, activeExpectedFilters);
+
+  await jump(3, 3, 100, 50, [1, 2, 3, 4, 5, 6], 0);
+  return {
+    initialWindow: [1, 2, 3, 4, "gap", 12],
+    centeredWindow: [1, "gap", 5, 6, 7, "gap", 12],
+    edgeWindows: {
+      last: [1, "gap", 11, 12],
+      first: [1, 2, "gap", 12],
+    },
+    jumpClampedToFirstAndLast: true,
+    pageSizeChangePreservedFilters: true,
+    finalPage: 3,
+    finalPageSize: 50,
+  };
+}
+
+async function openCreatedEditor(page, option, field = "from_date") {
+  if (option === 1 || option === 2 || option === 2.5) {
+    const trigger = page.getByRole("button", {
+      name: "Filter Created",
+      exact: true,
+    });
+    if ((await trigger.getAttribute("aria-expanded")) !== "true")
+      await trigger.click();
+    const editor = page.locator('[data-search-grid-menu="from_date"]');
+    await editor.waitFor({ state: "visible" });
+    return editor;
+  }
+  if (option === 3) {
+    const trigger = page.locator(
+      'button[aria-controls="search-option-3-filter-panel"]',
+    );
+    if ((await trigger.getAttribute("aria-expanded")) !== "true")
+      await trigger.click();
+    const editor = page.locator(
+      '#search-option-3-filter-panel [data-search-grid-menu="from_date"]',
+    );
+    await editor.waitFor({ state: "visible" });
+    return editor;
+  }
+
+  const bound = field === "from_date" ? "From" : "Until";
+  await page.locator(`button[aria-label^="Edit Created — ${bound}:"]`).click();
+  const editor = page.locator(`form[aria-label="Edit Created — ${bound}"]`);
+  await editor.waitFor({ state: "visible" });
+  return editor;
+}
+
+function exactDateInput(editor, field = "from_date") {
+  return editor.locator(`input[name="${field}"]`);
+}
+
+async function submitSearch(page, option) {
+  if (option === 4) {
+    const save = page.getByRole("button", {
+      name: "Save changes",
+      exact: true,
+    });
+    if (await save.isVisible()) await save.click();
+  }
+  if (option === 3)
+    await page
+      .locator("#search-option-3-filter-panel")
+      .getByRole("button", { name: "Search", exact: true })
+      .click();
+  else await page.getByRole("button", { name: "Search", exact: true }).click();
+}
+
+async function applyDateChange(
+  page,
+  option,
+  nextFilters,
+  expectedFrom,
+  expectedUntil,
+) {
+  const before = searchRequests(option).length;
+  await submitSearch(page, option);
+  const request = await waitForSearchRequestCount(
+    option,
+    before + 1,
+    `Option ${option} corrected Created filter request`,
+  );
+  activeExpectedFilters = nextFilters;
+  assertPageRequest(request, 0, 50, nextFilters);
+  assertUrlFilters(page, nextFilters);
+  const params = new URLSearchParams(request.search);
+  assert.equal(params.get("from_date"), expectedFrom);
+  assert.equal(params.get("until_date"), expectedUntil);
+  if (option !== 1) {
+    const url = new URL(page.url());
+    assert.equal(url.searchParams.get("page"), "1");
+    assert.equal(url.searchParams.get("page_size"), "50");
+  }
+  return request;
+}
+
+async function assertBlockedDateEdit(
+  page,
+  option,
+  field,
+  invalidValue,
+  expectedProblem,
+) {
+  const editor = await openCreatedEditor(page, option, field);
+  const input = exactDateInput(editor, field);
+  await input.fill(invalidValue);
+  if (option === 4) {
+    await page.waitForFunction((fieldName) => {
+      const element = document.querySelector(
+        `form[aria-label^="Edit Created"] input[name="${fieldName}"]`,
+      );
+      return (
+        element?.getAttribute("aria-invalid") === "true" &&
+        element.closest("form")?.querySelector('button[type="submit"]')
+          ?.disabled
+      );
+    }, field);
+    return { editor, input };
+  }
+
+  const before = searchRequests(option).length;
+  await submitSearch(page, option);
+  await page
+    .getByRole("alert")
+    .filter({ hasText: expectedProblem })
+    .waitFor({ state: "visible" });
+  assert.equal(
+    searchRequests(option).length,
+    before,
+    `Option ${option} blocks ${field} without an API request`,
+  );
+  return { editor: null, input: null };
+}
+
+async function assertCreatedDateEditing(page, option) {
+  const initialFrom = "2026-01-02T03:04:05.123456Z";
+  const initialUntil = "2026-01-03T03:04:05Z";
+  const pickerFrom = "2026-01-02T04:05:06Z";
+  const exactOffset = "2026-01-02T04:06:07.123456+05:30";
+  const pickerSelector =
+    option === 4
+      ? 'input[type="datetime-local"][name="from_date-picker"]'
+      : 'input[type="datetime-local"][data-search-grid-filter-picker="from_date"]';
+
+  let editor = await openCreatedEditor(page, option);
+  const picker = editor.locator(pickerSelector);
+  assert.equal(await picker.inputValue(), "2026-01-02T03:04:05");
+  assert.equal(await exactDateInput(editor).inputValue(), initialFrom);
+  await picker.fill("2026-01-02T04:05:06");
+  assert.equal(await exactDateInput(editor).inputValue(), pickerFrom);
+  let next = { ...activeExpectedFilters, from_date: [pickerFrom] };
+  await applyDateChange(page, option, next, pickerFrom, initialUntil);
+
+  editor = await openCreatedEditor(page, option);
+  await exactDateInput(editor).fill(exactOffset);
+  assert.equal(
+    await editor.locator(pickerSelector).inputValue(),
+    "2026-01-01T22:36:07",
+    "the picker projects an offset timestamp into UTC without changing its exact text",
+  );
+  next = { ...activeExpectedFilters, from_date: [exactOffset] };
+  await applyDateChange(page, option, next, exactOffset, initialUntil);
+
+  const precision = await assertBlockedDateEdit(
+    page,
+    option,
+    "from_date",
+    "2026-01-02T04:06:07.1234567Z",
+    "Invalid from_date",
+  );
+  if (option === 4) {
+    await precision.input.fill(exactOffset);
+    next = { ...activeExpectedFilters, from_date: [exactOffset] };
+    await applyDateChange(page, option, next, exactOffset, initialUntil);
+  } else {
+    editor = await openCreatedEditor(page, option);
+    await exactDateInput(editor).fill(exactOffset);
+    next = { ...activeExpectedFilters, from_date: [exactOffset] };
+    await applyDateChange(page, option, next, exactOffset, initialUntil);
+  }
+
+  const reversed = await assertBlockedDateEdit(
+    page,
+    option,
+    "until_date",
+    "2026-01-01T22:36:07.123455Z",
+    "Invalid date range",
+  );
+  if (option === 4) {
+    await reversed.input.fill(initialUntil);
+    next = { ...activeExpectedFilters, until_date: [initialUntil] };
+    await applyDateChange(page, option, next, exactOffset, initialUntil);
+  } else {
+    editor = await openCreatedEditor(page, option, "until_date");
+    await exactDateInput(editor, "until_date").fill(initialUntil);
+    next = { ...activeExpectedFilters, until_date: [initialUntil] };
+    await applyDateChange(page, option, next, exactOffset, initialUntil);
+  }
+
+  return {
+    pickerControlAndExactText: true,
+    initialPickerUtcProjection: "2026-01-02T03:04:05",
+    pickerSerializesZuluAtSeconds: pickerFrom,
+    exactOffsetAndMicrosecondsPreserved: exactOffset,
+    offsetPickerUtcProjection: "2026-01-01T22:36:07",
+    invalidPrecisionBlockedAndCorrected: true,
+    reversedMicrosecondRangeBlockedAndCorrected: true,
+    unrelatedFiltersAndPageSizePreserved: true,
+  };
+}
+
+async function assertOutOfRangeAndEmptyResults(
+  page,
+  option,
+  routePath,
+  pageOrigin,
+) {
+  const directParams = new URLSearchParams(filters);
+  directParams.set("page", "99");
+  directParams.set("page_size", "25");
+  const directUrl = `${pageOrigin}${routePath}?${directParams}`;
+  const beforeDirect = searchRequests(option).length;
+  const directResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      response.request().method() === "GET" &&
+      url.pathname === searchPath &&
+      url.searchParams.get("offset") === "2450" &&
+      url.searchParams.get("limit") === "25"
+    );
+  });
+  await page.goto(directUrl, { waitUntil: "domcontentloaded" });
+  assert.equal((await directResponse).status(), 200);
+  assertPageRequest(searchRequests(option).at(-1), 2450, 25, expectedFilters);
+  await page.waitForURL(
+    (url) =>
+      url.pathname === routePath &&
+      url.searchParams.get("page") === "12" &&
+      url.searchParams.get("page_size") === "25",
+  );
+  await page.locator("tbody [data-test-result-id]").first().waitFor();
+  await waitForSearchRequestCount(
+    option,
+    beforeDirect + 2,
+    `Option ${option} canonical last-page request`,
+  );
+  let request = searchRequests(option).at(-1);
+  assertPageRequest(request, 275, 25, expectedFilters);
+  assertUrlFilters(page, expectedFilters);
+  assert.equal(
+    await page.locator(".pager .range").innerText(),
+    "Showing 276–300 of 300 results",
+  );
+  await assertPagerPages(page, [1, 11, 12], 1);
+
+  const emptyParams = new URLSearchParams(filters);
+  emptyParams.set("test_cases", "empty-result");
+  emptyParams.set("page", "99");
+  emptyParams.set("page_size", "25");
+  const emptyExpected = Object.fromEntries(
+    filterKeys.map((key) => [
+      key,
+      key === "test_cases" ? ["empty-result"] : expectedFilters[key],
+    ]),
+  );
+  const beforeEmpty = searchRequests(option).length;
+  const emptyResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      response.request().method() === "GET" &&
+      url.pathname === searchPath &&
+      url.searchParams.get("test_cases") === "empty-result" &&
+      url.searchParams.get("offset") === "2450"
+    );
+  });
+  await page.goto(`${pageOrigin}${routePath}?${emptyParams}`, {
+    waitUntil: "domcontentloaded",
+  });
+  assert.equal((await emptyResponse).status(), 200);
+  assertPageRequest(searchRequests(option).at(-1), 2450, 25, emptyExpected);
+  await page.waitForURL(
+    (url) =>
+      url.pathname === routePath &&
+      url.searchParams.get("page") === "1" &&
+      url.searchParams.get("page_size") === "25" &&
+      url.searchParams.get("test_cases") === "empty-result",
+  );
+  await page.locator(".pager").waitFor({ state: "visible" });
+  await waitForSearchRequestCount(
+    option,
+    beforeEmpty + 2,
+    `Option ${option} canonical empty page request`,
+  );
+  request = searchRequests(option).at(-1);
+  assertPageRequest(request, 0, 25, emptyExpected);
+  assertUrlFilters(page, emptyExpected);
+  assert.equal(
+    await page.locator(".pager .range").innerText(),
+    "Showing 0–0 of 0 results",
+  );
+  assert.equal(await page.locator(".pager-jump").count(), 0);
+  assert.deepEqual(
+    await page
+      .locator(".pager select option")
+      .evaluateAll((items) => items.map((item) => item.value)),
+    ["25", "50", "100"],
+  );
+  return {
+    outOfRangePageCanonicalizedToLast: 12,
+    emptyOutOfRangePageCanonicalizedToOne: true,
+    emptyCountRangeAndPageSizeVisible: true,
+    emptyPageJumpOmitted: true,
+  };
 }
 
 async function assertNavigation(page, option) {
@@ -419,6 +850,8 @@ async function assertPrototypeUi(page, option) {
 }
 
 async function editStatusAndApply(page, option) {
+  const pageSize =
+    option === 1 ? null : new URL(page.url()).searchParams.get("page_size");
   if (option === 1 || option === 2 || option === 2.5) {
     await page
       .getByRole("button", { name: "Filter Result status", exact: true })
@@ -461,7 +894,7 @@ async function editStatusAndApply(page, option) {
   const nextFilters = Object.fromEntries(
     filterKeys.map((key) => [
       key,
-      key === "test_result_statuses" ? ["FAILED"] : expectedFilters[key],
+      key === "test_result_statuses" ? ["FAILED"] : activeExpectedFilters[key],
     ]),
   );
   const responsePromise = page.waitForResponse((response) => {
@@ -487,9 +920,11 @@ async function editStatusAndApply(page, option) {
     return option === 1
       ? !url.searchParams.has("limit") && !url.searchParams.has("offset")
       : url.searchParams.get("page") === "1" &&
-          url.searchParams.get("page_size") === "25";
+          url.searchParams.get("page_size") === pageSize;
   });
   await page.locator("tbody [data-test-result-id]").first().waitFor();
+  assertUrlFilters(page, nextFilters);
+  activeExpectedFilters = nextFilters;
   return nextFilters;
 }
 
@@ -650,6 +1085,7 @@ async function assertOptionTableScrolling(page, option) {
 
 async function testOption(page, option, pageOrigin) {
   activeRoute = option;
+  activeExpectedFilters = expectedFilters;
   const routePath =
     option === 1
       ? `${basePath}/test-results`
@@ -723,12 +1159,13 @@ async function testOption(page, option, pageOrigin) {
       () =>
         searchRequests(option).some(
           (request) =>
-            new URLSearchParams(request.search).get("offset") === "50",
+            Number(new URLSearchParams(request.search).get("offset")) > 0,
         ),
-      "Option 1's next 50-row infinite block",
+      "Option 1's next infinite server range",
     );
     const nextBlock = searchRequests(option).find(
-      (request) => new URLSearchParams(request.search).get("offset") === "50",
+      (request) =>
+        Number(new URLSearchParams(request.search).get("offset")) > 0,
     );
     assert.ok(nextBlock);
     const nextRange = new URLSearchParams(nextBlock.search);
@@ -753,6 +1190,8 @@ async function testOption(page, option, pageOrigin) {
     scrolling = await assertOptionTableScrolling(page, option);
   }
 
+  const pager = option === 1 ? null : await assertPagerNavigation(page, option);
+  const dates = await assertCreatedDateEditing(page, option);
   const updatedFilters = await editStatusAndApply(page, option);
   const appliedRequests = searchRequests(option);
   const appliedRequest = appliedRequests.at(-1);
@@ -760,13 +1199,13 @@ async function testOption(page, option, pageOrigin) {
   assertCanonicalFilters(appliedRequest, updatedFilters);
   const appliedParams = new URLSearchParams(appliedRequest.search);
   assert.equal(appliedParams.get("offset"), "0");
-  assert.equal(appliedParams.get("limit"), option === 1 ? "50" : "25");
+  assert.equal(appliedParams.get("limit"), "50");
   if (option === 1) {
     assert.equal(appliedParams.get("include_count"), "true");
   } else {
     assert.equal(appliedParams.get("include_count"), "true");
     assert.equal(new URL(page.url()).searchParams.get("page"), "1");
-    assert.equal(new URL(page.url()).searchParams.get("page_size"), "25");
+    assert.equal(new URL(page.url()).searchParams.get("page_size"), "50");
   }
   const afterApplyIds = await visibleResultIds(page);
   assert.deepEqual(
@@ -776,6 +1215,15 @@ async function testOption(page, option, pageOrigin) {
   );
 
   const actions = await assertRunAndLazyDetails(page, option, requests);
+  const pagingEdges =
+    option === 1
+      ? null
+      : await assertOutOfRangeAndEmptyResults(
+          page,
+          option,
+          routePath,
+          pageOrigin,
+        );
   assert.equal(
     pageErrors.length,
     0,
@@ -797,6 +1245,9 @@ async function testOption(page, option, pageOrigin) {
       canonicalFilterKeys: filterKeys.length,
       serverResponseOrderRetained: true,
     },
+    pager,
+    dates,
+    pagingEdges,
     scrolling,
     actions,
     pageErrors: [],
@@ -817,6 +1268,7 @@ try {
   });
   const context = await browser.newContext({
     viewport: { width: 1280, height: 1000 },
+    timezoneId: "America/Los_Angeles",
   });
   await context.route("**/*", async (route) => {
     const request = route.request();
@@ -854,11 +1306,13 @@ try {
     } else if (url.pathname === searchPath) {
       const offset = Number(url.searchParams.get("offset") ?? 0);
       const limit = Number(url.searchParams.get("limit") ?? 50);
+      const count =
+        url.searchParams.get("test_cases") === "empty-result" ? 0 : rows.length;
       body = {
-        count: rows.length,
+        count,
         offset,
         limit,
-        rows: rows.slice(offset, offset + limit),
+        rows: count === 0 ? [] : rows.slice(offset, offset + limit),
       };
     } else if (url.pathname.startsWith(detailPath)) {
       const id = Number(url.pathname.slice(detailPath.length));

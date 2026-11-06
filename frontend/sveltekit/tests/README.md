@@ -46,38 +46,56 @@ npm run test:issues-browser
 npm run test:issues-detail-browser
 ```
 
-| Command                                               | Coverage boundary                                                                                                                                                                                                                     |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run test:issues-browser`                         | Issues list/search/status/paging/Add smoke                                                                                                                                                                                            |
-| `npm run test:issues-detail-browser`                  | Rule criteria/View filters, confirmed enable/disable, held responses, permission failures, native delete Modal light/dark/desktop/narrow keyboard, pending locks and focus fallback                                                   |
-| `node --test tests/issues-filters.browser.js`         | List URL/history/disclosure, searchable project selection, partial discovery, independent streams, focus-intent races                                                                                                                 |
-| `node --test tests/issues-focus.browser.js`           | Actual Tab/Space/Enter continuity for source/status/family/Search; held result/discovery paging and retry, surviving invokers/current-region fallbacks, no-steal and superseding/query/session/lifetime ownership                     |
-| `node --test tests/add-issue.browser.js`              | Add validation, confirmed IDs/loaded-only feedback, pending/cancel/session/navigation, native modal geometry                                                                                                                          |
-| `node tests/issue-results.browser.js`                 | 625 server-shaped matches, bounded paging/cache, pinned draft/Apply/date filters, lazy literal Details, stale bodies/A/B/history, access failures and actual configured artefact execution/result navigation from both View Run links |
-| `node --test tests/issue-auto-rerun.browser.js`       | Fresh permissions, confirmed state, pending/failure/session and GET/PATCH races                                                                                                                                                       |
-| `node --test tests/issue-reruns.browser.js`           | Frozen all-match create/delete scope, effective preview/write/inspection predicates, protected real Search popup, options, permissions, held/ambiguous writes and focus                                                               |
-| `node --test tests/attachment-rule-target.browser.js` | One-shot rule attention through delayed loading, history, issue switching and rule actions                                                                                                                                            |
-| `node tests/search-grid-mocked.browser.js`            | Read-only global Search, all columns/editors, Architecture/Environment order, drafts/history, full-value dialogs, Details and scrolling                                                                                               |
-| `node tests/search-options-mocked.browser.js`         | Options 1, 2, 2.5, 3 and 4 Chromium comparison: navigation, distinct UIs, exact filters, pagination, row order, Run/Details; actual table wheel scrolling and visible pager for Options 2, 2.5, 3 and 4; synthetic APIs only          |
-| `node tests/search-result-details-fixture.browser.js` | Actual Details component with long literal logs/metadata, light/dark viewport/zoom matrix and single-body scrolling; no API/SSO                                                                                                       |
+| Command                                               | Coverage boundary                                                                                                                                                                                                                             |
+| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run test:issues-browser`                         | Issues list/search/status/paging/Add smoke                                                                                                                                                                                                    |
+| `npm run test:issues-detail-browser`                  | Rule criteria/View filters, confirmed enable/disable, held responses, permission failures, native delete Modal light/dark/desktop/narrow keyboard, pending locks and focus fallback                                                           |
+| `node --test tests/issues-filters.browser.js`         | List URL/history/disclosure, searchable project selection, partial discovery, independent streams, focus-intent races                                                                                                                         |
+| `node --test tests/issues-focus.browser.js`           | Actual Tab/Space/Enter continuity for source/status/family/Search; held result/discovery paging and retry, surviving invokers/current-region fallbacks, no-steal and superseding/query/session/lifetime ownership                             |
+| `node --test tests/add-issue.browser.js`              | Add validation, confirmed IDs/loaded-only feedback, pending/cancel/session/navigation, native modal geometry                                                                                                                                  |
+| `node tests/issue-results.browser.js`                 | 625 server-shaped matches, bounded paging/cache, pinned draft/Apply/date filters, lazy literal Details, stale bodies/A/B/history, access failures and actual configured artefact execution/result navigation from both View Run links         |
+| `node --test tests/issue-auto-rerun.browser.js`       | Fresh permissions, confirmed state, pending/failure/session and GET/PATCH races                                                                                                                                                               |
+| `node --test tests/issue-reruns.browser.js`           | Frozen all-match create/delete scope, effective preview/write/inspection predicates, protected real Search popup, options, permissions, held/ambiguous writes and focus                                                                       |
+| `node --test tests/attachment-rule-target.browser.js` | One-shot rule attention through delayed loading, history, issue switching and rule actions                                                                                                                                                    |
+| `node tests/search-grid-mocked.browser.js`            | Read-only global Search, all columns/editors, Architecture/Environment order, drafts/history, full-value dialogs, Details and scrolling                                                                                                       |
+| `node tests/search-options-mocked.browser.js`         | Options 1, 2, 2.5, 3 and 4 Chromium comparison: actual routes, distinct UIs, exact date/filter contracts, rich pager, row order, Run/Details; actual table wheel scrolling and visible pager for Options 2, 2.5, 3 and 4; synthetic APIs only |
+| `node tests/search-result-details-fixture.browser.js` | Actual Details component with long literal logs/metadata, light/dark viewport/zoom matrix and single-body scrolling; no API/SSO                                                                                                               |
 
 ### Cross-option Search browser QA
 
 `tests/search-options-mocked.browser.js` starts and closes its own loopback Vite
-server and runs the five real SvelteKit routes in Chromium. It defaults to the
+server and runs the five actual SvelteKit routes in Chromium. It defaults to the
 `/custom/base` deployment path; set `BASE_PATH` to check another base. All
 Test Observer API requests (including `/v1/users/me`, result ranges, Details,
 and filter-label lookups) are intercepted and answered with synthetic fixtures.
-The mock intentionally returns the same rows for changed filters, making local
-filtering or sorting observable. It uses no live API, SSO, credentials, database,
-screenshots, or production-identifying data. This browser check complements the
-Options 2, 2.5, 3 and 4 unit/mounted pagination tests rather than replacing
-them. Option 2.5 adds a distinct two-row wide-table header while sharing the
-same exact server search and pagination contracts.
-For Options 2, 2.5, 3 and 4, it also verifies that synthetic rows overflow the
-table vertically and horizontally, real Chromium wheel input scrolls both axes
-inside the table without scrolling the document or main content, and the pager
-remains in the viewport. Option 1 is not changed by this scroll check.
+The runner fails on an unmocked API request or uncaught page error. It uses no
+live API, SSO, credentials, database, screenshots, or production-identifying
+data. The synthetic server returns 300 newest-first-shaped rows with result
+status `FAILED` despite the requested `PASSED` filter, and does not change order
+or rows when filters change; this makes local filtering or sorting observable.
+An explicit zero-result query exercises empty-count behavior. The browser check
+complements the Options 2, 2.5, 3 and 4 unit/mounted pagination tests rather than
+replacing them.
+
+The route comparison checks Option 1's 23-column order, Option 2's unchanged
+header-filter layout, Option 2.5's separate aligned second filter row and actual
+`/test-results/option-2-5` route, and the ten-column Created-first compact tables
+for Options 3 and 4. Every variant is checked for its exact 19-key filter request,
+synthetic contradictory status, stable API row order, configured base-path Run
+URL and Details fetched only on demand. Created-date browser coverage verifies
+the native UTC `datetime-local` picker and exact-text editor, UTC projection,
+picker `Z` serialization, exact offset/microsecond preservation, invalid
+precision and reversed-range blocking, then exact corrected requests while
+preserving other filters and `page_size` where applicable.
+
+For Options 2, 2.5, 3 and 4, the runner checks the page-window center and edges,
+numeric jumps and lower/upper clamping, exact range/count plus
+`offset`/`limit`/`include_count`, filter and page-size URL preservation, direct
+out-of-range canonicalization, and zero-count page-one behavior. Synthetic rows
+overflow the table vertically and horizontally; real Chromium wheel input must
+scroll both axes inside the table without scrolling the document or main content,
+and the pager must remain in the viewport. Option 1 is not changed by this scroll
+check and retains infinite range loading.
 
 Playwright Core and Chromium must already be available externally. Neither is
 added to the project manifest or lockfile. For example:

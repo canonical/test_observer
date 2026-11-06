@@ -3,13 +3,14 @@
 
 # Test result search
 
-`/test-results` is a read-only search page for the current experiment. It opens
-with the API's newest recent results (the first 50-row block, offset 0), and
-supports server-backed exact filters, infinite scrolling, Run links and
-on-demand Details for loaded rows. The applied query lives in the URL, so direct links, reloads, and browser
-back/forward restore the search. The Search page has no row selection or mutation
-actions; reusable issue/rerun/rule components remain available to other workflows.
-This is the canonical SvelteKit search guide.
+`/test-results` is the canonical read-only Search route for the current
+experiment. Five routes compare its presentations: Option 1 is the custom
+infinite-scroll search; Options 2, 2.5, 3 and 4 are page-based alternatives. All
+support the same server-backed exact filters, Run links and on-demand Details.
+Applied filters and, for Options 2, 2.5, 3 and 4, page state live in the URL, so direct links,
+reloads and browser back/forward restore the search. Search has no row selection
+or mutation actions; reusable issue/rerun/rule components remain available to
+other workflows. This is the canonical SvelteKit Search guide.
 
 ## Search prototype routes (Options 1–4 and 2.5)
 
@@ -17,29 +18,31 @@ The five prototype routes share the same exact server-side Search filters and
 read-only result actions, but intentionally compare different table/filter
 presentations. They are not expected to look or behave identically as tables:
 
-| Option | Route                      | Prototype presentation and pagination                                                                                                                                                                                                              |
-| ------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1      | `/test-results`            | Existing SvGrid table with 23 columns, 18 column-filter editors, and infinite server range requests. The URL's legacy `limit`/`offset` values are stripped; they do not control the grid. SvGrid requests its own ranges in default 50-row blocks. |
-| 2      | `/test-results/option-2`   | Pragma wide Table with 23 columns and the exact-filter controls in the relevant column headers.                                                                                                                                                    |
-| 2.5    | `/test-results/option-2-5` | Pragma wide Table with 23 columns and a dedicated second `<thead>` row of exact-filter controls aligned beneath their field-label columns.                                                                                                         |
-| 3      | `/test-results/option-3`   | Pragma SidePanel filter surface with a compact table of nine Flutter-style columns.                                                                                                                                                                |
-| 4      | `/test-results/option-4`   | Historical-style editable filter chips with a compact table of the same nine Flutter-style columns.                                                                                                                                                |
+| Option | Route                      | Presentation                                                                                                                                                                                                                  |
+| ------ | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1      | `/test-results`            | Custom SvGrid with 23 columns, 18 exact-filter editors and infinite server range requests. Created is the third column. The URL's legacy `limit`/`offset` values are stripped; SvGrid requests its own default 50-row blocks. |
+| 2      | `/test-results/option-2`   | Pragma wide Table with 23 columns and the existing exact-filter controls in the relevant column headers. Created is third. This header-filter layout is unchanged.                                                            |
+| 2.5    | `/test-results/option-2-5` | Pragma wide Table with 23 columns and a dedicated second `<thead>` row of exact-filter controls aligned beneath their field-label columns. Created is third. This is a separate route and presentation from Option 2.         |
+| 3      | `/test-results/option-3`   | Pragma compact Table with 10 columns, Created first, and a SidePanel filter surface.                                                                                                                                          |
+| 4      | `/test-results/option-4`   | Pragma compact Table with the same 10 columns and Created-first order, plus historical-style editable filter chips.                                                                                                           |
 
-Options 2, 2.5, 3 and 4 share URL presentation state: `page` is 1-based and defaults to 1;
-`page_size` defaults to 50 and accepts 25, 50, or 100. A page request maps to
-API `offset=(page - 1) * page_size` and `limit=page_size`, and asks the API for
-the exact count with `include_count=true`. Applying a filter resets `page` to 1
-while retaining `page_size`. Option 1 does not use this presentation state: the browser's
-infinite scroll requests SvGrid ranges, strips legacy URL `limit`/`offset`, and
-starts with `offset=0&limit=50`.
+Options 2, 2.5, 3 and 4 share URL presentation state: `page` is 1-based and
+defaults to 1; `page_size` defaults to 50 and accepts 25, 50, or 100. A request
+maps to API `offset=(page - 1) * page_size`, `limit=page_size`, and
+`include_count=true` so the page can show the exact range and pager. Page and
+page-size navigation preserve every filter; changing page size resets to page 1,
+and applying a filter also resets `page` to 1 while retaining `page_size`.
+Option 1 does not use this presentation state: its infinite scroll strips legacy
+URL `limit`/`offset` and starts with `offset=0&limit=50`.
 
 Options 2, 2.5, 3 and 4 show the exact result range, Previous/Next controls,
-compact numbered page windows, and a numeric Go to page form. The page window
-shows every page for up to seven pages and otherwise keeps the first, current
-neighbors and last page with ellipses for gaps. Once the exact count arrives, an
-out-of-range direct URL is moved to the last valid page (page 1 for an empty
-result); an empty result shows `0–0 of 0`, keeps the page-size selector, and has
-no page-jump target.
+compact numbered page windows, a numeric **Go to page** form, and a 25/50/100
+page-size selector. The window shows every page when there are at most seven;
+otherwise it keeps the first, current page and its neighbors, and last page with
+ellipses for gaps. Numeric jumps clamp to the valid range. Once the exact count
+arrives, an out-of-range direct URL is canonicalized to the last valid page (page
+1 for an empty result). An empty result shows `0–0 of 0`, keeps the page-size
+selector, and has no page-jump target.
 
 Every option carries the same 19 canonical exact filters to
 `/v1/test-results/search-page`: `families`, `test_result_statuses`,
@@ -57,18 +60,22 @@ execution/result deep links, and Details is fetched lazily for a selected row.
 API authorization remains authoritative for result and Details reads; 401/403
 responses are revalidated against the current session and presented as the
 appropriate login, forbidden, or session-check state. These shared contracts do
-not make the presentations equivalent: Options 1–2 and 2.5 show the wide
-23-column table with different filter/table mechanics; Option 2 retains its
-column-header filters, while Option 2.5 puts discoverable field-specific filter
-triggers in a separate second header row. Options 3–4 show only nine compact
-Flutter-style columns and expose filters in a SidePanel or editable chips,
-respectively.
+not make the presentations equivalent. Options 1, 2 and 2.5 use the wide
+23-column table; Option 2 retains its unchanged column-header filters, while
+Option 2.5 puts the same exact-filter triggers in a dedicated second header row.
+Options 3 and 4 use a 10-column compact table with Created first and expose
+filters in a SidePanel or editable chips, respectively. All 19 filters and all
+sorting/filtering remain server-side; there is no client-only filtering or
+sorting of loaded rows.
+The compact columns are Created, Artefact, Test Case, Test Execution ID, Status,
+Track, Version, Environment, Test Plan and Actions. The wide tables keep their
+23-column order, including Run, Details and Created as the first three columns.
 
 The opt-in cross-option browser QA uses actual Chromium and mocks every API call
 with synthetic loopback fixtures. It does not require or contact a live API,
 SSO service, database, or credentials and is not live integration evidence.
 
-## Column filters and applying a search
+## Wide-table column filters (Options 1, 2 and 2.5)
 
 On Option 1, all 18 filter groups start in their own SvGrid column header and open
 an anchored menu attached to that header. Option 2 keeps its existing
@@ -77,8 +84,10 @@ filter triggers in a second `<thead>` row directly beneath the 23 field labels;
 nonfilterable action/display columns remain empty in that row. Created is one
 group with inclusive From and Until bounds. The Search URL/API contract accepts
 all 19 canonical filter keys; every key has an exact editor. Conditions are sent
-to the server and are not evaluated against only the loaded blocks. There is no
-**Add filter** picker, condition-chip row, or detached filter panel.
+to the server and are not evaluated against only the loaded blocks. These
+wide-table variants do not use an **Add filter** picker, condition-chip row, or
+detached filter panel; Options 3 and 4 use the distinct compact filter surfaces
+described below.
 
 Column menus update a single shared draft directly. High-cardinality Artefact,
 Environment, Test Case and Test Plan values reuse their lookup APIs; a suggestion
@@ -87,7 +96,8 @@ exact text lists accept comma-separated values. Neither editing nor suggestion
 lookup fetches test results or changes the URL.
 Selected values can be removed individually or cleared from their column menu.
 
-Only one column menu is open at a time, without expanding the page layout.
+For header-based filtering (Options 1, 2 and 2.5), only one column menu is open
+at a time, without expanding the page layout.
 Placement is anchored to its trigger within the visible viewport, independent of
 the result grid's document height. It follows scrolling/resizing and scrolls
 internally when the available space is short, keeping all actions reachable.
@@ -100,23 +110,38 @@ closes it without stealing focus from the clicked control. Search menus write
 the shared draft as values are selected; pending suggestion query text is not a
 selected value. Tab follows normal browser order; Enter activates a focused
 button, and Enter in a suggestion query never selects or saves implicitly.
-Backend query URL changes close and reset transient menus; table-view-only URL
-changes preserve the column drafts, open menu and keyboard focus.
+Backend query URL changes close and reset transient menus; Option 1's
+table-view-only URL changes preserve its column drafts, open menu and keyboard
+focus.
 
-**Search** applies the entire column-filter draft, updates the URL,
-purges the block cache and restarts at row 0. Column-menu edits never fetch.
+**Search** applies the entire column-filter draft and updates the URL. On Option
+1 it purges the range cache and restarts at row 0; on page-based options it
+resets to page 1 while retaining `page_size`. Column-menu edits never fetch.
 **Changes not applied** marks a draft that differs from the URL, and existing
 results are labelled as belonging to the previous query. Lookup text that has
 not been explicitly selected or added is not part of the draft; all column-menu
 selections are applied together when Search is selected.
 
-**Clear all** immediately removes the URL query, column filters and table view, purges all
-blocks and loads the unfiltered recent range (limit 50, offset 0). Removing the
+On Option 1, **Clear all** immediately removes the URL query, column filters and
+table view, purges all blocks and loads the unfiltered recent range
+(`limit=50`, `offset=0`). On Options 2, 2.5, 3 and 4 it clears filters and starts an
+unfiltered page-one request while retaining a valid `page_size`. Removing the
 last selected value instead remains a draft until Search is selected; Search
-then clears the applied query and loads that same recent range. A URL with no filters, or only
-presentation parameters, is a valid unfiltered recent-results request.
+then clears the applied query. A URL with no filters, or only presentation
+parameters, is a valid unfiltered recent-results request.
 
-## Grid column filters
+## Compact filters (Options 3 and 4)
+
+Option 3's **Filters** button opens a SidePanel with the shared exact editors for
+all 18 filter groups; its footer **Search** applies the draft, while **Clear all**
+clears the query. Option 4 uses **Add filter** to select a canonical field and
+editable chips to review, edit or remove active conditions. A chip's **Save
+changes** updates the draft; the page-level **Search** is still required to apply
+it. Created From and Until are independently editable bounds. Both compact
+surfaces serialize the same 19 canonical exact filters as the wide tables and
+never filter or sort only the rows already in memory.
+
+## Option 1 filter and row mapping (wide-table columns shared)
 
 | Column/filter      | URL/API key               | Editor and API mapping                                                                                        |
 | ------------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------- |
@@ -139,7 +164,8 @@ presentation parameters, is a valid unfiltered recent-results request.
 | Reviewers          | `reviewer_ids`            | Specific positive IDs or mutually exclusive `any` / `none`; user suggestions.                                 |
 | Execution Metadata | `execution_metadata`      | Literal category/value pairs; known map loads when its editor opens.                                          |
 
-The 23 visible columns are ordered Run, Details, Created, Family, Artefact,
+The 23 visible wide-table columns (Options 1, 2 and 2.5) are ordered Run,
+Details, Created, Family, Artefact,
 Stage, Archived, Test Case, Category, Execution ID, Execution Status, Rerun
 Requested, Latest Execution, Result status, Track, Version, Architecture,
 Environment, Test Plan, Template ID, Issues, Reviewers and Execution Metadata.
@@ -148,24 +174,27 @@ suffix are omitted. Issues, Reviewers and Execution Metadata are the final
 filter-bearing columns. Category, Execution ID and Architecture are separate
 display-only columns.
 
-All 18 filter groups have active visible header editors: exact/set lists,
-inclusive Created bounds, nullable boolean equality (Any/No/Yes), issue/reviewer
-ID or `any`/`none` modes, and literal metadata category/value pairs. The table
-above describes the full visible editor and row-value association; these
-conditions are not API-only. Contains/prefix operators are not offered or
+All 18 filter groups have active exact editors in the wide-table header surface
+(Option 2.5 places them in its second header row): exact/set lists, inclusive
+Created bounds, nullable boolean equality (Any/No/Yes), issue/reviewer ID or
+`any`/`none` modes, and literal metadata category/value pairs. The table above
+describes the full editor and row-value association; these conditions are not
+API-only. Options 3 and 4 expose the same exact filter model in their SidePanel
+and chips, respectively. Contains/prefix operators are not offered or
 translated. High-cardinality values are not inferred from cached result blocks.
 Category, Execution ID and Architecture remain display-only because the endpoint
 has no corresponding predicates. Run and Details are nonfilterable actions.
 Global text search remains disabled because the endpoint has no global-search
 parameter.
 
-Issues, Reviewers and Execution Metadata have active column editors and are sent
-with every Search block request; they are not locally applied to loaded rows.
+Issues, Reviewers and Execution Metadata have active wide-table editors and are
+sent with every Search request; they are not locally applied to loaded rows.
 Compact issue ID/key/title summaries, reviewer ID/name/Launchpad-handle
 summaries, and every literal metadata category/value pair are present in the row
-response. Reviewer email and other profile fields are excluded. The Issues,
-Reviewers and Execution Metadata cells render every item as a compact preview,
-but SvGrid keeps row height fixed and clips overflowing preview content. Each
+response. Reviewer email and other profile fields are excluded. In Option 1's
+wide grid, the Issues, Reviewers and Execution Metadata cells render every item
+as a compact preview, but SvGrid keeps row height fixed and clips overflowing
+preview content. Each
 cell therefore also has a keyboard-accessible **View all …** affordance that
 opens one shared, responsive design-system modal with every complete item and
 wrapping. Issue key/title entries link to the internal issue-detail route under
@@ -179,9 +208,9 @@ to the trigger when it still represents the same row, or to the grid region when
 it does not. Opening that affordance does not fetch Details. Details remain
 on-demand and continue to use the separate modal endpoint.
 
-## Issue, reviewer and metadata filter behavior
+## Shared issue, reviewer and metadata filter behavior
 
-| Column             | URL/API key          | Header-menu contract                                                                                                       |
+| Filter             | URL/API key          | Editor contract                                                                                                            |
 | ------------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | Issues             | `issues`             | Positive safe integer IDs with rich suggestions/manual IDs, **Has any issue** (`any`), or **Has no issues** (`none`).      |
 | Reviewers          | `reviewer_ids`       | Positive safe integer IDs with rich suggestions/manual IDs, **Has any reviewer** (`any`), or **Has no reviewer** (`none`). |
@@ -241,9 +270,23 @@ The editor accepts separate category/value inputs, not wire encoding or delimite
 parsing. Categories and values each require 1–200 Unicode characters. Invalid
 encoding, UTF-8 or lengths block the search locally.
 
-The active grid's **Created — From/Until** bounds apply inclusively to `TestResult.created_at`.
+The **Created — From/Until** bounds apply inclusively to `TestResult.created_at`
+in all five variants. Options 1–3 expose the same native UTC picker and exact
+timestamp text controls in their filter editors; Option 4 exposes the same date
+editor through its editable filter chips. The picker is a convenience for
+choosing a new second-precision UTC instant, not the source of truth for a
+restored timestamp.
+
 The inputs retain the exact timestamp text, not a local-time conversion or
-rounding. Timestamps must be valid
+rounding. The UTC picker projects a valid bound into UTC
+`YYYY-MM-DDTHH:mm:ss` and omits fractional seconds only in that display. Merely
+opening or leaving the picker unchanged does not alter the exact timestamp.
+Changing the picker writes the selected second as an ISO timestamp ending in
+`Z`. The exact-text control accepts explicit `Z` or `±HH:MM` offsets and
+preserves the supplied offset and fractional digits exactly through the URL and
+API request.
+
+Timestamps must be valid
 Gregorian ISO instants (`YYYY-MM-DDTHH:mm:ss[.fraction]Z` or an explicit `±HH:MM`
 offset), with no rollover or assumed local timezone. Bounds may be one-sided;
 From must not exceed Until, comparing offsets and fractional precision without
@@ -252,6 +295,11 @@ microsecond precision: nonzero digits beyond six fractional places are rejected;
 additional trailing zeros are allowed. Input timestamps are retained, never
 rounded or silently normalized. Either bound can be active by itself; a range
 condition is meaningful even when it is the only filter.
+
+Invalid timestamp precision and reversed ranges block the Search request until
+the editor is corrected. Corrections send the exact corrected text while keeping
+unrelated filters and (for Options 2, 2.5, 3 and 4) `page_size`; a successful filter change
+starts at page 1.
 
 ## URL and result contract
 
@@ -264,12 +312,14 @@ repeated parameters. For example,
 `?artefacts=one,two&test_result_statuses=FAILED` requests
 `artefacts=one&artefacts=two&test_result_statuses=FAILED` from `/v1/test-results/search-page`.
 
-The Search page uses the dedicated `/v1/test-results/search-page` endpoint; the
-existing `/v1/test-results` contract remains unchanged for other clients. Its
-23-column grid uses compact row values for Family, Stage, Archived, Execution
+All five options use the dedicated `/v1/test-results/search-page` endpoint; the
+existing `/v1/test-results` contract remains unchanged for other clients. The
+endpoint returns compact row values for Family, Stage, Archived, Execution
 Status, Rerun Requested, Latest Execution, Template ID, Issues, Reviewers and
 Execution Metadata, in addition to the existing result/execution/artefact
-values. Stage `""` means explicitly empty, not unavailable. Rerun state is
+values. Option 1's 23-column grid presents these values alongside its full
+filter columns; the paginated wide and compact tables present their documented
+column subsets. Stage `""` means explicitly empty, not unavailable. Rerun state is
 scoped to the test-plan, artefact-build and environment group. Latest means no
 higher-ID execution exists in that same group. Issue summaries contain only ID,
 key and title; reviewer summaries contain ID, name and optional Launchpad handle,
@@ -277,27 +327,29 @@ never email. Metadata returns literal category/value pairs sorted by category
 then value. These lightweight summaries omit full issue/profile/detail records;
 the potentially large IO log and expanded issue details are not included in each
 row.
-The first range request asks for the exact count. Later
-range requests set `include_count=false`; the
-endpoint returns `count: null`, and the page reuses the exact count cached for
-the current filter set. Changing filters starts a new search and obtains a
-fresh count.
+For Option 1, the first range request asks for the exact count. Later range
+requests set `include_count=false`; the endpoint returns `count: null`, and the
+page reuses the exact count cached for the current filter set. Changing filters
+starts a new search and obtains a fresh count. Options 2, 2.5, 3 and 4 request
+`include_count=true` on each page so their range, page window and pager use the
+server's exact total.
 
 Opening Details fetches `/v1/test-results/search-page/{test_result_id}`. That
 response contains only modal data, including the I/O log; it is not downloaded
 for every table row.
 
-The additional `view` parameter carries only column visibility (see below). It
-is never sent to the API. Unknown URL keys, invalid result statuses and
+Option 1's additional `view` parameter carries only column visibility (see
+below) and is never sent to the API. Unknown URL keys, invalid result statuses and
 malformed active conditions block the request with a
 visible notice rather than silently broadening the query. Raw malformed/unknown
 URL provenance is preserved across unrelated edits and Search. Search does **not**
 silently drop unsupported constraints. Malformed active fields with a current
-column editor have explicit replacement/removal controls; hidden malformed fields
+filter editor have explicit replacement/removal controls; hidden malformed fields
 must be corrected in the URL or removed with **Clear all**. Invalid result
-statuses can be explicitly cleared from their column menu. While a query is blocked, the empty grid remains mounted
-with its active column-header menus, so these repairs remain reachable without
-requesting or locally filtering results. A repair/removal remains a draft until
+statuses can be explicitly cleared from the current variant's filter surface.
+While a query is blocked, the empty results table remains mounted with its filter
+controls, so repairs remain reachable without requesting or locally filtering
+results. A repair/removal remains a draft until
 Search. Unknown field names must be corrected/removed in the URL, or removed with
 **Clear all**. Dismissing a menu does not apply the query; previously selected
 values remain in the draft for Search.
@@ -306,61 +358,65 @@ the Search URL parser and repeated API request serializer. Malformed values stil
 block requests and show an actionable **Search not applied** alert; **Clear all**
 removes the constraints and loads recent results.
 
-Legacy `limit` and `offset` URL parameters are deliberately ignored and removed
-with a replace-only URL update. They are not filters, do not block malformed
-condition checks, and never contribute to a grid request. This preserves all
-condition and `view` parameters while migrating older page links. Every block
-request uses SvGrid's exact range: `offset=startRow` and
+On Option 1, legacy `limit` and `offset` URL parameters are deliberately ignored
+and removed with a replace-only URL update. They are not filters, do not block
+malformed condition checks, and never contribute to a grid request. This
+preserves all condition and `view` parameters while migrating older page links.
+Every Option 1 block request uses SvGrid's exact range: `offset=startRow` and
 `limit=endRow-startRow`. Blocks are 50 rows (and cannot exceed the API maximum
 of 1000); the initial request is `offset=0&limit=50`.
 
-SvGrid requests blocks for the visible range and scrolls through one result set;
+Option 1's SvGrid requests blocks for the visible range and scrolls through one
+result set;
 it keeps at most eight blocks cached and runs at most two requests concurrently.
-Every column-header menu writes the same canonical draft query. Every block
-repeats all applied conditions.
-SvGrid's built-in local sorting, generic operator menus and global search remain
-disabled so unloaded rows cannot be silently omitted or reordered. Menus are
-rendered by each column's supported header template. The grid uses SvGrid 3.0.20's
+Each variant's filter surface writes the same canonical draft model, and every
+page/block request repeats all applied conditions. Option 1's built-in SvGrid
+local sorting, generic operator menus and global search remain disabled so
+unloaded rows cannot be silently omitted or reordered. Its menus are rendered by
+each column's supported header template. The grid uses SvGrid 3.0.20's
 `externalFilter`/`onFiltersChange` contract to report draft filter state;
 the page adapts that state into the existing API query and never tests only
 loaded blocks. Generic operator menus are not exposed because this version has no
 public per-column operator allowlist and choices such as contains, prefix, regex
 or inequality cannot be represented by this endpoint's exact-match contract.
-Canonical conditions retain their field types: exact lists, nullable booleans,
-ID lists or `any`/`none`, metadata category/value pairs, and inclusive date
-bounds. The adapter only transports filter state; it never evaluates predicates
-against cached rows.
-The API's `count` is the server total and defines the end of the list; a short
-final block is also rendered correctly. Results retain backend newest-first
-order (created time, then ID). The API does not provide a snapshot across blocks,
-so concurrent ingestion/deletion can shift offset boundaries;
-reapplying Search or Clear all starts a fresh range cache.
+Across all five options, canonical conditions retain their field types: exact
+lists, nullable booleans, ID lists or `any`/`none`, metadata category/value
+pairs, and inclusive date bounds. No option evaluates predicates against loaded
+rows or locally sorts the API response.
+The API's `count` is the server total and defines the end of a page or Option 1's
+list; short final pages/blocks are rendered correctly. Results retain backend
+newest-first order (created time, then ID). The API does not provide a snapshot
+across offset requests, so concurrent ingestion/deletion can shift boundaries;
+reapplying Search or Clear all starts a fresh result request.
 View Run uses the configured family route and the SvelteKit
 `testExecutionId`/`testResultId` deep links (including the deployment base path).
-If a result's family has no configured route, the grid shows Run unavailable.
+If a result's family has no configured route, the results table shows Run
+unavailable.
 
-## Loaded result details
+## Result details and actions (all options)
 
-The grid has 23 visible columns in the order listed above: Run, Details, 18
-filter-bearing columns (Created is one range group), Category, Execution ID and
-Architecture. The filter/display columns keep Category beside Test Case and
-place Architecture immediately before Environment. Created is
-shown as UTC `YYYY-MM-DD HH:mm:ss`, without fractional seconds or a timezone
-suffix. Run and Details are the leading action columns and are not filterable;
-Details is also not sortable. There is no selection checkbox. Details is a
-dense, keyboard-accessible Pragma action. It does not change the search, table
-view or URL. One reusable native Pragma modal displays the exact loaded result by test
-result ID, including after infinite scrolling. Opening Details fetches that
-result's detail response on demand; closing it does not fetch. Grid-local
-sorting/filtering and global text search are disabled; active column filters
-are applied externally through server queries.
+The wide tables (Options 1, 2 and 2.5) have the 23 columns in the order listed
+above: Run, Details, 18 filter-bearing columns (Created is one range group),
+Category, Execution ID and Architecture. The filter/display columns keep Category
+beside Test Case and place Architecture immediately before Environment. In these
+wide tables Run and Details are the leading nonfilterable actions. Options 3 and
+4 instead keep the 10 documented compact columns with Created first and Details
+and Run in the trailing Actions column. All variants display Created as UTC
+`YYYY-MM-DD HH:mm:ss`, without fractional seconds or a timezone suffix. No
+variant has row selection, local sorting/filtering or global text search.
+
+Details is a dense, keyboard-accessible Pragma action. It does not change the
+search, table view or URL. One reusable native Pragma modal displays the exact
+loaded result by test result ID, including after paging or infinite scrolling.
+Opening Details fetches that result's detail response on demand; closing it does
+not fetch. Active filters are always applied through server queries.
 
 **Test result details** contains Test Case (name, category, template ID, status),
 Artefact (configured family display name, name, version, track, build architecture)
 and Test Execution (ID, test plan, environment, status, execution creation time).
 The Details section's Created value is the **execution's** timestamp, displayed
 in the browser's local time with a timezone label and the original timestamp on
-hover. It is distinct from the grid's Created column and date filter, which use
+hover. It is distinct from the results table's Created column and date filter, which use
 `TestResult.created_at`. Scalars use vertically stacked,
 top-aligned label/value rows: a compact label column and the remaining modal width
 for naturally wrapping values. Execution Metadata is a separate full-width,
@@ -388,41 +444,47 @@ The responsive modal is at most about 900px wide with viewport margins and an
 internally scrolling body; header and footer controls remain reachable in light
 and dark themes. Native modal focus containment, Escape, outside click, header X
 and footer Close apply. Closing restores the opening Details button, or the
-labelled grid region if that virtualized cell disappeared or was recycled for
+labelled results region if that virtualized row disappeared or was recycled for
 another record. Unmount removes the dialog/top-layer backdrop. Background body
 scrolling is locked only while the modal is open.
 
-Column-filter drafts and column visibility survive opening/closing. An open
-column menu is hidden before the Details dialog while its input remains mounted;
-it is not automatically reopened or focused behind the modal. Grid view polling
-does not move modal focus. View-only history keeps the same modal and focus. A meaningful query change, explicit Search/reapply,
+Filter drafts survive opening/closing; Option 1 also retains column visibility.
+An open filter editor is hidden before the Details dialog while its input remains
+mounted; it is not automatically reopened or focused behind the modal. Option 1's
+view-only history and view polling keep the same modal and focus. A meaningful
+query change, explicit Search/reapply,
 session/loading invalidation or leaving the route closes details safely; obsolete
 row callbacks cannot open a different dataset. Modal state is
 ephemeral, never a URL parameter or another server query.
 
 ## Read-only Search experiment
 
-Search supports reading result data only. Its grid has no row/header checkboxes,
-selection summary, contextual issue attach/detach or rerun actions, or
-query-based Create Attachment Rule action. Run and Details remain available on
-loaded rows, including the initial unfiltered recent block. Conditions, infinite
-scrolling, column visibility and Details are read operations and do not mutate
-backend records. Grid sorting, built-in local filtering and global search are
-disabled; per-column menus update external filter state that is applied only
-through server queries.
+All five Search variants support reading result data only. They have no row
+selection, contextual issue attach/detach or rerun actions, or query-based Create
+Attachment Rule action. Run and Details remain available on loaded rows,
+including the initial unfiltered results. Conditions, paging/infinite scrolling,
+column visibility where available, and Details are read operations and do not
+mutate backend records. Sorting and local filtering are disabled; the active
+variant's filter surface updates state that is applied only through server
+queries.
 
 The existing mutation components and family/review workflows are not removed by
-this experiment; they are simply not wired into `/test-results`.
+this experiment; they are simply not wired into any Search route.
 
 ## Table layout and shareable views
 
-Like the artefact list, the search page fills the viewport below the app shell's
-padding. Headings, actions, notices and server counts take their
-natural height; the virtualized grid uses the remaining space and scrolls
-internally, loading server blocks as needed. Column menus are not clipped by a
+All five Search routes fill the viewport below the app shell's padding. Headings,
+actions and notices take their natural height. Option 1's virtualized grid uses
+the remaining space and scrolls internally, loading server blocks as needed.
+Options 2, 2.5, 3 and 4 keep the table itself as the vertical and horizontal
+scroll region and keep the result range, page controls and page-size selector in
+a separate visible pager outside that region. Scrolling the table does not
+require document or main-content scrolling. Column menus are not clipped by a
 page-level overflow container.
 
-Column visibility changes automatically replace the current history entry's
+### Option 1 column visibility and shareable views
+
+Option 1 column visibility changes automatically replace the current history entry's
 `view` parameter, without navigating, fetching, cancelling a pending search,
 resetting drafts/editors or moving focus/scroll. The address bar is the shareable
 link; reload and browser back/forward restore visibility. The URL uses the same
@@ -459,8 +521,9 @@ checked every 250ms while the grid is mounted (with cleanup).
 ## Deliberately deferred
 
 All 18 filter groups, including Issues, Reviewers, Execution Metadata and Latest
-Execution, are active Search column editors backed by all 19 canonical URL/API
-keys. The dedicated Search-page backend response includes the compact row values
+Execution, are active Search editors on each route, backed by all 19 canonical
+URL/API keys. Their presentation is route-specific: wide-table headers, Option
+3's SidePanel or Option 4's editable chips. The dedicated Search-page backend response includes the compact row values
 and association summaries those columns need; this is a Search-specific API
 contract and does not change the existing `/v1/test-results` response. Saved
 views and export remain deferred. Issue details, attachment-rule management,
@@ -540,7 +603,7 @@ in the project just to run these checks.
 `tests/test-results-search.test.js` tests the backend/OpenAPI and URL contracts,
 initial unfiltered recent-page defaults, races, auth revalidation, the absence of
 Search-page selection/mutation controls, and actual mounted Pragma controls and
-SvGrid rendering/interactions in Happy DOM. Mounted regressions cover the absence
+the Option 1 SvGrid rendering/interactions in Happy DOM. Mounted regressions cover the absence
 of Add filter/condition chips, the active filters opening from their column
 headers, all-canonical-filter URL acceptance and block serialization, per-column
 anchored menus and their external filter adapter, drafts versus applied queries, strict operator mapping
@@ -573,6 +636,13 @@ scrollbar reachability still needs browser QA. These tests use mocked API
 responses, not a live backend integration or
 a real-browser visual test; real top-layer layout, keyboard traversal, and
 desktop/800px screenshots require separate browser QA.
+
+`tests/search-options-pagination.test.js` covers the actual Options 2, 2.5, 3
+and 4 routes and their mounted Pragma tables, including the dedicated Option 2.5
+filter row, Created-first compact order, shared UTC/exact date editors, page and
+page-size URL/API mapping, page-window edges, numeric jumps, and direct
+out-of-range canonicalization. The mocked Chromium runner adds native picker,
+real table scrolling and visible-pager evidence.
 
 ### Native history browser regression
 
