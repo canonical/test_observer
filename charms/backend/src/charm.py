@@ -790,6 +790,17 @@ class TestObserverBackendCharm(CharmBase):
                         "environment": self._app_environment,
                     }
                 },
+            "checks": {
+                "live": {
+                    "override": "replace",
+                    "period": "5s",
+                    "timeout": "1s",
+                    "threshold": 5,
+                    "http": {
+                        "url": f"http://0.0.0.0:{self.config['port']}/health/live",
+                    },
+                }
+            }
             }
         )
 
