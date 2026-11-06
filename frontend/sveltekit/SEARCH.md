@@ -33,6 +33,14 @@ while retaining `page_size`. Option 1 does not use this presentation state: the 
 infinite scroll requests SvGrid ranges, strips legacy URL `limit`/`offset`, and
 starts with `offset=0&limit=50`.
 
+Options 2, 2.5, 3 and 4 show the exact result range, Previous/Next controls,
+compact numbered page windows, and a numeric Go to page form. The page window
+shows every page for up to seven pages and otherwise keeps the first, current
+neighbors and last page with ellipses for gaps. Once the exact count arrives, an
+out-of-range direct URL is moved to the last valid page (page 1 for an empty
+result); an empty result shows `0–0 of 0`, keeps the page-size selector, and has
+no page-jump target.
+
 Every option carries the same 19 canonical exact filters to
 `/v1/test-results/search-page`: `families`, `test_result_statuses`,
 `test_execution_statuses`, `artefacts`, `artefact_versions`, `artefact_tracks`,

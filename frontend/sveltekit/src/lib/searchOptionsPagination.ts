@@ -33,6 +33,8 @@ export interface SearchPageRange {
   count: number;
 }
 
+export type SearchOptionsPageItem = number | "gap";
+
 export type SearchOptionsAccessError =
   "requiresLogin" | "forbidden" | "sessionCheckFailed";
 
@@ -221,4 +223,60 @@ export function searchOptionsPageRange(
     end: Math.min(response.offset + response.rows.length, count),
     count,
   };
+}
+
+/** Derive the number of pages only from the exact server count. */
+export function searchOptionsTotalPages(
+  count: number,
+  pageSize: number,
+): number {
+  if (!Number.isSafeInteger(count) || count < 0)
+    throw new Error("The search page did not return its exact result count.");
+  if (!SEARCH_PAGE_SIZES.includes(pageSize as SearchPageState["pageSize"]))
+    throw new RangeError("Search page size must be 25, 50, or 100.");
+  return Math.ceil(count / pageSize);
+}
+
+/**
+ * Count zero has no result pages, but page one remains its canonical URL so the
+ * empty result state can retain the ordinary page-size and filter controls.
+ */
+export function searchOptionsLastPage(count: number, pageSize: number): number {
+  return Math.max(
+    DEFAULT_SEARCH_PAGE,
+    searchOptionsTotalPages(count, pageSize),
+  );
+}
+
+/** Build the historical compact page window, including gaps for skipped pages. */
+export function searchOptionsPageItems(
+  currentPage: number,
+  totalPages: number,
+): SearchOptionsPageItem[] {
+  if (!Number.isSafeInteger(totalPages) || totalPages < 0)
+    throw new RangeError("Search page count must be a non-negative integer.");
+  if (totalPages === 0) return [];
+  if (!Number.isSafeInteger(currentPage) || currentPage < 1)
+    throw new RangeError("Search page must be a positive whole number.");
+
+  if (totalPages <= 7)
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+
+  const page = Math.min(currentPage, totalPages);
+  const items: SearchOptionsPageItem[] = [1];
+  const start = Math.max(2, page - 1);
+  const end = Math.min(totalPages - 1, page + 1);
+  if (start > 2) items.push("gap");
+  for (let item = start; item <= end; item += 1) items.push(item);
+  if (end < totalPages - 1) items.push("gap");
+  items.push(totalPages);
+  return items;
+}
+
+/** Provide a clear live range string for both populated and empty results. */
+export function searchOptionsPageRangeLabel(range: SearchPageRange): string {
+  if (range.count === 0) return "Showing 0–0 of 0 results";
+  if (range.start === 0)
+    return `No results on this page (${range.count} total)`;
+  return `Showing ${range.start}–${range.end} of ${range.count} results`;
 }

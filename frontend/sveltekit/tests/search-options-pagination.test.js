@@ -394,6 +394,54 @@ void test("page transitions preserve filters and page size", () => {
   assert.throws(() => searchOptionsPageSizeParams(source, 75), RangeError);
 });
 
+void test("pager model builds compact windows and exact range labels", () => {
+  assert.ok(app);
+  const {
+    searchOptionsLastPage,
+    searchOptionsPageItems,
+    searchOptionsPageRangeLabel,
+    searchOptionsTotalPages,
+  } = app;
+
+  assert.equal(searchOptionsTotalPages(0, 25), 0);
+  assert.equal(searchOptionsLastPage(0, 25), 1);
+  assert.equal(searchOptionsTotalPages(176, 25), 8);
+  assert.deepEqual(searchOptionsPageItems(1, 0), []);
+  assert.deepEqual(searchOptionsPageItems(4, 7), [1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(searchOptionsPageItems(1, 7), [1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(searchOptionsPageItems(1, 8), [1, 2, "gap", 8]);
+  assert.deepEqual(searchOptionsPageItems(2, 8), [1, 2, 3, "gap", 8]);
+  assert.deepEqual(searchOptionsPageItems(6, 12), [
+    1,
+    "gap",
+    5,
+    6,
+    7,
+    "gap",
+    12,
+  ]);
+  assert.deepEqual(searchOptionsPageItems(11, 12), [1, "gap", 10, 11, 12]);
+  assert.deepEqual(searchOptionsPageItems(12, 12), [1, "gap", 11, 12]);
+  assert.deepEqual(
+    searchOptionsPageItems(99, 12),
+    [1, "gap", 11, 12],
+    "the final window remains bounded by the exact page count",
+  );
+  assert.equal(
+    searchOptionsPageRangeLabel({ start: 51, end: 53, count: 53 }),
+    "Showing 51–53 of 53 results",
+  );
+  assert.equal(
+    searchOptionsPageRangeLabel({ start: 0, end: 0, count: 0 }),
+    "Showing 0–0 of 0 results",
+  );
+  assert.equal(
+    searchOptionsPageRangeLabel({ start: 0, end: 0, count: 53 }),
+    "No results on this page (53 total)",
+  );
+  assert.throws(() => searchOptionsTotalPages(-1, 25), /exact result count/);
+});
+
 void test("page loader serializes filters and exact ranges", async () => {
   assert.ok(app);
   const { loadSearchOptionsPage, parseSearchOptions, searchOptionsPageRange } =
@@ -490,6 +538,26 @@ void test("option scaffold navigates under base path", async () => {
     await flush();
     assert.match(target.textContent, /Showing 51–75 of 76 results/);
     assert.equal(target.querySelector(".pager select")?.value, "25");
+    assert.deepEqual(
+      [...target.querySelectorAll(".pager-pages button")].map((button) =>
+        button.getAttribute("aria-label"),
+      ),
+      ["Page 1", "Page 2", "Page 3", "Page 4"],
+    );
+    assert.equal(
+      target
+        .querySelector('[aria-label="Page 3"]')
+        ?.getAttribute("aria-current"),
+      "page",
+    );
+    assert.equal(
+      target.querySelector('[aria-label="Previous page"]')?.disabled,
+      false,
+    );
+    assert.equal(
+      target.querySelector('[aria-label="Next page"]')?.disabled,
+      false,
+    );
     const initialRequest = requests.find(
       (request) => request.pathname === "/v1/test-results/search-page",
     );
@@ -514,6 +582,77 @@ void test("option scaffold navigates under base path", async () => {
     );
 
     await flush();
+    await waitFor(() => Boolean(target.querySelector('[aria-label="Page 4"]')));
+    assert.equal(
+      target
+        .querySelector('[aria-label="Page 4"]')
+        ?.getAttribute("aria-current"),
+      "page",
+    );
+    assert.equal(
+      target.querySelector('[aria-label="Next page"]')?.disabled,
+      true,
+    );
+    assert.equal(
+      target.querySelector('[aria-label="Previous page"]')?.disabled,
+      false,
+    );
+
+    const submitJump = async (value, expectedPage) => {
+      const jumpInput = target.querySelector(".pager-jump-input");
+      const jumpForm = target.querySelector(".pager-jump");
+      assert.ok(jumpInput);
+      assert.ok(jumpForm);
+      jumpInput.value = String(value);
+      jumpInput.dispatchEvent(new browser.Event("input", { bubbles: true }));
+      await flush();
+      jumpForm.dispatchEvent(
+        new browser.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await waitFor(
+        () => ui.url.searchParams.get("page") === String(expectedPage),
+      );
+      await waitFor(() =>
+        target.textContent.includes(
+          `Showing ${expectedPage === 1 ? "1" : (expectedPage - 1) * 25 + 1}–`,
+        ),
+      );
+      assert.equal(
+        target
+          .querySelector(`[aria-label="Page ${expectedPage}"]`)
+          ?.getAttribute("aria-current"),
+        "page",
+      );
+      if (expectedPage === 1)
+        assert.equal(
+          target.querySelector('[aria-label="Previous page"]')?.disabled,
+          true,
+        );
+      if (expectedPage === 4)
+        assert.equal(
+          target.querySelector('[aria-label="Next page"]')?.disabled,
+          true,
+        );
+      assert.equal(ui.url.searchParams.get("page_size"), "25");
+      assert.equal(ui.url.searchParams.get("families"), "snap");
+      assert.equal(
+        ui.url.searchParams.get("test_execution_statuses"),
+        "PASSED",
+      );
+      const request = requests
+        .filter((item) => item.pathname === "/v1/test-results/search-page")
+        .at(-1);
+      assert.ok(request);
+      assert.equal(
+        request.searchParams.get("offset"),
+        String((expectedPage - 1) * 25),
+      );
+      assert.equal(request.searchParams.get("limit"), "25");
+    };
+    await submitJump("2", 2);
+    await submitJump("999", 4);
+    await submitJump("-8", 1);
+
     const select = target.querySelector(".pager select");
     assert.ok(select);
     select.value = "100";
@@ -551,6 +690,112 @@ void test("option scaffold navigates under base path", async () => {
   } finally {
     await ui.destroy();
     target.remove();
+  }
+});
+
+void test("direct out-of-range URLs canonicalize after the exact count arrives", async () => {
+  assert.ok(app);
+
+  const requests = [];
+  globalThis.fetch = async (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    if (request.pathname !== "/v1/test-results/search-page")
+      return json({ detail: "not found" }, 404);
+    requests.push(request);
+    const offset = Number(request.searchParams.get("offset"));
+    const limit = Number(request.searchParams.get("limit"));
+    return json({
+      count: 53,
+      offset,
+      limit,
+      rows: Array.from(
+        { length: Math.min(limit, Math.max(0, 53 - offset)) },
+        (_, index) => resultRow(offset + index + 1),
+      ),
+    });
+  };
+
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const initialUrl = new URL(
+    "http://localhost/custom/base/test-results/option-2?page=99&page_size=25&families=snap&test_execution_statuses=PASSED",
+  );
+  const ui = app.mountSearchOption(target, initialUrl, [family]);
+  try {
+    await waitFor(() => ui.url.searchParams.get("page") === "3");
+    await waitFor(() =>
+      target.textContent.includes("Showing 51–53 of 53 results"),
+    );
+    assert.equal(ui.url.searchParams.get("page_size"), "25");
+    assert.equal(ui.url.searchParams.get("families"), "snap");
+    assert.equal(ui.url.searchParams.get("test_execution_statuses"), "PASSED");
+    assert.deepEqual(
+      requests.map((request) => request.searchParams.get("offset")),
+      ["2450", "50"],
+      "the initial direct URL is checked against count then the last page is fetched",
+    );
+    assert.deepEqual(
+      requests.map((request) => request.searchParams.get("limit")),
+      ["25", "25"],
+    );
+    assert.equal(
+      target
+        .querySelector('[aria-label="Page 3"]')
+        ?.getAttribute("aria-current"),
+      "page",
+    );
+    assert.equal(
+      target.querySelector('[aria-label="Next page"]')?.disabled,
+      true,
+    );
+  } finally {
+    await ui.destroy();
+    target.remove();
+  }
+
+  const emptyRequests = [];
+  globalThis.fetch = async (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    emptyRequests.push(request);
+    const offset = Number(request.searchParams.get("offset"));
+    const limit = Number(request.searchParams.get("limit"));
+    return json({ count: 0, offset, limit, rows: [] });
+  };
+  const emptyTarget = browser.document.createElement("div");
+  browser.document.body.append(emptyTarget);
+  const emptyUi = app.mountSearchOption(
+    emptyTarget,
+    new URL(
+      "http://localhost/custom/base/test-results/option-4?page=7&page_size=25&families=snap",
+    ),
+    [family],
+    4,
+  );
+  try {
+    await waitFor(() => emptyUi.url.searchParams.get("page") === "1");
+    await waitFor(() =>
+      emptyTarget.textContent.includes("Showing 0–0 of 0 results"),
+    );
+    assert.equal(emptyUi.url.searchParams.get("page_size"), "25");
+    assert.equal(emptyUi.url.searchParams.get("families"), "snap");
+    assert.deepEqual(
+      emptyRequests.map((request) => request.searchParams.get("offset")),
+      ["150", "0"],
+    );
+    assert.equal(emptyTarget.querySelector(".pager select")?.value, "25");
+    assert.equal(emptyTarget.querySelectorAll(".pager-pages button").length, 0);
+    assert.equal(emptyTarget.querySelector(".pager-jump"), null);
+    assert.equal(
+      emptyTarget.querySelector('[aria-label="Previous page"]')?.disabled,
+      true,
+    );
+    assert.equal(
+      emptyTarget.querySelector('[aria-label="Next page"]')?.disabled,
+      true,
+    );
+  } finally {
+    await emptyUi.destroy();
+    emptyTarget.remove();
   }
 });
 
@@ -1946,7 +2191,7 @@ void test("Option 4 hydrates only a bounded set of ID labels when an ID editor o
   );
   try {
     await waitFor(() =>
-      target.textContent.includes("No test results (0 total)"),
+      target.textContent.includes("Showing 0–0 of 0 results"),
     );
     assert.equal(
       labelRequests.length,
@@ -2261,7 +2506,7 @@ void test("Option 4 picker exposes every filter and malformed/unknown raw condit
     await waitFor(() => !clear.disabled);
     clear.click();
     await waitFor(() =>
-      target.textContent.includes("No test results (0 total)"),
+      target.textContent.includes("Showing 0–0 of 0 results"),
     );
     assert.equal(ui.url.search, "?page_size=25");
     assert.equal(requests.length, 1);

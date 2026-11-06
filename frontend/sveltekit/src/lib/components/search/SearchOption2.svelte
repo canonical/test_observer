@@ -46,9 +46,13 @@
     parseSearchOptions,
     resetSearchOptionsPage,
     searchOptionsAccessErrorFor,
+    searchOptionsLastPage,
+    searchOptionsPageItems,
     searchOptionsPageParams,
+    searchOptionsPageRangeLabel,
     searchOptionsPageRange,
     searchOptionsPageSizeParams,
+    searchOptionsTotalPages,
   } from "$lib/searchOptionsPagination";
   import type { SearchOptionsAccessError } from "$lib/searchOptionsPagination";
   import SearchGridFilterHeader from "./SearchGridFilterHeader.svelte";
@@ -205,6 +209,11 @@
   );
   const hasDrafts = $derived(hasFilters(drafts));
   const range = $derived(response ? searchOptionsPageRange(response) : null);
+  const totalPages = $derived(
+    range ? searchOptionsTotalPages(range.count, search.pageSize) : 0,
+  );
+  const pageItems = $derived(searchOptionsPageItems(search.page, totalPages));
+  let jumpValue = $derived<number | null>(search.page);
   const rows = $derived(
     response?.rows.map((row) => toSearchGridRow(row, families, base)) ?? [],
   );
@@ -270,8 +279,18 @@
           generation === requestGeneration &&
           attempt === retryGeneration &&
           requestUrl === url.href
-        )
-          response = result;
+        ) {
+          const resultRange = searchOptionsPageRange(result);
+          const lastPage = searchOptionsLastPage(
+            resultRange.count,
+            query.pageSize,
+          );
+          if (query.page > lastPage) {
+            void go(searchOptionsPageParams(url.searchParams, lastPage));
+          } else {
+            response = result;
+          }
+        }
       })
       .catch(async (requestError: unknown) => {
         if (
@@ -365,6 +384,14 @@
 
   function goToPage(page: number) {
     return navigateWith(searchOptionsPageParams(url.searchParams, page));
+  }
+
+  function submitPageJump(event: SubmitEvent) {
+    event.preventDefault();
+    if (totalPages === 0 || jumpValue === null || !Number.isFinite(jumpValue))
+      return;
+    const target = Math.min(Math.max(1, Math.trunc(jumpValue)), totalPages);
+    void goToPage(target);
   }
 
   function changePageSize(event: Event) {
@@ -750,16 +777,6 @@
           <div class="loading" role="status">
             <Spinner /> Loading test results…
           </div>
-        {:else if range}
-          <p class="count" role="status" aria-live="polite">
-            {#if range.start}
-              Showing {range.start}–{range.end} of {range.count} results
-            {:else if range.count === 0}
-              No test results (0 total)
-            {:else}
-              No results on this page ({range.count} total)
-            {/if}
-          </p>
         {/if}
       {/if}
     {/if}
@@ -1041,20 +1058,69 @@
 
     {#if !search.problems.length && response && range}
       <nav class="pager" aria-label="Test result pages">
-        <Button
-          type="button"
-          density="dense"
-          onclick={() => void goToPage(search.page - 1)}
-          disabled={moving || search.page <= 1}>Previous</Button
-        >
-        <span>Page {search.page}</span>
-        <Button
-          type="button"
-          density="dense"
-          onclick={() => void goToPage(search.page + 1)}
-          disabled={moving || search.page * search.pageSize >= range.count}
-          >Next</Button
-        >
+        <span class="range" role="status" aria-live="polite">
+          {searchOptionsPageRangeLabel(range)}
+        </span>
+        <div class="pager-controls">
+          <Button
+            type="button"
+            density="dense"
+            aria-label="Previous page"
+            onclick={() => void goToPage(search.page - 1)}
+            disabled={moving || search.page <= 1}>Previous</Button
+          >
+          <ul class="pager-pages" aria-label="Page numbers">
+            {#each pageItems as item, index (index)}
+              {#if item === "gap"}
+                <li class="pager-gap" aria-hidden="true">…</li>
+              {:else}
+                <li>
+                  <Button
+                    type="button"
+                    density="dense"
+                    severity={item === search.page ? "brand" : "base"}
+                    aria-label="Page {item}"
+                    aria-current={item === search.page ? "page" : undefined}
+                    disabled={moving || item === search.page}
+                    onclick={() => void goToPage(item)}>{item}</Button
+                  >
+                </li>
+              {/if}
+            {/each}
+          </ul>
+          <Button
+            type="button"
+            density="dense"
+            aria-label="Next page"
+            onclick={() => void goToPage(search.page + 1)}
+            disabled={moving || totalPages === 0 || search.page >= totalPages}
+            >Next</Button
+          >
+        </div>
+        {#if totalPages > 0}
+          <form class="pager-jump" novalidate onsubmit={submitPageJump}>
+            <label for="search-options-page-jump">Go to page</label>
+            <input
+              id="search-options-page-jump"
+              class="pager-jump-input"
+              type="number"
+              min="1"
+              max={totalPages}
+              step="1"
+              inputmode="numeric"
+              bind:value={jumpValue}
+            />
+            <span>of {totalPages}</span>
+            <Button
+              type="submit"
+              density="dense"
+              disabled={moving ||
+                jumpValue === null ||
+                !Number.isFinite(jumpValue) ||
+                jumpValue === search.page}>Go</Button
+            >
+          </form>
+        {/if}
         <label>
           Results per page
           <select bind:value={selectedPageSize} onchange={changePageSize}>
@@ -1145,10 +1211,12 @@
     font-weight: 500;
   }
   .loading,
-  .count {
+  .range {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+  }
+  .loading {
     margin: 0 0 0.5rem;
   }
   .table-scroll {
@@ -1180,8 +1248,48 @@
     display: flex;
     align-items: center;
     flex: 0 0 auto;
+    flex-wrap: wrap;
     gap: 0.75rem;
     margin-top: 0.75rem;
+  }
+  .pager .range {
+    margin-right: auto;
+    color: var(--lp-color-text-muted);
+    font-size: 0.875rem;
+  }
+  .pager-controls,
+  .pager-pages,
+  .pager-jump {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .pager-pages {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .pager-gap {
+    padding: 0 0.125rem;
+    color: var(--lp-color-text-muted);
+  }
+  .pager-jump {
+    color: var(--lp-color-text-muted);
+    font-size: 0.875rem;
+  }
+  .pager-jump-input {
+    width: 4rem;
+    min-height: 2rem;
+    padding: 0.25rem 0.5rem;
+    font: inherit;
+    color: var(--lp-color-text-default);
+    background: var(--lp-color-background-default);
+    border: 1px solid var(--lp-color-border-default, #ccc);
+    border-radius: 0.25rem;
+  }
+  .pager-jump-input:focus-visible {
+    outline: 2px solid var(--lp-color-brand-default);
+    outline-offset: 1px;
   }
   .pager label {
     display: flex;
