@@ -747,6 +747,7 @@
         >
           <thead>
             <tr>
+              <th scope="col">Created</th>
               <th scope="col">Artefact</th>
               <th scope="col">Test Case</th>
               <th scope="col">Test Execution ID</th>
@@ -761,6 +762,7 @@
           <tbody>
             {#each rows as row (row.id)}
               <tr>
+                <td>{formatUtcDateTime(row.createdAt)}</td>
                 <td>{row.artefact}</td>
                 <td>
                   <div class="compact-test-case">
@@ -795,7 +797,7 @@
               </tr>
             {:else}
               <tr>
-                <td colspan="9">
+                <td colspan="10">
                   {#if search.problems.length}
                     Correct or clear the blocked search to load results.
                   {:else if loading || !response}

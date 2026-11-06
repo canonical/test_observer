@@ -361,6 +361,7 @@ async function assertPrototypeUi(page, option) {
   }
 
   assert.deepEqual(headers, [
+    "Created",
     "Artefact",
     "Test Case",
     "Test Execution ID",
@@ -371,7 +372,7 @@ async function assertPrototypeUi(page, option) {
     "Test Plan",
     "Actions",
   ]);
-  assert.equal(headers.length, 9);
+  assert.equal(headers.length, 10);
   assert.equal(await page.locator('button[aria-label*="Sort"]').count(), 0);
   if (option === 3) {
     assert.equal(
@@ -381,7 +382,7 @@ async function assertPrototypeUi(page, option) {
       1,
       "Option 3 exposes the SidePanel filter trigger",
     );
-    return { table: "compact Pragma Table + SidePanel", columns: 9 };
+    return { table: "compact Pragma Table + SidePanel", columns: 10 };
   }
 
   assert.equal(
@@ -395,7 +396,7 @@ async function assertPrototypeUi(page, option) {
     await page.getByRole("button", { name: /Add filter/ }).count(),
     1,
   );
-  return { table: "compact Pragma Table + editable filter chips", columns: 9 };
+  return { table: "compact Pragma Table + editable filter chips", columns: 10 };
 }
 
 async function editStatusAndApply(page, option) {
@@ -565,7 +566,7 @@ async function testOption(page, option, pageOrigin) {
       await page
         .locator("tbody tr")
         .first()
-        .locator(option === 2 ? "td:nth-child(14)" : "td:nth-child(4)")
+        .locator(option === 2 ? "td:nth-child(14)" : "td:nth-child(5)")
         .innerText(),
       /FAILED/,
       "the server-returned row is not locally removed by the PASSED URL filter",

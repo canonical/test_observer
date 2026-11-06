@@ -977,6 +977,7 @@ void test("Option 3 SidePanel search preserves shared filtering and compact tabl
   assert.ok(app);
   const requests = [];
   const serverRows = [resultRow(12), resultRow(8)];
+  serverRows[0].test_result.created_at = "2026-05-04T03:02:01.987654+03:00";
   globalThis.fetch = async (input) => {
     const request = new URL(input instanceof Request ? input.url : input);
     requests.push(request);
@@ -998,6 +999,7 @@ void test("Option 3 SidePanel search preserves shared filtering and compact tabl
       header.textContent.trim(),
     );
     assert.deepEqual(headers, [
+      "Created",
       "Artefact",
       "Test Case",
       "Test Execution ID",
@@ -1106,19 +1108,20 @@ void test("Option 3 SidePanel search preserves shared filtering and compact tabl
       "rows remain in API response order",
     );
     const cells = rows[0].querySelectorAll("td");
-    assert.equal(cells[0].textContent, "artefact-12");
-    assert.match(cells[1].textContent, /case-12/);
-    assert.match(cells[1].textContent, /category-12/);
-    assert.equal(cells[2].textContent, "212");
-    assert.equal(cells[3].textContent, "FAILED");
-    assert.equal(cells[4].textContent, "stable");
-    assert.equal(cells[5].textContent, "1.12");
-    assert.equal(cells[6].textContent.trim(), "amd64/environment-12");
-    assert.equal(cells[7].textContent, "plan-12");
-    assert.equal(cells[8].querySelectorAll("[data-test-result-id]").length, 1);
-    assert.equal(cells[8].querySelectorAll("a").length, 1);
+    assert.equal(cells[0].textContent, "2026-05-04 00:02:01");
+    assert.equal(cells[1].textContent, "artefact-12");
+    assert.match(cells[2].textContent, /case-12/);
+    assert.match(cells[2].textContent, /category-12/);
+    assert.equal(cells[3].textContent, "212");
+    assert.equal(cells[4].textContent, "FAILED");
+    assert.equal(cells[5].textContent, "stable");
+    assert.equal(cells[6].textContent, "1.12");
+    assert.equal(cells[7].textContent.trim(), "amd64/environment-12");
+    assert.equal(cells[8].textContent, "plan-12");
+    assert.equal(cells[9].querySelectorAll("[data-test-result-id]").length, 1);
+    assert.equal(cells[9].querySelectorAll("a").length, 1);
 
-    const run = cells[8].querySelector('a[aria-label="View Run for case-12"]');
+    const run = cells[9].querySelector('a[aria-label="View Run for case-12"]');
     assert.ok(run);
     const runUrl = new URL(run.href);
     assert.equal(runUrl.pathname, "/custom/base/snaps/112");
@@ -1132,7 +1135,7 @@ void test("Option 3 SidePanel search preserves shared filtering and compact tabl
       "Details remains lazy until its action is used",
     );
 
-    const details = cells[8].querySelector("[data-test-result-id]");
+    const details = cells[9].querySelector("[data-test-result-id]");
     assert.ok(details);
     details.click();
     await waitFor(() =>
@@ -1353,6 +1356,7 @@ void test("Option 4 chip filters preserve exact server search and compact row ac
   assert.ok(app);
   const requests = [];
   const serverRows = [resultRow(12), resultRow(8)];
+  serverRows[0].test_result.created_at = "2026-05-04T03:02:01.987654+03:00";
   globalThis.fetch = async (input) => {
     const request = new URL(input instanceof Request ? input.url : input);
     requests.push(request);
@@ -1388,6 +1392,7 @@ void test("Option 4 chip filters preserve exact server search and compact row ac
       header.textContent.trim(),
     );
     assert.deepEqual(headers, [
+      "Created",
       "Artefact",
       "Test Case",
       "Test Execution ID",
@@ -1466,16 +1471,17 @@ void test("Option 4 chip filters preserve exact server search and compact row ac
       "server row order is retained without local filtering",
     );
     const cells = rows[0].querySelectorAll("td");
-    assert.equal(cells[0].textContent, "artefact-12");
-    assert.match(cells[1].textContent, /case-12/);
-    assert.match(cells[1].textContent, /category-12/);
-    assert.equal(cells[2].textContent, "212");
-    assert.equal(cells[3].textContent, "FAILED");
-    assert.equal(cells[4].textContent, "stable");
-    assert.equal(cells[5].textContent, "1.12");
-    assert.equal(cells[6].textContent.trim(), "amd64/environment-12");
-    assert.equal(cells[7].textContent, "plan-12");
-    const run = cells[8].querySelector('a[aria-label="View Run for case-12"]');
+    assert.equal(cells[0].textContent, "2026-05-04 00:02:01");
+    assert.equal(cells[1].textContent, "artefact-12");
+    assert.match(cells[2].textContent, /case-12/);
+    assert.match(cells[2].textContent, /category-12/);
+    assert.equal(cells[3].textContent, "212");
+    assert.equal(cells[4].textContent, "FAILED");
+    assert.equal(cells[5].textContent, "stable");
+    assert.equal(cells[6].textContent, "1.12");
+    assert.equal(cells[7].textContent.trim(), "amd64/environment-12");
+    assert.equal(cells[8].textContent, "plan-12");
+    const run = cells[9].querySelector('a[aria-label="View Run for case-12"]');
     assert.ok(run);
     const runUrl = new URL(run.href);
     assert.equal(runUrl.pathname, "/custom/base/snaps/112");
@@ -1489,7 +1495,7 @@ void test("Option 4 chip filters preserve exact server search and compact row ac
       0,
       "Details remains on demand",
     );
-    const details = cells[8].querySelector("[data-test-result-id]");
+    const details = cells[9].querySelector("[data-test-result-id]");
     assert.ok(details);
     details.click();
     await waitFor(() =>
