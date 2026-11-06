@@ -29,9 +29,16 @@ Applications don't belong to teams. They receive specific permissions directly w
 
 **Example**: A CI/CD pipeline might have only "create_artefact" permissions.
 
-Why You Can't Use cURL with Your Browser Session
-=================================================
+Using a Browser Session with cURL
+=================================
 
-When logged in through the web, you can't copy your session cookie to cURL due to CSRF protection. Test Observer requires special tokens that prove requests come from its own pages.
+You can make a manual API request with your browser session cookie, but the
+cookie alone is not sufficient. Every request authenticated with a session
+cookie must also include the ``X-CSRF-Token`` header. The browser-based Swagger
+UI handles the cookie and header automatically. For a ``curl`` example and
+guidance on handling the session cookie safely, see
+:doc:`Access the Test Observer API <../how-to/access-rest-api>`.
 
-**Solution**: Either use the web API interface at ``/docs`` or get an API key.
+For scripts and automation, use an application API key instead of a personal
+browser session; see :doc:`How to Authenticate with Test Observer
+<../how-to/authenticate>`.

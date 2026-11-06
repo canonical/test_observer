@@ -11,16 +11,11 @@ Log in as a User
 
 You'll have permissions based on your Launchpad team memberships.
 
-Use the API from Your Browser
-==============================
+Access the REST API
+===================
 
-**Prerequisite**: Be logged into Test Observer
-
-1. Navigate to the API docs ``https://test-observer-api.canonical.com/docs``
-2. Find your endpoint and click "Try it out"
-3. Fill parameters and click "Execute"
-
-The browser handles authentication automatically.
+For general guidance on using the REST API through the Swagger UI or with
+``curl``, see :doc:`Access the Test Observer API <access-rest-api>`.
 
 Get an API Key
 ==============
@@ -32,6 +27,10 @@ Get an API Key
    - Required permissions
 
 3. Receive your API key
+
+Test Observer administrators can follow :doc:`How to Manage Applications and
+API Keys <manage-api-keys>` to manage applications and their keys through the
+REST API.
 
 Use an API Key
 ==============

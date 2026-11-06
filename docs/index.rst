@@ -25,7 +25,10 @@ In this documentation
 
 * **Submitting tests**: :doc:`Submit test results <tutorial/first-test-execution>`
 * **Reviewing tests**: :doc:`Triage test results <how-to/triage-test-results>`
-* **APIs**: :doc:`Authenticate <how-to/authenticate>` • :doc:`OpenAPI reference <reference/index>`
+* **APIs**: :doc:`Access the REST API <how-to/access-rest-api>` •
+  :doc:`Authenticate <how-to/authenticate>` •
+  :doc:`Manage API keys <how-to/manage-api-keys>` •
+  :doc:`OpenAPI reference <reference/index>`
 * **Key concepts**: :doc:`explanation/glossary`
 
 ---------
