@@ -13,7 +13,8 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from collections.abc import Callable
+from collections.abc import Callable, Generator
+from typing import Protocol
 
 import pytest
 from fastapi.testclient import TestClient
@@ -26,8 +27,12 @@ from tests.conftest import authenticate_user
 from tests.data_generator import DataGenerator
 
 
+class MakeClientProtocol(Protocol):
+    def __call__(self, local: bool, requires_auth: bool = True) -> TestClient: ...
+
+
 @pytest.fixture
-def make_client(db_session: Session):
+def make_client(db_session: Session) -> Generator[MakeClientProtocol, None, None]:
     initial_requires_auth_override = app.dependency_overrides.pop(requires_authentication, None)
     initial_get_db_override = app.dependency_overrides.pop(get_db, None)
 
@@ -50,7 +55,7 @@ def make_client(db_session: Session):
         app.dependency_overrides[get_db] = initial_get_db_override
 
 
-def test_version_local_unauthenticated_with_auth_required(make_client: Callable[[bool, bool], TestClient]):
+def test_version_local_unauthenticated_with_auth_required(make_client: MakeClientProtocol):
     """Test that local unauthenticated access is allowed even when authentication is required"""
     response = make_client(local=True, requires_auth=True).get("/v1/version")
     assert response.status_code == 200
@@ -58,7 +63,7 @@ def test_version_local_unauthenticated_with_auth_required(make_client: Callable[
 
 
 def test_version_local_unauthenticated_with_auth_not_required(
-    make_client: Callable[[bool, bool], TestClient],
+    make_client: MakeClientProtocol,
 ):
     """Test that local unauthenticated access is allowed when authentication is not required"""
     response = make_client(local=True, requires_auth=False).get("/v1/version")
@@ -66,22 +71,20 @@ def test_version_local_unauthenticated_with_auth_not_required(
     assert "version" in response.json()
 
 
-def test_version_remote_unauthenticated_with_auth_required(make_client: Callable[[bool, bool], TestClient]):
+def test_version_remote_unauthenticated_with_auth_required(make_client: MakeClientProtocol):
     """Test that remote unauthenticated access is denied when authentication is required"""
     response = make_client(local=False, requires_auth=True).get("/v1/version")
     assert response.status_code == 401
 
 
-def test_version_remote_unauthenticated_with_auth_not_required(make_client: Callable[[bool, bool], TestClient]):
+def test_version_remote_unauthenticated_with_auth_not_required(make_client: MakeClientProtocol):
     """Test that remote unauthenticated access is allowed when authentication is not required"""
     response = make_client(local=False, requires_auth=False).get("/v1/version")
     assert response.status_code == 200
     assert "version" in response.json()
 
 
-def test_version_remote_authenticated_with_app(
-    make_client: Callable[[bool, bool], TestClient], generator: DataGenerator
-):
+def test_version_remote_authenticated_with_app(make_client: MakeClientProtocol, generator: DataGenerator):
     """Test that remote authenticated access with an application credential is allowed"""
     client = make_client(local=False, requires_auth=True)
     application = generator.gen_application(permissions=[])
@@ -91,7 +94,7 @@ def test_version_remote_authenticated_with_app(
 
 
 def test_version_remote_authenticated_with_user(
-    make_client: Callable[[bool, bool], TestClient],
+    make_client: MakeClientProtocol,
     generator: DataGenerator,
     create_session_cookie: Callable[[int], str],
 ):
