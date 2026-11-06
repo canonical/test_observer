@@ -5829,6 +5829,143 @@ void test("invalid active dates can be fixed while unknown URL constraints remai
   }
 });
 
+/* eslint-disable
+  @typescript-eslint/no-unsafe-call,
+  @typescript-eslint/no-unsafe-member-access,
+  @typescript-eslint/no-unsafe-return
+*/
+void test("Option 1 Created editors match the UTC picker and preserve exact range drafts", async () => {
+  const calls = [];
+  globalThis.fetch = (input) => {
+    calls.push(new URL(input instanceof Request ? input.url : input));
+    return Promise.resolve(response());
+  };
+  const from = "2026-01-02T03:04:05.123456+01:00";
+  const until = "2026-01-02T02:04:06.123456Z";
+  const ui = mounted(
+    `artefacts=kept&test_execution_statuses=PASSED&from_date=${encodeURIComponent(from)}&until_date=${encodeURIComponent(until)}`,
+  );
+  const searchCalls = () =>
+    calls.filter(
+      (request) => request.pathname === "/v1/test-results/search-page",
+    );
+  const waitUntil = async (check) => {
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      if (check()) return;
+      await flush();
+    }
+    assert.fail("Timed out waiting for Option 1 date filter state.");
+  };
+  try {
+    await waitUntil(() => searchCalls().length === 1);
+    ui.target.querySelector('button[aria-label="Filter Created"]')?.click();
+    await waitUntil(
+      () =>
+        !ui.target
+          .querySelector('[data-search-grid-menu="from_date"]')
+          ?.closest("[hidden]"),
+    );
+    const fromTextSelector = '[data-search-grid-filter="from_date"]';
+    const fromPickerSelector = '[data-search-grid-filter-picker="from_date"]';
+    const fromText = ui.target.querySelector(fromTextSelector);
+    const fromPicker = ui.target.querySelector(fromPickerSelector);
+    assert.ok(fromText);
+    assert.ok(fromPicker);
+    assert.equal(fromText.type, "text");
+    assert.equal(fromPicker.type, "datetime-local");
+    assert.equal(fromText.value, from);
+    assert.equal(fromPicker.value, "2026-01-02T02:04:05");
+    assert.equal(
+      ui.target.querySelector('[data-search-grid-filter="until_date"]').value,
+      until,
+    );
+
+    fromPicker.value = "2026-01-02T02:04:06";
+    fromPicker.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    await flush();
+    assert.equal(
+      ui.target.querySelector(fromTextSelector).value,
+      "2026-01-02T02:04:06Z",
+      "native picker selections are explicit UTC instants",
+    );
+    const invalid = "2026-01-02T02:04:06.1234567Z";
+    await enter(ui.target, fromTextSelector, invalid);
+    assert.match(ui.target.textContent, /microsecond/);
+    button(ui.target, "Search").click();
+    await waitUntil(
+      () => ui.handle.currentUrl.searchParams.get("from_date") === invalid,
+    );
+    await flush();
+    assert.equal(
+      searchCalls().length,
+      1,
+      "invalid precision blocks API search",
+    );
+    assert.equal(ui.handle.currentUrl.searchParams.get("artefacts"), "kept");
+    assert.equal(
+      ui.handle.currentUrl.searchParams.get("test_execution_statuses"),
+      "PASSED",
+    );
+    assert.match(ui.target.textContent, /Search not applied/);
+
+    await enter(ui.target, fromTextSelector, "2026-01-02T02:04:06.000000Z");
+    button(ui.target, "Search").click();
+    await waitUntil(() => searchCalls().length === 2);
+    assert.equal(
+      searchCalls().at(-1).searchParams.get("from_date"),
+      "2026-01-02T02:04:06.000000Z",
+    );
+    assert.equal(searchCalls().at(-1).searchParams.get("until_date"), until);
+    assert.equal(searchCalls().at(-1).searchParams.get("artefacts"), "kept");
+    assert.equal(
+      searchCalls().at(-1).searchParams.get("test_execution_statuses"),
+      "PASSED",
+    );
+
+    const reversed = "2026-01-03T00:00:00Z";
+    await enter(ui.target, fromTextSelector, reversed);
+    assert.match(ui.target.textContent, /From must not be after Until/);
+    button(ui.target, "Search").click();
+    await waitUntil(
+      () => ui.handle.currentUrl.searchParams.get("from_date") === reversed,
+    );
+    await flush();
+    assert.equal(
+      searchCalls().length,
+      2,
+      "reversed inclusive bounds block search",
+    );
+    assert.equal(ui.handle.currentUrl.searchParams.get("artefacts"), "kept");
+    assert.match(ui.target.textContent, /Invalid date range/);
+
+    await enter(ui.target, fromTextSelector, "2026-01-02T02:04:06.000000Z");
+    button(ui.target, "Search").click();
+    await waitUntil(() => searchCalls().length === 3);
+
+    const clear = ui.target.querySelector(
+      '[data-search-grid-clear="from_date"]',
+    );
+    assert.ok(clear);
+    clear.click();
+    button(ui.target, "Search").click();
+    await waitUntil(() => searchCalls().length === 4);
+    assert.equal(ui.handle.currentUrl.searchParams.has("from_date"), false);
+    assert.equal(ui.handle.currentUrl.searchParams.has("until_date"), false);
+    assert.equal(ui.handle.currentUrl.searchParams.get("artefacts"), "kept");
+    assert.equal(
+      ui.handle.currentUrl.searchParams.get("test_execution_statuses"),
+      "PASSED",
+    );
+  } finally {
+    await ui.destroy();
+  }
+});
+/* eslint-enable
+  @typescript-eslint/no-unsafe-call,
+  @typescript-eslint/no-unsafe-member-access,
+  @typescript-eslint/no-unsafe-return
+*/
+
 void test("issue/reviewer label hydration in search filters", async () => {
   app.searchFilterLabelCache().clear();
   app.errorStore.clear();

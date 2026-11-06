@@ -28,6 +28,7 @@
   import IdFilterEditor from "./IdFilterEditor.svelte";
   import MetadataFilterEditor from "./MetadataFilterEditor.svelte";
   import ListFilterEditor from "./ListFilterEditor.svelte";
+  import InstantFilterEditor from "./InstantFilterEditor.svelte";
   import {
     isLookupList,
     suggestionScope,
@@ -105,6 +106,24 @@
   );
   let lookupDraft = $state<string[]>(initialLookupDraft);
   let observedLookup = JSON.stringify(initialLookupDraft);
+  let fromDateText = $state(untrack(() => filters.from_date ?? ""));
+  let untilDateText = $state(untrack(() => filters.until_date ?? ""));
+  let observedFromDate = String(initialFilters.from_date ?? "");
+  let observedUntilDate = String(initialFilters.until_date ?? "");
+
+  $effect.pre(() => {
+    if (filterKey !== "from_date") return;
+    const from = String(filters.from_date ?? "");
+    if (from !== observedFromDate) {
+      observedFromDate = from;
+      fromDateText = from;
+    }
+    const until = String(filters.until_date ?? "");
+    if (until !== observedUntilDate) {
+      observedUntilDate = until;
+      untilDateText = until;
+    }
+  });
 
   function cloneIds(value: IdFilter): IdFilter {
     return Array.isArray(value) ? [...value] : value;
@@ -303,6 +322,13 @@
   function setDate(key: "from_date" | "until_date", value: string) {
     // URL parsing is the validation boundary. Keep invalid text literal so
     // Search reports the problem instead of coercing or rounding it.
+    if (key === "from_date") {
+      fromDateText = value;
+      observedFromDate = value;
+    } else {
+      untilDateText = value;
+      observedUntilDate = value;
+    }
     update(key, value ? (value as SearchFilters[typeof key]) : null);
   }
 
@@ -322,6 +348,10 @@
 
   function clearCurrentFilter() {
     if (filterKey === "from_date") {
+      fromDateText = "";
+      untilDateText = "";
+      observedFromDate = "";
+      observedUntilDate = "";
       const next = { ...filters, from_date: null, until_date: null };
       onedit("from_date", next);
       onedit("until_date", next);
@@ -534,32 +564,30 @@
       </select>
     </label>
   {:else if filterKey === "from_date"}
-    <label class="text-filter date-filter">
-      Test-result Created — From (inclusive)
-      <input
-        type="text"
-        autocomplete="off"
-        placeholder="2026-01-01T00:00:00Z"
-        value={filters.from_date ?? ""}
+    <div class="date-filter">
+      <InstantFilterEditor
+        field="from_date"
+        value={filters.from_date}
+        other={filters.until_date}
+        boundLabel="Test-result Created — From (inclusive)"
+        textPlaceholder="2026-01-01T00:00:00Z"
+        text={fromDateText}
+        filterAttribute="from_date"
         {disabled}
-        data-search-grid-filter="from_date"
-        oninput={(event) => setDate("from_date", event.currentTarget.value)}
+        ontextchange={(value) => setDate("from_date", value)}
       />
-      <span>ISO instant with Z or an explicit ±HH:MM offset.</span>
-    </label>
-    <label class="text-filter date-filter">
-      Test-result Created — Until (inclusive)
-      <input
-        type="text"
-        autocomplete="off"
-        placeholder="2026-01-31T23:59:59Z"
-        value={filters.until_date ?? ""}
+      <InstantFilterEditor
+        field="until_date"
+        value={filters.until_date}
+        other={filters.from_date}
+        boundLabel="Test-result Created — Until (inclusive)"
+        textPlaceholder="2026-01-31T23:59:59Z"
+        text={untilDateText}
+        filterAttribute="until_date"
         {disabled}
-        data-search-grid-filter="until_date"
-        oninput={(event) => setDate("until_date", event.currentTarget.value)}
+        ontextchange={(value) => setDate("until_date", value)}
       />
-      <span>Either inclusive bound may be left empty.</span>
-    </label>
+    </div>
   {:else if filterKey === "issues"}
     <IdFilterEditor
       field="issues"
@@ -644,7 +672,9 @@
     color: var(--lp-color-text-muted);
     font-size: 0.75rem;
   }
-  .date-filter + .date-filter {
-    margin-top: 0.6rem;
+  .date-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
   }
 </style>

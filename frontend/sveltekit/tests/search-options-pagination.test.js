@@ -1056,7 +1056,7 @@ void test("Option 3 SidePanel search preserves shared filtering and compact tabl
     await waitFor(
       () =>
         browser.document.activeElement ===
-        target.querySelector('[data-search-grid-filter="from_date"]'),
+        target.querySelector('[data-search-grid-filter-picker="from_date"]'),
     );
     assert.equal(filterTrigger.getAttribute("aria-expanded"), "true");
     assert.equal(target.querySelectorAll(".filter-group").length, 18);
@@ -1206,6 +1206,146 @@ void test("Option 3 SidePanel search preserves shared filtering and compact tabl
   } finally {
     await ui.destroy();
     target.remove();
+  }
+});
+
+void test("Options 2–3 Created editors share UTC picker and exact range behavior", async () => {
+  assert.ok(app);
+  for (const option of [2, 3]) {
+    const requests = [];
+    globalThis.fetch = async (input) => {
+      const request = new URL(input instanceof Request ? input.url : input);
+      requests.push(request);
+      const offset = Number(request.searchParams.get("offset"));
+      const limit = Number(request.searchParams.get("limit"));
+      return json({ count: 100, offset, limit, rows: [resultRow(12)] });
+    };
+
+    const initialUrl = allFiltersUrl(option);
+    initialUrl.searchParams.set(
+      "from_date",
+      "2026-01-02T04:04:05.123456+01:00",
+    );
+    initialUrl.searchParams.set("until_date", "2026-01-03T03:04:05.123456000Z");
+    const target = browser.document.createElement("div");
+    browser.document.body.append(target);
+    const ui = app.mountSearchOption(target, initialUrl, [family], option);
+    const searchRequests = () =>
+      requests.filter(
+        (request) => request.pathname === "/v1/test-results/search-page",
+      );
+    const openCreated = async () => {
+      if (option === 2) {
+        const menu = target.querySelector(
+          '[data-search-grid-menu="from_date"]',
+        );
+        if (menu?.closest("[hidden]"))
+          target
+            .querySelector('thead button[aria-label="Filter Created"]')
+            ?.click();
+        await waitFor(
+          () =>
+            !target
+              .querySelector('[data-search-grid-menu="from_date"]')
+              ?.closest("[hidden]"),
+        );
+      } else {
+        const panel = target.querySelector("dialog.search-option-filter-panel");
+        if (!panel.open)
+          target
+            .querySelector(
+              'button[aria-controls="search-option-3-filter-panel"]',
+            )
+            ?.click();
+        await waitFor(() => panel.open);
+      }
+    };
+    const setInput = async (selector, value) => {
+      const input = target.querySelector(selector);
+      assert.ok(input, `missing ${selector} in Option ${option}`);
+      input.value = value;
+      input.dispatchEvent(new browser.Event("input", { bubbles: true }));
+      await flush();
+      return input;
+    };
+    const submit = () => {
+      if (option === 3)
+        target
+          .querySelector(
+            ".search-option-filter-panel .ds.dialog-content-footer button:last-child",
+          )
+          .click();
+      else
+        target
+          .querySelector('form[aria-label="Apply confirmed search filters"]')
+          .dispatchEvent(
+            new browser.Event("submit", { bubbles: true, cancelable: true }),
+          );
+    };
+
+    try {
+      await waitFor(() => searchRequests().length === 1);
+      await openCreated();
+      const fromTextSelector = '[data-search-grid-filter="from_date"]';
+      const fromPickerSelector = '[data-search-grid-filter-picker="from_date"]';
+      const fromText = target.querySelector(fromTextSelector);
+      const fromPicker = target.querySelector(fromPickerSelector);
+      assert.ok(fromText);
+      assert.ok(fromPicker);
+      assert.equal(fromText.type, "text");
+      assert.equal(fromPicker.type, "datetime-local");
+      assert.equal(
+        fromText.value,
+        "2026-01-02T04:04:05.123456+01:00",
+        `Option ${option} keeps the restored offset and microseconds`,
+      );
+      assert.equal(fromPicker.value, "2026-01-02T03:04:05");
+      assert.equal(
+        target.querySelector('[data-search-grid-filter="until_date"]').value,
+        "2026-01-03T03:04:05.123456000Z",
+      );
+
+      await setInput(fromPickerSelector, "2026-01-02T04:05:06");
+      assert.equal(
+        target.querySelector(fromTextSelector).value,
+        "2026-01-02T04:05:06Z",
+        `Option ${option} serializes a picker choice as a UTC instant`,
+      );
+      assert.equal(searchRequests().length, 1, "date edits remain drafts");
+      const invalid = "2026-01-02T04:05:06.1234567Z";
+      await setInput(fromTextSelector, invalid);
+      assert.match(target.textContent, /microsecond/);
+      assert.equal(searchRequests().length, 1, "invalid drafts do not fetch");
+      await setInput(fromTextSelector, "2026-01-02T04:05:06.123456Z");
+      const reversed = "2026-01-04T00:00:00Z";
+      await setInput(fromTextSelector, reversed);
+      assert.match(target.textContent, /From must not be after Until/);
+      assert.equal(searchRequests().length, 1, "reversed drafts do not fetch");
+      await setInput(fromTextSelector, "2026-01-02T04:05:06.123456Z");
+      submit();
+      await waitFor(() => ui.url.searchParams.get("page") === "1");
+      await waitFor(() => searchRequests().length === 2);
+      assert.equal(ui.url.searchParams.get("page_size"), "25");
+      assert.equal(
+        ui.url.searchParams.get("from_date"),
+        "2026-01-02T04:05:06.123456Z",
+      );
+      assert.equal(
+        ui.url.searchParams.get("until_date"),
+        "2026-01-03T03:04:05.123456000Z",
+      );
+      assert.equal(ui.url.searchParams.get("artefacts"), "widget");
+      assert.equal(
+        ui.url.searchParams.get("test_execution_statuses"),
+        "PASSED",
+      );
+      assert.equal(ui.url.searchParams.get("template_ids"), "template-9");
+      assert.equal(searchRequests().at(-1).searchParams.get("offset"), "0");
+      assert.equal(searchRequests().at(-1).searchParams.get("limit"), "25");
+    } finally {
+      await ui.destroy();
+      target.remove();
+    }
   }
 });
 

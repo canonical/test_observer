@@ -13,6 +13,11 @@
     field,
     value = $bindable(),
     other,
+    boundLabel,
+    textPlaceholder,
+    disabled = false,
+    filterAttribute,
+    ontextchange,
     // eslint-disable-next-line no-useless-assignment -- Bindable validation output is read by the owning form.
     valid = $bindable(false),
     text = $bindable(untrack(() => value ?? "")),
@@ -20,6 +25,11 @@
     field: InstantFilterKey;
     value: IsoInstant | null;
     other: IsoInstant | null;
+    boundLabel?: string;
+    textPlaceholder?: string;
+    disabled?: boolean;
+    filterAttribute?: string;
+    ontextchange?: (text: string) => void;
     valid?: boolean;
     /** Optional raw-text binding for forms that must validate cleared/invalid edits. */
     text?: string;
@@ -58,10 +68,17 @@
   function updatePicker(event: Event) {
     const input = event.currentTarget as HTMLInputElement;
     const picked = input.value;
-    text = picked ? `${picked.length === 16 ? `${picked}:00` : picked}Z` : "";
+    updateText(
+      picked ? `${picked.length === 16 ? `${picked}:00` : picked}Z` : "",
+    );
+  }
+  function updateText(next: string) {
+    text = next;
+    ontextchange?.(next);
   }
 </script>
 
+{#if boundLabel}<p class="bound-label">{boundLabel}</p>{/if}
 <p class="hint">
   Inclusive {field === "from_date" ? "lower" : "upper"} bound on result creation time.
   The other bound is optional.
@@ -70,9 +87,11 @@
 <input
   id={`${id}-picker`}
   name={`${field}-picker`}
+  data-search-grid-filter-picker={filterAttribute}
   type="datetime-local"
   step="1"
   value={picker}
+  {disabled}
   oninput={updatePicker}
   aria-describedby={`${id}-hint`}
 />
@@ -84,9 +103,14 @@
 <TextInput
   {id}
   name={field}
-  bind:value={text}
+  value={text}
+  placeholder={textPlaceholder}
+  data-search-grid-filter={filterAttribute}
+  {disabled}
   aria-invalid={Boolean(error)}
   aria-describedby={`${id}-format`}
+  oninput={(event) =>
+    updateText((event.currentTarget as HTMLInputElement).value)}
 />
 <p id={`${id}-format`} class="hint">
   ISO timestamp with Z or ±HH:MM; up to six fractional digits (microseconds).
@@ -115,5 +139,9 @@
     color: var(--lp-color-text-muted);
     font-size: 0.875rem;
     overflow-wrap: anywhere;
+  }
+  .bound-label {
+    margin: 0.75rem 0 0;
+    font-weight: 600;
   }
 </style>
