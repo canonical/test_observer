@@ -41,6 +41,7 @@ dependencies = [
     "itsdangerous>=2.2.0",
     "prometheus-fastapi-instrumentator>=7.1.0",
     "starlette>=1.0.1",
+    "sqlalchemy-declarative-extensions>=0.18.0,<0.19.0",
 ]
 
 [dependency-groups]

@@ -24,6 +24,7 @@ from celery import Celery, Task
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import Artefact, Issue
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
@@ -111,6 +112,7 @@ def run_promote_artefacts():
 
         try:
             with SessionLocal() as db:
+                set_audit_context(db, automation="celery.run_promote_artefacts")
                 update_values = promotion_updates[artefact.id]
                 original_stage, original_archived = promotion_source_values[artefact.id]
                 conditions = [Artefact.id == artefact.id]

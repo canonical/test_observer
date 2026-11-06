@@ -24,6 +24,10 @@ from sqlalchemy.engine.interfaces import DBAPICursor
 from sqlalchemy.event import listens_for
 from sqlalchemy.orm import sessionmaker
 
+from test_observer.data_access.audit import register_audit_context_listener
+
+register_audit_context_listener()
+
 DEFAULT_DB_URL = "postgresql+pg8000://postgres:password@test-observer-db:5432/postgres"
 DB_URL = environ.get("DB_URL", DEFAULT_DB_URL)
 
