@@ -49,6 +49,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql import ColumnElement, func
 from sqlalchemy_declarative_extensions import declarative_database
+from sqlalchemy_declarative_extensions.audit import audit
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
@@ -296,6 +297,7 @@ class Notification(Base):
         return data_model_repr(self, "user_id", "notification_type")
 
 
+@audit(context_columns=[Column("triggered_by", JSONB, nullable=False)])
 class Artefact(Base):
     """A model to represent artefacts (snaps, debs, images)"""
 
@@ -976,6 +978,7 @@ class IssueTestResultAttachmentRuleExecutionMetadata(Base):
     value: Mapped[str] = mapped_column(String(200))
 
 
+@audit(context_columns=[Column("triggered_by", JSONB, nullable=False)])
 class ArtefactBuildEnvironmentReview(Base):
     """
     A table to store review information for test runs on a combination
