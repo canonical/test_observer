@@ -58,6 +58,7 @@ from typing import Any
 
 from sqlalchemy import Connection, Table, func, insert, select, text
 
+from test_observer.data_access.audit import set_connection_audit_context
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -245,6 +246,7 @@ class AlreadySeededError(RuntimeError):
 
 def seed_performance_data(connection: Connection, profile: PerformanceProfile, *, seed: int = 0) -> SeedSummary:
     """Insert the synthetic data set on an open connection. The caller commits."""
+    set_connection_audit_context(connection, automation_name="scripts.seed_performance_data")
     # The rows have fixed names, so a second run would fail on the first
     # unique constraint it meets.
     if connection.scalar(select(func.count()).select_from(User).where(User.email.startswith(f"{NAME_PREFIX}-"))):

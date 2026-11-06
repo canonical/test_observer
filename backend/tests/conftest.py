@@ -46,6 +46,7 @@ from test_observer.common.enums import Permission
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
+from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import Application, TestExecution, User
 from test_observer.data_access.models_enums import StageName
 from test_observer.data_access.setup import get_db
@@ -141,6 +142,7 @@ def db_session(db_engine: Engine):
         bind=connection,
         expire_on_commit=False,
     )()
+    set_audit_context(session, automation_name="tests")
 
     yield session
 

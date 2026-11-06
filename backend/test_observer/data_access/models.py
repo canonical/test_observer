@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     Enum,
@@ -28,6 +29,7 @@ from sqlalchemy import (
     MetaData,
     String,
     Table,
+    Text,
     UniqueConstraint,
     and_,
     case,
@@ -48,6 +50,7 @@ from sqlalchemy.orm import (
     relationship,
 )
 from sqlalchemy.sql import ColumnElement, func
+from sqlalchemy_declarative_extensions import declarative_database
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
@@ -62,6 +65,7 @@ from test_observer.data_access.models_enums import (
 )
 
 
+@declarative_database
 class Base(DeclarativeBase):
     """Base model for all the models"""
 
@@ -192,6 +196,24 @@ class Application(Base):
 
     def __repr__(self) -> str:
         return data_model_repr(self, "name")
+
+
+class ChangeAuthor(Base):
+    __tablename__ = "change_author"
+    __table_args__ = (
+        CheckConstraint(
+            "num_nonnulls(user_id, application_id, automation_name) = 1",
+            name="exactly_one_author",
+        ),
+        CheckConstraint(
+            "automation_name IS NULL OR btrim(automation_name) <> ''",
+            name="automation_name_not_blank",
+        ),
+    )
+
+    user_id: Mapped[int | None] = mapped_column(unique=True, default=None)
+    application_id: Mapped[int | None] = mapped_column(unique=True, default=None)
+    automation_name: Mapped[str | None] = mapped_column(Text, unique=True, default=None)
 
 
 class Team(Base):
