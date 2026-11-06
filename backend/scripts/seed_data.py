@@ -771,7 +771,7 @@ SAMPLE_ISSUE_ATTACHMENT_SEQUENCE = [
 
 def seed_data(client: TestClient | requests.Session, session: Session | None = None):
     session = session or SessionLocal()
-    set_audit_context(session, automation="scripts.seed_data")
+    set_audit_context(session, automation_name="scripts.seed_data")
 
     # Check if data has already been seeded by looking for existing users or artefacts
     existing_users = session.scalar(select(User).limit(1))

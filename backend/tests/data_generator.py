@@ -59,7 +59,7 @@ DEFAULT_ARCHITECTURE = "amd64"
 class DataGenerator:
     def __init__(self, db_session: Session):
         self.db_session = db_session
-        set_audit_context(db_session, automation="tests")
+        set_audit_context(db_session, automation_name="tests")
 
     def gen_team(
         self,

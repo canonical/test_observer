@@ -36,7 +36,7 @@ def delete_artefact(artefact_id: int, session: Session | None = None):
 
 
 def _delete(artefact_id: int, session: Session) -> None:
-    set_audit_context(session, automation="scripts.delete_artefact")
+    set_audit_context(session, automation_name="scripts.delete_artefact")
     artefact = session.get(Artefact, artefact_id)
     if artefact:
         session.delete(artefact)

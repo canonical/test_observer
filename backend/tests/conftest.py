@@ -142,7 +142,7 @@ def db_session(db_engine: Engine):
         bind=connection,
         expire_on_commit=False,
     )()
-    set_audit_context(session, automation="tests")
+    set_audit_context(session, automation_name="tests")
 
     yield session
 

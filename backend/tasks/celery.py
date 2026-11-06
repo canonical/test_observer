@@ -112,7 +112,7 @@ def run_promote_artefacts():
 
         try:
             with SessionLocal() as db:
-                set_audit_context(db, automation="celery.run_promote_artefacts")
+                set_audit_context(db, automation_name="celery.run_promote_artefacts")
                 update_values = promotion_updates[artefact.id]
                 original_stage, original_archived = promotion_source_values[artefact.id]
                 conditions = [Artefact.id == artefact.id]

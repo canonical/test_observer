@@ -13,23 +13,88 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-import json
-
 from sqlalchemy import Connection, event, text
 from sqlalchemy.orm import Session
 
-_AUDIT_CONTEXT_KEY = "triggered_by"
-_AUDIT_SETTING = "audit.triggered_by"
+_AUDIT_CONTEXT_KEY = "_audit_author"
+_AUDIT_SETTING = "audit.author_id"
+type _Actor = tuple[str, int | str]
+type _AuthorContext = dict[str, int | str]
 
 
-def _serialize_triggered_by(triggered_by: dict[str, dict[str, int] | str]) -> str:
-    return json.dumps(triggered_by, separators=(",", ":"), sort_keys=True)
+def _validate_actor(
+    *,
+    user_id: int | None,
+    application_id: int | None,
+    automation_name: str | None,
+) -> _Actor:
+    actors = [
+        ("user_id", user_id),
+        ("application_id", application_id),
+        ("automation_name", automation_name),
+    ]
+    provided = [(kind, value) for kind, value in actors if value is not None]
+    if len(provided) != 1:
+        raise ValueError("Exactly one audit actor must be provided")
+    kind, value = provided[0]
+    if kind == "automation_name" and (not isinstance(value, str) or not value.strip()):
+        raise ValueError("automation_name must not be empty")
+    if kind != "automation_name" and not isinstance(value, int):
+        raise ValueError(f"{kind} must be an integer")
+    return kind, value
 
 
-def _set_connection_audit_context(connection: Connection, triggered_by: dict[str, dict[str, int] | str]) -> None:
+def get_or_create_author(
+    connection: Connection,
+    *,
+    user_id: int | None = None,
+    application_id: int | None = None,
+    automation_name: str | None = None,
+) -> int:
+    """Return the deduplicated author id for exactly one actor."""
+    kind, value = _validate_actor(
+        user_id=user_id,
+        application_id=application_id,
+        automation_name=automation_name,
+    )
+    select_author = text(f"SELECT id FROM change_author WHERE {kind} = :actor")
+    author_id = connection.scalar(select_author, {"actor": value})
+    if author_id is not None:
+        return author_id
+
+    insert_author = text(
+        f"INSERT INTO change_author ({kind}, created_at, updated_at) VALUES (:actor, now(), now()) "
+        f"ON CONFLICT ({kind}) DO NOTHING RETURNING id"
+    )
+    author_id = connection.scalar(insert_author, {"actor": value})
+    if author_id is not None:
+        return author_id
+
+    author_id = connection.scalar(select_author, {"actor": value})
+    if author_id is None:
+        raise RuntimeError("Could not retrieve or create audit author")
+    return author_id
+
+
+def _resolve_author(connection: Connection, actor: _Actor) -> int:
+    kind, value = actor
+    if kind == "user_id":
+        if not isinstance(value, int):
+            raise TypeError("user_id must be an integer")
+        return get_or_create_author(connection, user_id=value)
+    if kind == "application_id":
+        if not isinstance(value, int):
+            raise TypeError("application_id must be an integer")
+        return get_or_create_author(connection, application_id=value)
+    if not isinstance(value, str):
+        raise TypeError("automation_name must be a string")
+    return get_or_create_author(connection, automation_name=value)
+
+
+def _set_connection_audit_author(connection: Connection, author_id: int) -> None:
     connection.execute(
         text("SELECT set_config(:setting, :value, true)"),
-        {"setting": _AUDIT_SETTING, "value": _serialize_triggered_by(triggered_by)},
+        {"setting": _AUDIT_SETTING, "value": str(author_id)},
     )
 
 
@@ -38,41 +103,50 @@ def set_audit_context(
     *,
     user_id: int | None = None,
     application_id: int | None = None,
-    automation: str | None = None,
+    automation_name: str | None = None,
 ) -> None:
-    """Set and retain the transaction-local actor information for audited writes."""
-    updates: dict[str, dict[str, int] | str] = {}
-    if user_id is not None:
-        updates["user"] = {"id": user_id}
-    if application_id is not None:
-        updates["application"] = {"id": application_id}
-    if automation is not None:
-        if not automation.strip():
-            raise ValueError("automation must not be empty")
-        updates["automation"] = automation
-    if not updates:
-        raise ValueError("At least one audit actor must be provided")
+    """Set and retain the transaction-local author for audited writes."""
+    kind, value = _validate_actor(
+        user_id=user_id,
+        application_id=application_id,
+        automation_name=automation_name,
+    )
 
-    triggered_by = db.info.setdefault(_AUDIT_CONTEXT_KEY, {})
-    if not isinstance(triggered_by, dict):
-        raise TypeError("Session audit context must be a dictionary")
-    triggered_by.update(updates)
-    _set_connection_audit_context(db.connection(), triggered_by)
+    existing = db.info.get(_AUDIT_CONTEXT_KEY)
+    if existing is not None:
+        if not isinstance(existing, dict):
+            raise TypeError("Session audit context must be a dictionary")
+        priority = {"automation_name": 0, "application_id": 1, "user_id": 2}
+        existing_kind = existing["kind"]
+        if priority[kind] < priority[existing_kind]:
+            return
+
+    author_id = _resolve_author(db.connection(), (kind, value))
+    context: _AuthorContext = {"kind": kind, "value": value, "author_id": author_id}
+    db.info[_AUDIT_CONTEXT_KEY] = context
+    db.info["author_id"] = author_id
+    _set_connection_audit_author(db.connection(), author_id)
 
 
-def set_connection_audit_context(connection: Connection, *, automation: str) -> None:
+def set_connection_audit_context(connection: Connection, *, automation_name: str) -> None:
     """Set transaction-local audit context for direct Core operations."""
-    if not automation.strip():
-        raise ValueError("automation must not be empty")
-    _set_connection_audit_context(connection, {"automation": automation})
+    author_id = get_or_create_author(connection, automation_name=automation_name)
+    _set_connection_audit_author(connection, author_id)
 
 
 def _reapply_audit_context(session: Session, _transaction: object, connection: Connection) -> None:
-    triggered_by = session.info.get(_AUDIT_CONTEXT_KEY)
-    if triggered_by is not None:
-        if not isinstance(triggered_by, dict):
+    context = session.info.get(_AUDIT_CONTEXT_KEY)
+    if context is not None:
+        if not isinstance(context, dict):
             raise TypeError("Session audit context must be a dictionary")
-        _set_connection_audit_context(connection, triggered_by)
+        kind, value = context["kind"], context["value"]
+        if not isinstance(kind, str):
+            raise TypeError("Session audit context kind must be a string")
+        actor = (kind, value)
+        author_id = _resolve_author(connection, actor)  # type: ignore[arg-type]
+        context["author_id"] = author_id
+        session.info["author_id"] = author_id
+        _set_connection_audit_author(connection, author_id)
 
 
 def register_audit_context_listener() -> None:

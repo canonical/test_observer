@@ -23,7 +23,7 @@ from .swm_reader import ArtefactTrackerInfo
 
 
 def update_artefacts_with_tracker_info(db: Session, artefacts_tracker_info: dict[int, ArtefactTrackerInfo]):
-    set_audit_context(db, automation="celery.integrate_with_kernel_swm")
+    set_audit_context(db, automation_name="celery.integrate_with_kernel_swm")
     stmt = select(Artefact).where(Artefact.id.in_(artefacts_tracker_info.keys()))
     artefacts = db.scalars(stmt)
 
