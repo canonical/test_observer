@@ -15,6 +15,7 @@
     families,
     invalidFields = [],
     disabled = false,
+    hideLabel = false,
     onedit,
   }: {
     label: string;
@@ -23,6 +24,7 @@
     families: Family[];
     invalidFields?: SearchFilter[];
     disabled?: boolean;
+    hideLabel?: boolean;
     onedit: (key: SearchFilter, next: SearchFilters) => void;
   } = $props();
 
@@ -182,7 +184,7 @@
 </script>
 
 <div class="header-content">
-  <span>{label}</span>
+  {#if !hideLabel}<span>{label}</span>{/if}
   <button
     bind:this={trigger}
     type="button"

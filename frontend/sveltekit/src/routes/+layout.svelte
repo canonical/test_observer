@@ -136,7 +136,23 @@
       Search (Option 1)
     </SideNavigation.NavigationItem>
 
-    {#each [2, 3, 4] as option (option)}
+    <SideNavigation.NavigationItem
+      href={resolve("test-results/option-2")}
+      selected={pathname === resolve("test-results/option-2")}
+    >
+      {#snippet icon()}<SearchIcon />{/snippet}
+      Search (Option 2)
+    </SideNavigation.NavigationItem>
+
+    <SideNavigation.NavigationItem
+      href={resolve("test-results/option-2-5")}
+      selected={pathname === resolve("test-results/option-2-5")}
+    >
+      {#snippet icon()}<SearchIcon />{/snippet}
+      Search (Option 2.5)
+    </SideNavigation.NavigationItem>
+
+    {#each [3, 4] as option (option)}
       {@const route = `test-results/option-${option}`}
       <SideNavigation.NavigationItem
         href={resolve(route)}

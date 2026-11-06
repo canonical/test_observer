@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-// Opt-in real-Chromium comparison of Search Options 1–4 using synthetic API
+// Opt-in real-Chromium comparison of Search Options 1–4 and 2.5 using synthetic API
 // responses. Playwright is supplied externally; no credentials or live API are
 // used. All non-loopback HTTP requests are blocked.
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-argument */
@@ -216,12 +216,12 @@ async function waitForNode(check, description, timeoutMs = 12000) {
 }
 
 async function assertNavigation(page, option) {
-  const routes = [1, 2, 3, 4].map((number) => ({
+  const routes = [1, 2, 2.5, 3, 4].map((number) => ({
     option: number,
     path:
       number === 1
         ? `${basePath}/test-results`
-        : `${basePath}/test-results/option-${number}`,
+        : `${basePath}/test-results/option-${number === 2.5 ? "2-5" : number}`,
   }));
   const states = await Promise.all(
     routes.map(async ({ path }) => {
@@ -309,9 +309,9 @@ async function assertPrototypeUi(page, option) {
 
   const table = page.locator("table.search-option-table");
   const headers =
-    option === 2
+    option === 2 || option === 2.5
       ? await table
-          .locator("thead th")
+          .locator("thead tr:first-child th")
           .evaluateAll((items) =>
             items.map(
               (header) =>
@@ -321,7 +321,7 @@ async function assertPrototypeUi(page, option) {
             ),
           )
       : await table.locator("thead th").allTextContents();
-  if (option === 2) {
+  if (option === 2 || option === 2.5) {
     assert.deepEqual(headers, [
       "Run",
       "Details",
@@ -352,11 +352,30 @@ async function assertPrototypeUi(page, option) {
       await table.locator("thead button.column-filter-trigger").count(),
       18,
     );
+    if (option === 2.5) {
+      const filterRows = table.locator("thead tr");
+      assert.equal(await filterRows.count(), 2);
+      assert.equal(await filterRows.nth(1).locator("th").count(), 23);
+      const filterIndexes = await filterRows
+        .nth(1)
+        .locator("th")
+        .evaluateAll((cells) =>
+          cells.flatMap((cell, index) =>
+            cell.querySelector("button.column-filter-trigger") ? [index] : [],
+          ),
+        );
+      assert.deepEqual(
+        filterIndexes,
+        [2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22],
+      );
+    } else assert.equal(await table.locator("thead tr").count(), 1);
     assert.equal(await page.locator('button[aria-label*="Sort"]').count(), 0);
     return {
       table: "Pragma Table",
       columns: headers.length,
       filterControls: 18,
+      filterPlacement:
+        option === 2.5 ? "aligned dedicated second thead row" : "column header",
     };
   }
 
@@ -400,7 +419,7 @@ async function assertPrototypeUi(page, option) {
 }
 
 async function editStatusAndApply(page, option) {
-  if (option === 1 || option === 2) {
+  if (option === 1 || option === 2 || option === 2.5) {
     await page
       .getByRole("button", { name: "Filter Result status", exact: true })
       .click();
@@ -526,7 +545,7 @@ async function testOption(page, option, pageOrigin) {
   const routePath =
     option === 1
       ? `${basePath}/test-results`
-      : `${basePath}/test-results/option-${option}`;
+      : `${basePath}/test-results/option-${option === 2.5 ? "2-5" : option}`;
   const params = new URLSearchParams(filters);
   if (option === 1) {
     // These are legacy pagination URL fields; the original infinite Search
@@ -566,7 +585,11 @@ async function testOption(page, option, pageOrigin) {
       await page
         .locator("tbody tr")
         .first()
-        .locator(option === 2 ? "td:nth-child(14)" : "td:nth-child(5)")
+        .locator(
+          option === 2 || option === 2.5
+            ? "td:nth-child(14)"
+            : "td:nth-child(5)",
+        )
         .innerText(),
       /FAILED/,
       "the server-returned row is not locally removed by the PASSED URL filter",
@@ -768,7 +791,7 @@ try {
   const page = await context.newPage();
   page.setDefaultTimeout(20000);
   page.on("pageerror", (error) => pageErrors.push(String(error)));
-  for (const option of [1, 2, 3, 4])
+  for (const option of [1, 2, 2.5, 3, 4])
     routeResults.push(await testOption(page, option, appOrigin));
 
   assert.deepEqual(
@@ -817,7 +840,7 @@ try {
         limitations: [
           "Every Test Observer API request is intercepted and receives a synthetic fixture response; this is not live API, authentication, or backend integration evidence.",
           "The synthetic Search endpoint deliberately returns the same rows regardless of filter values so local filtering or reordering is observable.",
-          "UI equivalence is not expected: Option 1 is infinite SvGrid, Option 2 is the wide header-filter Table, and Options 3–4 are distinct compact filter presentations.",
+          "UI equivalence is not expected: Option 1 is infinite SvGrid, Option 2 is the wide table with filters in column headers, Option 2.5 is the wide table with a dedicated second filter row, and Options 3–4 are distinct compact filter presentations.",
         ],
       },
       null,

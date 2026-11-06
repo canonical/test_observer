@@ -127,6 +127,7 @@ void test("navigation makes only the page inert and keeps status and shell contr
         [
           "/test-results",
           "/test-results/option-2",
+          "/test-results/option-2-5",
           "/test-results/option-3",
           "/test-results/option-4",
           "/alpha",
@@ -141,6 +142,10 @@ void test("navigation makes only the page inert and keeps status and shell contr
     assert.deepEqual(mainRoutes, [
       { href: "/test-results", label: "Search (Option 1)" },
       { href: "/test-results/option-2", label: "Search (Option 2)" },
+      {
+        href: "/test-results/option-2-5",
+        label: "Search (Option 2.5)",
+      },
       { href: "/test-results/option-3", label: "Search (Option 3)" },
       { href: "/test-results/option-4", label: "Search (Option 4)" },
       { href: "/alpha", label: "Alpha" },
@@ -153,6 +158,7 @@ void test("navigation makes only the page inert and keeps status and shell contr
     const expectedSelection = [
       ["/test-results", false],
       ["/test-results/option-2", false],
+      ["/test-results/option-2-5", false],
       ["/test-results/option-3", true],
       ["/test-results/option-4", false],
     ];
@@ -163,6 +169,12 @@ void test("navigation makes only the page inert and keeps status and shell contr
       assert.ok(link);
       assert.equal(link.classList.contains("selected"), selected, href);
     }
+    setPageUrl("/test-results/option-2-5");
+    const option25Link = sidebar.querySelector(
+      'a[href="/test-results/option-2-5"]',
+    );
+    assert.ok(option25Link);
+    assert.equal(option25Link.classList.contains("selected"), true);
     setPageUrl("/alpha");
 
     assert.equal(main.getAttribute("aria-busy"), "false");

@@ -13,20 +13,25 @@ export { userStore } from "../src/lib/stores/user.svelte";
 
 /** @param {HTMLElement} target @param {URL} initialUrl
  * @param {import("../src/lib/types").Family[]} families
- * @param {2 | 3 | 4} [option]
+ * @param {2 | 2.5 | 3 | 4} [option]
  */
 export function mountSearchOption(target, initialUrl, families, option = 2) {
   let url = $state(initialUrl);
   const navigations = [];
   const component = mount(
-    option === 2 ? SearchOption2 : option === 3 ? SearchOption3 : SearchOption4,
+    option === 2 || option === 2.5
+      ? SearchOption2
+      : option === 3
+        ? SearchOption3
+        : SearchOption4,
     {
       target,
       props: {
         get url() {
           return url;
         },
-        routePath: `/custom/base/test-results/option-${option}`,
+        routePath: `/custom/base/test-results/option-${option === 2.5 ? "2-5" : option}`,
+        variant: option === 2.5 ? 2.5 : undefined,
         families,
         base: "/custom/base",
         /** @param {string | URL} next */

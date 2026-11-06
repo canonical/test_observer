@@ -11,20 +11,21 @@ back/forward restore the search. The Search page has no row selection or mutatio
 actions; reusable issue/rerun/rule components remain available to other workflows.
 This is the canonical SvelteKit search guide.
 
-## Search prototype routes (Options 1–4)
+## Search prototype routes (Options 1–4 and 2.5)
 
-The four prototype routes share the same exact server-side Search filters and
+The five prototype routes share the same exact server-side Search filters and
 read-only result actions, but intentionally compare different table/filter
 presentations. They are not expected to look or behave identically as tables:
 
-| Option | Route                    | Prototype presentation and pagination                                                                                                                                                                                                              |
-| ------ | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1      | `/test-results`          | Existing SvGrid table with 23 columns, 18 column-filter editors, and infinite server range requests. The URL's legacy `limit`/`offset` values are stripped; they do not control the grid. SvGrid requests its own ranges in default 50-row blocks. |
-| 2      | `/test-results/option-2` | Pragma wide Table with 23 columns and the exact-filter controls in the relevant column headers.                                                                                                                                                    |
-| 3      | `/test-results/option-3` | Pragma SidePanel filter surface with a compact table of nine Flutter-style columns.                                                                                                                                                                |
-| 4      | `/test-results/option-4` | Historical-style editable filter chips with a compact table of the same nine Flutter-style columns.                                                                                                                                                |
+| Option | Route                      | Prototype presentation and pagination                                                                                                                                                                                                              |
+| ------ | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1      | `/test-results`            | Existing SvGrid table with 23 columns, 18 column-filter editors, and infinite server range requests. The URL's legacy `limit`/`offset` values are stripped; they do not control the grid. SvGrid requests its own ranges in default 50-row blocks. |
+| 2      | `/test-results/option-2`   | Pragma wide Table with 23 columns and the exact-filter controls in the relevant column headers.                                                                                                                                                    |
+| 2.5    | `/test-results/option-2-5` | Pragma wide Table with 23 columns and a dedicated second `<thead>` row of exact-filter controls aligned beneath their field-label columns.                                                                                                         |
+| 3      | `/test-results/option-3`   | Pragma SidePanel filter surface with a compact table of nine Flutter-style columns.                                                                                                                                                                |
+| 4      | `/test-results/option-4`   | Historical-style editable filter chips with a compact table of the same nine Flutter-style columns.                                                                                                                                                |
 
-Options 2–4 share URL presentation state: `page` is 1-based and defaults to 1;
+Options 2, 2.5, 3 and 4 share URL presentation state: `page` is 1-based and defaults to 1;
 `page_size` defaults to 50 and accepts 25, 50, or 100. A page request maps to
 API `offset=(page - 1) * page_size` and `limit=page_size`, and asks the API for
 the exact count with `include_count=true`. Applying a filter resets `page` to 1
@@ -43,15 +44,17 @@ in every route. Alternatives within a field are exact-match ORs; different
 fields are combined server-side. No option filters or sorts only the rows
 already loaded in the browser.
 
-All four remain read-only: configured Run links retain the deployment base and
+All five remain read-only: configured Run links retain the deployment base and
 execution/result deep links, and Details is fetched lazily for a selected row.
 API authorization remains authoritative for result and Details reads; 401/403
 responses are revalidated against the current session and presented as the
 appropriate login, forbidden, or session-check state. These shared contracts do
-not make the presentations equivalent: Options 1–2 show the wide 23-column
-table (with different grid/table mechanics), while Options 3–4 show only nine
-compact Flutter-style columns and expose filters in a SidePanel or editable
-chips, respectively.
+not make the presentations equivalent: Options 1–2 and 2.5 show the wide
+23-column table with different filter/table mechanics; Option 2 retains its
+column-header filters, while Option 2.5 puts discoverable field-specific filter
+triggers in a separate second header row. Options 3–4 show only nine compact
+Flutter-style columns and expose filters in a SidePanel or editable chips,
+respectively.
 
 The opt-in cross-option browser QA uses actual Chromium and mocks every API call
 with synthetic loopback fixtures. It does not require or contact a live API,
@@ -59,11 +62,14 @@ SSO service, database, or credentials and is not live integration evidence.
 
 ## Column filters and applying a search
 
-All 18 filter groups start in their own SvGrid column header and open an anchored
-menu attached to that header. Created is one group with inclusive From and Until
-bounds. The Search URL/API contract accepts all 19 canonical filter keys; every
-key has a column editor. Conditions are sent to the server and are not evaluated
-against only the loaded blocks. There is no
+On Option 1, all 18 filter groups start in their own SvGrid column header and open
+an anchored menu attached to that header. Option 2 keeps its existing
+column-header filters unchanged. Option 2.5 presents the same field-specific
+filter triggers in a second `<thead>` row directly beneath the 23 field labels;
+nonfilterable action/display columns remain empty in that row. Created is one
+group with inclusive From and Until bounds. The Search URL/API contract accepts
+all 19 canonical filter keys; every key has an exact editor. Conditions are sent
+to the server and are not evaluated against only the loaded blocks. There is no
 **Add filter** picker, condition-chip row, or detached filter panel.
 
 Column menus update a single shared draft directly. High-cardinality Artefact,

@@ -221,8 +221,9 @@ after(async () => {
 });
 
 function allFiltersUrl(option = 2) {
+  const routeOption = option === 2.5 ? "2-5" : option;
   return new URL(
-    `http://localhost/custom/base/test-results/option-${option}?` +
+    `http://localhost/custom/base/test-results/option-${routeOption}?` +
       [
         "families=snap",
         "test_result_statuses=FAILED",
@@ -648,21 +649,235 @@ void test("option scaffolds revalidate auth, present access states, and retry", 
 });
 
 void test("option routes use shared paging and base-aware resolution", async () => {
-  for (const option of [2, 3, 4]) {
+  for (const option of [2, 2.5, 3, 4]) {
+    const routeOption = option === 2.5 ? "2-5" : option;
     const source = await readFile(
-      resolve(`src/routes/test-results/option-${option}/+page.svelte`),
+      resolve(`src/routes/test-results/option-${routeOption}/+page.svelte`),
       "utf8",
     );
-    assert.match(source, /resolve\("test-results\/option-/);
     assert.match(
       source,
-      option === 2
+      new RegExp(`resolve\\("test-results/option-${routeOption}"\\)`),
+    );
+    assert.match(
+      source,
+      option === 2 || option === 2.5
         ? /SearchOption2/
         : option === 3
           ? /SearchOption3/
           : /SearchOption4/,
     );
+    if (option === 2.5) assert.match(source, /variant=\{2\.5\}/);
     assert.match(source, /navigate=\{\(next\) => goto\(next\)\}/);
+  }
+});
+
+void test("Option 2.5 has a dedicated aligned filter row and exact drafts", async () => {
+  assert.ok(app);
+  const requests = [];
+  globalThis.fetch = async (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    const offset = Number(request.searchParams.get("offset"));
+    const limit = Number(request.searchParams.get("limit"));
+    return json({ count: 100, offset, limit, rows: [resultRow(12)] });
+  };
+
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const initialUrl = new URL(
+    "http://localhost/custom/base/test-results/option-2-5?" +
+      "page=3&page_size=25&families=snap&test_execution_statuses=PASSED&" +
+      "artefact_tracks=stable&from_date=2026-01-02T03%3A04%3A05.123456%2B01%3A30&" +
+      "until_date=2026-01-03T03%3A04%3A05.000000-04%3A00",
+  );
+  const ui = app.mountSearchOption(target, initialUrl, [family], 2.5);
+  try {
+    await waitFor(() =>
+      target.textContent.includes("Showing 51–51 of 100 results"),
+    );
+    assert.match(target.textContent, /Search \(Option 2\.5\)/);
+    const table = target.querySelector("table.search-option-table");
+    assert.ok(table);
+    const headerRows = [...table.querySelectorAll("thead tr")];
+    assert.equal(
+      headerRows.length,
+      2,
+      "the filter controls have their own thead row",
+    );
+    const labels = [...headerRows[0].querySelectorAll("th")].map((cell) =>
+      cell.textContent.trim(),
+    );
+    assert.deepEqual(labels, [
+      "Run",
+      "Details",
+      "Created",
+      "Family",
+      "Artefact",
+      "Stage",
+      "Archived",
+      "Test Case",
+      "Category",
+      "Execution ID",
+      "Execution Status",
+      "Rerun Requested",
+      "Latest Execution",
+      "Result status",
+      "Track",
+      "Version",
+      "Architecture",
+      "Environment",
+      "Test Plan",
+      "Template ID",
+      "Issues",
+      "Reviewers",
+      "Execution Metadata",
+    ]);
+    const filterCells = [...headerRows[1].querySelectorAll("th")];
+    assert.equal(filterCells.length, 23);
+    const filterIndexes = [
+      2, 3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 22,
+    ];
+    assert.deepEqual(
+      filterCells.flatMap((cell, index) =>
+        cell.querySelector("button[aria-label^='Filter ']") ? [index] : [],
+      ),
+      filterIndexes,
+      "only filterable controls appear, under their matching column",
+    );
+    assert.equal(
+      target.querySelectorAll('thead button[aria-label^="Filter "]').length,
+      18,
+    );
+    assert.equal(
+      target.querySelector('[aria-label="Filter Track"]')?.closest("th"),
+      filterCells[14],
+    );
+
+    const firstRequest = requests.find(
+      (request) => request.pathname === "/v1/test-results/search-page",
+    );
+    assert.ok(firstRequest);
+    assert.equal(firstRequest.searchParams.get("offset"), "50");
+    assert.equal(firstRequest.searchParams.get("limit"), "25");
+    assert.equal(firstRequest.searchParams.get("include_count"), "true");
+    assert.equal(
+      firstRequest.searchParams.get("from_date"),
+      "2026-01-02T03:04:05.123456+01:30",
+    );
+    assert.equal(
+      firstRequest.searchParams.get("until_date"),
+      "2026-01-03T03:04:05.000000-04:00",
+    );
+
+    target.querySelector('[aria-label="Filter Track"]').click();
+    await flush();
+    const trackInput = target.querySelector(
+      '[data-search-grid-filter="artefact_tracks"]',
+    );
+    assert.ok(trackInput);
+    trackInput.value = "stable, beta";
+    trackInput.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    await flush();
+    assert.equal(
+      requests.filter(
+        (request) => request.pathname === "/v1/test-results/search-page",
+      ).length,
+      1,
+      "editing a simple exact list remains a draft",
+    );
+
+    target.querySelector('[aria-label="Filter Created"]').click();
+    await flush();
+    const picker = target.querySelector(
+      '[data-search-grid-filter-picker="from_date"]',
+    );
+    const untilPicker = target.querySelector(
+      '[data-search-grid-filter-picker="until_date"]',
+    );
+    const exactDate = target.querySelector(
+      '[data-search-grid-filter="from_date"]',
+    );
+    const exactUntil = target.querySelector(
+      '[data-search-grid-filter="until_date"]',
+    );
+    assert.ok(picker);
+    assert.ok(untilPicker);
+    assert.ok(exactDate);
+    assert.ok(exactUntil);
+    assert.equal(picker.getAttribute("type"), "datetime-local");
+    assert.equal(picker.getAttribute("step"), "1");
+    assert.equal(untilPicker.getAttribute("type"), "datetime-local");
+    assert.equal(untilPicker.getAttribute("step"), "1");
+    assert.equal(exactDate.value, "2026-01-02T03:04:05.123456+01:30");
+    assert.equal(exactUntil.value, "2026-01-03T03:04:05.000000-04:00");
+    exactDate.value = "2026-01-02T03:04:05.654321+01:30";
+    exactDate.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    exactUntil.value = "2026-01-03T03:04:05.000001-04:00";
+    exactUntil.dispatchEvent(new browser.Event("input", { bubbles: true }));
+    await flush();
+    assert.equal(
+      requests.filter(
+        (request) => request.pathname === "/v1/test-results/search-page",
+      ).length,
+      1,
+      "Created edits remain drafts until Search",
+    );
+
+    target
+      .querySelector('form[aria-label="Apply confirmed search filters"]')
+      .dispatchEvent(
+        new browser.Event("submit", { bubbles: true, cancelable: true }),
+      );
+    await waitFor(() => ui.url.searchParams.get("page") === "1");
+    await waitFor(
+      () =>
+        requests.filter(
+          (request) => request.pathname === "/v1/test-results/search-page",
+        ).length === 2,
+    );
+    assert.equal(ui.url.pathname, "/custom/base/test-results/option-2-5");
+    assert.equal(ui.url.searchParams.get("page_size"), "25");
+    assert.equal(ui.url.searchParams.get("families"), "snap");
+    assert.equal(ui.url.searchParams.get("test_execution_statuses"), "PASSED");
+    assert.deepEqual(ui.url.searchParams.getAll("artefact_tracks"), [
+      "stable",
+      "beta",
+    ]);
+    assert.equal(
+      ui.url.searchParams.get("from_date"),
+      "2026-01-02T03:04:05.654321+01:30",
+    );
+    assert.equal(
+      ui.url.searchParams.get("until_date"),
+      "2026-01-03T03:04:05.000001-04:00",
+    );
+    const appliedRequest = requests.filter(
+      (request) => request.pathname === "/v1/test-results/search-page",
+    )[1];
+    assert.equal(appliedRequest.searchParams.get("offset"), "0");
+    assert.equal(appliedRequest.searchParams.get("limit"), "25");
+    assert.equal(appliedRequest.searchParams.get("include_count"), "true");
+    assert.deepEqual(appliedRequest.searchParams.getAll("artefact_tracks"), [
+      "stable",
+      "beta",
+    ]);
+    assert.equal(
+      appliedRequest.searchParams.get("from_date"),
+      "2026-01-02T03:04:05.654321+01:30",
+    );
+    assert.equal(
+      appliedRequest.searchParams.get("until_date"),
+      "2026-01-03T03:04:05.000001-04:00",
+    );
+    assert.equal(appliedRequest.searchParams.get("families"), "snap");
+    assert.equal(
+      appliedRequest.searchParams.get("test_execution_statuses"),
+      "PASSED",
+    );
+  } finally {
+    await ui.destroy();
+    target.remove();
   }
 });
 

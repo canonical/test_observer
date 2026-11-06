@@ -73,7 +73,7 @@
     families: Family[];
     base: string;
     navigate: (url: string | URL) => Promise<unknown>;
-    variant?: 2 | 3 | 4;
+    variant?: 2 | 2.5 | 3 | 4;
   } = $props();
 
   interface SearchGridValueItem {
@@ -142,6 +142,32 @@
     { label: "Issues", key: "issues" },
     { label: "Reviewers", key: "reviewer_ids" },
     { label: "Execution Metadata", key: "execution_metadata" },
+  ];
+
+  const wideColumns: { label: string; filterKey?: SearchFilter }[] = [
+    { label: "Run" },
+    { label: "Details" },
+    { label: "Created", filterKey: "from_date" },
+    { label: "Family", filterKey: "families" },
+    { label: "Artefact", filterKey: "artefacts" },
+    { label: "Stage", filterKey: "artefact_stages" },
+    { label: "Archived", filterKey: "artefact_is_archived" },
+    { label: "Test Case", filterKey: "test_cases" },
+    { label: "Category" },
+    { label: "Execution ID" },
+    { label: "Execution Status", filterKey: "test_execution_statuses" },
+    { label: "Rerun Requested", filterKey: "rerun_is_requested" },
+    { label: "Latest Execution", filterKey: "execution_is_latest" },
+    { label: "Result status", filterKey: "test_result_statuses" },
+    { label: "Track", filterKey: "artefact_tracks" },
+    { label: "Version", filterKey: "artefact_versions" },
+    { label: "Architecture" },
+    { label: "Environment", filterKey: "environments" },
+    { label: "Test Plan", filterKey: "test_plans" },
+    { label: "Template ID", filterKey: "template_ids" },
+    { label: "Issues", filterKey: "issues" },
+    { label: "Reviewers", filterKey: "reviewer_ids" },
+    { label: "Execution Metadata", filterKey: "execution_metadata" },
   ];
 
   const search = $derived(parseSearchOptions(url.searchParams, families));
@@ -530,10 +556,15 @@
       Set exact server-side filters in the filter panel, then Search. Values
       within a field match any; different fields must all match.
     </p>
-  {:else}
+  {:else if variant === 4}
     <p>
       Add or edit exact server-side filter chips, then Search. Values within a
       field match any; different fields must all match.
+    </p>
+  {:else}
+    <p>
+      Set exact server-side filters from the filter row, then Search. Values
+      within a field match any; different fields must all match.
     </p>
   {/if}
   <div class="filter-actions" role="group" aria-label="Test result filters">
@@ -813,77 +844,113 @@
       {:else}
         <Table class="search-option-table" aria-label="Test results">
           <thead>
-            <tr>
-              <th scope="col">Run</th>
-              <th scope="col">Details</th>
-              <th scope="col">{@render filterHeader("Created", "from_date")}</th
-              >
-              <th scope="col">{@render filterHeader("Family", "families")}</th>
-              <th scope="col"
-                >{@render filterHeader("Artefact", "artefacts")}</th
-              >
-              <th scope="col"
-                >{@render filterHeader("Stage", "artefact_stages")}</th
-              >
-              <th scope="col"
-                >{@render filterHeader("Archived", "artefact_is_archived")}</th
-              >
-              <th scope="col"
-                >{@render filterHeader("Test Case", "test_cases")}</th
-              >
-              <th scope="col">Category</th>
-              <th scope="col">Execution ID</th>
-              <th scope="col"
-                >{@render filterHeader(
-                  "Execution Status",
-                  "test_execution_statuses",
-                )}</th
-              >
-              <th scope="col"
-                >{@render filterHeader(
-                  "Rerun Requested",
-                  "rerun_is_requested",
-                )}</th
-              >
-              <th scope="col"
-                >{@render filterHeader(
-                  "Latest Execution",
-                  "execution_is_latest",
-                )}</th
-              >
-              <th scope="col"
-                >{@render filterHeader(
-                  "Result status",
-                  "test_result_statuses",
-                )}</th
-              >
-              <th scope="col"
-                >{@render filterHeader("Track", "artefact_tracks")}</th
-              >
-              <th scope="col"
-                >{@render filterHeader("Version", "artefact_versions")}</th
-              >
-              <th scope="col">Architecture</th>
-              <th scope="col"
-                >{@render filterHeader("Environment", "environments")}</th
-              >
-              <th scope="col"
-                >{@render filterHeader("Test Plan", "test_plans")}</th
-              >
-              <th scope="col"
-                >{@render filterHeader("Template ID", "template_ids")}</th
-              >
-              <th scope="col">{@render filterHeader("Issues", "issues")}</th>
-              <th scope="col"
-                >{@render filterHeader("Reviewers", "reviewer_ids")}</th
-              >
-              <th scope="col"
-                >{@render filterHeader(
-                  "Execution Metadata",
-                  "execution_metadata",
-                )}</th
-              >
-            </tr>
+            {#if variant === 2}
+              <tr>
+                <th scope="col">Run</th>
+                <th scope="col">Details</th>
+                <th scope="col"
+                  >{@render filterHeader("Created", "from_date")}</th
+                >
+                <th scope="col">{@render filterHeader("Family", "families")}</th
+                >
+                <th scope="col"
+                  >{@render filterHeader("Artefact", "artefacts")}</th
+                >
+                <th scope="col"
+                  >{@render filterHeader("Stage", "artefact_stages")}</th
+                >
+                <th scope="col"
+                  >{@render filterHeader(
+                    "Archived",
+                    "artefact_is_archived",
+                  )}</th
+                >
+                <th scope="col"
+                  >{@render filterHeader("Test Case", "test_cases")}</th
+                >
+                <th scope="col">Category</th>
+                <th scope="col">Execution ID</th>
+                <th scope="col"
+                  >{@render filterHeader(
+                    "Execution Status",
+                    "test_execution_statuses",
+                  )}</th
+                >
+                <th scope="col"
+                  >{@render filterHeader(
+                    "Rerun Requested",
+                    "rerun_is_requested",
+                  )}</th
+                >
+                <th scope="col"
+                  >{@render filterHeader(
+                    "Latest Execution",
+                    "execution_is_latest",
+                  )}</th
+                >
+                <th scope="col"
+                  >{@render filterHeader(
+                    "Result status",
+                    "test_result_statuses",
+                  )}</th
+                >
+                <th scope="col"
+                  >{@render filterHeader("Track", "artefact_tracks")}</th
+                >
+                <th scope="col"
+                  >{@render filterHeader("Version", "artefact_versions")}</th
+                >
+                <th scope="col">Architecture</th>
+                <th scope="col"
+                  >{@render filterHeader("Environment", "environments")}</th
+                >
+                <th scope="col"
+                  >{@render filterHeader("Test Plan", "test_plans")}</th
+                >
+                <th scope="col"
+                  >{@render filterHeader("Template ID", "template_ids")}</th
+                >
+                <th scope="col">{@render filterHeader("Issues", "issues")}</th>
+                <th scope="col"
+                  >{@render filterHeader("Reviewers", "reviewer_ids")}</th
+                >
+                <th scope="col"
+                  >{@render filterHeader(
+                    "Execution Metadata",
+                    "execution_metadata",
+                  )}</th
+                >
+              </tr>
+            {:else}
+              <tr>
+                {#each wideColumns as column (column.label)}
+                  <th scope="col">{column.label}</th>
+                {/each}
+              </tr>
+              <tr class="filter-row">
+                {#each wideColumns as column (column.label)}
+                  <th
+                    scope="col"
+                    aria-label={column.filterKey
+                      ? `Filter ${column.label}`
+                      : `${column.label} is not filterable`}
+                  >
+                    {#if column.filterKey}
+                      <SearchGridFilterHeader
+                        label={column.label}
+                        filterKey={column.filterKey}
+                        filters={drafts}
+                        {families}
+                        disabled={moving}
+                        {invalidFields}
+                        hideLabel
+                        onedit={onFilterEdit}
+                      />
+                    {:else}<span aria-hidden="true">—</span>{/if}
+                  </th>
+                {/each}
+              </tr>
+            {/if}
           </thead>
           <tbody>
             {#each rows as row (row.id)}
@@ -1090,6 +1157,10 @@
     width: max-content;
     min-width: 100%;
     white-space: nowrap;
+  }
+  :global(.search-option-table .filter-row th) {
+    padding-block: 0.25rem;
+    text-align: center;
   }
   :global(.search-option-table td) {
     max-width: 18rem;
