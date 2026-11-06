@@ -2,28 +2,31 @@
 How to Access the Test Observer API
 ===================================
 
-Test Observer exposes a REST API. You can explore and call it interactively
-with the browser-based Swagger UI, or make requests from a command-line tool
-such as ``curl``. This guide covers the common access and authentication
-patterns; use the :doc:`OpenAPI reference <../reference/openapi>` to look up
-available endpoints and their request and response schemas.
+Use the API base URL provided for the instance you intend to access. For
+example, the production API base URL is
+``https://test-observer-api.canonical.com``; other instances have their own
+API URLs. Append API paths shown in this guide (for example, ``/v1/...``) to
+the base URL for your instance.
 
-API paths shown in the documentation (for example, ``/v1/...``) are appended
-to the base URL, e.g. ``https://test-observer-api.canonical.com``. Use the correct API URL for a given instance.
+You can explore and call the API interactively with the browser-based Swagger
+UI, or make requests from a command-line tool such as ``curl``. Use the
+:doc:`OpenAPI reference <../reference/openapi>` to look up available endpoints
+and their request and response schemas.
 
 Use the Swagger UI in a browser
 ===============================
 
-The API's ``/docs`` page is a Swagger UI generated from the OpenAPI schema.
-For production, open:
+Each instance serves its own Swagger UI at ``/docs``. Open
+``<instance API base URL>/docs`` for the same instance as the Test Observer
+dashboard you are using. For example, the production API docs are at:
 
 ``https://test-observer-api.canonical.com/docs``
 
-Sign in to Test Observer in the browser first. In the Swagger UI, expand an
-endpoint, select **Try it out**, provide any required parameters or request
-body, and select **Execute**. The browser sends your session cookie, and the
-Swagger page adds the required CSRF header automatically. Requests are still
-subject to your account's permissions.
+Sign in to the matching Test Observer instance in the browser first. In the
+Swagger UI, expand an endpoint, select **Try it out**, provide any required
+parameters or request body, and select **Execute**. The browser sends your
+session cookie, and the Swagger page adds the required CSRF header
+automatically. Requests are still subject to your account's permissions.
 
 Call the API with ``curl`` and your browser session
 ===================================================
@@ -32,15 +35,17 @@ For an occasional manual request, you can send the API's session cookie with
 ``curl``. This uses your logged-in user identity and permissions; it does not
 create an API key.
 
-1. Sign in to Test Observer in your browser.
+1. Sign in to the same Test Observer instance whose API you intend to call.
 2. In your browser's developer tools, find the ``session`` cookie for the API
-   host (``test-observer-api.canonical.com`` in production) and copy its
-   value. Treat this value like a password: anyone who has it may be able to
-   act as you until the session expires. Do not share it or save it in scripts,
-   source control, or shell history.
-3. Set the API URL and make a request, supplying both the cookie and the CSRF
-   header. This example passes the cookie to ``curl`` through standard input
-   rather than placing it in the command-line arguments:
+   host for that instance and copy its value. Treat this value like a
+   password: anyone who has it may be able to act as you until the session
+   expires. Do not share it or save it in scripts, source control, or shell
+   history.
+3. Set ``API_URL`` to that instance's API base URL and make a request,
+   supplying both the cookie and the CSRF header. The example below uses
+   production; for another instance, replace the host with that instance's API
+   base URL. It passes the cookie to ``curl`` through standard input rather
+   than placing it in the command-line arguments:
 
    .. code-block:: bash
 
