@@ -8,10 +8,8 @@ such as ``curl``. This guide covers the common access and authentication
 patterns; use the :doc:`OpenAPI reference <../reference/openapi>` to look up
 available endpoints and their request and response schemas.
 
-The production API base URL is ``https://test-observer-api.canonical.com``.
 API paths shown in the documentation (for example, ``/v1/...``) are appended
-to that base URL. Use your deployment's API URL when working with another
-instance.
+to the base URL, e.g. ``https://test-observer-api.canonical.com``. Use the correct API URL for a given instance.
 
 Use the Swagger UI in a browser
 ===============================
