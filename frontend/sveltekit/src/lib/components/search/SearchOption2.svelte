@@ -1103,7 +1103,9 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
-    min-height: calc(100vh - 3rem);
+    height: calc(100vh - 3rem);
+    height: calc(100dvh - 3rem);
+    min-height: 0;
     color: var(--lp-color-text-default);
   }
   h1 {
@@ -1132,6 +1134,7 @@
   .results {
     display: flex;
     flex-direction: column;
+    flex: 1 1 0;
     min-width: 0;
     min-height: 0;
     margin-top: 0.75rem;
@@ -1149,9 +1152,10 @@
     margin: 0 0 0.5rem;
   }
   .table-scroll {
+    flex: 1 1 auto;
     max-width: 100%;
+    min-height: 0;
     overflow: auto;
-    overscroll-behavior: contain;
   }
   :global(.search-option-table) {
     width: max-content;
@@ -1175,6 +1179,7 @@
   .pager {
     display: flex;
     align-items: center;
+    flex: 0 0 auto;
     gap: 0.75rem;
     margin-top: 0.75rem;
   }

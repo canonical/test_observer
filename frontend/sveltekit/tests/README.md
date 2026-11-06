@@ -58,7 +58,7 @@ npm run test:issues-detail-browser
 | `node --test tests/issue-reruns.browser.js`           | Frozen all-match create/delete scope, effective preview/write/inspection predicates, protected real Search popup, options, permissions, held/ambiguous writes and focus                                                               |
 | `node --test tests/attachment-rule-target.browser.js` | One-shot rule attention through delayed loading, history, issue switching and rule actions                                                                                                                                            |
 | `node tests/search-grid-mocked.browser.js`            | Read-only global Search, all columns/editors, Architecture/Environment order, drafts/history, full-value dialogs, Details and scrolling                                                                                               |
-| `node tests/search-options-mocked.browser.js`         | Options 1, 2, 2.5, 3 and 4 Chromium comparison: navigation, distinct UIs, exact filters, pagination, row order, Run/Details; synthetic APIs only                                                                                      |
+| `node tests/search-options-mocked.browser.js`         | Options 1, 2, 2.5, 3 and 4 Chromium comparison: navigation, distinct UIs, exact filters, pagination, row order, Run/Details; actual table wheel scrolling and visible pager for Options 2, 2.5, 3 and 4; synthetic APIs only          |
 | `node tests/search-result-details-fixture.browser.js` | Actual Details component with long literal logs/metadata, light/dark viewport/zoom matrix and single-body scrolling; no API/SSO                                                                                                       |
 
 ### Cross-option Search browser QA
@@ -74,6 +74,10 @@ screenshots, or production-identifying data. This browser check complements the
 Options 2, 2.5, 3 and 4 unit/mounted pagination tests rather than replacing
 them. Option 2.5 adds a distinct two-row wide-table header while sharing the
 same exact server search and pagination contracts.
+For Options 2, 2.5, 3 and 4, it also verifies that synthetic rows overflow the
+table vertically and horizontally, real Chromium wheel input scrolls both axes
+inside the table without scrolling the document or main content, and the pager
+remains in the viewport. Option 1 is not changed by this scroll check.
 
 Playwright Core and Chromium must already be available externally. Neither is
 added to the project manifest or lockfile. For example:

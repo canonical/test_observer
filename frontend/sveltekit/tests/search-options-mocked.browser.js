@@ -540,6 +540,114 @@ async function assertRunAndLazyDetails(page, option, requestLog) {
   return { runHref: runUrl.href, detailsGetFetchedOnOpenOnly: true };
 }
 
+async function assertOptionTableScrolling(page, option) {
+  const tableRegion = page.locator(".table-scroll");
+  const pager = page.locator(".pager");
+  const dimensions = await page.evaluate(() => {
+    const region = document.querySelector(".table-scroll");
+    const main = document.querySelector("main.main-content");
+    if (!(region instanceof HTMLElement) || !(main instanceof HTMLElement))
+      throw new Error("Search table region or main content is missing");
+    return {
+      viewportHeight: window.innerHeight,
+      viewportWidth: window.innerWidth,
+      documentHeight: document.documentElement.scrollHeight,
+      documentWidth: document.documentElement.scrollWidth,
+      documentScrollTop: document.scrollingElement?.scrollTop ?? 0,
+      mainHeight: main.clientHeight,
+      mainWidth: main.clientWidth,
+      mainScrollHeight: main.scrollHeight,
+      mainScrollWidth: main.scrollWidth,
+      mainScrollTop: main.scrollTop,
+      tableClientHeight: region.clientHeight,
+      tableScrollHeight: region.scrollHeight,
+      tableClientWidth: region.clientWidth,
+      tableScrollWidth: region.scrollWidth,
+    };
+  });
+  assert.ok(
+    dimensions.tableScrollHeight > dimensions.tableClientHeight,
+    `Option ${option} fixture overflows vertically in the table region`,
+  );
+  assert.ok(
+    dimensions.tableScrollWidth > dimensions.tableClientWidth,
+    `Option ${option} fixture overflows horizontally in the table region`,
+  );
+  assert.ok(
+    Number(dimensions.documentHeight) <= Number(dimensions.viewportHeight) + 1,
+    `Option ${option} does not require document scrolling`,
+  );
+  assert.ok(
+    Number(dimensions.mainScrollHeight) <= Number(dimensions.mainHeight) + 1,
+    `Option ${option} does not require main-content scrolling`,
+  );
+  assert.ok(
+    Number(dimensions.documentWidth) <= Number(dimensions.viewportWidth) + 1,
+    `Option ${option} does not require document horizontal scrolling`,
+  );
+  assert.ok(
+    Number(dimensions.mainScrollWidth) <= Number(dimensions.mainWidth) + 1,
+    `Option ${option} does not require main-content horizontal scrolling`,
+  );
+  assert.equal(dimensions.documentScrollTop, 0);
+  assert.equal(dimensions.mainScrollTop, 0);
+
+  const bounds = await tableRegion.boundingBox();
+  assert.ok(bounds, `Option ${option} table region is visible`);
+  await page.mouse.move(
+    Number(bounds.x) + Number(bounds.width) / 2,
+    Number(bounds.y) + Number(bounds.height) / 2,
+  );
+  await page.mouse.wheel(0, 480);
+  await page.waitForFunction(
+    () => document.querySelector(".table-scroll")?.scrollTop > 0,
+  );
+  const afterVerticalWheel = await page.evaluate(() => ({
+    tableScrollTop: document.querySelector(".table-scroll")?.scrollTop ?? 0,
+    documentScrollTop: document.scrollingElement?.scrollTop ?? 0,
+    mainScrollTop: document.querySelector("main.main-content")?.scrollTop ?? 0,
+  }));
+  assert.ok(
+    afterVerticalWheel.tableScrollTop > 0,
+    `Option ${option} real vertical wheel input scrolls the table region`,
+  );
+  assert.equal(afterVerticalWheel.documentScrollTop, 0);
+  assert.equal(afterVerticalWheel.mainScrollTop, 0);
+
+  await page.mouse.wheel(480, 0);
+  await page.waitForFunction(
+    () => document.querySelector(".table-scroll")?.scrollLeft > 0,
+  );
+  const afterHorizontalWheel = await page.evaluate(() => ({
+    tableScrollLeft: document.querySelector(".table-scroll")?.scrollLeft ?? 0,
+    documentScrollTop: document.scrollingElement?.scrollTop ?? 0,
+    mainScrollTop: document.querySelector("main.main-content")?.scrollTop ?? 0,
+  }));
+  assert.ok(
+    afterHorizontalWheel.tableScrollLeft > 0,
+    `Option ${option} real horizontal wheel input scrolls the table region`,
+  );
+  assert.equal(afterHorizontalWheel.documentScrollTop, 0);
+  assert.equal(afterHorizontalWheel.mainScrollTop, 0);
+
+  const pagerBounds = await pager.boundingBox();
+  assert.ok(pagerBounds, `Option ${option} pager is visible`);
+  assert.ok(
+    Number(pagerBounds.y) >= 0 &&
+      Number(pagerBounds.y) + Number(pagerBounds.height) <=
+        Number(dimensions.viewportHeight),
+    `Option ${option} pager remains within the viewport while table scrolls`,
+  );
+  return {
+    verticalWheelScrollTop: afterVerticalWheel.tableScrollTop,
+    horizontalWheelScrollLeft: afterHorizontalWheel.tableScrollLeft,
+    documentScrollingRequired: false,
+    mainScrollingRequired: false,
+    horizontalPageScrollingRequired: false,
+    pagerVisible: true,
+  };
+}
+
 async function testOption(page, option, pageOrigin) {
   activeRoute = option;
   const routePath =
@@ -547,6 +655,7 @@ async function testOption(page, option, pageOrigin) {
       ? `${basePath}/test-results`
       : `${basePath}/test-results/option-${option === 2.5 ? "2-5" : option}`;
   const params = new URLSearchParams(filters);
+  let scrolling = null;
   if (option === 1) {
     // These are legacy pagination URL fields; the original infinite Search
     // route removes them and continues to use SvGrid's own range requests.
@@ -641,6 +750,7 @@ async function testOption(page, option, pageOrigin) {
         .evaluateAll((items) => items.map((item) => item.value)),
       ["25", "50", "100"],
     );
+    scrolling = await assertOptionTableScrolling(page, option);
   }
 
   const updatedFilters = await editStatusAndApply(page, option);
@@ -687,6 +797,7 @@ async function testOption(page, option, pageOrigin) {
       canonicalFilterKeys: filterKeys.length,
       serverResponseOrderRetained: true,
     },
+    scrolling,
     actions,
     pageErrors: [],
   };
@@ -705,7 +816,7 @@ try {
       : {}),
   });
   const context = await browser.newContext({
-    viewport: { width: 1440, height: 1000 },
+    viewport: { width: 1280, height: 1000 },
   });
   await context.route("**/*", async (route) => {
     const request = route.request();
