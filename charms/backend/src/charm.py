@@ -20,9 +20,12 @@
 import logging
 import os
 import sys
+import time
 import urllib.parse
 from collections import ChainMap
 
+import ops
+import requests
 from charms.data_platform_libs.v0.data_interfaces import DatabaseRequires
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.nginx_ingress_integrator.v0.nginx_route import require_nginx_route
@@ -38,7 +41,6 @@ from ops.charm import CharmBase, RelationChangedEvent, RelationCreatedEvent
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import APIError, ExecError, Layer
-from requests import get
 from validators.base import ValidationResult
 from validators.update_status_check import ValidationStatusStore, run_simple_check
 from validators.validate_action import observe_validate_action
@@ -602,10 +604,37 @@ class TestObserverBackendCharm(CharmBase):
             self.api_pebble_service_name, self._api_pebble_layer, combine=True
         )
         self.api_container.restart(self.api_pebble_service_name)
+        self.wait_for_api_ready()
+
         version = self.version
         if version:
-            self.unit.set_workload_version(self.version)
+            self.unit.set_workload_version(version)
         self.unit.status = ActiveStatus()
+
+    def api_is_ready(self) -> bool:
+        """Check whether the API workload is ready to use."""
+        # We'll first check whether all Pebble services are running.
+        for name, service_info in self.api_container.get_services().items():
+            if not service_info.is_running():
+                logger.info("the workload is not ready (service '%s' is not running)", name)
+                return False
+        # The Pebble services are running, but the workload might not be ready to use.
+        # So we'll check whether all Pebble 'ready' checks are passing.
+        # With no checks defined, this is a no-op and the workload is considered ready.
+        checks = self.api_container.get_checks(level=ops.pebble.CheckLevel.READY)
+        for check_info in checks.values():
+            if check_info.status != ops.pebble.CheckStatus.UP:
+                return False
+        return True
+
+    def wait_for_api_ready(self) -> None:
+        """Wait for the workload to be ready to use."""
+        for _ in range(5):
+            if self.api_is_ready():
+                return
+            time.sleep(1)
+        logger.error("the workload was not ready within the expected time")
+        raise RuntimeError("workload is not ready")
 
     def _update_celery_layer(self, _=None):
         if not self._validate_saml_config():
@@ -725,16 +754,17 @@ class TestObserverBackendCharm(CharmBase):
 
     @property
     def version(self) -> str | None:
-        if self.api_container.can_connect() and self.api_container.get_services(
-            self.api_pebble_service_name
-        ):
-            # 0.0.0.0 instead of config['hostname'] intentional:
-            # request made from pebble's container to api in the same unit (same pod).
-            try:
-                return get(f"http://0.0.0.0:{self.config['port']}/v1/version").json()["version"]
-            except Exception as e:
-                logger.warning(f"Failed to get version: {e}")
-                logger.exception(e)
+        try:
+            # 0.0.0.0 instead of config['hostname'] is intentional
+            # The request is made from pebble's container to the api in the same unit (same pod).
+            response = requests.get(f"http://0.0.0.0:{self.config['port']}/v1/version", timeout=1)
+            response.raise_for_status()
+            return response.json().get("version", None)
+        except requests.Timeout:
+            logger.debug("API version endpoint timed out")
+        except requests.RequestException as e:
+            logger.debug(f"Failed to fetch API version: {e}")
+            logger.exception(e)
         return None
 
     @property
