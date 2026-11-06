@@ -125,6 +125,7 @@
   let filterPanelOpen = $state(false);
   let filterPanelTrigger = $state<HTMLButtonElement>();
   let filterPanelBody = $state<HTMLElement>();
+  const hideRepeatedFilterLabels = $derived(variant === 3);
   let live = true;
 
   const filterGroups: { label: string; key: SearchFilter }[] = [
@@ -573,27 +574,6 @@
 
 <section class="search-page" aria-labelledby="search-option-title">
   <h1 id="search-option-title">Search (Option {variant})</h1>
-  {#if variant === 2}
-    <p>
-      Set exact server-side filters from the result columns, then Search. Values
-      within a field match any; different fields must all match.
-    </p>
-  {:else if variant === 3}
-    <p>
-      Set exact server-side filters in the filter panel, then Search. Values
-      within a field match any; different fields must all match.
-    </p>
-  {:else if variant === 4}
-    <p>
-      Add or edit exact server-side filter chips, then Search. Values within a
-      field match any; different fields must all match.
-    </p>
-  {:else}
-    <p>
-      Set exact server-side filters from the filter row, then Search. Values
-      within a field match any; different fields must all match.
-    </p>
-  {/if}
   <div class="filter-actions" role="group" aria-label="Test result filters">
     {#if variant === 3}
       <Button
@@ -674,6 +654,7 @@
                     {invalidFields}
                     disabled={moving}
                     open={filterPanelOpen}
+                    hideRepeatedLabels={hideRepeatedFilterLabels}
                     deferIdLabelHydration
                     onedit={onFilterEdit}
                   />
@@ -1179,10 +1160,6 @@
     font-size: 1.75rem;
     font-weight: 500;
   }
-  .search-page > p {
-    margin: 0;
-    color: var(--lp-color-text-muted);
-  }
   .filter-actions {
     display: flex;
     align-items: center;
@@ -1329,9 +1306,6 @@
     border-radius: 0;
     box-shadow: none;
     background: transparent;
-  }
-  .filter-group :global(.grid-filter-menu > .hint) {
-    margin-bottom: 0.4rem;
   }
   :global(.search-option-table-compact) {
     min-width: 1000px;

@@ -27,6 +27,7 @@
     draftFamilies = [],
     labels = {},
     disabled = false,
+    hideLabel = false,
   }: {
     field: LookupField;
     selected: string[];
@@ -34,6 +35,7 @@
     draftFamilies?: string[];
     labels?: Record<string, string>;
     disabled?: boolean;
+    hideLabel?: boolean;
   } = $props();
   const id = $props.id();
   const isList = $derived(isLookupList(field));
@@ -42,7 +44,7 @@
   );
   let query = $state("");
   let results = $state<ValueSuggestion[]>([]);
-  let status = $state<"hint" | "loading" | "ready" | "error">("hint");
+  let status = $state<"idle" | "loading" | "ready" | "error">("idle");
   let error = $state("");
   let exactError = $state("");
   let retry = $state(0);
@@ -65,7 +67,7 @@
     results = [];
     error = "";
     exactError = "";
-    status = text.length < 2 ? "hint" : "loading";
+    status = text.length < 2 ? "idle" : "loading";
     const live = () =>
       !controller.signal.aborted &&
       current === generation &&
@@ -165,7 +167,9 @@
 <!-- Keyboard navigation is supplementary to the native input/buttons. -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div id={`${id}-picker`} onkeydown={navigate}>
-  <label for={id}>Find {FILTER_DEFINITIONS[field].label}</label>
+  <label for={id} class:visually-hidden={hideLabel}>
+    Find {FILTER_DEFINITIONS[field].label}
+  </label>
   <TextInput
     {id}
     name={field}
@@ -177,15 +181,14 @@
     aria-describedby={`${id}-hint${exactError ? ` ${id}-error` : ""}`}
   />
   <p id={`${id}-hint`} class="hint">
-    Type at least 2 characters for suggestions. Select a result, or use the
-    explicit exact-value action. Enter in this input does not save.
+    Type at least 2 characters for suggestions; select a result or add an exact
+    value. Enter in this input does not save.
   </p>
   <div role="status" class="hint">
-    {#if status === "hint"}Type at least 2 characters to search.
-    {:else if status === "loading"}Loading suggestions…
+    {#if status === "loading"}Loading suggestions…
     {:else if status === "error"}{error}
-    {:else if !options.length}No unselected matches.
-    {:else}Select a suggestion (up to {isList ? 50 : 10} results).{/if}
+    {:else if status === "ready" && !options.length}No unselected matches.
+    {:else if status === "ready"}Select a suggestion (up to {isList ? 50 : 10} results).{/if}
   </div>
   {#if status === "error"}<Button
       type="button"
@@ -283,5 +286,16 @@
     color: var(--lp-color-text-muted);
     font-size: 0.875rem;
     margin: 0.5rem 0;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
 </style>

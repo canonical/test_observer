@@ -20,6 +20,7 @@
     pending = $bindable(false),
     families,
     draftFamilies,
+    hideLabel = false,
   }: {
     field: ListFilterKey;
     value: string[];
@@ -27,6 +28,7 @@
     pending?: boolean;
     families: Family[];
     draftFamilies: string[];
+    hideLabel?: boolean;
   } = $props();
   const id = $props.id();
   const choice = $derived(
@@ -109,6 +111,7 @@
     bind:selected={value}
     bind:pending
     {draftFamilies}
+    {hideLabel}
   />
 {:else}
   <label for={id}>Exact values</label>

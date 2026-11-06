@@ -59,6 +59,7 @@
     disabled = false,
     open = false,
     deferIdLabelHydration = false,
+    hideRepeatedLabels = false,
     onedit,
   }: {
     filterKey: MenuFilter;
@@ -68,6 +69,7 @@
     disabled?: boolean;
     open?: boolean;
     deferIdLabelHydration?: boolean;
+    hideRepeatedLabels?: boolean;
     onedit: (key: SearchFilter, next: SearchFilters) => void;
   } = $props();
 
@@ -367,27 +369,9 @@
   data-search-grid-menu={filterKey}
   aria-label="Server-backed exact filter"
 >
-  <p class="hint">
-    {#if filterKey === "artefact_is_archived" || filterKey === "rerun_is_requested" || filterKey === "execution_is_latest"}
-      Boolean equality; other fields are combined. Changes are drafts until
-      Search.
-    {:else if filterKey === "issues" || filterKey === "reviewer_ids"}
-      Specific IDs, any, or none; selections are applied with Search.
-    {:else if filterKey === "execution_metadata"}
-      AND across categories; values within a category are alternatives. Changes
-      are applied with Search.
-    {:else if filterKey === "from_date"}
-      Inclusive Test-result Created bounds; other fields are combined. Changes
-      are drafts until Search.
-    {:else}
-      Exact match. Values in this field are alternatives; other fields are
-      combined. Changes are drafts until Search.
-    {/if}
-  </p>
-
   {#if filterKey === "families"}
     <fieldset>
-      <legend>Family</legend>
+      <legend class:visually-hidden={hideRepeatedLabels}>Family</legend>
       {#each families as family (family.api_name)}
         <label>
           <input
@@ -423,7 +407,7 @@
     </fieldset>
   {:else if filterKey === "test_result_statuses"}
     <fieldset>
-      <legend>Result status</legend>
+      <legend class:visually-hidden={hideRepeatedLabels}>Result status</legend>
       {#each RESULT_STATUSES as status (status)}
         <label>
           <input
@@ -463,7 +447,9 @@
     </fieldset>
   {:else if filterKey === "test_execution_statuses"}
     <fieldset>
-      <legend>Execution status</legend>
+      <legend class:visually-hidden={hideRepeatedLabels}
+        >Execution status</legend
+      >
       {#each EXECUTION_STATUSES as status (status)}
         <label>
           <input
@@ -503,7 +489,7 @@
     </fieldset>
   {:else if filterKey === "artefact_stages"}
     <fieldset>
-      <legend>Artefact stage</legend>
+      <legend class:visually-hidden={hideRepeatedLabels}>Artefact stage</legend>
       {#each stages as stage (stage)}
         <label>
           <input
@@ -523,7 +509,7 @@
     {@const key = filterKey as ListFilter}
     {@const field = textListFields[key]}
     <label class="text-filter">
-      {field?.label}
+      <span class:visually-hidden={hideRepeatedLabels}>{field?.label}</span>
       <input
         type="text"
         autocomplete="off"
@@ -543,15 +529,18 @@
       bind:value={lookupDraft}
       {families}
       draftFamilies={filters.families}
+      hideLabel={hideRepeatedLabels}
     />
   {:else if filterKey === "artefact_is_archived" || filterKey === "rerun_is_requested" || filterKey === "execution_is_latest"}
     {@const key = filterKey}
     <label class="select-filter">
-      {key === "artefact_is_archived"
-        ? "Archived"
-        : key === "rerun_is_requested"
-          ? "Rerun Requested"
-          : "Latest Execution"}
+      <span class:visually-hidden={hideRepeatedLabels}
+        >{key === "artefact_is_archived"
+          ? "Archived"
+          : key === "rerun_is_requested"
+            ? "Rerun Requested"
+            : "Latest Execution"}</span
+      >
       <select
         value={filters[key] === null ? "" : String(filters[key])}
         {disabled}
@@ -592,6 +581,7 @@
       bind:value={issueDraft}
       labels={idLabels}
       {disabled}
+      hideLabel={hideRepeatedLabels}
     />
   {:else if filterKey === "reviewer_ids"}
     <IdFilterEditor
@@ -599,6 +589,7 @@
       bind:value={reviewerDraft}
       labels={idLabels}
       {disabled}
+      hideLabel={hideRepeatedLabels}
     />
   {:else if filterKey === "execution_metadata"}
     <MetadataFilterEditor
@@ -634,11 +625,16 @@
     white-space: normal;
     overflow-wrap: anywhere;
   }
-  .hint {
-    margin: 0 0 0.65rem;
-    color: var(--lp-color-text-muted);
-    font-size: 0.8rem;
-    line-height: 1.35;
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
   fieldset {
     display: flex;
@@ -670,7 +666,7 @@
     width: 100%;
     min-height: 2rem;
   }
-  .text-filter span {
+  .text-filter > span:not(.visually-hidden) {
     color: var(--lp-color-text-muted);
     font-size: 0.75rem;
   }

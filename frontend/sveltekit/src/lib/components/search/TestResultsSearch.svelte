@@ -303,11 +303,6 @@
   bind:this={pageElement}
 >
   <h1 id="search-heading">Search test results</h1>
-  <p>
-    Set filters from the result columns' headers, then Search. Conditions are
-    exact server filters: values within a field match any; different fields must
-    all match.
-  </p>
   <div class="filter-bar" role="group" aria-label="Test result filters">
     <form
       class="actions"

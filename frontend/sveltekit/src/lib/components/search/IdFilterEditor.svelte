@@ -13,12 +13,14 @@
     valid = $bindable(false),
     labels,
     disabled = false,
+    hideLabel = false,
   }: {
     field: IdFilterKey;
     value: IdFilter;
     valid?: boolean;
     labels: Record<string, string>;
     disabled?: boolean;
+    hideLabel?: boolean;
   } = $props();
   const id = $props.id();
   const initial = untrack(() => value);
@@ -53,7 +55,7 @@
 </script>
 
 <fieldset>
-  <legend>Match mode (choose one)</legend>
+  <legend class:visually-hidden={hideLabel}>Match mode (choose one)</legend>
   <label
     ><input
       type="radio"
@@ -83,7 +85,14 @@
   >
 </fieldset>
 {#if mode === "ids"}
-  <ValueSuggestions {field} bind:selected bind:pending {labels} {disabled} />
+  <ValueSuggestions
+    {field}
+    bind:selected
+    bind:pending
+    {labels}
+    {disabled}
+    {hideLabel}
+  />
 {/if}
 
 <style>
@@ -91,6 +100,17 @@
     border: 0;
     padding: 0;
     margin: 0 0 1rem;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
   label {
     display: block;

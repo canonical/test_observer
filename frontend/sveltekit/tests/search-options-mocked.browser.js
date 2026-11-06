@@ -242,29 +242,33 @@ async function assertFilterMenuLayout(option, editor) {
     const scrollRegion =
       menu.closest(".menu-anchor") ?? menu.closest(".filter-panel-body");
     if (
-      !(hint instanceof HTMLElement) ||
+      !(menu instanceof HTMLElement) ||
       !(overlay instanceof HTMLElement) ||
       !(scrollRegion instanceof HTMLElement)
     )
-      throw new Error("Filter menu text or bounded overlay is missing");
+      throw new Error("Filter menu or bounded overlay is missing");
 
-    const range = document.createRange();
-    range.selectNodeContents(hint);
-    const hintLines = new Set(
-      [...range.getClientRects()].map((rect) => Math.round(rect.top)),
-    );
+    let hintLineCount = 0;
+    if (hint instanceof HTMLElement) {
+      const range = document.createRange();
+      range.selectNodeContents(hint);
+      hintLineCount = new Set(
+        [...range.getClientRects()].map((rect) => Math.round(rect.top)),
+      ).size;
+    }
     const overlayRect = overlay.getBoundingClientRect();
     const scrollRegionStyle = getComputedStyle(scrollRegion);
     const menuStyle = getComputedStyle(menu);
     return {
+      hasHint: hint instanceof HTMLElement,
       whiteSpace: menuStyle.whiteSpace,
       minWidth: menuStyle.minWidth,
       overflowWrap: menuStyle.overflowWrap,
       menuClientWidth: menu.clientWidth,
       menuScrollWidth: menu.scrollWidth,
-      hintClientWidth: hint.clientWidth,
-      hintScrollWidth: hint.scrollWidth,
-      hintLineCount: hintLines.size,
+      hintClientWidth: hint instanceof HTMLElement ? hint.clientWidth : 0,
+      hintScrollWidth: hint instanceof HTMLElement ? hint.scrollWidth : 0,
+      hintLineCount,
       overlay: {
         left: overlayRect.left,
         top: overlayRect.top,
@@ -286,14 +290,16 @@ async function assertFilterMenuLayout(option, editor) {
   );
   assert.equal(layout.minWidth, "0px");
   assert.equal(layout.overflowWrap, "anywhere");
-  assert.ok(
-    layout.hintLineCount > 1,
-    `Option ${option} descriptive filter text wraps across lines`,
-  );
-  assert.ok(
-    layout.hintScrollWidth <= Number(layout.hintClientWidth) + 1,
-    `Option ${option} descriptive filter text is not horizontally clipped`,
-  );
+  if (layout.hasHint) {
+    assert.ok(
+      layout.hintLineCount > 1,
+      `Option ${option} remaining descriptive filter text wraps across lines`,
+    );
+    assert.ok(
+      layout.hintScrollWidth <= Number(layout.hintClientWidth) + 1,
+      `Option ${option} remaining descriptive filter text is not horizontally clipped`,
+    );
+  }
   assert.ok(
     layout.menuScrollWidth <= Number(layout.menuClientWidth) + 1,
     `Option ${option} filter menu has no horizontal overflow`,
@@ -973,6 +979,7 @@ async function assertPrototypeUi(page, option) {
       1,
       "Option 3 exposes the SidePanel filter trigger",
     );
+    await assertOption3FilterCopy(page);
     return { table: "compact Pragma Table + SidePanel", columns: 10 };
   }
 
@@ -988,6 +995,221 @@ async function assertPrototypeUi(page, option) {
     1,
   );
   return { table: "compact Pragma Table + editable filter chips", columns: 10 };
+}
+
+async function assertVisuallyHidden(locator, description) {
+  assert.equal(
+    await locator.evaluate((element) => {
+      const style = getComputedStyle(element);
+      const bounds = element.getBoundingClientRect();
+      return (
+        element.classList.contains("visually-hidden") &&
+        style.position === "absolute" &&
+        style.clipPath === "inset(50%)" &&
+        bounds.width <= 1 &&
+        bounds.height <= 1
+      );
+    }),
+    true,
+    description,
+  );
+}
+
+async function assertOption3FilterCopy(page) {
+  assert.equal(await page.locator("h1").innerText(), "Search (Option 3)");
+  assert.equal(await page.locator(".search-page > p").count(), 0);
+
+  const trigger = page.locator(
+    'button[aria-controls="search-option-3-filter-panel"]',
+  );
+  await trigger.click();
+  const panel = page.locator("#search-option-3-filter-panel");
+  await panel.waitFor({ state: "visible" });
+
+  const groups = panel.locator(".filter-group");
+  assert.equal(await groups.count(), 18);
+  const headings = await groups.evaluateAll((items) =>
+    items.map((group) => {
+      const headingId = group.getAttribute("aria-labelledby");
+      const heading = headingId ? document.getElementById(headingId) : null;
+      return {
+        tagName: heading?.tagName,
+        text: heading ? heading.textContent.trim() : undefined,
+        visible: Boolean(heading?.getClientRects().length),
+      };
+    }),
+  );
+  for (const heading of headings) {
+    assert.equal(heading.tagName, "H3");
+    assert.ok(heading.text);
+    assert.equal(heading.visible, true);
+  }
+  const menuHints = await panel
+    .locator(".filter-group > .grid-filter-menu > p.hint")
+    .evaluateAll((items) =>
+      items.map((item) => item.textContent?.replace(/\s+/g, " ").trim()),
+    );
+  assert.equal(
+    menuHints.some((hint) =>
+      [
+        "Boolean equality; other fields are combined. Changes are drafts until Search.",
+        "Specific IDs, any, or none; selections are applied with Search.",
+        "AND across categories; values within a category are alternatives. Changes are applied with Search.",
+        "Inclusive Test-result Created bounds; other fields are combined. Changes are drafts until Search.",
+        "Exact match. Values in this field are alternatives; other fields are combined. Changes are drafts until Search.",
+      ].includes(hint),
+    ),
+    false,
+    "filter groups do not repeat generic instructions",
+  );
+
+  const familyGroup = panel.locator(
+    '.filter-group[aria-labelledby="search-option-3-filter-families"]',
+  );
+  const familyLegend = familyGroup.locator("fieldset > legend");
+  assert.equal(await familyLegend.innerText(), "Family");
+  await assertVisuallyHidden(
+    familyLegend,
+    "the repeated Family legend remains accessible but is visually hidden",
+  );
+
+  const archivedGroup = panel.locator(
+    '.filter-group[aria-labelledby="search-option-3-filter-artefact_is_archived"]',
+  );
+  const archived = archivedGroup.getByLabel("Archived");
+  assert.equal(await archived.count(), 1);
+  assert.equal(await archived.evaluate((element) => element.tagName), "SELECT");
+  assert.equal(
+    await archivedGroup
+      .locator("label.select-filter > .visually-hidden")
+      .innerText(),
+    "Archived",
+  );
+  await assertVisuallyHidden(
+    archivedGroup.locator("label.select-filter > .visually-hidden"),
+    "the repeated Archived label remains accessible but is visually hidden",
+  );
+
+  const artefactGroup = panel.locator(
+    '.filter-group[aria-labelledby="search-option-3-filter-artefacts"]',
+  );
+  const artefact = artefactGroup.getByLabel("Find Artefact", { exact: true });
+  assert.equal(await artefact.count(), 1);
+  assert.equal(await artefact.evaluate((element) => element.tagName), "INPUT");
+  const artefactLabel = artefactGroup.locator(
+    `label[for="${await artefact.getAttribute("id")}"]`,
+  );
+  await assertVisuallyHidden(
+    artefactLabel,
+    "the Artefact field keeps its accessible name without repeating it visually",
+  );
+
+  for (const [key, name] of [
+    ["issues", "Find Issues"],
+    ["reviewer_ids", "Find Reviewers"],
+  ]) {
+    const group = panel.locator(
+      `.filter-group[aria-labelledby="search-option-3-filter-${key}"]`,
+    );
+    const input = group.getByLabel(name, { exact: true });
+    assert.equal(await input.count(), 1);
+    assert.equal(await input.isVisible(), true);
+    const label = group.locator(
+      `label[for="${await input.getAttribute("id")}"]`,
+    );
+    await assertVisuallyHidden(
+      label,
+      `${name} remains accessible without repeating its visible label`,
+    );
+    const heading = group.getByRole("heading", {
+      name: key === "issues" ? "Issues" : "Reviewers",
+      exact: true,
+    });
+    assert.equal(await heading.isVisible(), true);
+
+    const modeGroup = group.getByRole("group", {
+      name: "Match mode (choose one)",
+      exact: true,
+    });
+    assert.equal(await modeGroup.count(), 1);
+    const modeLegend = modeGroup.locator("legend");
+    assert.equal(
+      (await modeLegend.textContent())?.trim(),
+      "Match mode (choose one)",
+    );
+    await assertVisuallyHidden(
+      modeLegend,
+      `${name} match-mode legend stays accessible but is visually hidden`,
+    );
+
+    const modeLabels =
+      key === "issues"
+        ? ["Specific IDs", "Has any issue", "Has no issues"]
+        : ["Specific IDs", "Has any reviewer", "Has no reviewer"];
+    for (const modeLabel of modeLabels) {
+      const radio = modeGroup.getByRole("radio", {
+        name: modeLabel,
+        exact: true,
+      });
+      assert.equal(await radio.count(), 1);
+      assert.equal(await radio.isVisible(), true);
+    }
+
+    assert.equal(
+      await group
+        .locator("p.hint")
+        .filter({ hasText: "Type at least 2 characters for suggestions" })
+        .count(),
+      1,
+      `${name} shows the suggestions threshold once`,
+    );
+    assert.equal(
+      await group.getByRole("status").innerText(),
+      "",
+      "the initial status does not repeat the suggestions threshold",
+    );
+  }
+
+  const issuesGroup = panel.locator(
+    '.filter-group[aria-labelledby="search-option-3-filter-issues"]',
+  );
+  const issuesInput = issuesGroup.getByLabel("Find Issues", { exact: true });
+  const noMatchResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === "/v1/issues" && url.searchParams.get("q") === "no-match"
+    );
+  });
+  await issuesInput.fill("no-match");
+  assert.equal((await noMatchResponse).status(), 200);
+  const issuesStatus = issuesGroup.getByRole("status");
+  await issuesStatus
+    .getByText("No unselected matches.", { exact: true })
+    .waitFor({ state: "visible" });
+  assert.equal(await issuesStatus.innerText(), "No unselected matches.");
+
+  const metadataGroup = panel.locator(
+    '.filter-group[aria-labelledby="search-option-3-filter-execution_metadata"]',
+  );
+  const category = metadataGroup.getByLabel("Category", { exact: true });
+  const value = metadataGroup.getByLabel("Value", { exact: true });
+  assert.equal(await category.count(), 1);
+  assert.equal(await value.count(), 1);
+  assert.equal(await category.isVisible(), true);
+  assert.equal(await value.isVisible(), true);
+  assert.equal(await metadataGroup.getByRole("status").count(), 1);
+  await metadataGroup
+    .getByRole("button", { name: "Add pair", exact: true })
+    .click();
+  const metadataError = metadataGroup.getByRole("alert");
+  await metadataError.waitFor({ state: "visible" });
+  assert.match(
+    await metadataError.innerText(),
+    /Metadata categories and values must contain 1–200 characters/,
+  );
+
+  await panel.getByRole("button", { name: "Close filters" }).click();
+  await panel.waitFor({ state: "hidden" });
 }
 
 async function editStatusAndApply(page, option) {
@@ -1455,6 +1677,8 @@ try {
         limit,
         rows: count === 0 ? [] : rows.slice(offset, offset + limit),
       };
+    } else if (url.pathname === "/v1/issues") {
+      body = { issues: [] };
     } else if (url.pathname.startsWith(detailPath)) {
       const id = Number(url.pathname.slice(detailPath.length));
       if (

@@ -1315,6 +1315,22 @@ void test("unfiltered read-only grid loads recent results with Run and Details",
   }
 });
 
+void test("Option 1 keeps its heading without a repeated page introduction", async () => {
+  globalThis.fetch = () => Promise.resolve(response());
+  const ui = mounted();
+  try {
+    await flush();
+    assert.equal(
+      ui.target.querySelector("h1")?.textContent.trim(),
+      "Search test results",
+    );
+    assert.equal(ui.target.querySelector(".search-page > p"), null);
+    assert.ok(button(ui.target, "Search"));
+  } finally {
+    await ui.destroy();
+  }
+});
+
 void test("loaded details show every Flutter-functional section, sorted Unicode metadata, execution timestamp and all future internal issues; logs stay literal and complete", async () => {
   const row = detailedResult(1);
   const log = `<script>globalThis.pwned=true</script>\n<img src=x onerror=alert(1)> & Ω\n  indented\n${"x".repeat(100_000)}\nEND`;
@@ -6299,6 +6315,43 @@ void test.skip("deferred: issue and metadata menus preserve draft state", async 
 
 const settleSuggestions = () =>
   new Promise((resolve) => setTimeout(resolve, 290));
+
+void test("value suggestions announce the threshold once and retain status and exact actions", async () => {
+  globalThis.fetch = () => Promise.resolve(json({ artefacts: [] }));
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const handle = app.mountSuggestions(
+    /** @type {HTMLElement} */ (/** @type {unknown} */ (target)),
+  );
+  try {
+    const input = target.querySelector('input[name="artefacts"]');
+    assert.ok(input);
+    assert.equal(
+      target.querySelector(`label[for="${input.id}"]`)?.textContent.trim(),
+      "Find Artefact",
+    );
+    const describedBy = input.getAttribute("aria-describedby")?.split(" ");
+    assert.ok(describedBy?.includes(`${input.id}-hint`));
+    assert.ok(target.querySelector(`#${input.id}-hint`));
+    assert.match(
+      target.querySelector(`#${input.id}-hint`).textContent,
+      /2 characters/,
+    );
+    const status = target.querySelector('[role="status"]');
+    assert.ok(status);
+    assert.equal(status.textContent.trim(), "");
+    assert.equal((target.textContent.match(/2 characters/g) ?? []).length, 1);
+    assert.ok(button(target, "Add exact value"));
+
+    await typeOnly(input, "missing");
+    await settleSuggestions();
+    assert.match(status.textContent, /No unselected matches/);
+    assert.equal((target.textContent.match(/2 characters/g) ?? []).length, 1);
+  } finally {
+    await handle.destroy();
+    target.remove();
+  }
+});
 
 /** @param {import('happy-dom').HTMLElement} target @param {string} key */
 async function press(target, key) {

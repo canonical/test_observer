@@ -956,6 +956,7 @@ void test("Option 2.5 has a dedicated aligned filter row and exact drafts", asyn
       target.textContent.includes("Showing 51–51 of 100 results"),
     );
     assert.match(target.textContent, /Search \(Option 2\.5\)/);
+    assert.equal(target.querySelector(".search-page > p"), null);
     const table = target.querySelector("table.search-option-table");
     assert.ok(table);
     const headerRows = [...table.querySelectorAll("thead tr")];
@@ -1175,6 +1176,11 @@ void test("Option 2 renders the ordered Pragma table and server-backed filters",
     await waitFor(() =>
       target.textContent.includes("Showing 51–52 of 100 results"),
     );
+    assert.equal(
+      target.querySelector("h1")?.textContent.trim(),
+      "Search (Option 2)",
+    );
+    assert.equal(target.querySelector(".search-page > p"), null);
     const headers = [...target.querySelectorAll("thead th")].map(
       (header) =>
         header.querySelector(".header-content > span")?.textContent.trim() ??
@@ -1480,6 +1486,11 @@ void test("Option 3 SidePanel search preserves shared filtering and compact tabl
     await waitFor(() =>
       target.textContent.includes("Showing 51–52 of 100 results"),
     );
+    assert.equal(
+      target.querySelector("h1")?.textContent.trim(),
+      "Search (Option 3)",
+    );
+    assert.equal(target.querySelector(".search-page > p"), null);
     const headers = [...target.querySelectorAll("thead th")].map((header) =>
       header.textContent.trim(),
     );
@@ -1874,6 +1885,11 @@ void test("Option 4 chip filters preserve exact server search and compact row ac
     await waitFor(() =>
       target.textContent.includes("Showing 51–52 of 100 results"),
     );
+    assert.equal(
+      target.querySelector("h1")?.textContent.trim(),
+      "Search (Option 4)",
+    );
+    assert.equal(target.querySelector(".search-page > p"), null);
     const headers = [...target.querySelectorAll("thead th")].map((header) =>
       header.textContent.trim(),
     );
