@@ -122,6 +122,14 @@ results are labelled as belonging to the previous query. Lookup text that has
 not been explicitly selected or added is not part of the draft; all column-menu
 selections are applied together when Search is selected.
 
+Filter guidance stays field-specific instead of repeating generic exact-match,
+combination, and draft/apply instructions in every group. Option 3 keeps a visible
+heading for each filter group; repeated control labels and the ID match-mode
+legend are visually hidden but remain available as accessible names. Issue and
+reviewer suggestion thresholds are stated once beside their inputs rather than
+repeated in the changing status message. Date picker inputs also retain
+accessible UTC bound names.
+
 On Option 1, **Clear all** immediately removes the URL query, column filters and
 table view, purges all blocks and loads the unfiltered recent range
 (`limit=50`, `offset=0`). On Options 2, 2.5, 3 and 4 it clears filters and starts an
@@ -277,13 +285,14 @@ fields are interpreted as UTC (not browser-local time) and serialize as
 `YYYY-MM-DDTHH:mm:ssZ`; if the browser supplies minute precision, `:00` is
 appended. The picker never converts through the browser timezone.
 
-The existing URL parser and API continue to accept valid offset and fractional
-timestamps. Restored query values remain the source of truth and are preserved
-byte-for-byte in the URL/API when the editor is merely opened/closed or another
-filter is changed. Only an existing canonical UTC whole-second `...Z` value is
-shown in the picker. A valid offset or fractional value that cannot be
-represented there appears as an empty picker with a note to select a new UTC
-time or clear that bound; it is never projected, rounded or silently dropped.
+This is a picker-only UI constraint: URL parsing and API behavior are unchanged
+and continue to accept valid offset and fractional timestamps. Restored query
+values remain the source of truth and are preserved byte-for-byte in the URL/API
+when the editor is merely opened/closed or another filter is changed. Only an
+existing canonical UTC whole-second `...Z` value is shown in the picker. Valid
+offset or fractional values that cannot be represented there appear as empty
+pickers with a note to select a new UTC time or clear that bound; they are never
+projected, rounded or silently dropped.
 Changing a picker explicitly replaces only its bound with the selected UTC
 whole-second instant, and clearing it removes only that bound. Options 1–3 show
 the bound headings **Created — From (UTC)** and **Created — To (UTC)**. Option 4
@@ -301,9 +310,10 @@ rounded or silently normalized. Either bound can be active by itself; a range
 condition is meaningful even when it is the only filter.
 
 Invalid timestamp precision and reversed ranges block the Search request until
-the editor is corrected. Corrections send the exact corrected text while keeping
-unrelated filters and (for Options 2, 2.5, 3 and 4) `page_size`; a successful filter change
-starts at page 1.
+the editor is corrected. Select a new UTC time in the picker or clear the bound;
+the picker has no exact-text input for entering a correction. Corrections keep
+unrelated filters and (for Options 2, 2.5, 3 and 4) `page_size`; a successful
+filter change starts at page 1.
 
 ## URL and result contract
 

@@ -236,38 +236,45 @@ async function assertFilterMenuLayout(option, editor) {
         );
     });
 
+  const descriptiveHint = editor.locator(".date-filter p.hint").first();
+  assert.ok(
+    (await editor.locator(".date-filter p.hint").count()) > 0,
+    `Option ${option} date filter has descriptive text`,
+  );
+  assert.ok(
+    await descriptiveHint.isVisible(),
+    `Option ${option} date filter descriptive text is visible`,
+  );
+
   const layout = await editor.evaluate((menu) => {
-    const hint = menu.querySelector(":scope > .hint");
+    const hint = menu.querySelector(".date-filter p.hint");
     const overlay = menu.closest(".menu-anchor, #search-option-3-filter-panel");
     const scrollRegion =
       menu.closest(".menu-anchor") ?? menu.closest(".filter-panel-body");
     if (
       !(menu instanceof HTMLElement) ||
+      !(hint instanceof HTMLElement) ||
       !(overlay instanceof HTMLElement) ||
       !(scrollRegion instanceof HTMLElement)
     )
-      throw new Error("Filter menu or bounded overlay is missing");
+      throw new Error("Date hint, filter menu, or bounded overlay is missing");
 
-    let hintLineCount = 0;
-    if (hint instanceof HTMLElement) {
-      const range = document.createRange();
-      range.selectNodeContents(hint);
-      hintLineCount = new Set(
-        [...range.getClientRects()].map((rect) => Math.round(rect.top)),
-      ).size;
-    }
+    const range = document.createRange();
+    range.selectNodeContents(hint);
+    const hintLineCount = new Set(
+      [...range.getClientRects()].map((rect) => Math.round(rect.top)),
+    ).size;
     const overlayRect = overlay.getBoundingClientRect();
     const scrollRegionStyle = getComputedStyle(scrollRegion);
     const menuStyle = getComputedStyle(menu);
     return {
-      hasHint: hint instanceof HTMLElement,
       whiteSpace: menuStyle.whiteSpace,
       minWidth: menuStyle.minWidth,
       overflowWrap: menuStyle.overflowWrap,
       menuClientWidth: menu.clientWidth,
       menuScrollWidth: menu.scrollWidth,
-      hintClientWidth: hint instanceof HTMLElement ? hint.clientWidth : 0,
-      hintScrollWidth: hint instanceof HTMLElement ? hint.scrollWidth : 0,
+      hintClientWidth: hint.clientWidth,
+      hintScrollWidth: hint.scrollWidth,
       hintLineCount,
       overlay: {
         left: overlayRect.left,
@@ -290,16 +297,14 @@ async function assertFilterMenuLayout(option, editor) {
   );
   assert.equal(layout.minWidth, "0px");
   assert.equal(layout.overflowWrap, "anywhere");
-  if (layout.hasHint) {
-    assert.ok(
-      layout.hintLineCount > 1,
-      `Option ${option} remaining descriptive filter text wraps across lines`,
-    );
-    assert.ok(
-      layout.hintScrollWidth <= Number(layout.hintClientWidth) + 1,
-      `Option ${option} remaining descriptive filter text is not horizontally clipped`,
-    );
-  }
+  assert.ok(
+    layout.hintLineCount > 1,
+    `Option ${option} remaining descriptive date-filter text wraps across lines`,
+  );
+  assert.ok(
+    layout.hintScrollWidth <= Number(layout.hintClientWidth) + 1,
+    `Option ${option} remaining descriptive date-filter text is not horizontally clipped`,
+  );
   assert.ok(
     layout.menuScrollWidth <= Number(layout.menuClientWidth) + 1,
     `Option ${option} filter menu has no horizontal overflow`,
