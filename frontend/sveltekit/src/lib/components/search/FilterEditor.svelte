@@ -61,6 +61,7 @@
     {field}
     bind:value={filters[field]}
     other={field === "from_date" ? filters.until_date : filters.from_date}
+    compactPresentation
     {allowEmpty}
     bind:valid
   />

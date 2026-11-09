@@ -581,6 +581,11 @@ async function assertCreatedDateEditing(page, option) {
       await editor.locator("h2").innerText(),
       "Created — From (UTC)",
     );
+    assert.equal(
+      await editor.locator(".hint").count(),
+      0,
+      "the dialog heading supplies UTC context without repeated guidance",
+    );
     const chipLabel = await page
       .locator('button[aria-label^="Edit Created — From:"]')
       .getAttribute("aria-label");
@@ -645,6 +650,11 @@ async function assertCreatedDateEditing(page, option) {
     );
     assert.equal(await editor.locator(pickerSelector).inputValue(), "");
     assert.equal(await editor.locator("[data-utc-picker-note]").count(), 1);
+    assert.equal(await editor.locator(".hint").count(), 1);
+    assert.match(
+      await editor.locator(".hint").innerText(),
+      /saved time is not shown/,
+    );
     await closeCreatedEditor(page, option, editor);
     editor = await openCreatedEditor(page, option, "until_date");
     assert.equal(await editor.locator("h2").innerText(), "Created — To (UTC)");

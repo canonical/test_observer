@@ -2251,6 +2251,15 @@ void test("Option 4 Created dialogs preserve legacy values and edit one UTC boun
       ["Created — From (UTC)"],
       "the Option 4 dialog has one UTC heading and no duplicate bound heading",
     );
+    assert.equal(form.querySelectorAll(".hint").length, 1);
+    assert.match(
+      form.querySelector(".hint")?.textContent ?? "",
+      /saved time is not shown/,
+    );
+    assert.doesNotMatch(
+      form.textContent,
+      /Inclusive lower bound|Picker values are UTC|Exact timestamp/,
+    );
     const picker = form.querySelector('input[type="datetime-local"]');
     assert.ok(picker);
     assert.equal(
