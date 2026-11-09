@@ -32,7 +32,6 @@ from test_observer.common.config import (
     SAML_SP_X509_CERT,
     USE_LOCAL_LOGIN,
 )
-from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import Team, User, UserSession
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
@@ -87,7 +86,6 @@ async def saml_logout(
     db: Session = Depends(get_db),
 ):
     if session:
-        set_audit_context(db, user_id=session.user_id)
         db.delete(session)
         db.commit()
 
@@ -153,7 +151,6 @@ def _create_user(db: Session, auth: OneLogin_Saml2_Auth) -> User:
             "launchpad_handle": lp_user.handle if lp_user else None,
         },
     )
-    set_audit_context(db, user_id=user.id)
 
     if lp_user:
         teams_to_add = [get_or_create(db, Team, {"name": t}) for t in lp_user.teams]

@@ -140,7 +140,6 @@ def run_promote_artefacts():
 @app.task
 def clean_user_sessions():
     with SessionLocal() as db:
-        set_audit_context(db, automation_name="celery.clean_user_sessions")
         delete_expired_user_sessions(db)
 
 
@@ -210,7 +209,6 @@ def _sync_issues_by_priority(priority: str) -> dict:
 
             # Write phase
             with SessionLocal() as db:
-                set_audit_context(db, automation_name=f"celery.sync_{priority}_priority_issues")
                 _apply_sync_results(db, issues, results)
                 db.commit()
 
@@ -252,7 +250,6 @@ def sync_all_issues() -> dict:
 
         # Write phase
         with SessionLocal() as db:
-            set_audit_context(db, automation_name="celery.sync_all_issues")
             _apply_sync_results(db, issues, results)
             db.commit()
 
@@ -284,7 +281,6 @@ def sync_issue_by_id(self: Task, issue_id: int) -> dict:
 
         # Write phase
         with SessionLocal() as db:
-            set_audit_context(db, automation_name="celery.sync_issue_by_id")
             _apply_sync_results(db, [issue], SyncResults.from_results([result]))
             db.commit()
 

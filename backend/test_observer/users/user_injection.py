@@ -86,9 +86,7 @@ def get_user_session_browser_friendly(request: Request, db: Session = Depends(ge
 
 def get_current_user_browser_friendly(
     session: UserSession | None = Depends(get_user_session_browser_friendly),
-    db: Session = Depends(get_db),
 ) -> User | None:
     if session:
-        set_audit_context(db, user_id=session.user.id)
         return session.user
     return None

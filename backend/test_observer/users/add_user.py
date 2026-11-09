@@ -18,7 +18,6 @@ import logging
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import User
 from test_observer.data_access.setup import SessionLocal
 from test_observer.external_apis.launchpad.launchpad_api import LaunchpadAPI
@@ -40,7 +39,6 @@ def add_user(
     if session is None:
         session = SessionLocal()
         try:
-            set_audit_context(session, automation_name="scripts.add_user")
             return _create_user(launchpad_user, session)
         finally:
             session.close()
