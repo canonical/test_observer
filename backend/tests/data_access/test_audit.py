@@ -262,3 +262,19 @@ def test_audited_write_without_context_fails(db_session: Session) -> None:
     )
     with pytest.raises(DBAPIError, match="invalid input syntax for type integer"):
         db_session.flush()
+
+
+@pytest.mark.parametrize("target", ["artefact", "review"])
+def test_audited_write_rejects_unknown_author(db_session: Session, target: str) -> None:
+    generator = DataGenerator(db_session)
+    artefact = generator.gen_artefact(name="audit-unknown-author")
+    build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment()
+    review = generator.gen_artefact_build_environment_review(build, environment)
+    with pytest.raises(DBAPIError, match="violates foreign key constraint"), db_session.begin_nested():
+        db_session.execute(text("SELECT set_config('audit.author_id', '9999999', true)"))
+        if target == "artefact":
+            artefact.comment = "changed"
+        else:
+            review.review_comment = "changed"
+        db_session.flush()

@@ -7,8 +7,8 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Affero General Public License for more details.
-# You should have received a copy of the License along with this program.  If
-# not, see <https://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU Affero General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
@@ -16,9 +16,9 @@
 
 """Add audit tables
 
-Revision ID: 54e122fd6b2c
-Revises: b7c2d9e4a1f0
-Create Date: 2026-11-03 21:04:53.290393+00:00
+Revision ID: ea39be6f72bc
+Revises: c407ca4fb621
+Create Date: 2026-11-09 12:49:23.051228+00:00
 
 """
 
@@ -27,8 +27,8 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "54e122fd6b2c"
-down_revision = "b7c2d9e4a1f0"
+revision = "ea39be6f72bc"
+down_revision = "c407ca4fb621"
 branch_labels = None
 depends_on = None
 
@@ -41,7 +41,7 @@ def upgrade() -> None:
         sa.Column("audit_operation", sa.Unicode(length=1), nullable=False),
         sa.Column("audit_timestamp", sa.DateTime(timezone=True), nullable=False),
         sa.Column("audit_current_user", sa.Unicode(length=64), nullable=False),
-        sa.Column("audit_triggered_by", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("audit_author_id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(length=200), nullable=True),
         sa.Column("version", sa.String(), nullable=True),
         sa.Column("stage", sa.String(length=100), nullable=True),
@@ -67,6 +67,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=True),
         sa.Column("updated_at", sa.DateTime(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["audit_author_id"], ["change_author.id"], name=op.f("artefact_audit_audit_author_id_fkey")
+        ),
         sa.PrimaryKeyConstraint("audit_pk", name=op.f("artefact_audit_pkey")),
     )
     op.create_table(
@@ -75,7 +78,7 @@ def upgrade() -> None:
         sa.Column("audit_operation", sa.Unicode(length=1), nullable=False),
         sa.Column("audit_timestamp", sa.DateTime(timezone=True), nullable=False),
         sa.Column("audit_current_user", sa.Unicode(length=64), nullable=False),
-        sa.Column("audit_triggered_by", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
+        sa.Column("audit_author_id", sa.Integer(), nullable=False),
         sa.Column(
             "review_decision",
             postgresql.ARRAY(postgresql.ENUM(name="artefactbuildenvironmentreviewdecision", create_type=False)),
@@ -87,47 +90,52 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), nullable=True),
         sa.Column("created_at", sa.DateTime(), nullable=True),
         sa.Column("updated_at", sa.DateTime(), nullable=True),
+        sa.ForeignKeyConstraint(
+            ["audit_author_id"],
+            ["change_author.id"],
+            name=op.f("artefact_build_environment_review_audit_audit_author_id_fkey"),
+        ),
         sa.PrimaryKeyConstraint("audit_pk", name=op.f("artefact_build_environment_review_audit_pkey")),
     )
     op.execute("""CREATE FUNCTION "public_artefact_audit_insert"() RETURNS trigger LANGUAGE plpgsql AS $$
     BEGIN
-    INSERT INTO "artefact_audit" ("audit_operation", "audit_timestamp", "audit_current_user", "audit_triggered_by", "name", "version", "stage", "family", "due_date", "bug_link", "status", "archived", "comment", "store", "branch", "track", "series", "repo", "source", "os", "release", "sha256", "owner", "image_url", "attributes", "jira_issue", "id", "created_at", "updated_at")
-    SELECT 'I', now(), current_user, current_setting('audit.triggered_by', false)::JSONB, NEW."name", NEW."version", NEW."stage", NEW."family", NEW."due_date", NEW."bug_link", NEW."status", NEW."archived", NEW."comment", NEW."store", NEW."branch", NEW."track", NEW."series", NEW."repo", NEW."source", NEW."os", NEW."release", NEW."sha256", NEW."owner", NEW."image_url", NEW."attributes", NEW."jira_issue", NEW."id", NEW."created_at", NEW."updated_at";
+    INSERT INTO "artefact_audit" ("audit_operation", "audit_timestamp", "audit_current_user", "audit_author_id", "name", "version", "stage", "family", "due_date", "bug_link", "status", "archived", "comment", "store", "branch", "track", "series", "repo", "source", "os", "release", "sha256", "owner", "image_url", "attributes", "jira_issue", "id", "created_at", "updated_at")
+    SELECT 'I', now(), current_user, current_setting('audit.author_id', false)::INTEGER, NEW."name", NEW."version", NEW."stage", NEW."family", NEW."due_date", NEW."bug_link", NEW."status", NEW."archived", NEW."comment", NEW."store", NEW."branch", NEW."track", NEW."series", NEW."repo", NEW."source", NEW."os", NEW."release", NEW."sha256", NEW."owner", NEW."image_url", NEW."attributes", NEW."jira_issue", NEW."id", NEW."created_at", NEW."updated_at";
     RETURN NULL;
     END
     $$;""")
     op.execute("""CREATE FUNCTION "public_artefact_audit_update"() RETURNS trigger LANGUAGE plpgsql AS $$
     BEGIN
-    INSERT INTO "artefact_audit" ("audit_operation", "audit_timestamp", "audit_current_user", "audit_triggered_by", "name", "version", "stage", "family", "due_date", "bug_link", "status", "archived", "comment", "store", "branch", "track", "series", "repo", "source", "os", "release", "sha256", "owner", "image_url", "attributes", "jira_issue", "id", "created_at", "updated_at")
-    SELECT 'U', now(), current_user, current_setting('audit.triggered_by', false)::JSONB, NEW."name", NEW."version", NEW."stage", NEW."family", NEW."due_date", NEW."bug_link", NEW."status", NEW."archived", NEW."comment", NEW."store", NEW."branch", NEW."track", NEW."series", NEW."repo", NEW."source", NEW."os", NEW."release", NEW."sha256", NEW."owner", NEW."image_url", NEW."attributes", NEW."jira_issue", NEW."id", NEW."created_at", NEW."updated_at";
+    INSERT INTO "artefact_audit" ("audit_operation", "audit_timestamp", "audit_current_user", "audit_author_id", "name", "version", "stage", "family", "due_date", "bug_link", "status", "archived", "comment", "store", "branch", "track", "series", "repo", "source", "os", "release", "sha256", "owner", "image_url", "attributes", "jira_issue", "id", "created_at", "updated_at")
+    SELECT 'U', now(), current_user, current_setting('audit.author_id', false)::INTEGER, NEW."name", NEW."version", NEW."stage", NEW."family", NEW."due_date", NEW."bug_link", NEW."status", NEW."archived", NEW."comment", NEW."store", NEW."branch", NEW."track", NEW."series", NEW."repo", NEW."source", NEW."os", NEW."release", NEW."sha256", NEW."owner", NEW."image_url", NEW."attributes", NEW."jira_issue", NEW."id", NEW."created_at", NEW."updated_at";
     RETURN NULL;
     END
     $$;""")
     op.execute("""CREATE FUNCTION "public_artefact_audit_delete"() RETURNS trigger LANGUAGE plpgsql AS $$
     BEGIN
-    INSERT INTO "artefact_audit" ("audit_operation", "audit_timestamp", "audit_current_user", "audit_triggered_by", "name", "version", "stage", "family", "due_date", "bug_link", "status", "archived", "comment", "store", "branch", "track", "series", "repo", "source", "os", "release", "sha256", "owner", "image_url", "attributes", "jira_issue", "id", "created_at", "updated_at")
-    SELECT 'D', now(), current_user, current_setting('audit.triggered_by', false)::JSONB, OLD."name", OLD."version", OLD."stage", OLD."family", OLD."due_date", OLD."bug_link", OLD."status", OLD."archived", OLD."comment", OLD."store", OLD."branch", OLD."track", OLD."series", OLD."repo", OLD."source", OLD."os", OLD."release", OLD."sha256", OLD."owner", OLD."image_url", OLD."attributes", OLD."jira_issue", OLD."id", OLD."created_at", OLD."updated_at";
+    INSERT INTO "artefact_audit" ("audit_operation", "audit_timestamp", "audit_current_user", "audit_author_id", "name", "version", "stage", "family", "due_date", "bug_link", "status", "archived", "comment", "store", "branch", "track", "series", "repo", "source", "os", "release", "sha256", "owner", "image_url", "attributes", "jira_issue", "id", "created_at", "updated_at")
+    SELECT 'D', now(), current_user, current_setting('audit.author_id', false)::INTEGER, OLD."name", OLD."version", OLD."stage", OLD."family", OLD."due_date", OLD."bug_link", OLD."status", OLD."archived", OLD."comment", OLD."store", OLD."branch", OLD."track", OLD."series", OLD."repo", OLD."source", OLD."os", OLD."release", OLD."sha256", OLD."owner", OLD."image_url", OLD."attributes", OLD."jira_issue", OLD."id", OLD."created_at", OLD."updated_at";
     RETURN NULL;
     END
     $$;""")
     op.execute("""CREATE FUNCTION "public_artefact_build_environment_review_audit_insert"() RETURNS trigger LANGUAGE plpgsql AS $$
     BEGIN
-    INSERT INTO "artefact_build_environment_review_audit" ("audit_operation", "audit_timestamp", "audit_current_user", "audit_triggered_by", "review_decision", "review_comment", "environment_id", "artefact_build_id", "id", "created_at", "updated_at")
-    SELECT 'I', now(), current_user, current_setting('audit.triggered_by', false)::JSONB, NEW."review_decision", NEW."review_comment", NEW."environment_id", NEW."artefact_build_id", NEW."id", NEW."created_at", NEW."updated_at";
+    INSERT INTO "artefact_build_environment_review_audit" ("audit_operation", "audit_timestamp", "audit_current_user", "audit_author_id", "review_decision", "review_comment", "environment_id", "artefact_build_id", "id", "created_at", "updated_at")
+    SELECT 'I', now(), current_user, current_setting('audit.author_id', false)::INTEGER, NEW."review_decision", NEW."review_comment", NEW."environment_id", NEW."artefact_build_id", NEW."id", NEW."created_at", NEW."updated_at";
     RETURN NULL;
     END
     $$;""")
     op.execute("""CREATE FUNCTION "public_artefact_build_environment_review_audit_update"() RETURNS trigger LANGUAGE plpgsql AS $$
     BEGIN
-    INSERT INTO "artefact_build_environment_review_audit" ("audit_operation", "audit_timestamp", "audit_current_user", "audit_triggered_by", "review_decision", "review_comment", "environment_id", "artefact_build_id", "id", "created_at", "updated_at")
-    SELECT 'U', now(), current_user, current_setting('audit.triggered_by', false)::JSONB, NEW."review_decision", NEW."review_comment", NEW."environment_id", NEW."artefact_build_id", NEW."id", NEW."created_at", NEW."updated_at";
+    INSERT INTO "artefact_build_environment_review_audit" ("audit_operation", "audit_timestamp", "audit_current_user", "audit_author_id", "review_decision", "review_comment", "environment_id", "artefact_build_id", "id", "created_at", "updated_at")
+    SELECT 'U', now(), current_user, current_setting('audit.author_id', false)::INTEGER, NEW."review_decision", NEW."review_comment", NEW."environment_id", NEW."artefact_build_id", NEW."id", NEW."created_at", NEW."updated_at";
     RETURN NULL;
     END
     $$;""")
     op.execute("""CREATE FUNCTION "public_artefact_build_environment_review_audit_delete"() RETURNS trigger LANGUAGE plpgsql AS $$
     BEGIN
-    INSERT INTO "artefact_build_environment_review_audit" ("audit_operation", "audit_timestamp", "audit_current_user", "audit_triggered_by", "review_decision", "review_comment", "environment_id", "artefact_build_id", "id", "created_at", "updated_at")
-    SELECT 'D', now(), current_user, current_setting('audit.triggered_by', false)::JSONB, OLD."review_decision", OLD."review_comment", OLD."environment_id", OLD."artefact_build_id", OLD."id", OLD."created_at", OLD."updated_at";
+    INSERT INTO "artefact_build_environment_review_audit" ("audit_operation", "audit_timestamp", "audit_current_user", "audit_author_id", "review_decision", "review_comment", "environment_id", "artefact_build_id", "id", "created_at", "updated_at")
+    SELECT 'D', now(), current_user, current_setting('audit.author_id', false)::INTEGER, OLD."review_decision", OLD."review_comment", OLD."environment_id", OLD."artefact_build_id", OLD."id", OLD."created_at", OLD."updated_at";
     RETURN NULL;
     END
     $$;""")
