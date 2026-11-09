@@ -3,7 +3,7 @@
 <script lang="ts">
   import { untrack } from "svelte";
   import { Checkbox, TextInput } from "@canonical/svelte-ds-app-launchpad";
-  import { listValues } from "$lib/testResultsFilters";
+  import { FILTER_DEFINITIONS, listValues } from "$lib/testResultsFilters";
   import { EXECUTION_STATUSES, RESULT_STATUSES } from "$lib/testResultsSearch";
   import type { ListFilterKey } from "$lib/searchFilterEditor";
   import { statusDisplayName } from "$lib/searchFilterEditor";
@@ -76,7 +76,7 @@
 
 {#if choice}
   <fieldset>
-    <legend>Match any selected value</legend>
+    <legend class="visually-hidden">{FILTER_DEFINITIONS[field].label}</legend>
     <div class="options">
       {#each configured as option (option.value)}
         <label
@@ -96,12 +96,8 @@
         Unconfigured selections are retained. Uncheck them explicitly to remove
         them.
       </p>{/if}
-    {#if field === "test_execution_statuses"}<p class="hint">
-        Exact test execution statuses.
-      </p>{/if}
     {#if field === "artefact_stages"}<p class="hint">
-        Stages from all configured families. (none) matches an explicitly empty
-        stage.
+        Note: (none) matches an explicitly empty stage.
       </p>{/if}
     {#if field === "families" && !families.length}<p class="hint">
         Family configuration unavailable.
@@ -117,16 +113,16 @@
     {conciseGuidance}
   />
 {:else}
-  <label for={id}>Exact values</label>
+  <label for={id} class="visually-hidden">
+    Values for {FILTER_DEFINITIONS[field].label}
+  </label>
   <TextInput
     {id}
     name={field}
     bind:value={text}
     aria-describedby={`${id}-hint`}
   />
-  <p id={`${id}-hint`} class="hint">
-    Separate values with commas. Match any value, exactly.
-  </p>
+  <p id={`${id}-hint`} class="hint">Separate values with commas.</p>
 {/if}
 
 <style>
@@ -135,6 +131,17 @@
     padding: 0;
     margin: 0 0 1rem;
     min-width: 0;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
   }
   legend,
   label {

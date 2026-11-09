@@ -417,13 +417,6 @@
                 labels={editorLabels}
               />
             {/key}
-            {#if !valid}
-              <p class="hint">
-                {isActive(field)
-                  ? "Select a value to save, or remove this filter."
-                  : "Choose at least one value to add this filter."}
-              </p>
-            {/if}
             <div class="editor-actions">
               <Button
                 type="submit"

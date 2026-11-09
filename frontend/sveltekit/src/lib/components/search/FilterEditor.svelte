@@ -41,11 +41,18 @@
     bind:pending
     {families}
     draftFamilies={filters.families}
+    conciseGuidance
   />
 {:else if isBooleanFilter(field)}
   <BooleanFilterEditor {field} bind:value={filters[field]} bind:valid />
 {:else if isIdFilter(field)}
-  <IdFilterEditor {field} bind:value={filters[field]} bind:valid {labels} />
+  <IdFilterEditor
+    {field}
+    bind:value={filters[field]}
+    bind:valid
+    {labels}
+    conciseGuidance
+  />
 {:else if field === "execution_metadata"}
   <MetadataFilterEditor bind:value={filters.execution_metadata} bind:valid />
 {:else if isInstantFilter(field)}

@@ -2757,6 +2757,185 @@ void test("Option 4 picker exposes every filter and malformed/unknown raw condit
   }
 });
 
+void test("Option 4 choice editors hide redundant legends and empty-add guidance", async () => {
+  assert.ok(app);
+  globalThis.fetch = async (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    return json({
+      count: 0,
+      offset: Number(request.searchParams.get("offset")),
+      limit: Number(request.searchParams.get("limit")),
+      rows: [],
+    });
+  };
+
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const ui = app.mountSearchOption(
+    target,
+    new URL("http://localhost/custom/base/test-results/option-4"),
+    [family],
+    4,
+  );
+  try {
+    await waitFor(() => target.textContent.includes("No test results"));
+    for (const field of [
+      "Family",
+      "Result status",
+      "Execution Status",
+      "Artefact Stage",
+      "Archived",
+      "Rerun Requested",
+      "Latest Execution",
+    ]) {
+      const addTrigger = [...target.querySelectorAll("button")].find((button) =>
+        button.textContent.includes("+ Add filter"),
+      );
+      assert.ok(addTrigger);
+      addTrigger.click();
+      await waitFor(() =>
+        Boolean(
+          target.querySelector(
+            '.condition-popover[aria-label="Add filter"] .filter-list',
+          ),
+        ),
+      );
+      const option = [
+        ...target.querySelectorAll(
+          '.condition-popover[aria-label="Add filter"] .filter-list button',
+        ),
+      ].find((button) => button.textContent.trim() === field);
+      assert.ok(option, `missing filter option ${field}`);
+      option.click();
+      await waitFor(() =>
+        Boolean(target.querySelector(`form[aria-label="Edit ${field}"]`)),
+      );
+      const form = target.querySelector(`form[aria-label="Edit ${field}"]`);
+      const legend = form.querySelector("fieldset legend");
+      assert.ok(
+        legend,
+        `${field} retains a group name for assistive technology`,
+      );
+      assert.equal(legend.classList.contains("visually-hidden"), true);
+      assert.doesNotMatch(
+        form.textContent,
+        /Match any selected value|Choose one|Choose at least one value to add this filter/,
+      );
+      assert.equal(form.querySelector('button[type="submit"]').disabled, true);
+      if (field === "Artefact Stage")
+        assert.match(
+          form.textContent,
+          /Note: \(none\) matches an explicitly empty stage\./,
+        );
+      [...form.querySelectorAll("button")]
+        .find((button) => button.textContent.trim() === "Cancel")
+        .click();
+      await waitFor(
+        () => !target.querySelector(`form[aria-label="Edit ${field}"]`),
+      );
+    }
+  } finally {
+    await ui.destroy();
+    target.remove();
+  }
+});
+
+void test("Option 4 lookup and comma-list editors keep only actionable helper text", async () => {
+  assert.ok(app);
+  globalThis.fetch = async (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    if (request.pathname === "/v1/test-results/search-page")
+      return json({
+        count: 0,
+        offset: Number(request.searchParams.get("offset")),
+        limit: Number(request.searchParams.get("limit")),
+        rows: [],
+      });
+    return json({ artefacts: [] });
+  };
+
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const ui = app.mountSearchOption(
+    target,
+    new URL("http://localhost/custom/base/test-results/option-4"),
+    [family],
+    4,
+  );
+  const openAdd = async (filterLabel) => {
+    const trigger = [...target.querySelectorAll("button")].find((button) =>
+      button.textContent.includes("+ Add filter"),
+    );
+    assert.ok(trigger);
+    trigger.click();
+    await waitFor(() =>
+      Boolean(
+        target.querySelector(
+          '.condition-popover[aria-label="Add filter"] .filter-list',
+        ),
+      ),
+    );
+    const option = [
+      ...target.querySelectorAll(
+        '.condition-popover[aria-label="Add filter"] .filter-list button',
+      ),
+    ].find((button) => button.textContent.trim() === filterLabel);
+    assert.ok(option, `missing filter option ${filterLabel}`);
+    option.click();
+    await waitFor(() =>
+      Boolean(target.querySelector(`form[aria-label="Edit ${filterLabel}"]`)),
+    );
+    return target.querySelector(`form[aria-label="Edit ${filterLabel}"]`);
+  };
+
+  try {
+    await waitFor(() => target.textContent.includes("No test results"));
+    const artefactForm = await openAdd("Artefact");
+    const artefactInput = artefactForm.querySelector('input[name="artefacts"]');
+    assert.ok(artefactInput);
+    const hintId = artefactInput.getAttribute("aria-describedby").split(" ")[0];
+    assert.equal(
+      browser.document.getElementById(hintId)?.textContent.trim(),
+      "Type at least 2 characters for suggestions.",
+    );
+    assert.match(artefactForm.textContent, /No selected values\./);
+    assert.doesNotMatch(
+      artefactForm.textContent,
+      /Choose at least one value to add this filter/,
+    );
+    [...artefactForm.querySelectorAll("button")]
+      .find((button) => button.textContent.trim() === "Cancel")
+      .click();
+    await waitFor(
+      () => !target.querySelector('form[aria-label="Edit Artefact"]'),
+    );
+
+    const templateForm = await openAdd("Template ID");
+    const templateInput = templateForm.querySelector(
+      'input[name="template_ids"]',
+    );
+    assert.ok(templateInput);
+    const inputLabel = templateForm.querySelector(
+      `label[for="${templateInput.getAttribute("id")}"].visually-hidden`,
+    );
+    assert.ok(
+      inputLabel,
+      "the removed visible label remains available accessibly",
+    );
+    assert.equal(
+      templateForm.querySelector("p.hint")?.textContent.trim(),
+      "Separate values with commas.",
+    );
+    assert.doesNotMatch(
+      templateForm.textContent,
+      /Exact values|Choose at least one value to add this filter/,
+    );
+  } finally {
+    await ui.destroy();
+    target.remove();
+  }
+});
+
 void test("Option 3 defers selected issue and reviewer label requests until Filters opens", async () => {
   assert.ok(app);
   const requests = [];
