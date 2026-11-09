@@ -17,6 +17,7 @@
 
 # ruff: noqa
 
+import os
 from datetime import date, timedelta
 from textwrap import dedent
 
@@ -68,6 +69,7 @@ from test_observer.data_access.models_enums import (
 from test_observer.data_access.setup import SessionLocal
 from test_observer.users.add_user import add_user
 from tests.fake_launchpad_api import FakeLaunchpadAPI
+from scripts.seed_performance_data import PROFILES, seed_performance_data
 
 BASE_URL = "http://localhost:30000/v1"
 START_TEST_EXECUTION_URL = f"{BASE_URL}/test-executions/start-test"
@@ -768,7 +770,11 @@ SAMPLE_ISSUE_ATTACHMENT_SEQUENCE = [
 ]
 
 
-def seed_data(client: TestClient | requests.Session, session: Session | None = None):
+def seed_data(
+    client: TestClient | requests.Session,
+    session: Session | None = None,
+    bulk_profile: str | None = None,
+):
     session = session or SessionLocal()
 
     # Check if data has already been seeded by looking for existing users or artefacts
@@ -870,6 +876,13 @@ def seed_data(client: TestClient | requests.Session, session: Session | None = N
     _add_issue_attachments(client, session, issues, auth_headers)
 
     _assign_environment_reviewers(session)
+
+    if bulk_profile:
+        profile = PROFILES[bulk_profile]
+        print(f"Bulk seeding {profile.artefacts} artefacts and {profile.results} test results ({bulk_profile})...")
+        summary = seed_performance_data(session.connection(), profile)
+        session.commit()
+        print(f"Bulk seeded {summary.results} test results in {summary.seconds} s")
 
     print("Database seeding completed successfully!")
 
@@ -1024,4 +1037,5 @@ def _create_missing_expected_environment_executions() -> list[StartSnapTestExecu
 
 
 if __name__ == "__main__":
-    seed_data(requests.Session())
+    # small | medium (~115k results) | large (~1M results); empty string disables bulk seeding
+    seed_data(requests.Session(), bulk_profile=os.environ.get("SEED_BULK_PROFILE", "medium") or None)
