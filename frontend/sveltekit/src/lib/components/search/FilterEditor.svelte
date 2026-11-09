@@ -52,6 +52,7 @@
     bind:valid
     {labels}
     conciseGuidance
+    chipPresentation
   />
 {:else if field === "execution_metadata"}
   <MetadataFilterEditor bind:value={filters.execution_metadata} bind:valid />

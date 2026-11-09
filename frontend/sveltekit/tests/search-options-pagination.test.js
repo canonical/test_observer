@@ -2936,6 +2936,131 @@ void test("Option 4 lookup and comma-list editors keep only actionable helper te
   }
 });
 
+void test("Option 4 ID editors start without a mode and show the ID picker only for Specific IDs", async () => {
+  assert.ok(app);
+  const requests = [];
+  globalThis.fetch = async (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    if (request.pathname === "/v1/test-results/search-page")
+      return json({
+        count: 0,
+        offset: Number(request.searchParams.get("offset")),
+        limit: Number(request.searchParams.get("limit")),
+        rows: [],
+      });
+    if (request.pathname === "/v1/issues") return json({ issues: [] });
+    if (request.pathname === "/v1/users") return json({ users: [] });
+    return json({ detail: "not found" }, 404);
+  };
+
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const ui = app.mountSearchOption(
+    target,
+    new URL("http://localhost/custom/base/test-results/option-4"),
+    [family],
+    4,
+  );
+  try {
+    await waitFor(() => target.textContent.includes("No test results"));
+    for (const [field, label, expectedModes] of [
+      ["issues", "Issues", ["Has no issues", "Has any issue", "Specific IDs"]],
+      [
+        "reviewer_ids",
+        "Reviewers",
+        ["Has no reviewer", "Has any reviewer", "Specific IDs"],
+      ],
+    ]) {
+      const addTrigger = [...target.querySelectorAll("button")].find((button) =>
+        button.textContent.includes("+ Add filter"),
+      );
+      assert.ok(addTrigger);
+      addTrigger.click();
+      await waitFor(() =>
+        Boolean(
+          target.querySelector(
+            '.condition-popover[aria-label="Add filter"] .filter-list',
+          ),
+        ),
+      );
+      const option = [
+        ...target.querySelectorAll(
+          '.condition-popover[aria-label="Add filter"] .filter-list button',
+        ),
+      ].find((button) => button.textContent.trim() === label);
+      assert.ok(option, `missing filter option ${String(label)}`);
+      option.click();
+      await waitFor(() =>
+        Boolean(
+          target.querySelector(`form[aria-label="Edit ${String(label)}"]`),
+        ),
+      );
+
+      const form = target.querySelector(
+        `form[aria-label="Edit ${String(label)}"]`,
+      );
+      const legend = form.querySelector("fieldset legend");
+      assert.ok(legend);
+      assert.equal(legend.classList.contains("visually-hidden"), true);
+      assert.deepEqual(
+        [...form.querySelectorAll("fieldset label")].map((item) =>
+          item.textContent.trim(),
+        ),
+        expectedModes,
+      );
+      assert.equal(form.querySelector(`input[name="${String(field)}"]`), null);
+      assert.equal(form.querySelector('input[value="ids"]')?.checked, false);
+      const submit = form.querySelector('button[type="submit"]');
+      assert.equal(submit.disabled, true);
+      assert.doesNotMatch(form.textContent, /Match mode \(choose one\)/);
+      assert.doesNotMatch(
+        form.textContent,
+        /Choose at least one value to add this filter/,
+      );
+
+      form.querySelector('input[value="ids"]').click();
+      await waitFor(() =>
+        Boolean(form.querySelector(`input[name="${String(field)}"]`)),
+      );
+      assert.match(form.textContent, /No selected values\./);
+      assert.equal(
+        submit.disabled,
+        true,
+        "specific IDs need at least one selection",
+      );
+
+      form.querySelector('input[value="none"]').click();
+      await waitFor(
+        () => form.querySelector(`input[name="${String(field)}"]`) === null,
+      );
+      assert.equal(submit.disabled, false);
+      form.querySelector('input[value="any"]').click();
+      await waitFor(
+        () => form.querySelector(`input[name="${String(field)}"]`) === null,
+      );
+      assert.equal(submit.disabled, false);
+
+      [...form.querySelectorAll("button")]
+        .find((button) => button.textContent.trim() === "Cancel")
+        .click();
+      await waitFor(
+        () => !target.querySelector(`form[aria-label="Edit ${String(label)}"]`),
+      );
+    }
+    assert.equal(
+      requests.filter(
+        (request) => request.pathname === "/v1/test-results/search-page",
+      ).length,
+      1,
+      "editing ID modes remains a draft",
+    );
+  } finally {
+    await ui.destroy();
+    target.remove();
+  }
+});
+
 void test("Option 3 defers selected issue and reviewer label requests until Filters opens", async () => {
   assert.ok(app);
   const requests = [];

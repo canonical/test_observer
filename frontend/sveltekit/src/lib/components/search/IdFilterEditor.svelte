@@ -15,6 +15,7 @@
     disabled = false,
     hideLabel = false,
     conciseGuidance = false,
+    chipPresentation = false,
   }: {
     field: IdFilterKey;
     value: IdFilter;
@@ -23,12 +24,19 @@
     disabled?: boolean;
     hideLabel?: boolean;
     conciseGuidance?: boolean;
+    chipPresentation?: boolean;
   } = $props();
   const id = $props.id();
   const initial = untrack(() => value);
-  let mode = $state<"ids" | "any" | "none">(
-    Array.isArray(initial) ? "ids" : initial,
+  type MatchMode = "ids" | "any" | "none" | null;
+  const initialMode: MatchMode = untrack(() =>
+    Array.isArray(initial)
+      ? chipPresentation && initial.length === 0
+        ? null
+        : "ids"
+      : initial,
   );
+  let mode = $state<MatchMode>(initialMode);
   let selected = $state(Array.isArray(initial) ? initial.map(String) : []);
   let observed = JSON.stringify(initial);
   let pending = $state(false);
@@ -36,10 +44,18 @@
     const snapshot = JSON.stringify(value);
     if (snapshot === observed) return;
     observed = snapshot;
-    mode = Array.isArray(value) ? "ids" : value;
+    mode = Array.isArray(value)
+      ? chipPresentation && value.length === 0
+        ? null
+        : "ids"
+      : value;
     selected = Array.isArray(value) ? value.map(String) : [];
   });
   $effect(() => {
+    if (mode === null) {
+      valid = false;
+      return;
+    }
     let next: typeof value;
     if (mode !== "ids") {
       next = mode;
@@ -57,34 +73,70 @@
 </script>
 
 <fieldset>
-  <legend class:visually-hidden={hideLabel}>Match mode (choose one)</legend>
-  <label
-    ><input
-      type="radio"
-      name={`${id}-mode`}
-      bind:group={mode}
-      value="ids"
-      {disabled}
-    />Specific IDs</label
-  >
-  <label
-    ><input
-      type="radio"
-      name={`${id}-mode`}
-      bind:group={mode}
-      value="any"
-      {disabled}
-    />{ID_MODE_LABELS[field].any}</label
-  >
-  <label
-    ><input
-      type="radio"
-      name={`${id}-mode`}
-      bind:group={mode}
-      value="none"
-      {disabled}
-    />{ID_MODE_LABELS[field].none}</label
-  >
+  <legend class:visually-hidden={hideLabel || chipPresentation}>
+    {#if chipPresentation}
+      {field === "issues" ? "Issue match mode" : "Reviewer match mode"}
+    {:else}
+      Match mode (choose one)
+    {/if}
+  </legend>
+  {#if chipPresentation}
+    <label
+      ><input
+        type="radio"
+        name={`${id}-mode`}
+        bind:group={mode}
+        value="none"
+        {disabled}
+      />{ID_MODE_LABELS[field].none}</label
+    >
+    <label
+      ><input
+        type="radio"
+        name={`${id}-mode`}
+        bind:group={mode}
+        value="any"
+        {disabled}
+      />{ID_MODE_LABELS[field].any}</label
+    >
+    <label
+      ><input
+        type="radio"
+        name={`${id}-mode`}
+        bind:group={mode}
+        value="ids"
+        {disabled}
+      />Specific IDs</label
+    >
+  {:else}
+    <label
+      ><input
+        type="radio"
+        name={`${id}-mode`}
+        bind:group={mode}
+        value="ids"
+        {disabled}
+      />Specific IDs</label
+    >
+    <label
+      ><input
+        type="radio"
+        name={`${id}-mode`}
+        bind:group={mode}
+        value="any"
+        {disabled}
+      />{ID_MODE_LABELS[field].any}</label
+    >
+    <label
+      ><input
+        type="radio"
+        name={`${id}-mode`}
+        bind:group={mode}
+        value="none"
+        {disabled}
+      />{ID_MODE_LABELS[field].none}</label
+    >
+  {/if}
 </fieldset>
 {#if mode === "ids"}
   <ValueSuggestions
