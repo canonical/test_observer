@@ -129,7 +129,11 @@ def set_audit_context(
 
 
 def set_connection_audit_context(connection: Connection, *, automation_name: str) -> None:
-    """Set transaction-local audit context for direct Core operations."""
+    """Set transaction-local audit context for direct Core operations.
+
+    Used by seed_performance_data, which writes through a raw SQLAlchemy
+    Connection rather than an ORM session.
+    """
     author_id = get_or_create_author(connection, automation_name=automation_name)
     _set_connection_audit_author(connection, author_id)
 
@@ -150,5 +154,20 @@ def _reapply_audit_context(session: Session, _transaction: object, connection: C
 
 
 def register_audit_context_listener() -> None:
+    """Listens for the start of transactions to set the author again.
+
+    The author in the context is set with `set_config(..., true)` so that
+    the setting is not applied session-wide (which would be the case if the
+    last argument were `false`) because database connections are pooled and
+    reused (i.e. an author would carry over to the next request).
+
+    However, because of this, the author setting only lasts until the
+    transaction ends, so after `db.commit()` or `db.rollback()` the session's
+    next write would run a new transaction with no author.
+
+    This listener sets the author again once a new transaction start, and it's
+    registered in `data_access/setup.py` because that is the source of database-related
+    utility in the backend.
+    """
     if not event.contains(Session, "after_begin", _reapply_audit_context):
         event.listen(Session, "after_begin", _reapply_audit_context)
