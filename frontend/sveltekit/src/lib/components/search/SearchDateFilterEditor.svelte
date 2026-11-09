@@ -14,6 +14,8 @@
     value = $bindable(),
     other,
     boundLabel,
+    compactPresentation = false,
+    utcNoteId,
     allowEmpty = false,
     disabled = false,
     filterAttribute,
@@ -26,6 +28,8 @@
     value: IsoInstant | null;
     other: IsoInstant | null;
     boundLabel?: string;
+    compactPresentation?: boolean;
+    utcNoteId?: string;
     allowEmpty?: boolean;
     disabled?: boolean;
     filterAttribute?: string;
@@ -100,7 +104,13 @@
 </script>
 
 {#if boundLabel}
-  <h3 id={`${id}-bound`} class="bound-label">{boundLabel}</h3>
+  {#if compactPresentation}
+    <label for={`${id}-picker`} class="bound-label compact-bound-label">
+      {boundLabel}
+    </label>
+  {:else}
+    <h3 id={`${id}-bound`} class="bound-label">{boundLabel}</h3>
+  {/if}
 {/if}
 <input
   id={`${id}-picker`}
@@ -112,23 +122,29 @@
   value={picker}
   {disabled}
   aria-invalid={Boolean(error)}
-  aria-label={!boundLabel ? accessibleBoundLabel : undefined}
-  aria-labelledby={boundLabel ? `${id}-bound` : undefined}
-  aria-describedby={`${id}-hint`}
+  aria-label={compactPresentation || !boundLabel
+    ? accessibleBoundLabel
+    : undefined}
+  aria-labelledby={boundLabel && !compactPresentation
+    ? `${id}-bound`
+    : undefined}
+  aria-describedby={compactPresentation ? utcNoteId : `${id}-hint`}
   oninput={updatePicker}
 />
-<p id={`${id}-hint`} class="hint">
-  Inclusive {field === "from_date" ? "lower" : "upper"} bound on result creation time.
-  Picker values are UTC and include whole seconds; clearing this picker removes this
-  bound.
-</p>
+{#if !compactPresentation}
+  <p id={`${id}-hint`} class="hint">
+    Inclusive {field === "from_date" ? "lower" : "upper"} bound on result creation time.
+    Picker values are UTC and include whole seconds; clearing this picker removes this
+    bound.
+  </p>
+{/if}
 {#if pickerCannotRepresentValue}
   <p class="hint" data-utc-picker-note>
     This saved time is not shown in the picker. Select a new UTC time or clear
     this bound.
   </p>
 {/if}
-{#if other}<p class="hint">
+{#if other && !compactPresentation}<p class="hint">
     {field === "from_date" ? "Until" : "From"}: {other}
   </p>{/if}
 {#if error}<p role="alert">{error}</p>{/if}
@@ -151,6 +167,11 @@
   .bound-label {
     margin: 0.75rem 0 0;
     font-weight: 600;
+  }
+  .compact-bound-label {
+    display: block;
+    margin: 0;
+    font: inherit;
   }
   .bound-label + input {
     margin-top: 0.5rem;

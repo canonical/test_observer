@@ -105,13 +105,14 @@ export function mountSearch(
  * remounting the editor. The page normally changes the family filter between opens.
  * @param {HTMLElement} target
  */
-export function mountSuggestions(target) {
+export function mountSuggestions(target, conciseGuidance = false) {
   let families = $state(["old-family"]);
   let selected = $state(["retained"]);
   const component = mount(ValueSuggestions, {
     target,
     props: {
       field: "artefacts",
+      conciseGuidance,
       get draftFamilies() {
         return families;
       },

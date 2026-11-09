@@ -1083,10 +1083,15 @@ void test("Option 2.5 has a dedicated aligned filter row and exact drafts", asyn
       2,
     );
     assert.deepEqual(
-      [...dateEditor.querySelectorAll(".bound-label")].map((heading) =>
+      [...dateEditor.querySelectorAll(".compact-bound-label")].map((heading) =>
         heading.textContent.trim(),
       ),
-      ["Created — From (UTC)", "Created — To (UTC)"],
+      ["From", "To"],
+    );
+    assert.equal(dateEditor.querySelectorAll(".utc-note").length, 1);
+    assert.equal(
+      dateEditor.querySelector(".utc-note")?.textContent.trim(),
+      "All times are in UTC.",
     );
     picker.value = "2026-01-02T03:04:06";
     picker.dispatchEvent(new browser.Event("input", { bubbles: true }));
@@ -1808,7 +1813,13 @@ void test("Options 2–3 Created editors use UTC-only pickers and preserve one-s
         [...dateEditor.querySelectorAll(".bound-label")].map((heading) =>
           heading.textContent.trim(),
         ),
-        ["Created — From (UTC)", "Created — To (UTC)"],
+        option === 2
+          ? ["From", "To"]
+          : ["Created — From (UTC)", "Created — To (UTC)"],
+      );
+      assert.equal(
+        dateEditor.querySelectorAll(".utc-note").length,
+        option === 2 ? 1 : 0,
       );
       assert.equal(
         target.querySelector('[data-search-grid-filter-picker="until_date"]')

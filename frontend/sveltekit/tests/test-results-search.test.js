@@ -5287,6 +5287,63 @@ void test("all 18 filter groups are column-header controls without extra page fi
   }
 });
 
+void test("Option 1 suggestions use one concise threshold and simple exact-list labels use the same heading class", async () => {
+  globalThis.fetch = () => Promise.resolve(response());
+  const ui = mounted();
+  try {
+    await flush();
+    for (const [header, field, label] of [
+      ["Artefact", "artefacts", "Find Artefact"],
+      ["Test case", "test_cases", "Find Test Case"],
+      ["Environment", "environments", "Find Environment"],
+      ["Test plan", "test_plans", "Find Test Plan"],
+      ["Issues", "issues", "Find Issues"],
+      ["Reviewers", "reviewer_ids", "Find Reviewers"],
+    ]) {
+      chip(ui.target, header).click();
+      await flush();
+      const menu = ui.target.querySelector(
+        `[data-search-grid-menu="${field}"]`,
+      );
+      const input = menu?.querySelector(`[data-search-grid-filter="${field}"]`);
+      assert.ok(menu);
+      assert.ok(input);
+      assert.equal(
+        menu
+          .querySelector(`label[for="${input.getAttribute("id")}"]`)
+          ?.textContent.trim(),
+        label,
+      );
+      const hintId = input.getAttribute("aria-describedby")?.split(" ")[0];
+      assert.ok(hintId);
+      assert.equal(
+        browser.document.getElementById(hintId)?.textContent.trim(),
+        "Type at least 2 characters for suggestions.",
+      );
+    }
+
+    for (const [header, field, label] of [
+      ["Track", "artefact_tracks", "Artefact Track"],
+      ["Version", "artefact_versions", "Artefact Version"],
+      ["Template ID", "template_ids", "Template ID"],
+    ]) {
+      chip(ui.target, header).click();
+      await flush();
+      const menu = ui.target.querySelector(
+        `[data-search-grid-menu="${field}"]`,
+      );
+      const heading = menu?.querySelector(".filter-field-label");
+      assert.ok(menu);
+      assert.ok(heading);
+      assert.equal(heading.textContent.trim(), label);
+      assert.equal(heading.classList.contains("visually-hidden"), false);
+      assert.ok(menu.classList.contains("compact-filter-presentation"));
+    }
+  } finally {
+    await ui.destroy();
+  }
+});
+
 void test("Search URL state keeps all canonical filters applied across Search and Clear all", async () => {
   /** @type {URL[]} */
   const calls = [];
@@ -5778,10 +5835,15 @@ void test("result-created pickers preserve legacy timestamps and edit only their
       2,
     );
     assert.deepEqual(
-      [...dateEditor.querySelectorAll(".bound-label")].map((heading) =>
+      [...dateEditor.querySelectorAll(".compact-bound-label")].map((heading) =>
         heading.textContent.trim(),
       ),
-      ["Created — From (UTC)", "Created — To (UTC)"],
+      ["From", "To"],
+    );
+    assert.equal(dateEditor.querySelectorAll(".utc-note").length, 1);
+    assert.equal(
+      dateEditor.querySelector(".utc-note")?.textContent.trim(),
+      "All times are in UTC.",
     );
     browser.document.dispatchEvent(
       new browser.KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
@@ -5977,11 +6039,12 @@ void test("Option 1 Created filters use only UTC pickers and preserve raw legacy
     assert.equal(menu.querySelectorAll('input[type="text"]').length, 0);
     assert.equal(menu.querySelectorAll("[data-utc-picker-note]").length, 1);
     assert.deepEqual(
-      [...menu.querySelectorAll(".bound-label")].map((heading) =>
+      [...menu.querySelectorAll(".compact-bound-label")].map((heading) =>
         heading.textContent.trim(),
       ),
-      ["Created — From (UTC)", "Created — To (UTC)"],
+      ["From", "To"],
     );
+    assert.equal(menu.querySelectorAll(".utc-note").length, 1);
 
     browser.document.dispatchEvent(
       new browser.KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
@@ -6322,6 +6385,7 @@ void test("value suggestions announce the threshold once and retain status and e
   browser.document.body.append(target);
   const handle = app.mountSuggestions(
     /** @type {HTMLElement} */ (/** @type {unknown} */ (target)),
+    true,
   );
   try {
     const input = target.querySelector('input[name="artefacts"]');
@@ -6333,9 +6397,9 @@ void test("value suggestions announce the threshold once and retain status and e
     const describedBy = input.getAttribute("aria-describedby")?.split(" ");
     assert.ok(describedBy?.includes(`${input.id}-hint`));
     assert.ok(target.querySelector(`#${input.id}-hint`));
-    assert.match(
-      target.querySelector(`#${input.id}-hint`).textContent,
-      /2 characters/,
+    assert.equal(
+      target.querySelector(`#${input.id}-hint`).textContent.trim(),
+      "Type at least 2 characters for suggestions.",
     );
     const status = target.querySelector('[role="status"]');
     assert.ok(status);

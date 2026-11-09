@@ -21,6 +21,7 @@
     families,
     draftFamilies,
     hideLabel = false,
+    conciseGuidance = false,
   }: {
     field: ListFilterKey;
     value: string[];
@@ -29,6 +30,7 @@
     families: Family[];
     draftFamilies: string[];
     hideLabel?: boolean;
+    conciseGuidance?: boolean;
   } = $props();
   const id = $props.id();
   const choice = $derived(
@@ -112,6 +114,7 @@
     bind:pending
     {draftFamilies}
     {hideLabel}
+    {conciseGuidance}
   />
 {:else}
   <label for={id}>Exact values</label>

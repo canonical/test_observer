@@ -28,6 +28,7 @@
     labels = {},
     disabled = false,
     hideLabel = false,
+    conciseGuidance = false,
   }: {
     field: LookupField;
     selected: string[];
@@ -36,6 +37,7 @@
     labels?: Record<string, string>;
     disabled?: boolean;
     hideLabel?: boolean;
+    conciseGuidance?: boolean;
   } = $props();
   const id = $props.id();
   const isList = $derived(isLookupList(field));
@@ -181,8 +183,12 @@
     aria-describedby={`${id}-hint${exactError ? ` ${id}-error` : ""}`}
   />
   <p id={`${id}-hint`} class="hint">
-    Type at least 2 characters for suggestions; select a result or add an exact
-    value. Enter in this input does not save.
+    {#if conciseGuidance}
+      Type at least 2 characters for suggestions.
+    {:else}
+      Type at least 2 characters for suggestions; select a result or add an exact
+      value. Enter in this input does not save.
+    {/if}
   </p>
   <div role="status" class="hint">
     {#if status === "loading"}Loading suggestions…

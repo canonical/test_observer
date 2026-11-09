@@ -223,6 +223,7 @@
       {invalidFields}
       {disabled}
       {open}
+      compactFilterPresentation
       {onedit}
     />
   </div>

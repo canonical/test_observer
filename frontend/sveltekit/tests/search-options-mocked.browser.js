@@ -236,18 +236,32 @@ async function assertFilterMenuLayout(option, editor) {
         );
     });
 
-  const descriptiveHint = editor.locator(".date-filter p.hint").first();
-  assert.ok(
-    (await editor.locator(".date-filter p.hint").count()) > 0,
-    `Option ${option} date filter has descriptive text`,
-  );
+  const isCompactMenu = option !== 3;
+  const descriptionSelector = isCompactMenu
+    ? ".date-filter .utc-note"
+    : ".date-filter p.hint";
+  const descriptiveHint = editor.locator(descriptionSelector).first();
+  const descriptionCount = await editor.locator(descriptionSelector).count();
+  if (isCompactMenu)
+    assert.equal(
+      descriptionCount,
+      1,
+      `Option ${option} date filter has one concise UTC description`,
+    );
+  else
+    assert.ok(
+      descriptionCount > 0,
+      `Option ${option} date filter retains its existing guidance`,
+    );
   assert.ok(
     await descriptiveHint.isVisible(),
-    `Option ${option} date filter descriptive text is visible`,
+    `Option ${option} date filter UTC description is visible`,
   );
 
-  const layout = await editor.evaluate((menu) => {
-    const hint = menu.querySelector(".date-filter p.hint");
+  const layout = await editor.evaluate((menu, compact) => {
+    const hint = menu.querySelector(
+      compact ? ".date-filter .utc-note" : ".date-filter p.hint",
+    );
     const overlay = menu.closest(".menu-anchor, #search-option-3-filter-panel");
     const scrollRegion =
       menu.closest(".menu-anchor") ?? menu.closest(".filter-panel-body");
@@ -288,7 +302,7 @@ async function assertFilterMenuLayout(option, editor) {
       },
       viewport: { width: window.innerWidth, height: window.innerHeight },
     };
-  });
+  }, isCompactMenu);
 
   assert.equal(
     layout.whiteSpace,
@@ -298,8 +312,8 @@ async function assertFilterMenuLayout(option, editor) {
   assert.equal(layout.minWidth, "0px");
   assert.equal(layout.overflowWrap, "anywhere");
   assert.ok(
-    layout.hintLineCount > 1,
-    `Option ${option} remaining descriptive date-filter text wraps across lines`,
+    isCompactMenu ? layout.hintLineCount === 1 : layout.hintLineCount > 1,
+    `Option ${option} date-filter guidance has the intended compactness`,
   );
   assert.ok(
     layout.hintScrollWidth <= Number(layout.hintClientWidth) + 1,
@@ -571,11 +585,24 @@ async function assertCreatedDateEditing(page, option) {
       .locator('button[aria-label^="Edit Created — From:"]')
       .getAttribute("aria-label");
     assert.doesNotMatch(chipLabel ?? "", /\(UTC\)/);
-  } else {
+  } else if (option === 3) {
     assert.deepEqual(await editor.locator("h3.bound-label").allTextContents(), [
       "Created — From (UTC)",
       "Created — To (UTC)",
     ]);
+    assert.equal(
+      await editor.locator('input[type="datetime-local"]').count(),
+      2,
+    );
+  } else {
+    assert.deepEqual(
+      await editor.locator("label.compact-bound-label").allTextContents(),
+      ["From", "To"],
+    );
+    assert.equal(
+      await editor.locator(".utc-note").innerText(),
+      "All times are in UTC.",
+    );
     assert.equal(
       await editor.locator('input[type="datetime-local"]').count(),
       2,
@@ -634,6 +661,10 @@ async function assertCreatedDateEditing(page, option) {
       ["", ""],
     );
     assert.equal(await editor.locator("[data-utc-picker-note]").count(), 2);
+    assert.equal(
+      await editor.locator(".utc-note").count(),
+      option === 3 ? 0 : 1,
+    );
     assert.equal(await editor.locator('input[type="text"]').count(), 0);
   }
   const beforeClose = searchRequests(option).length;
@@ -692,6 +723,39 @@ async function assertCreatedDateEditing(page, option) {
     reversedLegacyRangeBlockedAndCorrected: true,
     unrelatedFiltersAndPageSizePreserved: true,
   };
+}
+
+async function assertOption1ExactListHeadingStyles(page) {
+  async function getStyle(header, field, selector) {
+    await page
+      .getByRole("button", { name: `Filter ${header}`, exact: true })
+      .evaluate((button) => button.click());
+    const menu = page.locator(`[data-search-grid-menu="${field}"]`);
+    await menu.waitFor({ state: "visible" });
+    const style = await menu.locator(selector).evaluate((element) => {
+      const computed = getComputedStyle(element);
+      return {
+        fontSize: computed.fontSize,
+        fontWeight: computed.fontWeight,
+        lineHeight: computed.lineHeight,
+      };
+    });
+    await page.keyboard.press("Escape");
+    return style;
+  }
+
+  const lookupHeading = await getStyle("Artefact", "artefacts", "label[for]");
+  for (const [header, field] of [
+    ["Track", "artefact_tracks"],
+    ["Version", "artefact_versions"],
+    ["Template ID", "template_ids"],
+  ]) {
+    assert.deepEqual(
+      await getStyle(header, field, ".filter-field-label"),
+      lookupHeading,
+      `${header} field heading uses the same typography as Find Artefact`,
+    );
+  }
 }
 
 async function assertOutOfRangeAndEmptyResults(
@@ -1475,6 +1539,7 @@ async function testOption(page, option, pageOrigin) {
   assert.equal(new URL(page.url()).pathname, routePath);
   const nav = await assertNavigation(page, option);
   const ui = await assertPrototypeUi(page, option);
+  if (option === 1) await assertOption1ExactListHeadingStyles(page);
   const firstSearch = searchRequests(option)[0];
   assert.ok(firstSearch, `Option ${option} made a mocked Search request`);
   assertCanonicalFilters(firstSearch);

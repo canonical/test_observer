@@ -14,6 +14,7 @@
     labels,
     disabled = false,
     hideLabel = false,
+    conciseGuidance = false,
   }: {
     field: IdFilterKey;
     value: IdFilter;
@@ -21,6 +22,7 @@
     labels: Record<string, string>;
     disabled?: boolean;
     hideLabel?: boolean;
+    conciseGuidance?: boolean;
   } = $props();
   const id = $props.id();
   const initial = untrack(() => value);
@@ -92,6 +94,7 @@
     {labels}
     {disabled}
     {hideLabel}
+    {conciseGuidance}
   />
 {/if}
 

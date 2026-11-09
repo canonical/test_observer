@@ -58,6 +58,7 @@
     invalidFields = [],
     disabled = false,
     open = false,
+    compactFilterPresentation = false,
     deferIdLabelHydration = false,
     hideRepeatedLabels = false,
     onedit,
@@ -68,10 +69,12 @@
     invalidFields?: SearchFilter[];
     disabled?: boolean;
     open?: boolean;
+    compactFilterPresentation?: boolean;
     deferIdLabelHydration?: boolean;
     hideRepeatedLabels?: boolean;
     onedit: (key: SearchFilter, next: SearchFilters) => void;
   } = $props();
+  const id = $props.id();
 
   const initialFilters = untrack(() => cloneFilters(filters));
   let issueDraft = $state<IdFilter>(initialFilters.issues);
@@ -365,6 +368,7 @@
 
 <div
   class="grid-filter-menu"
+  class:compact-filter-presentation={compactFilterPresentation}
   data-testid={`search-grid-filter-menu-${filterKey}`}
   data-search-grid-menu={filterKey}
   aria-label="Server-backed exact filter"
@@ -509,7 +513,10 @@
     {@const key = filterKey as ListFilter}
     {@const field = textListFields[key]}
     <label class="text-filter">
-      <span class:visually-hidden={hideRepeatedLabels}>{field?.label}</span>
+      <span
+        class="filter-field-label"
+        class:visually-hidden={hideRepeatedLabels}
+      >{field?.label}</span>
       <input
         type="text"
         autocomplete="off"
@@ -520,7 +527,7 @@
         oninput={(event) => setList(key, event.currentTarget.value)}
         onblur={() => (listDraft = undefined)}
       />
-      <span>Typed exact values; comma-separated alternatives.</span>
+      <span class="field-hint">Typed exact values; comma-separated alternatives.</span>
     </label>
   {:else if isLookupList(filterKey)}
     {@const key = filterKey as LookupListField}
@@ -530,11 +537,12 @@
       {families}
       draftFamilies={filters.families}
       hideLabel={hideRepeatedLabels}
+      conciseGuidance={compactFilterPresentation}
     />
   {:else if filterKey === "artefact_is_archived" || filterKey === "rerun_is_requested" || filterKey === "execution_is_latest"}
     {@const key = filterKey}
     <label class="select-filter">
-      <span class:visually-hidden={hideRepeatedLabels}
+      <span class="filter-field-label" class:visually-hidden={hideRepeatedLabels}
         >{key === "artefact_is_archived"
           ? "Archived"
           : key === "rerun_is_requested"
@@ -558,7 +566,9 @@
         field="from_date"
         value={filters.from_date}
         other={filters.until_date}
-        boundLabel="Created — From (UTC)"
+        boundLabel={compactFilterPresentation ? "From" : "Created — From (UTC)"}
+        compactPresentation={compactFilterPresentation}
+        utcNoteId={compactFilterPresentation ? `${id}-created-utc-note` : undefined}
         text={fromDateText}
         filterAttribute="from_date"
         {disabled}
@@ -568,12 +578,17 @@
         field="until_date"
         value={filters.until_date}
         other={filters.from_date}
-        boundLabel="Created — To (UTC)"
+        boundLabel={compactFilterPresentation ? "To" : "Created — To (UTC)"}
+        compactPresentation={compactFilterPresentation}
+        utcNoteId={compactFilterPresentation ? `${id}-created-utc-note` : undefined}
         text={untilDateText}
         filterAttribute="until_date"
         {disabled}
         ontextchange={(value) => setDate("until_date", value)}
       />
+      {#if compactFilterPresentation}
+        <p id={`${id}-created-utc-note`} class="utc-note">All times are in UTC.</p>
+      {/if}
     </div>
   {:else if filterKey === "issues"}
     <IdFilterEditor
@@ -582,6 +597,7 @@
       labels={idLabels}
       {disabled}
       hideLabel={hideRepeatedLabels}
+      conciseGuidance={compactFilterPresentation}
     />
   {:else if filterKey === "reviewer_ids"}
     <IdFilterEditor
@@ -590,6 +606,7 @@
       labels={idLabels}
       {disabled}
       hideLabel={hideRepeatedLabels}
+      conciseGuidance={compactFilterPresentation}
     />
   {:else if filterKey === "execution_metadata"}
     <MetadataFilterEditor
@@ -666,13 +683,24 @@
     width: 100%;
     min-height: 2rem;
   }
-  .text-filter > span:not(.visually-hidden) {
+  .field-hint {
     color: var(--lp-color-text-muted);
     font-size: 0.75rem;
+  }
+  .compact-filter-presentation .filter-field-label {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--lp-color-text-default);
+    font: inherit;
   }
   .date-filter {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
+  }
+  .utc-note {
+    margin: 0;
+    color: var(--lp-color-text-muted);
+    font-size: 0.75rem;
   }
 </style>
