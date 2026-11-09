@@ -654,6 +654,7 @@
                     {invalidFields}
                     disabled={moving}
                     open={filterPanelOpen}
+                    compactFilterPresentation={variant === 3}
                     hideRepeatedLabels={hideRepeatedFilterLabels}
                     deferIdLabelHydration
                     onedit={onFilterEdit}

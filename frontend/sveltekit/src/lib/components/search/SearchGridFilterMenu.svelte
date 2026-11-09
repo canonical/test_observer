@@ -508,6 +508,11 @@
           {noneLabel(stage)}
         </label>
       {/each}
+      {#if hideRepeatedLabels}
+        <p class="field-hint">
+          Note: (none) matches an explicitly empty stage.
+        </p>
+      {/if}
     </fieldset>
   {:else if filterKey in textListFields}
     {@const key = filterKey as ListFilter}
@@ -515,8 +520,8 @@
     <label class="text-filter">
       <span
         class="filter-field-label"
-        class:visually-hidden={hideRepeatedLabels}
-      >{field?.label}</span>
+        class:visually-hidden={hideRepeatedLabels}>{field?.label}</span
+      >
       <input
         type="text"
         autocomplete="off"
@@ -527,7 +532,11 @@
         oninput={(event) => setList(key, event.currentTarget.value)}
         onblur={() => (listDraft = undefined)}
       />
-      <span class="field-hint">Typed exact values; comma-separated alternatives.</span>
+      <span class="field-hint">
+        {hideRepeatedLabels
+          ? "Separate values with commas."
+          : "Typed exact values; comma-separated alternatives."}
+      </span>
     </label>
   {:else if isLookupList(filterKey)}
     {@const key = filterKey as LookupListField}
@@ -542,7 +551,9 @@
   {:else if filterKey === "artefact_is_archived" || filterKey === "rerun_is_requested" || filterKey === "execution_is_latest"}
     {@const key = filterKey}
     <label class="select-filter">
-      <span class="filter-field-label" class:visually-hidden={hideRepeatedLabels}
+      <span
+        class="filter-field-label"
+        class:visually-hidden={hideRepeatedLabels}
         >{key === "artefact_is_archived"
           ? "Archived"
           : key === "rerun_is_requested"
@@ -568,7 +579,9 @@
         other={filters.until_date}
         boundLabel={compactFilterPresentation ? "From" : "Created — From (UTC)"}
         compactPresentation={compactFilterPresentation}
-        utcNoteId={compactFilterPresentation ? `${id}-created-utc-note` : undefined}
+        utcNoteId={compactFilterPresentation
+          ? `${id}-created-utc-note`
+          : undefined}
         text={fromDateText}
         filterAttribute="from_date"
         {disabled}
@@ -580,14 +593,18 @@
         other={filters.from_date}
         boundLabel={compactFilterPresentation ? "To" : "Created — To (UTC)"}
         compactPresentation={compactFilterPresentation}
-        utcNoteId={compactFilterPresentation ? `${id}-created-utc-note` : undefined}
+        utcNoteId={compactFilterPresentation
+          ? `${id}-created-utc-note`
+          : undefined}
         text={untilDateText}
         filterAttribute="until_date"
         {disabled}
         ontextchange={(value) => setDate("until_date", value)}
       />
       {#if compactFilterPresentation}
-        <p id={`${id}-created-utc-note`} class="utc-note">All times are in UTC.</p>
+        <p id={`${id}-created-utc-note`} class="utc-note">
+          All times are in UTC.
+        </p>
       {/if}
     </div>
   {:else if filterKey === "issues"}
@@ -598,6 +615,7 @@
       {disabled}
       hideLabel={hideRepeatedLabels}
       conciseGuidance={compactFilterPresentation}
+      chipPresentation={hideRepeatedLabels}
     />
   {:else if filterKey === "reviewer_ids"}
     <IdFilterEditor
@@ -607,6 +625,7 @@
       {disabled}
       hideLabel={hideRepeatedLabels}
       conciseGuidance={compactFilterPresentation}
+      chipPresentation={hideRepeatedLabels}
     />
   {:else if filterKey === "execution_metadata"}
     <MetadataFilterEditor

@@ -236,7 +236,7 @@ async function assertFilterMenuLayout(option, editor) {
         );
     });
 
-  const isCompactMenu = option !== 3;
+  const isCompactMenu = option !== 4;
   const descriptionSelector = isCompactMenu
     ? ".date-filter .utc-note"
     : ".date-filter p.hint";
@@ -590,15 +590,6 @@ async function assertCreatedDateEditing(page, option) {
       .locator('button[aria-label^="Edit Created — From:"]')
       .getAttribute("aria-label");
     assert.doesNotMatch(chipLabel ?? "", /\(UTC\)/);
-  } else if (option === 3) {
-    assert.deepEqual(await editor.locator("h3.bound-label").allTextContents(), [
-      "Created — From (UTC)",
-      "Created — To (UTC)",
-    ]);
-    assert.equal(
-      await editor.locator('input[type="datetime-local"]').count(),
-      2,
-    );
   } else {
     assert.deepEqual(
       await editor.locator("label.compact-bound-label").allTextContents(),
@@ -671,10 +662,7 @@ async function assertCreatedDateEditing(page, option) {
       ["", ""],
     );
     assert.equal(await editor.locator("[data-utc-picker-note]").count(), 2);
-    assert.equal(
-      await editor.locator(".utc-note").count(),
-      option === 3 ? 0 : 1,
-    );
+    assert.equal(await editor.locator(".utc-note").count(), 1);
     assert.equal(await editor.locator('input[type="text"]').count(), 0);
   }
   const beforeClose = searchRequests(option).length;
@@ -1142,6 +1130,35 @@ async function assertOption3FilterCopy(page) {
     "filter groups do not repeat generic instructions",
   );
 
+  const createdGroup = panel.locator(
+    '.filter-group[aria-labelledby="search-option-3-filter-from_date"]',
+  );
+  assert.equal(
+    await createdGroup.locator(".utc-note").innerText(),
+    "All times are in UTC.",
+  );
+  assert.equal(
+    await createdGroup.getByText("From", { exact: true }).count(),
+    1,
+  );
+  assert.equal(await createdGroup.getByText("To", { exact: true }).count(), 1);
+
+  const stageGroup = panel.locator(
+    '.filter-group[aria-labelledby="search-option-3-filter-artefact_stages"]',
+  );
+  assert.equal(
+    await stageGroup.locator(".field-hint").innerText(),
+    "Note: (none) matches an explicitly empty stage.",
+  );
+
+  const versionGroup = panel.locator(
+    '.filter-group[aria-labelledby="search-option-3-filter-artefact_versions"]',
+  );
+  assert.equal(
+    await versionGroup.locator(".field-hint").innerText(),
+    "Separate values with commas.",
+  );
+
   const familyGroup = panel.locator(
     '.filter-group[aria-labelledby="search-option-3-filter-families"]',
   );
@@ -1206,16 +1223,15 @@ async function assertOption3FilterCopy(page) {
     });
     assert.equal(await heading.isVisible(), true);
 
+    const modeName =
+      key === "issues" ? "Issue match mode" : "Reviewer match mode";
     const modeGroup = group.getByRole("group", {
-      name: "Match mode (choose one)",
+      name: modeName,
       exact: true,
     });
     assert.equal(await modeGroup.count(), 1);
     const modeLegend = modeGroup.locator("legend");
-    assert.equal(
-      (await modeLegend.textContent())?.trim(),
-      "Match mode (choose one)",
-    );
+    assert.equal((await modeLegend.textContent())?.trim(), modeName);
     await assertVisuallyHidden(
       modeLegend,
       `${name} match-mode legend stays accessible but is visually hidden`,
@@ -1223,8 +1239,8 @@ async function assertOption3FilterCopy(page) {
 
     const modeLabels =
       key === "issues"
-        ? ["Specific IDs", "Has any issue", "Has no issues"]
-        : ["Specific IDs", "Has any reviewer", "Has no reviewer"];
+        ? ["Has no issues", "Has any issue", "Specific IDs"]
+        : ["Has no reviewer", "Has any reviewer", "Specific IDs"];
     for (const modeLabel of modeLabels) {
       const radio = modeGroup.getByRole("radio", {
         name: modeLabel,
@@ -1233,6 +1249,28 @@ async function assertOption3FilterCopy(page) {
       assert.equal(await radio.count(), 1);
       assert.equal(await radio.isVisible(), true);
     }
+    const specificIds = modeGroup.getByRole("radio", {
+      name: "Specific IDs",
+      exact: true,
+    });
+    assert.equal(await specificIds.isChecked(), true);
+    await modeGroup
+      .getByRole("radio", {
+        name: key === "issues" ? "Has no issues" : "Has no reviewer",
+        exact: true,
+      })
+      .click();
+    assert.equal(
+      await group.locator(`input[type="search"][name="${key}"]`).count(),
+      0,
+      "the ID picker is hidden for a mode that does not select IDs",
+    );
+    await specificIds.click();
+    assert.equal(
+      await group.locator(`input[type="search"][name="${key}"]`).count(),
+      1,
+      "the ID picker appears only after selecting Specific IDs",
+    );
 
     assert.equal(
       await group

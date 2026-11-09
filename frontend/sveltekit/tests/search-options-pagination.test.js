@@ -1813,13 +1813,13 @@ void test("Options 2–3 Created editors use UTC-only pickers and preserve one-s
         [...dateEditor.querySelectorAll(".bound-label")].map((heading) =>
           heading.textContent.trim(),
         ),
-        option === 2
+        option === 2 || option === 3
           ? ["From", "To"]
           : ["Created — From (UTC)", "Created — To (UTC)"],
       );
       assert.equal(
         dateEditor.querySelectorAll(".utc-note").length,
-        option === 2 ? 1 : 0,
+        option === 2 || option === 3 ? 1 : 0,
       );
       assert.equal(
         target.querySelector('[data-search-grid-filter-picker="until_date"]')
@@ -3064,6 +3064,126 @@ void test("Option 4 ID editors start without a mode and show the ID picker only 
       1,
       "editing ID modes remains a draft",
     );
+  } finally {
+    await ui.destroy();
+    target.remove();
+  }
+});
+
+void test("Option 3 ID modes start unset and apply the selected No/Any mode", async () => {
+  assert.ok(app);
+  const requests = [];
+  globalThis.fetch = async (input) => {
+    const request = new URL(input instanceof Request ? input.url : input);
+    requests.push(request);
+    if (request.pathname === "/v1/test-results/search-page")
+      return json({
+        count: 0,
+        offset: Number(request.searchParams.get("offset")),
+        limit: Number(request.searchParams.get("limit")),
+        rows: [],
+      });
+    if (request.pathname === "/v1/issues") return json({ issues: [] });
+    if (request.pathname === "/v1/users") return json({ users: [] });
+    return json({ detail: "not found" }, 404);
+  };
+
+  const target = browser.document.createElement("div");
+  browser.document.body.append(target);
+  const ui = app.mountSearchOption(
+    target,
+    new URL("http://localhost/custom/base/test-results/option-3"),
+    [family],
+    3,
+  );
+  try {
+    await waitFor(() => target.textContent.includes("No test results"));
+    target
+      .querySelector('button[aria-controls="search-option-3-filter-panel"]')
+      .click();
+    const panel = target.querySelector("dialog.search-option-filter-panel");
+    await waitFor(() => panel.open);
+
+    for (const [key, noLabel, anyLabel, chosenLabel] of [
+      ["issues", "Has no issues", "Has any issue", "Has any issue"],
+      [
+        "reviewer_ids",
+        "Has no reviewer",
+        "Has any reviewer",
+        "Has no reviewer",
+      ],
+    ]) {
+      const group = target.querySelector(
+        `#search-option-3-filter-${key}`,
+      ).parentElement;
+      const radios = [
+        ...group.querySelectorAll('fieldset input[type="radio"]'),
+      ];
+      assert.deepEqual(
+        radios.map((radio) => radio.parentElement.textContent.trim()),
+        [noLabel, anyLabel, "Specific IDs"],
+      );
+      assert.equal(
+        radios.some((radio) => radio.checked),
+        false,
+      );
+      assert.equal(
+        group.querySelector(`input[type="search"][name="${key}"]`),
+        null,
+      );
+
+      radios.find((radio) => radio.value === "ids").click();
+      await waitFor(
+        () => radios.find((radio) => radio.value === "ids").checked,
+      );
+      await waitFor(() =>
+        Boolean(group.querySelector(`input[type="search"][name="${key}"]`)),
+      );
+      assert.match(group.textContent, /No selected values\./);
+
+      const noRadio = radios.find(
+        (radio) => radio.parentElement.textContent.trim() === noLabel,
+      );
+      noRadio.click();
+      await waitFor(() => noRadio.checked);
+      await waitFor(
+        () =>
+          group.querySelector(`input[type="search"][name="${key}"]`) === null,
+      );
+      const anyRadio = radios.find(
+        (radio) => radio.parentElement.textContent.trim() === anyLabel,
+      );
+      anyRadio.click();
+      await waitFor(() => anyRadio.checked);
+      await waitFor(
+        () =>
+          group.querySelector(`input[type="search"][name="${key}"]`) === null,
+      );
+      if (chosenLabel === noLabel) noRadio.click();
+      if (chosenLabel === noLabel) await waitFor(() => noRadio.checked);
+    }
+
+    assert.equal(
+      requests.filter(
+        (request) => request.pathname === "/v1/test-results/search-page",
+      ).length,
+      1,
+      "mode changes remain drafts until Search",
+    );
+    panel.querySelector(".ds.dialog-content-footer button:last-child").click();
+    await waitFor(
+      () =>
+        requests.filter(
+          (request) => request.pathname === "/v1/test-results/search-page",
+        ).length === 2,
+    );
+    assert.equal(ui.url.searchParams.get("issues"), "any");
+    assert.equal(ui.url.searchParams.get("reviewer_ids"), "none");
+    const applied = requests.filter(
+      (request) => request.pathname === "/v1/test-results/search-page",
+    )[1];
+    assert.equal(applied.searchParams.get("issues"), "any");
+    assert.equal(applied.searchParams.get("reviewer_ids"), "none");
   } finally {
     await ui.destroy();
     target.remove();
