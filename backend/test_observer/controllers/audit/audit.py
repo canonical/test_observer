@@ -52,7 +52,7 @@ def _audit_rows(
     source_id: int,
 ) -> list[dict[str, Any]]:
     statement = (
-        select(*audit_table.c, *_AUTHOR_COLUMNS)
+        select(audit_table.c.audit_pk, audit_table.c.audit_timestamp, *_AUTHOR_COLUMNS)
         .join(ChangeAuthor, audit_table.c.audit_author_id == ChangeAuthor.id)
         .where(audit_table.c.id == source_id)
         .order_by(audit_table.c.audit_timestamp, audit_table.c.audit_pk)
