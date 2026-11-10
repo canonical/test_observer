@@ -59,6 +59,34 @@ def filter_execution_metadata(
     return and_(*conditions)
 
 
+def rerun_request_exists() -> ColumnElement[bool]:
+    """Match whether this execution's plan/build/environment group has a rerun request."""
+    return exists(
+        select(1)
+        .select_from(TestExecutionRerunRequest)
+        .where(
+            TestExecutionRerunRequest.test_plan_id == TestExecution.test_plan_id,
+            TestExecutionRerunRequest.artefact_build_id == TestExecution.artefact_build_id,
+            TestExecutionRerunRequest.environment_id == TestExecution.environment_id,
+        )
+    ).correlate(TestExecution)
+
+
+def newer_execution_exists() -> ColumnElement[bool]:
+    """Match the existing latest-execution definition for the plan/build/environment group."""
+    newer_execution = aliased(TestExecution)
+    return exists(
+        select(1)
+        .select_from(newer_execution)
+        .where(
+            TestExecution.test_plan_id == newer_execution.test_plan_id,
+            TestExecution.artefact_build_id == newer_execution.artefact_build_id,
+            TestExecution.environment_id == newer_execution.environment_id,
+            TestExecution.id < newer_execution.id,
+        )
+    ).correlate(TestExecution)
+
+
 def build_query_filters_and_joins(
     filters: TestResultSearchFilters,
 ) -> tuple[list[ColumnElement[bool]], set[str]]:
@@ -155,31 +183,13 @@ def build_query_filters_and_joins(
 
     if filters.rerun_is_requested is not None:
         joins_needed.add("test_execution")
-        rerun_exists = exists(
-            select(1)
-            .select_from(TestExecutionRerunRequest)
-            .where(
-                TestExecutionRerunRequest.test_plan_id == TestExecution.test_plan_id,
-                TestExecutionRerunRequest.artefact_build_id == TestExecution.artefact_build_id,
-                TestExecutionRerunRequest.environment_id == TestExecution.environment_id,
-            )
-        )
+        rerun_exists = rerun_request_exists()
         query_filters.append(rerun_exists if filters.rerun_is_requested else ~rerun_exists)
 
     if filters.execution_is_latest is not None:
         joins_needed.add("test_execution")
-        newer_execution = aliased(TestExecution)
-        newer_execution_exists = exists(
-            select(1)
-            .select_from(newer_execution)
-            .where(
-                TestExecution.test_plan_id == newer_execution.test_plan_id,
-                TestExecution.artefact_build_id == newer_execution.artefact_build_id,
-                TestExecution.environment_id == newer_execution.environment_id,
-                TestExecution.id < newer_execution.id,
-            )
-        )
-        query_filters.append(~newer_execution_exists if filters.execution_is_latest else newer_execution_exists)
+        has_newer_execution = newer_execution_exists()
+        query_filters.append(~has_newer_execution if filters.execution_is_latest else has_newer_execution)
 
     if filters.from_date is not None:
         query_filters.append(TestResult.created_at >= filters.from_date)

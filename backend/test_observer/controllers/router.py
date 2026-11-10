@@ -42,6 +42,7 @@ from .artefacts import artefacts
 from .execution_metadata import execution_metadata
 from .issues import issues
 from .teams import teams
+from .test_results import search_page as test_results_search_page
 
 router: APIRouter = APIRouter()
 router.include_router(version.router, prefix="/v1/version")
@@ -53,6 +54,7 @@ router.include_router(environments.router, prefix="/v1/environments")
 router.include_router(test_plans.router, prefix="/v1/test-plans")
 router.include_router(issues.router, prefix="/v1/issues")
 router.include_router(test_results.router, prefix="/v1/test-results")
+router.include_router(test_results_search_page.router, prefix="/v1/test-results/search-page")
 router.include_router(execution_metadata.router, prefix="/v1/execution-metadata")
 router.include_router(auth.router, prefix="/v1/auth")
 router.include_router(users.router, prefix="/v1/users")
