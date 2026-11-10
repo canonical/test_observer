@@ -13,6 +13,20 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+"""Connect application authors to database-level audit triggers.
+
+set_audit_context() finds or inserts a change_author row, then sets its ID in the
+transaction-local PostgreSQL setting ``audit.author_id`` using set_config().
+Setting that value does not itself insert an audit row.
+
+For models configured with the extension's @audit decorator and an ``author_id``
+context column, the extension generates PostgreSQL triggers, installed through
+Alembic migrations. On INSERT, UPDATE or DELETE, those triggers read
+``current_setting('audit.author_id', false)`` and record it as ``audit_author_id``
+alongside the row snapshot in the model's audit table. The audit row refers
+to the change_author row created or found here.
+"""
+
 from sqlalchemy import Connection, event, text
 from sqlalchemy.orm import Session
 
