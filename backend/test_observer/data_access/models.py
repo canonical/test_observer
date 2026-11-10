@@ -37,6 +37,7 @@ from sqlalchemy import (
     desc,
     exists,
     select,
+    text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -202,12 +203,20 @@ class ChangeAuthor(Base):
     __tablename__ = "change_author"
     __table_args__ = (
         CheckConstraint(
-            "num_nonnulls(user_id, application_id, automation_name) = 1",
-            name="exactly_one_author",
+            "num_nonnulls(user_id, application_id, automation_name) <= 1",
+            name="at_most_one_author",
         ),
         CheckConstraint(
             "automation_name IS NULL OR btrim(automation_name) <> ''",
             name="automation_name_not_blank",
+        ),
+        # A row with no actor is the default author. Indexing a constant
+        # expression over only those rows allows at most one of them.
+        Index(
+            "change_author_default_key",
+            text("(true)"),
+            unique=True,
+            postgresql_where=text("user_id IS NULL AND application_id IS NULL AND automation_name IS NULL"),
         ),
     )
 
