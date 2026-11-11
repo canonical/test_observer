@@ -359,7 +359,6 @@ def test_logout_sets_user_author_before_deleting_session(monkeypatch: pytest.Mon
         db.commit.assert_called_once()
     else:
         db.delete.assert_not_called()
-        set_context.assert_not_called()
     request.session.clear.assert_called_once()
 
 

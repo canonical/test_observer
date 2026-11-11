@@ -14,13 +14,16 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import Engine, text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.audit import set_audit_context, set_connection_audit_context
-from test_observer.data_access.models import Artefact, ChangeAuthor
-from test_observer.data_access.models_enums import FamilyName
+from test_observer.data_access.audit import (
+    DEFAULT_AUTHOR_ID,
+    set_audit_context,
+    set_connection_audit_context,
+)
+from test_observer.data_access.models import ChangeAuthor
 from tests.data_generator import DataGenerator
 
 
@@ -130,6 +133,23 @@ def test_audit_author_keeps_deleted_user_id(db_session: Session, generator: Data
     assert author.user_id == user.id
 
 
+def test_connections_default_to_the_empty_author(db_engine: Engine) -> None:
+    current_author = text("SELECT current_setting('audit.author_id')::integer")
+    with db_engine.connect() as connection:
+        assert connection.scalar(current_author) == DEFAULT_AUTHOR_ID
+        default_author = connection.execute(
+            text("SELECT user_id, application_id, automation_name FROM change_author WHERE id = :id"),
+            {"id": DEFAULT_AUTHOR_ID},
+        ).one()
+        assert tuple(default_author) == (None, None, None)
+
+        set_connection_audit_context(connection, automation_name="temporary-author")
+        assert connection.scalar(current_author) != DEFAULT_AUTHOR_ID
+        connection.rollback()
+
+        assert connection.scalar(current_author) == DEFAULT_AUTHOR_ID
+
+
 def test_set_audit_context_requires_exactly_one_actor(db_session: Session) -> None:
     with pytest.raises(ValueError):
         set_audit_context(db_session)
@@ -144,7 +164,6 @@ def test_set_audit_context_requires_exactly_one_actor(db_session: Session) -> No
 @pytest.mark.parametrize(
     "actor_values",
     [
-        (None, None, None),
         (None, None, "  "),
         (1, None, "multiple-actors"),
     ],

@@ -13,11 +13,35 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from sqlalchemy import Connection, event, text
+"""Connect application authors to database-level audit triggers.
+
+set_audit_context() finds or inserts a change_author row, then sets its ID in the
+transaction-local PostgreSQL setting ``audit.author_id`` using set_config().
+Setting that value does not itself insert an audit row.
+
+For models configured with the extension's @audit decorator and an ``author_id``
+context column, the extension generates PostgreSQL triggers, installed through
+Alembic migrations. On INSERT, UPDATE or DELETE, those triggers read
+``current_setting('audit.author_id', false)`` and record it as ``audit_author_id``
+alongside the row snapshot in the model's audit table. The audit row refers
+to the change_author row created or found here.
+
+Every new database connection starts with ``audit.author_id`` set at session
+level to DEFAULT_AUTHOR_ID, the change_author row with no actor. Writes made
+without an audit context are attributed to that row, and the transaction-local
+value from set_audit_context() takes precedence while it is set.
+"""
+
+from sqlalchemy import Connection, Engine, event, text
+from sqlalchemy.engine.interfaces import DBAPIConnection
 from sqlalchemy.orm import Session
 
 _AUDIT_CONTEXT_KEY = "_audit_author"
 _AUDIT_SETTING = "audit.author_id"
+
+# The change_author row with no actor, seeded by migration c407ca4fb621.
+DEFAULT_AUTHOR_ID = 1
+
 type _Actor = tuple[str, int | str]
 type _AuthorContext = dict[str, int | str]
 
@@ -129,7 +153,11 @@ def set_audit_context(
 
 
 def set_connection_audit_context(connection: Connection, *, automation_name: str) -> None:
-    """Set transaction-local audit context for direct Core operations."""
+    """Set transaction-local audit context for direct Core operations.
+
+    Used by seed_performance_data, which writes through a raw SQLAlchemy
+    Connection rather than an ORM session.
+    """
     author_id = get_or_create_author(connection, automation_name=automation_name)
     _set_connection_audit_author(connection, author_id)
 
@@ -149,6 +177,32 @@ def _reapply_audit_context(session: Session, _transaction: object, connection: C
         _set_connection_audit_author(connection, author_id)
 
 
+def _set_default_audit_author(dbapi_connection: DBAPIConnection, _connection_record: object) -> None:
+    cursor = dbapi_connection.cursor()
+    cursor.execute(f"SET {_AUDIT_SETTING} = '{DEFAULT_AUTHOR_ID}'")
+    cursor.close()
+    # Commit so that the session-level SET isn't undone by a rollback.
+    dbapi_connection.commit()
+
+
 def register_audit_context_listener() -> None:
+    """Listens for the start of transactions to set the author again.
+
+    The author in the context is set with `set_config(..., true)` so that
+    the setting is not applied session-wide (which would be the case if the
+    last argument were `false`) because database connections are pooled and
+    reused (i.e. an author would carry over to the next request).
+
+    However, because of this, the author setting only lasts until the
+    transaction ends, so after `db.commit()` or `db.rollback()` the session's
+    next write would run a new transaction with no author.
+
+    This listener sets the author again once a new transaction start. A second
+    listener sets DEFAULT_AUTHOR_ID on every new connection, as a fallback for
+    writes without an audit context. They're registered in `data_access/setup.py`
+    because that is the source of database-related utility in the backend.
+    """
+    if not event.contains(Engine, "connect", _set_default_audit_author):
+        event.listen(Engine, "connect", _set_default_audit_author)
     if not event.contains(Session, "after_begin", _reapply_audit_context):
         event.listen(Session, "after_begin", _reapply_audit_context)

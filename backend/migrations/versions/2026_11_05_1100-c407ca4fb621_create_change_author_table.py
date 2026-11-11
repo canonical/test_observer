@@ -31,6 +31,7 @@ down_revision = "b7c2d9e4a1f0"
 branch_labels = None
 depends_on = None
 
+DEFAULT_AUTHOR_CONDITION = "user_id IS NULL AND application_id IS NULL AND automation_name IS NULL"
 
 def upgrade() -> None:
     op.create_table(
@@ -42,8 +43,8 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(), nullable=False),
         sa.Column("updated_at", sa.DateTime(), nullable=False),
         sa.CheckConstraint(
-            "num_nonnulls(user_id, application_id, automation_name) = 1",
-            name="exactly_one_author",
+            "num_nonnulls(user_id, application_id, automation_name) <= 1",
+            name="at_most_one_author",
         ),
         sa.CheckConstraint(
             "automation_name IS NULL OR btrim(automation_name) <> ''",
@@ -54,6 +55,16 @@ def upgrade() -> None:
         sa.UniqueConstraint("automation_name", name=op.f("change_author_automation_name_key")),
         sa.UniqueConstraint("user_id", name=op.f("change_author_user_id_key")),
     )
+    op.create_index(
+        "change_author_default_key",
+        "change_author",
+        [sa.literal_column("(true)")],
+        unique=True,
+        postgresql_where=sa.text(DEFAULT_AUTHOR_CONDITION),
+    )
+    # Default author. Its id must match DEFAULT_AUTHOR_ID in data_access/audit.py.
+    op.execute("INSERT INTO change_author (id, created_at, updated_at) VALUES (1, now(), now())")
+    op.execute("SELECT setval(pg_get_serial_sequence('change_author', 'id'), 1)")
 
 
 def downgrade() -> None:
