@@ -4229,6 +4229,212 @@
         "security": []
       }
     },
+    "/v1/audit/artefacts/{artefact_id}": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "List Artefact Audit",
+        "operationId": "list_artefact_audit_v1_audit_artefacts__artefact_id__get",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditListItemResponse"
+                  },
+                  "title": "Response List Artefact Audit V1 Audit Artefacts  Artefact Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_artefact"
+        ]
+      }
+    },
+    "/v1/audit/artefacts/{artefact_id}/{audit_id}": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Get Artefact Audit",
+        "operationId": "get_artefact_audit_v1_audit_artefacts__artefact_id___audit_id__get",
+        "parameters": [
+          {
+            "name": "artefact_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Artefact Id"
+            }
+          },
+          {
+            "name": "audit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Audit Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_artefact"
+        ]
+      }
+    },
+    "/v1/audit/environment-reviews/{review_id}": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "List Environment Review Audit",
+        "operationId": "list_environment_review_audit_v1_audit_environment_reviews__review_id__get",
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Review Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditListItemResponse"
+                  },
+                  "title": "Response List Environment Review Audit V1 Audit Environment Reviews  Review Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_environment_review"
+        ]
+      }
+    },
+    "/v1/audit/environment-reviews/{review_id}/{audit_id}": {
+      "get": {
+        "tags": [
+          "audit"
+        ],
+        "summary": "Get Environment Review Audit",
+        "operationId": "get_environment_review_audit_v1_audit_environment_reviews__review_id___audit_id__get",
+        "parameters": [
+          {
+            "name": "review_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Review Id"
+            }
+          },
+          {
+            "name": "audit_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Audit Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditDetailResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_environment_review"
+        ]
+      }
+    },
     "/v1/users/me": {
       "get": {
         "tags": [
@@ -6993,6 +7199,112 @@
           "artefact_id"
         ],
         "title": "ArtefactVersionResponse"
+      },
+      "AuditAuthorResponse": {
+        "properties": {
+          "user_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "application_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Application Id"
+          },
+          "automation_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Automation Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "application_id",
+          "automation_name"
+        ],
+        "title": "AuditAuthorResponse"
+      },
+      "AuditDetailResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "I",
+              "U",
+              "D"
+            ],
+            "title": "Operation"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "author": {
+            "$ref": "#/components/schemas/AuditAuthorResponse"
+          },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "operation",
+          "created_at",
+          "author",
+          "data"
+        ],
+        "title": "AuditDetailResponse"
+      },
+      "AuditListItemResponse": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "author": {
+            "$ref": "#/components/schemas/AuditAuthorResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "author"
+        ],
+        "title": "AuditListItemResponse"
       },
       "C3TestResult": {
         "properties": {
