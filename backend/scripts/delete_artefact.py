@@ -19,6 +19,7 @@ from argparse import ArgumentParser
 
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import Artefact
 from test_observer.data_access.setup import SessionLocal
 
@@ -35,6 +36,7 @@ def delete_artefact(artefact_id: int, session: Session | None = None):
 
 
 def _delete(artefact_id: int, session: Session) -> None:
+    set_audit_context(session, automation_name="scripts.delete_artefact")
     artefact = session.get(Artefact, artefact_id)
     if artefact:
         session.delete(artefact)

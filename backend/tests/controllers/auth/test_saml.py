@@ -13,12 +13,13 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import asyncio
 import json
 from base64 import b64decode
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from html.parser import HTMLParser
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 from urllib.parse import urlsplit, urlunsplit
 
 import itsdangerous
@@ -311,6 +312,26 @@ def _build_auth(email: str, fullname: str) -> MagicMock:
     auth.get_nameid.return_value = email
     auth.get_attributes.return_value = {"fullname": [fullname]}
     return auth
+
+
+@pytest.mark.parametrize("authenticated", [False, True])
+def test_logout_deletes_session_when_authenticated(monkeypatch: pytest.MonkeyPatch, authenticated: bool) -> None:
+    db = MagicMock()
+    session = MagicMock(user_id=123) if authenticated else None
+    request = MagicMock()
+    monkeypatch.setattr(saml, "_get_saml_settings", lambda: {})
+    monkeypatch.setattr(saml, "_prepare_from_fastapi_request", AsyncMock(return_value={}))
+    auth = MagicMock()
+    auth.logout.return_value = "https://example.com/logout"
+    monkeypatch.setattr(saml, "OneLogin_Saml2_Auth", MagicMock(return_value=auth))
+    asyncio.run(saml.saml_logout(request, session=session, db=db))
+
+    if authenticated:
+        db.delete.assert_called_once_with(session)
+        db.commit.assert_called_once()
+    else:
+        db.delete.assert_not_called()
+    request.session.clear.assert_called_once()
 
 
 class TestCreateUserLocalLogin:

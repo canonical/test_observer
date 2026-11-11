@@ -16,12 +16,14 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import Artefact
 
 from .swm_reader import ArtefactTrackerInfo
 
 
 def update_artefacts_with_tracker_info(db: Session, artefacts_tracker_info: dict[int, ArtefactTrackerInfo]):
+    set_audit_context(db, automation_name="celery.integrate_with_kernel_swm")
     stmt = select(Artefact).where(Artefact.id.in_(artefacts_tracker_info.keys()))
     artefacts = db.scalars(stmt)
 

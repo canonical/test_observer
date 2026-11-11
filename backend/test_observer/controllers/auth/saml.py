@@ -82,7 +82,7 @@ async def saml_login(request: Request, return_to: str | None = None):
 async def saml_logout(
     request: Request,
     return_to: str | None = None,
-    session: User | None = Depends(get_user_session),
+    session: UserSession | None = Depends(get_user_session),
     db: Session = Depends(get_db),
 ):
     if session:

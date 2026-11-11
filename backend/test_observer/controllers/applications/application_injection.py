@@ -17,6 +17,7 @@ from fastapi import Depends, Request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import Application
 from test_observer.data_access.setup import get_db
 
@@ -24,6 +25,9 @@ from test_observer.data_access.setup import get_db
 def get_current_application(request: Request, db: Session = Depends(get_db)) -> Application | None:
     match request.headers.get("Authorization", "").split():
         case ["Bearer", token]:
-            return db.scalar(select(Application).where(Application.api_key == token))
+            application = db.scalar(select(Application).where(Application.api_key == token))
+            if application:
+                set_audit_context(db, application_id=application.id)
+            return application
         case _:
             return None
