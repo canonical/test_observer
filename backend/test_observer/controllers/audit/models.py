@@ -31,6 +31,13 @@ class AuditListItemResponse(BaseModel):
     author: AuditAuthorResponse
 
 
+class AuditHistoryResponse(BaseModel):
+    entries: list[AuditListItemResponse]
+    count: int
+    limit: int
+    offset: int
+
+
 class AuditDetailResponse(BaseModel):
     id: int
     operation: Literal["I", "U", "D"]

@@ -14,18 +14,19 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Security
-from sqlalchemy import Table, select
+from fastapi import APIRouter, Depends, HTTPException, Query, Security
+from sqlalchemy import Table, desc, func, select
 from sqlalchemy.orm import Session
 
+from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
 from test_observer.data_access.models import Base, ChangeAuthor
 from test_observer.data_access.setup import get_db
 
-from .models import AuditAuthorResponse, AuditDetailResponse, AuditListItemResponse
+from .models import AuditAuthorResponse, AuditDetailResponse, AuditHistoryResponse, AuditListItemResponse
 
 router = APIRouter(tags=["audit"])
 
@@ -46,20 +47,6 @@ _AUTHOR_COLUMNS = (
 )
 
 
-def _audit_rows(
-    db: Session,
-    audit_table: Table,
-    source_id: int,
-) -> list[dict[str, Any]]:
-    statement = (
-        select(audit_table.c.audit_pk, audit_table.c.audit_timestamp, *_AUTHOR_COLUMNS)
-        .join(ChangeAuthor, audit_table.c.audit_author_id == ChangeAuthor.id)
-        .where(audit_table.c.id == source_id)
-        .order_by(audit_table.c.audit_timestamp, audit_table.c.audit_pk)
-    )
-    return [dict(row._mapping) for row in db.execute(statement)]
-
-
 def _author_from_row(row: Mapping[str, Any]) -> AuditAuthorResponse:
     return AuditAuthorResponse(
         user_id=row["author_user_id"],
@@ -72,15 +59,27 @@ def _list_history(
     db: Session,
     audit_table: Table,
     source_id: int,
-) -> list[AuditListItemResponse]:
-    return [
+    limit: int,
+    offset: int,
+) -> AuditHistoryResponse:
+    count = db.execute(select(func.count()).select_from(audit_table).where(audit_table.c.id == source_id)).scalar_one()
+    rows = db.execute(
+        select(audit_table.c.audit_pk, audit_table.c.audit_timestamp, *_AUTHOR_COLUMNS)
+        .join(ChangeAuthor, audit_table.c.audit_author_id == ChangeAuthor.id)
+        .where(audit_table.c.id == source_id)
+        .order_by(desc(audit_table.c.audit_timestamp), desc(audit_table.c.audit_pk))
+        .limit(limit)
+        .offset(offset)
+    ).mappings()
+    entries = [
         AuditListItemResponse(
             id=row["audit_pk"],
             created_at=row["audit_timestamp"],
-            author=_author_from_row(row),
+            author=_author_from_row(dict(row)),
         )
-        for row in _audit_rows(db, audit_table, source_id)
+        for row in rows
     ]
+    return AuditHistoryResponse(entries=entries, count=count, limit=limit, offset=offset)
 
 
 def _get_detail(
@@ -110,12 +109,20 @@ def _get_detail(
 
 @router.get(
     "/artefacts/{artefact_id}",
-    response_model=list[AuditListItemResponse],
+    response_model=AuditHistoryResponse,
     dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
 )
-def list_artefact_audit(artefact_id: int, db: Session = Depends(get_db)) -> list[AuditListItemResponse]:
+def list_artefact_audit(
+    artefact_id: int,
+    limit: Annotated[
+        int,
+        Query(ge=1, le=MAX_LISTING_PAGE_LIMIT, description="Maximum number of results to return (default: 50)"),
+    ] = 50,
+    offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination (default: 0)")] = 0,
+    db: Session = Depends(get_db),
+) -> AuditHistoryResponse:
     audit_table, _ = _AUDIT_TABLES["artefacts"]
-    return _list_history(db, audit_table, artefact_id)
+    return _list_history(db, audit_table, artefact_id, limit, offset)
 
 
 @router.get(
@@ -134,15 +141,20 @@ def get_artefact_audit(
 
 @router.get(
     "/environment-reviews/{review_id}",
-    response_model=list[AuditListItemResponse],
+    response_model=AuditHistoryResponse,
     dependencies=[Security(permission_checker, scopes=[Permission.view_environment_review])],
 )
 def list_environment_review_audit(
     review_id: int,
+    limit: Annotated[
+        int,
+        Query(ge=1, le=MAX_LISTING_PAGE_LIMIT, description="Maximum number of results to return (default: 50)"),
+    ] = 50,
+    offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination (default: 0)")] = 0,
     db: Session = Depends(get_db),
-) -> list[AuditListItemResponse]:
+) -> AuditHistoryResponse:
     audit_table, _ = _AUDIT_TABLES["environment-reviews"]
-    return _list_history(db, audit_table, review_id)
+    return _list_history(db, audit_table, review_id, limit, offset)
 
 
 @router.get(

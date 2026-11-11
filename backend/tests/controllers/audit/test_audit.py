@@ -13,14 +13,19 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from datetime import UTC, datetime
+
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuildEnvironmentReview,
+    Base,
 )
 from tests.conftest import override_permissions
 from tests.data_generator import DataGenerator
@@ -71,15 +76,110 @@ def test_list_audit_history(
         response = test_client.get(endpoint)
 
     assert response.status_code == 200
-    entries = response.json()
+    payload = response.json()
+    entries = payload["entries"]
     assert len(entries) == 2
+    assert payload["count"] == 2
+    assert payload["limit"] == 50
+    assert payload["offset"] == 0
     assert all(set(entry) == {"id", "created_at", "author"} for entry in entries)
     assert all(
         entry["author"] == {"user_id": None, "application_id": None, "automation_name": "tests"} for entry in entries
     )
     assert [(entry["created_at"], entry["id"]) for entry in entries] == sorted(
-        (entry["created_at"], entry["id"]) for entry in entries
+        ((entry["created_at"], entry["id"]) for entry in entries), reverse=True
     )
+
+
+def test_list_audit_history_paginates_and_returns_total_count(
+    test_client: TestClient,
+    generator: DataGenerator,
+    audit_source: tuple[str, Artefact | ArtefactBuildEnvironmentReview],
+):
+    endpoint, source = audit_source
+    _update_source(source)
+    generator.db_session.commit()
+    permission = _permission_for_source(source)
+
+    with override_permissions(permission):
+        complete = test_client.get(endpoint).json()
+        page = test_client.get(endpoint, params={"limit": 1, "offset": 1}).json()
+        past_end = test_client.get(endpoint, params={"limit": 1, "offset": 2}).json()
+
+    assert page == {
+        "entries": complete["entries"][1:2],
+        "count": complete["count"],
+        "limit": 1,
+        "offset": 1,
+    }
+    assert past_end == {"entries": [], "count": complete["count"], "limit": 1, "offset": 2}
+
+
+def test_list_audit_history_default_page_is_bounded(
+    test_client: TestClient,
+    generator: DataGenerator,
+    audit_source: tuple[str, Artefact | ArtefactBuildEnvironmentReview],
+):
+    endpoint, source = audit_source
+    for index in range(51):
+        if isinstance(source, Artefact):
+            source.comment = f"update {index}"
+        else:
+            source.review_comment = f"update {index}"
+        generator.db_session.flush()
+    generator.db_session.commit()
+
+    with override_permissions(_permission_for_source(source)):
+        payload = test_client.get(endpoint).json()
+
+    assert payload["limit"] == 50
+    assert payload["offset"] == 0
+    assert len(payload["entries"]) == 50
+    assert payload["count"] == 52
+
+
+def test_list_audit_history_orders_tied_timestamps_by_audit_id(
+    test_client: TestClient,
+    generator: DataGenerator,
+    audit_source: tuple[str, Artefact | ArtefactBuildEnvironmentReview],
+):
+    endpoint, source = audit_source
+    _update_source(source)
+    generator.db_session.commit()
+    table_name = "artefact_audit" if isinstance(source, Artefact) else "artefact_build_environment_review_audit"
+    audit_table = Base.metadata.tables[table_name]
+    generator.db_session.execute(
+        update(audit_table)
+        .where(audit_table.c.id == source.id)
+        .values(audit_timestamp=datetime(2026, 1, 1, tzinfo=UTC))
+    )
+    generator.db_session.commit()
+
+    with override_permissions(_permission_for_source(source)):
+        entries = test_client.get(endpoint).json()["entries"]
+
+    ids = [entry["id"] for entry in entries]
+    assert ids == sorted(ids, reverse=True)
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"limit": 0},
+        {"limit": MAX_LISTING_PAGE_LIMIT + 1},
+        {"offset": -1},
+    ],
+)
+def test_list_audit_history_rejects_invalid_pagination(
+    test_client: TestClient,
+    audit_source: tuple[str, Artefact | ArtefactBuildEnvironmentReview],
+    params: dict[str, int],
+):
+    endpoint, source = audit_source
+    with override_permissions(_permission_for_source(source)):
+        response = test_client.get(endpoint, params=params)
+
+    assert response.status_code == 422
 
 
 def test_audit_detail_returns_typed_metadata_and_source_snapshot(
@@ -91,7 +191,7 @@ def test_audit_detail_returns_typed_metadata_and_source_snapshot(
     generator.db_session.flush()
     permission = _permission_for_source(source)
     with override_permissions(permission):
-        entries = test_client.get(endpoint).json()
+        entries = test_client.get(endpoint).json()["entries"]
         response = test_client.get(f"{endpoint}/{entries[0]['id']}")
 
     assert response.status_code == 200
@@ -122,7 +222,7 @@ def test_list_audit_history_is_empty_when_no_audit_exists(
         response = test_client.get(missing_endpoint)
 
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {"entries": [], "count": 0, "limit": 50, "offset": 0}
 
 
 def test_audit_detail_requires_a_matching_parent(
@@ -138,7 +238,7 @@ def test_audit_detail_requires_a_matching_parent(
         other_endpoint = _other_review_endpoint(generator, source)
     permission = _permission_for_source(source)
     with override_permissions(permission):
-        audit_id = test_client.get(endpoint).json()[0]["id"]
+        audit_id = test_client.get(endpoint).json()["entries"][0]["id"]
         mismatched = test_client.get(f"{other_endpoint}/{audit_id}")
         missing = test_client.get(f"{endpoint}/999999999")
 
@@ -168,7 +268,7 @@ def test_audit_history_remains_readable_after_source_deletion(
     generator.db_session.flush()
     permission = _permission_for_source(source)
     with override_permissions(permission):
-        audit_id = test_client.get(endpoint).json()[0]["id"]
+        audit_id = test_client.get(endpoint).json()["entries"][0]["id"]
 
     db_session.delete(source)
     db_session.commit()
@@ -176,10 +276,11 @@ def test_audit_history_remains_readable_after_source_deletion(
     with override_permissions(permission):
         entries = test_client.get(endpoint)
         detail = test_client.get(f"{endpoint}/{audit_id}")
-        delete_detail = test_client.get(f"{endpoint}/{entries.json()[-1]['id']}")
+        delete_detail = test_client.get(f"{endpoint}/{entries.json()['entries'][0]['id']}")
 
     assert entries.status_code == 200
-    assert len(entries.json()) == 2
+    assert entries.json()["count"] == 2
+    assert len(entries.json()["entries"]) == 2
     assert detail.status_code == 200
     assert detail.json()["data"]["id"] == source.id
     assert delete_detail.status_code == 200
@@ -198,7 +299,7 @@ def test_list_and_detail_require_the_matching_view_permission(
         Permission.view_environment_review if permission == Permission.view_artefact else Permission.view_artefact
     )
     with override_permissions(permission):
-        audit_id = test_client.get(endpoint).json()[0]["id"]
+        audit_id = test_client.get(endpoint).json()["entries"][0]["id"]
 
     with override_permissions(wrong_permission):
         assert test_client.get(endpoint).status_code == 403
