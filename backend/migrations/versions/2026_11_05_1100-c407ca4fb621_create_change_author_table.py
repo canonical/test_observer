@@ -33,6 +33,7 @@ depends_on = None
 
 DEFAULT_AUTHOR_CONDITION = "user_id IS NULL AND application_id IS NULL AND automation_name IS NULL"
 
+
 def upgrade() -> None:
     op.create_table(
         "change_author",

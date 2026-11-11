@@ -23,7 +23,7 @@ from test_observer.data_access.audit import (
     set_audit_context,
     set_connection_audit_context,
 )
-from test_observer.data_access.models import ChangeAuthor
+from test_observer.data_access.models import Artefact, ChangeAuthor, FamilyName
 from tests.data_generator import DataGenerator
 
 
