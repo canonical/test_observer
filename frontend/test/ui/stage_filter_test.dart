@@ -13,7 +13,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:testcase_dashboard/models/execution_metadata.dart';
 import 'package:testcase_dashboard/models/test_results_filters.dart';
 import 'package:testcase_dashboard/providers/execution_metadata.dart';
+import 'package:testcase_dashboard/ui/page_filters/multi_select_combobox.dart';
 import 'package:testcase_dashboard/ui/test_results_page/test_results_filters_view.dart';
+
+Finder stageOption(String label) => find.descendant(
+      of: find.byType(MultiSelectCombobox<String>),
+      matching: find.text(label),
+    );
 
 void main() {
   testWidgets('empty and custom stage values can be selected independently',
@@ -43,9 +49,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField), '(no stage)');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('(no stage)'));
+    await tester.tap(stageOption('(no stage)'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('"(no stage)"'));
+    await tester.tap(stageOption('"(no stage)"'));
     await tester.pumpAndSettle();
     expect(filters.artefactStages, ['', '(no stage)']);
   });
