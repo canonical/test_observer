@@ -120,3 +120,23 @@ Priority
 **Priority is an attribute of a rerun request.** It is an integer between ``-1000000`` and ``1000000`` (default ``0``). The rerun queue returned by ``GET /v1/test-executions/reruns`` is ordered by priority descending, then by creation time ascending — so higher-priority requests appear first, and among equal priorities the oldest requests appear first.
 
 Priority is **advisory metadata**. Its only guaranteed effect is the order in which Test Observer returns pending reruns. Whether a rerun with a higher priority is actually run sooner depends entirely on the external test scheduler consuming the queue: a scheduler may respect the ordering, apply its own scheduling policy, or ignore priority altogether. Set a priority to express relative urgency to your scheduler, but do not rely on Test Observer to enforce it.
+
+Filtering the rerun queue
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Schedulers can filter ``GET /v1/test-executions/reruns`` using these optional query parameters:
+
+``artefacts``
+    An exact, case-sensitive artefact name. Repeat the parameter to select any of several names, across all matching versions and builds: ``?artefacts=alpha&artefacts=beta``.
+
+``priorities``
+    An exact priority. Repeat the parameter to select any of several priorities: ``?priorities=0&priorities=10&priorities=20``.
+
+``priority_min`` and ``priority_max``
+    Inclusive priority bounds. Use either independently, or both for a range: ``?priority_min=0&priority_max=20`` selects priorities from 0 through 20.
+
+Artefact names, priority selection, and existing family, environment and architecture filters combine with AND. For example, ``?artefacts=alpha&priority_min=10`` selects reruns for ``alpha`` with priority greater than or equal to 10.
+
+Do not combine ``priorities`` with ``priority_min`` or ``priority_max``. Such combinations, reversed bounds, empty artefact names, and invalid priority values return HTTP 422.
+
+Omitted parameters apply no additional filtering. Valid filters with no matches return an empty list.

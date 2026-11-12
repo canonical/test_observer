@@ -433,6 +433,91 @@
               ],
               "title": "Build Architecture"
             }
+          },
+          {
+            "name": "artefacts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact, case-sensitive artefact names. Repeat this parameter to match any listed name.",
+              "title": "Artefacts"
+            },
+            "description": "Exact, case-sensitive artefact names. Repeat this parameter to match any listed name."
+          },
+          {
+            "name": "priorities",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "maximum": 1000000,
+                    "minimum": -1000000
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact rerun priorities. Repeat this parameter to match any listed priority. Cannot be combined with priority_min or priority_max.",
+              "title": "Priorities"
+            },
+            "description": "Exact rerun priorities. Repeat this parameter to match any listed priority. Cannot be combined with priority_min or priority_max."
+          },
+          {
+            "name": "priority_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 1000000,
+                  "minimum": -1000000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive minimum rerun priority. Cannot be combined with priorities.",
+              "title": "Priority Min"
+            },
+            "description": "Inclusive minimum rerun priority. Cannot be combined with priorities."
+          },
+          {
+            "name": "priority_max",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 1000000,
+                  "minimum": -1000000
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive maximum rerun priority. Cannot be combined with priorities.",
+              "title": "Priority Max"
+            },
+            "description": "Inclusive maximum rerun priority. Cannot be combined with priorities."
           }
         ],
         "responses": {

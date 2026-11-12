@@ -18,6 +18,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Query, Response, Security, status
 from fastapi.security import SecurityScopes
+from pydantic import Field
 from sqlalchemy import Select, and_, asc, delete, desc, func, literal, or_, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -329,8 +330,46 @@ def get_rerun_requests(
     environment: str | None = None,
     environment_architecture: str | None = None,
     build_architecture: str | None = None,
+    artefacts: Annotated[
+        list[Annotated[str, Field(min_length=1)]] | None,
+        Query(description="Exact, case-sensitive artefact names. Repeat this parameter to match any listed name."),
+    ] = None,
+    priorities: Annotated[
+        list[Annotated[int, Field(ge=RERUN_PRIORITY_MIN, le=RERUN_PRIORITY_MAX)]] | None,
+        Query(
+            description="Exact rerun priorities. Repeat this parameter to match any listed priority. "
+            "Cannot be combined with priority_min or priority_max."
+        ),
+    ] = None,
+    priority_min: Annotated[
+        int | None,
+        Query(
+            ge=RERUN_PRIORITY_MIN,
+            le=RERUN_PRIORITY_MAX,
+            description="Inclusive minimum rerun priority. Cannot be combined with priorities.",
+        ),
+    ] = None,
+    priority_max: Annotated[
+        int | None,
+        Query(
+            ge=RERUN_PRIORITY_MIN,
+            le=RERUN_PRIORITY_MAX,
+            description="Inclusive maximum rerun priority. Cannot be combined with priorities.",
+        ),
+    ] = None,
     db: Session = Depends(get_db),
 ):
+    if priorities is not None and (priority_min is not None or priority_max is not None):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "priorities cannot be combined with priority_min or priority_max",
+        )
+    if priority_min is not None and priority_max is not None and priority_min > priority_max:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "priority_min must be less than or equal to priority_max",
+        )
+
     stmt = (
         select(TestExecutionRerunRequest)
         .join(TestExecutionRerunRequest.artefact_build)
@@ -365,6 +404,18 @@ def get_rerun_requests(
 
     if environment_architecture is not None:
         stmt = stmt.filter(Environment.architecture == environment_architecture)
+
+    if artefacts is not None:
+        stmt = stmt.filter(Artefact.name.in_(artefacts))
+
+    if priorities is not None:
+        stmt = stmt.filter(TestExecutionRerunRequest.priority.in_(priorities))
+
+    if priority_min is not None:
+        stmt = stmt.filter(TestExecutionRerunRequest.priority >= priority_min)
+
+    if priority_max is not None:
+        stmt = stmt.filter(TestExecutionRerunRequest.priority <= priority_max)
 
     if limit is not None:
         stmt = stmt.limit(limit)
