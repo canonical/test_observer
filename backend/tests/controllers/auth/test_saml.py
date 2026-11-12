@@ -314,16 +314,44 @@ def _build_auth(email: str, fullname: str) -> MagicMock:
     return auth
 
 
+def test_login_sets_returned_user_as_author_before_commit(monkeypatch: pytest.MonkeyPatch) -> None:
+    db = MagicMock()
+    user = MagicMock(id=123)
+    set_context = MagicMock()
+    monkeypatch.setattr(saml, "set_audit_context", set_context)
+    monkeypatch.setattr(saml, "USE_LOCAL_LOGIN", True)
+
+    def create_user(*_args: object) -> User:
+        set_context.assert_not_called()
+        return user
+
+    monkeypatch.setattr(saml, "get_or_create", create_user)
+
+    def commit() -> None:
+        set_context.assert_called_once_with(db, user_id=123)
+
+    db.commit.side_effect = commit
+    assert saml._create_user(db, _build_auth("login@example.com", "Login User")) is user
+    db.commit.assert_called_once()
+
+
 @pytest.mark.parametrize("authenticated", [False, True])
-def test_logout_deletes_session_when_authenticated(monkeypatch: pytest.MonkeyPatch, authenticated: bool) -> None:
+def test_logout_sets_user_author_before_deleting_session(monkeypatch: pytest.MonkeyPatch, authenticated: bool) -> None:
     db = MagicMock()
     session = MagicMock(user_id=123) if authenticated else None
     request = MagicMock()
+    set_context = MagicMock()
+    monkeypatch.setattr(saml, "set_audit_context", set_context)
     monkeypatch.setattr(saml, "_get_saml_settings", lambda: {})
     monkeypatch.setattr(saml, "_prepare_from_fastapi_request", AsyncMock(return_value={}))
     auth = MagicMock()
     auth.logout.return_value = "https://example.com/logout"
     monkeypatch.setattr(saml, "OneLogin_Saml2_Auth", MagicMock(return_value=auth))
+
+    def delete(_session: object) -> None:
+        set_context.assert_called_once_with(db, user_id=123)
+
+    db.delete.side_effect = delete
     asyncio.run(saml.saml_logout(request, session=session, db=db))
 
     if authenticated:

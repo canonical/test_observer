@@ -26,6 +26,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     Index,
+    Integer,
     MetaData,
     String,
     Table,
@@ -52,6 +53,7 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.sql import ColumnElement, func
 from sqlalchemy_declarative_extensions import declarative_database
+from sqlalchemy_declarative_extensions.audit import audit
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
@@ -325,6 +327,7 @@ class Notification(Base):
         return data_model_repr(self, "user_id", "notification_type")
 
 
+@audit(context_columns=[Column("author_id", Integer, nullable=False)])
 class Artefact(Base):
     """A model to represent artefacts (snaps, debs, images)"""
 
@@ -1005,6 +1008,7 @@ class IssueTestResultAttachmentRuleExecutionMetadata(Base):
     value: Mapped[str] = mapped_column(String(200))
 
 
+@audit(context_columns=[Column("author_id", Integer, nullable=False)])
 class ArtefactBuildEnvironmentReview(Base):
     """
     A table to store review information for test runs on a combination
@@ -1050,6 +1054,11 @@ class TestExecutionRelevantLink(Base):
     url: Mapped[str]
 
     test_execution: Mapped["TestExecution"] = relationship(back_populates="relevant_links")
+
+
+# The audit extension does not copy foreign keys from context columns.
+for table_name in ("artefact_audit", "artefact_build_environment_review_audit"):
+    Base.metadata.tables[table_name].c.audit_author_id.append_foreign_key(ForeignKey("change_author.id"))
 
 
 # is_triaged is defined here (after IssueTestResultAttachment) to avoid forward references

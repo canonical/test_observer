@@ -38,8 +38,10 @@ from sqlalchemy.orm import Session
 
 _AUDIT_CONTEXT_KEY = "_audit_author"
 _AUDIT_SETTING = "audit.author_id"
+
 # The change_author row with no actor, seeded by migration c407ca4fb621.
 DEFAULT_AUTHOR_ID = 1
+
 type _Actor = tuple[str, int | str]
 type _AuthorContext = dict[str, int | str]
 

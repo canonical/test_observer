@@ -15,6 +15,7 @@
 
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import Artefact, User
 from test_observer.data_access.setup import SessionLocal
 
@@ -23,6 +24,7 @@ def change_assignee(artefact_id: int, user_id: int, session: Session | None = No
     if session is None:
         session = SessionLocal()
         try:
+            set_audit_context(session, automation_name="scripts.change_assignee")
             return _change_assignee(artefact_id, user_id, session)
         finally:
             session.close()
