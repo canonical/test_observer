@@ -122,7 +122,7 @@ Priority
 Priority is **advisory metadata**. Its only guaranteed effect is the order in which Test Observer returns pending reruns. Whether a rerun with a higher priority is actually run sooner depends entirely on the external test scheduler consuming the queue: a scheduler may respect the ordering, apply its own scheduling policy, or ignore priority altogether. Set a priority to express relative urgency to your scheduler, but do not rely on Test Observer to enforce it.
 
 Filtering the rerun queue
-~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Schedulers can filter ``GET /v1/test-executions/reruns`` using these optional query parameters:
 
