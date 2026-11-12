@@ -13,8 +13,6 @@
 // SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -451,8 +449,7 @@ class _TestResultsFiltersViewState
                   title: 'Artefact Stage',
                   allOptions: allArtefactStageOptions,
                   showAllOptionsWithoutSearch: true,
-                  itemToString: (stage) =>
-                      stage.isEmpty ? '(no stage)' : jsonEncode(stage),
+                  itemToString: stageFilterLabel,
                   initialSelected: _selectedFilters.artefactStages.toSet(),
                   onChanged: (val, isSelected) {
                     setState(() {

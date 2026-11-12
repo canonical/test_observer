@@ -51,3 +51,12 @@ List<String> familyStages(FamilyName family) {
       ];
   }
 }
+
+const noStageLabel = '(no stage)';
+
+String stageFilterLabel(String stage) {
+  if (stage.isEmpty) return noStageLabel;
+  // Quote a literal stage named like the empty-stage label to tell them apart.
+  if (stage == noStageLabel) return '"$stage"';
+  return stage;
+}
