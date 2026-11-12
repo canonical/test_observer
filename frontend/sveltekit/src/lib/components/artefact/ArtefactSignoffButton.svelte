@@ -20,6 +20,7 @@
   let wrapperEl: HTMLDivElement | undefined = $state();
   let triggerEl: HTMLButtonElement | undefined = $state();
   let activeIndex = $state(0);
+  const canApprove = $derived(artefact.all_environment_reviews_count > 0);
 
   const statuses: ArtefactStatus[] = [
     "APPROVED",
@@ -60,7 +61,7 @@
   }
 
   function select(status: ArtefactStatus) {
-    if (!canChangeStatus) return;
+    if (!canChangeStatus || (status === "APPROVED" && !canApprove)) return;
     open = false;
     onstatuschange(status);
     triggerEl?.focus();
@@ -161,6 +162,7 @@
           class:active={artefact.status === status}
           role="menuitemradio"
           aria-checked={artefact.status === status}
+          aria-disabled={status === "APPROVED" && !canApprove}
           tabindex={activeIndex === statuses.indexOf(status) ? 0 : -1}
           onfocus={() => (activeIndex = statuses.indexOf(status))}
           onkeydown={(e) => handleOptionKeydown(e, statuses.indexOf(status))}
@@ -215,12 +217,17 @@
     font-family: inherit;
   }
 
-  .option:hover {
+  .option:hover:not([aria-disabled="true"]) {
     background: var(--lp-color-background-hover);
   }
 
   .option.active {
     font-weight: 600;
     color: var(--lp-color-brand-default);
+  }
+
+  .option[aria-disabled="true"] {
+    color: var(--lp-color-text-muted);
+    cursor: not-allowed;
   }
 </style>

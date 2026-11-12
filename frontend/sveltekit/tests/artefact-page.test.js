@@ -50,6 +50,8 @@ let mountCommentEditor;
 let unmountCommentEditor;
 /** @type {typeof import("../tests/comment-editor-entry").mountArtefactPage | undefined} */
 let mountArtefactPage;
+/** @type {typeof import("../tests/comment-editor-entry").mountArtefactSignoff | undefined} */
+let mountArtefactSignoff;
 /** @type {Window | undefined} */
 let browserWindow;
 /** @type {Map<string, PropertyDescriptor | undefined>} */
@@ -147,6 +149,7 @@ before(async () => {
     "Node",
     "Element",
     "HTMLElement",
+    "HTMLMediaElement",
     "Event",
     "KeyboardEvent",
     "FocusEvent",
@@ -171,8 +174,12 @@ before(async () => {
     /** @type {typeof import("../tests/comment-editor-entry")} */ (
       importedModule
     );
-  ({ mountCommentEditor, unmountCommentEditor, mountArtefactPage } =
-    testModule);
+  ({
+    mountCommentEditor,
+    unmountCommentEditor,
+    mountArtefactPage,
+    mountArtefactSignoff,
+  } = testModule);
 });
 
 after(async () => {
@@ -419,6 +426,77 @@ void test("sidebar toggle names its action in both states", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+for (const reviewCount of [0, 1]) {
+  void test(`artefact approval requires review evidence (${reviewCount} reviews)`, async () => {
+    if (!browserWindow || !mountArtefactSignoff || !unmountCommentEditor) {
+      throw new Error("Signoff browser test modules were not loaded");
+    }
+    const domWindow = browserWindow;
+    /** @param {import("happy-dom").Element} element */
+    const click = (element) =>
+      element.dispatchEvent(
+        new domWindow.MouseEvent("click", { bubbles: true }),
+      );
+    const target = browserWindow.document.createElement("div");
+    browserWindow.document.body.append(target);
+    /** @type {import("../src/lib/types").ArtefactStatus[]} */
+    const selections = [];
+    /** @param {import("../src/lib/types").ArtefactStatus} status */
+    const onstatuschange = (status) => selections.push(status);
+    // @ts-expect-error Happy DOM's element types differ from DOM lib types.
+    const component = mountArtefactSignoff(target, {
+      artefact: {
+        id: 1,
+        status: "UNDECIDED",
+        all_environment_reviews_count: reviewCount,
+      },
+      canChangeStatus: true,
+      onstatuschange,
+    });
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+    try {
+      await flush();
+      const trigger = target.querySelector("button.trigger");
+      assert.ok(trigger);
+      click(trigger);
+      await flush();
+      const options = target.querySelectorAll('[role="menuitemradio"]');
+      const approved = options[0];
+      assert.ok(approved);
+      assert.equal(
+        approved.getAttribute("aria-disabled") === "true",
+        reviewCount === 0,
+      );
+      click(approved);
+      await flush();
+      if (reviewCount > 0) {
+        assert.deepEqual(selections, ["APPROVED"]);
+        assert.equal(target.querySelector('[role="menu"]'), null);
+      } else {
+        assert.deepEqual(selections, []);
+        assert.ok(target.querySelector('[role="menu"]'));
+        approved.dispatchEvent(
+          new browserWindow.KeyboardEvent("keydown", {
+            key: "ArrowDown",
+            bubbles: true,
+          }),
+        );
+        assert.equal(browserWindow.document.activeElement, options[1]);
+        click(options[1]);
+        await flush();
+        assert.deepEqual(selections, ["MARKED_AS_FAILED"]);
+        click(trigger);
+        await flush();
+        click(target.querySelectorAll('[role="menuitemradio"]')[2]);
+        assert.deepEqual(selections, ["MARKED_AS_FAILED", "UNDECIDED"]);
+      }
+    } finally {
+      await unmountCommentEditor(component);
+      target.remove();
+    }
+  });
+}
 
 void test("superseded session responses return no authorization evidence", async () => {
   if (!vite) throw new Error("Vite server was not started");

@@ -3,7 +3,16 @@
 
 import { mount, unmount } from "svelte";
 import ArtefactInfoSection from "../src/lib/components/artefact/ArtefactInfoSection.svelte";
+import ArtefactSignoffButton from "../src/lib/components/artefact/ArtefactSignoffButton.svelte";
 import ArtefactPage from "../src/routes/[family]/[artefactId]/+page.svelte";
+
+/**
+ * @param {import("svelte").MountOptions["target"]} target
+ * @param {import("svelte").ComponentProps<typeof ArtefactSignoffButton>} props
+ */
+export function mountArtefactSignoff(target, props) {
+  return mount(ArtefactSignoffButton, { target, props });
+}
 
 /**
  * @param {import("svelte").MountOptions["target"]} target
