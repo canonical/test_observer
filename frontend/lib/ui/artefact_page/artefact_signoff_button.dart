@@ -27,27 +27,33 @@ class ArtefactSignoffButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final fontStyle = Theme.of(context).textTheme.titleMedium;
+    final theme = Theme.of(context);
+    final fontStyle = theme.textTheme.titleMedium;
 
     return YaruPopupMenuButton(
       child: Text(
         artefact.status.name,
         style: fontStyle?.apply(color: artefact.status.color),
       ),
-      itemBuilder: (_) => ArtefactStatus.values
-          .map(
-            (status) => PopupMenuItem(
-              value: status,
-              onTap: () => ref
-                  .read(artefactProvider(artefact.id).notifier)
-                  .changeArtefactStatus(artefact.id, status),
-              child: Text(
-                status.name,
-                style: fontStyle?.apply(color: status.color),
+      itemBuilder: (_) => ArtefactStatus.values.map(
+        (status) {
+          final enabled = status != ArtefactStatus.approved ||
+              artefact.allEnvironmentReviewsCount > 0;
+          return PopupMenuItem(
+            value: status,
+            enabled: enabled,
+            onTap: () => ref
+                .read(artefactProvider(artefact.id).notifier)
+                .changeArtefactStatus(artefact.id, status),
+            child: Text(
+              status.name,
+              style: fontStyle?.apply(
+                color: enabled ? status.color : theme.disabledColor,
               ),
             ),
-          )
-          .toList(),
+          );
+        },
+      ).toList(),
     );
   }
 }

@@ -47,13 +47,15 @@ class RerunFilteredPlansButton extends ConsumerWidget {
         .toList();
 
     return TextButton(
-      onPressed: () => showDialog(
-        context: context,
-        builder: (_) => _ConfirmationDialog(
-          testExecutionsToRerun: testExecutionsToRerun,
-          artefactId: artefactId,
-        ),
-      ),
+      onPressed: testExecutionsToRerun.isEmpty
+          ? null
+          : () => showDialog(
+                context: context,
+                builder: (_) => _ConfirmationDialog(
+                  testExecutionsToRerun: testExecutionsToRerun,
+                  artefactId: artefactId,
+                ),
+              ),
       child: Text(
         'Rerun ${testExecutionsToRerun.length} Filtered Test Plans',
         textScaler: const TextScaler.linear(1.2),
