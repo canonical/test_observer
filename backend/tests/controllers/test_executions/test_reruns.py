@@ -73,6 +73,7 @@ def get(test_client: TestClient):
         family: FamilyName | None = None,
         limit: int | None = None,
         environment: str | None = None,
+        environments: list[str] | None = None,
         environment_architecture: str | None = None,
         build_architecture: str | None = None,
         artefacts: list[str] | None = None,
@@ -87,6 +88,8 @@ def get(test_client: TestClient):
             params["limit"] = limit
         if environment is not None:
             params["environment"] = environment
+        if environments is not None:
+            params["environments"] = environments
         if environment_architecture is not None:
             params["environment_architecture"] = environment_architecture
         if build_architecture is not None:
@@ -486,7 +489,10 @@ def test_rerun_preserves_ci_and_relevant_links(get: Get, post: Post, generator: 
     assert retrieved_links == expected_links
 
 
-def test_get_with_environment_filter(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
+@pytest.mark.parametrize("parameter", ["environment", "environments"])
+def test_get_with_environment_filter(
+    get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator, parameter: str
+):
     te1 = test_execution
     te1.environment.name = "rpi2"
 
@@ -496,9 +502,50 @@ def test_get_with_environment_filter(get: Get, post: Post, test_execution: TestE
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert without_server_fields(get(environment="rpi2").json()) == [test_execution_to_pending_rerun(te1)]
-    assert without_server_fields(get(environment="dawson-i").json()) == [test_execution_to_pending_rerun(te2)]
-    assert get(environment="nonexistent").json() == []
+    for name, expected in [
+        ("rpi2", [test_execution_to_pending_rerun(te1)]),
+        ("dawson-i", [test_execution_to_pending_rerun(te2)]),
+        ("nonexistent", []),
+    ]:
+        response = get(**{parameter: name if parameter == "environment" else [name]})
+        assert response.status_code == 200
+        assert without_server_fields(response.json()) == expected
+
+
+@pytest.mark.parametrize(
+    ("names", "expected_indices"),
+    [
+        (["alpha", "beta"], [0, 1, 2]),
+        (["alpha", "alpha"], [0, 1]),
+        (["alpha", "missing"], [0, 1]),
+        (["alp", "Alpha"], []),
+    ],
+)
+def test_get_with_multiple_environments(
+    get: Get, generator: DataGenerator, names: list[str], expected_indices: list[int]
+):
+    artefact = generator.gen_artefact()
+    build = generator.gen_artefact_build(artefact)
+    executions = []
+    for name, architecture in [("alpha", "amd64"), ("alpha", "arm64"), ("beta", "amd64"), ("gamma", "amd64")]:
+        environment = generator.gen_environment(name, architecture=architecture)
+        execution = generator.gen_test_execution(build, environment)
+        generator.gen_rerun_request(execution)
+        executions.append(execution)
+
+    response = get(environments=names)
+
+    assert response.status_code == 200
+    assert [r["test_execution_id"] for r in response.json()] == [executions[i].id for i in expected_indices]
+
+
+@pytest.mark.parametrize("environment", ["alpha", ""])
+@pytest.mark.parametrize("environments", [["alpha"], ["beta"], ["alpha", "beta"], [""]])
+def test_get_rejects_both_environment_parameters(get: Get, environment: str, environments: list[str]):
+    response = get(environment=environment, environments=environments)
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "environment cannot be combined with environments"
 
 
 def test_get_with_build_architecture_filter(get: Get, post: Post, generator: DataGenerator):
@@ -1881,7 +1928,7 @@ def test_get_combines_new_and_existing_filters(
     response = get(
         artefacts=["alpha"],
         family=selected_artefact.family,
-        environment="selected",
+        environments=["selected", "missing"],
         environment_architecture="arm64",
         build_architecture="arm64",
         **priority_filters,

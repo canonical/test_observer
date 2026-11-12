@@ -399,8 +399,33 @@
                   "type": "null"
                 }
               ],
+              "description": "Deprecated: use environments instead. Cannot be combined with environments.",
+              "deprecated": true,
               "title": "Environment"
-            }
+            },
+            "description": "Deprecated: use environments instead. Cannot be combined with environments.",
+            "deprecated": true
+          },
+          {
+            "name": "environments",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact, case-sensitive environment names. Repeat this parameter to match any listed name. Cannot be combined with environment.",
+              "title": "Environments"
+            },
+            "description": "Exact, case-sensitive environment names. Repeat this parameter to match any listed name. Cannot be combined with environment."
           },
           {
             "name": "environment_architecture",

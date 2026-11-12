@@ -129,6 +129,12 @@ Schedulers can filter ``GET /v1/test-executions/reruns`` using these optional qu
 ``artefacts``
     An exact, case-sensitive artefact name. Repeat the parameter to select any of several names, across all matching versions and builds: ``?artefacts=alpha&artefacts=beta``.
 
+``environments``
+    An exact, case-sensitive environment name. Repeat the parameter to select any of several names: ``?environments=alpha&environments=beta``.
+
+``environment`` (deprecated)
+    Use ``environments`` instead. A legacy request such as ``?environment=alpha`` is treated as ``?environments=alpha``. Providing both parameters returns HTTP 422.
+
 ``priorities``
     An exact priority. Repeat the parameter to select any of several priorities: ``?priorities=0&priorities=10&priorities=20``.
 

@@ -327,7 +327,20 @@ def get_rerun_requests(
         int | None,
         Query(ge=0, le=MAX_LISTING_PAGE_LIMIT, description="Maximum number of rerun requests to return"),
     ] = None,
-    environment: str | None = None,
+    environment: Annotated[
+        str | None,
+        Query(
+            description="Deprecated: use environments instead. Cannot be combined with environments.",
+            deprecated=True,
+        ),
+    ] = None,
+    environments: Annotated[
+        list[str] | None,
+        Query(
+            description="Exact, case-sensitive environment names. Repeat this parameter to match any listed name. "
+            "Cannot be combined with environment."
+        ),
+    ] = None,
     environment_architecture: str | None = None,
     build_architecture: str | None = None,
     artefacts: Annotated[
@@ -359,6 +372,14 @@ def get_rerun_requests(
     ] = None,
     db: Session = Depends(get_db),
 ):
+    if environment is not None:
+        if environments is not None:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "environment cannot be combined with environments",
+            )
+        environments = [environment]
+
     if priorities is not None and (priority_min is not None or priority_max is not None):
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -396,8 +417,8 @@ def get_rerun_requests(
     if family is not None:
         stmt = stmt.filter(Artefact.family == family)
 
-    if environment is not None:
-        stmt = stmt.filter(Environment.name == environment)
+    if environments is not None:
+        stmt = stmt.filter(Environment.name.in_(environments))
 
     if build_architecture is not None:
         stmt = stmt.filter(ArtefactBuild.architecture == build_architecture)
