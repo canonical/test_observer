@@ -32,6 +32,9 @@ just up       # start the frontend container
 just down     # stop the frontend container
 ```
 
+From `frontend/sveltekit`, run `npm test` for tests, `npm run check` for
+type checking, and `npm run lint` for formatting and lint checks.
+
 ## Setup
 
 Install flutter snap:

@@ -1565,6 +1565,18 @@ wheels = [
 ]
 
 [[package]]
+name = "sqlalchemy-declarative-extensions"
+version = "0.18.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "sqlalchemy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/43/92/f3061c0021e989740896d101ef966eb41e16571d5a1925064e95b095b56b/sqlalchemy_declarative_extensions-0.18.0.tar.gz", hash = "sha256:109d91fce0eea1bf48481f551b2e316e9146bedc8d9b82432945cb32a2dbd16f", size = 268823, upload-time = "2026-10-28T20:02:09.568Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0e/e0/ba755262a15545af02f8c4196e3c44d90ffcf61dcdce6ebcd464c3a1c96e/sqlalchemy_declarative_extensions-0.18.0-py3-none-any.whl", hash = "sha256:433333e6296755838896cc982c7797914fa7b3dcbfab562c5f3984dd0dfd7be7", size = 112650, upload-time = "2026-10-28T20:02:07.743Z" },
+]
+
+[[package]]
 name = "sqlalchemy-utils"
 version = "0.42.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1610,6 +1622,7 @@ dependencies = [
     { name = "requests" },
     { name = "sentry-sdk" },
     { name = "sqlalchemy" },
+    { name = "sqlalchemy-declarative-extensions" },
     { name = "starlette" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -1647,6 +1660,7 @@ requires-dist = [
     { name = "requests", specifier = ">=2.33.0,<3.0.0" },
     { name = "sentry-sdk", specifier = ">=2.56.0,<3.0.0" },
     { name = "sqlalchemy", specifier = ">=2.0.16,<3.0.0" },
+    { name = "sqlalchemy-declarative-extensions", specifier = ">=0.18.0,<0.19.0" },
     { name = "starlette", specifier = ">=1.0.1" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.47.0,<0.48.0" },
 ]

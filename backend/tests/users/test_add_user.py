@@ -13,6 +13,9 @@
 # SPDX-FileCopyrightText: Copyright 2024 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from importlib import import_module
+from unittest.mock import Mock
+
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -44,3 +47,44 @@ def test_email_not_in_launchpad():
     email = "missing-email@canonical.com"
     with pytest.raises(ValueError, match="Email not registered in launchpad"):
         add_user(email, launchpad_api=FakeLaunchpadAPI())
+
+
+@pytest.mark.parametrize(
+    ("module_name", "helper_name", "args"),
+    [
+        ("add_user", "_create_user", ("john.doe@canonical.com",)),
+        ("change_assignee", "_change_assignee", (1, 2)),
+        ("promote_user_to_admin", "_promote_user", ("john.doe@canonical.com",)),
+    ],
+)
+@pytest.mark.parametrize("supplied_session", [False, True])
+def test_user_helpers_set_context_only_for_owned_sessions(
+    monkeypatch: pytest.MonkeyPatch,
+    module_name: str,
+    helper_name: str,
+    args: tuple[str] | tuple[int, int],
+    supplied_session: bool,
+) -> None:
+    module = import_module(f"test_observer.users.{module_name}")
+    session = Mock()
+    session_factory = Mock(return_value=session)
+    set_context = Mock()
+    monkeypatch.setattr(module, "SessionLocal", session_factory)
+    monkeypatch.setattr(module, "set_audit_context", set_context)
+
+    def write(*_args: object) -> object:
+        if supplied_session:
+            set_context.assert_not_called()
+        else:
+            set_context.assert_called_once_with(session, automation_name=f"scripts.{module_name}")
+        return session
+
+    monkeypatch.setattr(module, helper_name, write)
+    kwargs = {"launchpad_api": FakeLaunchpadAPI()} if module_name == "add_user" else {}
+    getattr(module, module_name)(*args, session=session if supplied_session else None, **kwargs)
+
+    if supplied_session:
+        session_factory.assert_not_called()
+        session.close.assert_not_called()
+    else:
+        session.close.assert_called_once()

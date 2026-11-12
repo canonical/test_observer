@@ -17,9 +17,12 @@ from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
+from sqlalchemy_declarative_extensions import register_alembic_events
 
 from test_observer.data_access import Base
 from test_observer.data_access.setup import DB_URL
+
+register_alembic_events(functions=True, triggers=True)
 
 # for 'autogenerate' support
 target_metadata = Base.metadata

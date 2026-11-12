@@ -20,14 +20,17 @@ from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     Enum,
     ForeignKey,
     Index,
+    Integer,
     MetaData,
     String,
     Table,
+    Text,
     UniqueConstraint,
     and_,
     case,
@@ -35,6 +38,7 @@ from sqlalchemy import (
     desc,
     exists,
     select,
+    text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -48,6 +52,8 @@ from sqlalchemy.orm import (
     relationship,
 )
 from sqlalchemy.sql import ColumnElement, func
+from sqlalchemy_declarative_extensions import declarative_database
+from sqlalchemy_declarative_extensions.audit import audit
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
@@ -62,6 +68,7 @@ from test_observer.data_access.models_enums import (
 )
 
 
+@declarative_database
 class Base(DeclarativeBase):
     """Base model for all the models"""
 
@@ -194,6 +201,32 @@ class Application(Base):
         return data_model_repr(self, "name")
 
 
+class ChangeAuthor(Base):
+    __tablename__ = "change_author"
+    __table_args__ = (
+        CheckConstraint(
+            "num_nonnulls(user_id, application_id, automation_name) <= 1",
+            name="at_most_one_author",
+        ),
+        CheckConstraint(
+            "automation_name IS NULL OR btrim(automation_name) <> ''",
+            name="automation_name_not_blank",
+        ),
+        # A row with no actor is the default author. Indexing a constant
+        # expression over only those rows allows at most one of them.
+        Index(
+            "change_author_default_key",
+            text("(true)"),
+            unique=True,
+            postgresql_where=text("user_id IS NULL AND application_id IS NULL AND automation_name IS NULL"),
+        ),
+    )
+
+    user_id: Mapped[int | None] = mapped_column(unique=True, default=None)
+    application_id: Mapped[int | None] = mapped_column(unique=True, default=None)
+    automation_name: Mapped[str | None] = mapped_column(Text, unique=True, default=None)
+
+
 class Team(Base):
     """
     Launchpad teams that users can belong to. Currently, these are exposed by U1 SSO.
@@ -294,6 +327,7 @@ class Notification(Base):
         return data_model_repr(self, "user_id", "notification_type")
 
 
+@audit(context_columns=[Column("author_id", Integer, nullable=False)])
 class Artefact(Base):
     """A model to represent artefacts (snaps, debs, images)"""
 
@@ -974,6 +1008,7 @@ class IssueTestResultAttachmentRuleExecutionMetadata(Base):
     value: Mapped[str] = mapped_column(String(200))
 
 
+@audit(context_columns=[Column("author_id", Integer, nullable=False)])
 class ArtefactBuildEnvironmentReview(Base):
     """
     A table to store review information for test runs on a combination
@@ -1019,6 +1054,11 @@ class TestExecutionRelevantLink(Base):
     url: Mapped[str]
 
     test_execution: Mapped["TestExecution"] = relationship(back_populates="relevant_links")
+
+
+# The audit extension does not copy foreign keys from context columns.
+for table_name in ("artefact_audit", "artefact_build_environment_review_audit"):
+    Base.metadata.tables[table_name].c.audit_author_id.append_foreign_key(ForeignKey("change_author.id"))
 
 
 # is_triaged is defined here (after IssueTestResultAttachment) to avoid forward references
