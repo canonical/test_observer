@@ -17,7 +17,7 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models_enums import FamilyName, StageName
+from test_observer.data_access.models_enums import FamilyName
 from test_observer.kernel_swm_integration.swm_integrator import (
     update_artefacts_with_tracker_info,
 )
@@ -34,8 +34,8 @@ def test_update_artefacts_with_tracker_info(db_session: Session, generator: Data
         "bug_id": "2222222",
         "due_date": date(2024, 2, 20),
     }
-    artefact1 = generator.gen_artefact(StageName.beta)
-    artefact2 = generator.gen_artefact(StageName.proposed, family=FamilyName.deb)
+    artefact1 = generator.gen_artefact("beta")
+    artefact2 = generator.gen_artefact("proposed", family=FamilyName.deb)
     artefacts_swm_info = {artefact2.id: tracker_info_2, artefact1.id: tracker_info_1}
 
     update_artefacts_with_tracker_info(db_session, artefacts_swm_info)

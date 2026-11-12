@@ -114,7 +114,7 @@ def run_promote_artefacts():
                 update_values = promotion_updates[artefact.id]
                 original_stage, original_archived = promotion_source_values[artefact.id]
                 conditions = [Artefact.id == artefact.id]
-                if "stage" in update_values:
+                if "stage" in update_values or "archived" in update_values:
                     conditions.append(Artefact.stage == original_stage)
                 if "archived" in update_values:
                     conditions.append(Artefact.archived == original_archived)

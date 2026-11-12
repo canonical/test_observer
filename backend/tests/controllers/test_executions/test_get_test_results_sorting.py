@@ -16,13 +16,12 @@
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import StageName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
 def test_get_test_results_sorts_by_execution_order(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
     te = generator.gen_test_execution(ab, e)

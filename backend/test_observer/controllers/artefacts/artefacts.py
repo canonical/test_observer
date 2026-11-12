@@ -46,14 +46,8 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
-    CharmStage,
-    DebStage,
     FamilyName,
-    ImageStage,
     NotificationType,
-    SnapStage,
-    SolutionStage,
-    StageName,
 )
 from test_observer.data_access.repository import (
     get_artefacts_by_family,
@@ -178,7 +172,7 @@ def get_artefact_history(
     name: Annotated[str, Query(description="Artefact name")],
     family: Annotated[FamilyName, Query(description="Artefact family")],
     track: Annotated[str, Query(description="Artefact track")] = "latest",
-    stage: Annotated[StageName | None, Query(description="Filter by stage")] = None,
+    stage: Annotated[str | None, Query(description="Filter by stage")] = None,
     limit: Annotated[
         int,
         Query(
@@ -312,7 +306,6 @@ def patch_artefact(
     if request.archived is not None:
         artefact.archived = request.archived
     if request.stage is not None:
-        _validate_artefact_stage(artefact, request.stage)
         artefact.stage = request.stage
     if request.comment is not None:
         artefact.comment = request.comment
@@ -426,26 +419,6 @@ def _validate_artefact_status(artefact: Artefact, request: ArtefactPatch) -> Non
 
         if not (request.comment or artefact.comment):
             raise HTTPException(400, detail="Can't reject an artefact without a comment")
-
-
-def _validate_artefact_stage(artefact: Artefact, stage: StageName) -> None:
-    try:
-        match artefact.family:
-            case FamilyName.snap:
-                SnapStage(stage)
-            case FamilyName.deb:
-                DebStage(stage)
-            case FamilyName.charm:
-                CharmStage(stage)
-            case FamilyName.image:
-                ImageStage(stage)
-            case FamilyName.solution:
-                SolutionStage(stage)
-    except ValueError as e:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Stage {stage} is invalid for artefact family {artefact.family}",
-        ) from e
 
 
 @router.get(

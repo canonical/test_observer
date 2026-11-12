@@ -28,10 +28,7 @@ from test_observer.common.enums import Permission
 from test_observer.controllers.test_executions.start_test import ENVIRONMENTS_PER_REVIEWER
 from test_observer.data_access.models import TestExecution
 from test_observer.data_access.models_enums import (
-    CharmStage,
-    DebStage,
     FamilyName,
-    SnapStage,
 )
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -65,7 +62,7 @@ class TestReviewerAssignmentWithMatchingRules:
                 {
                     "family": "snap",
                     "name": "core22",
-                    "execution_stage": SnapStage.beta,
+                    "execution_stage": "beta",
                     "track": "22",
                     "store": "ubuntu",
                     "revision": 1,
@@ -76,12 +73,12 @@ class TestReviewerAssignmentWithMatchingRules:
             pytest.param(
                 {
                     "teams": [{"name": "beta-team", "users": ["BetaUser"]}],
-                    "rules": [{"family": FamilyName.snap, "stage": SnapStage.beta, "team": "beta-team"}],
+                    "rules": [{"family": FamilyName.snap, "stage": "beta", "team": "beta-team"}],
                 },
                 {
                     "family": "snap",
                     "name": "core22",
-                    "execution_stage": SnapStage.beta,
+                    "execution_stage": "beta",
                     "track": "22",
                     "store": "ubuntu",
                     "revision": 1,
@@ -92,12 +89,12 @@ class TestReviewerAssignmentWithMatchingRules:
             pytest.param(
                 {
                     "teams": [{"name": "deb-team", "users": ["DebUser"]}],
-                    "rules": [{"family": FamilyName.deb, "stage": DebStage.proposed, "team": "deb-team"}],
+                    "rules": [{"family": FamilyName.deb, "stage": "proposed", "team": "deb-team"}],
                 },
                 {
                     "family": "deb",
                     "name": "linux",
-                    "execution_stage": DebStage.proposed,
+                    "execution_stage": "proposed",
                     "series": "jammy",
                     "repo": "main",
                 },
@@ -107,12 +104,12 @@ class TestReviewerAssignmentWithMatchingRules:
             pytest.param(
                 {
                     "teams": [{"name": "charm-team", "users": ["CharmUser"]}],
-                    "rules": [{"family": FamilyName.charm, "stage": CharmStage.beta, "team": "charm-team"}],
+                    "rules": [{"family": FamilyName.charm, "stage": "beta", "team": "charm-team"}],
                 },
                 {
                     "family": "charm",
                     "name": "postgresql",
-                    "execution_stage": CharmStage.beta,
+                    "execution_stage": "beta",
                     "track": "3.0",
                     "revision": 1,
                 },
@@ -127,13 +124,13 @@ class TestReviewerAssignmentWithMatchingRules:
                     ],
                     "rules": [
                         {"family": FamilyName.charm, "team": "charm-team"},
-                        {"family": FamilyName.charm, "stage": CharmStage.beta, "team": "beta-team"},
+                        {"family": FamilyName.charm, "stage": "beta", "team": "beta-team"},
                     ],
                 },
                 {
                     "family": "charm",
                     "name": "postgresql",
-                    "execution_stage": CharmStage.beta,
+                    "execution_stage": "beta",
                     "track": "3.0",
                     "revision": 1,
                 },
@@ -239,7 +236,7 @@ def test_reviewer_count_uses_latest_builds_not_all_builds(
             "store": "ubuntu",
             "track": "22",
             "revision": 3,
-            "execution_stage": SnapStage.beta,
+            "execution_stage": "beta",
             "environment": "env-new",
             "ci_link": "http://ci/new",
             "test_plan": "test",

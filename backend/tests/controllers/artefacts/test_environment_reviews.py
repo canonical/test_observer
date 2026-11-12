@@ -20,7 +20,6 @@ from fastapi.testclient import TestClient
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
-    StageName,
 )
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -35,7 +34,7 @@ def test_get_404_when_artefact_is_not_found(test_client: TestClient):
 
 
 def test_get_no_environment_reviews_exist(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     response = make_authenticated_request(
         lambda: test_client.get(f"/v1/artefacts/{a.id}/environment-reviews"),
         Permission.view_environment_review,
@@ -44,7 +43,7 @@ def test_get_no_environment_reviews_exist(test_client: TestClient, generator: Da
 
 
 def test_get_with_two_environment_reviews(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("env1")
     e2 = generator.gen_environment("env2")
@@ -93,7 +92,7 @@ def test_get_with_two_environment_reviews(test_client: TestClient, generator: Da
 
 
 def test_get_only_considers_latest_builds(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab1 = generator.gen_artefact_build(a, revision=1)
     ab2 = generator.gen_artefact_build(a, revision=2)
     e1 = generator.gen_environment("env1")
@@ -127,7 +126,7 @@ def test_get_only_considers_latest_builds(test_client: TestClient, generator: Da
 
 
 def test_review_an_environment(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
     er = generator.gen_artefact_build_environment_review(ab, e)
@@ -162,7 +161,7 @@ def test_review_an_environment(test_client: TestClient, generator: DataGenerator
 
 def test_bulk_review_multiple_environments(test_client: TestClient, generator: DataGenerator):
     """Test bulk reviewing multiple environments at once."""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("env1")
     e2 = generator.gen_environment("env2")
@@ -206,7 +205,7 @@ def test_bulk_review_multiple_environments(test_client: TestClient, generator: D
 
 def test_bulk_review_with_same_comment_and_decision(test_client: TestClient, generator: DataGenerator):
     """Test bulk reviewing with same comment and decision for multiple environments."""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("env1")
     e2 = generator.gen_environment("env2")
@@ -239,8 +238,8 @@ def test_bulk_review_with_same_comment_and_decision(test_client: TestClient, gen
 
 def test_bulk_review_rejects_if_review_belongs_to_different_artefact(test_client: TestClient, generator: DataGenerator):
     """Test that bulk review silently skips reviews from a different artefact."""
-    a1 = generator.gen_artefact(StageName.beta, name="artefact1")
-    a2 = generator.gen_artefact(StageName.beta, name="artefact2")
+    a1 = generator.gen_artefact("beta", name="artefact1")
+    a2 = generator.gen_artefact("beta", name="artefact2")
     ab1 = generator.gen_artefact_build(a1)
     ab2 = generator.gen_artefact_build(a2)
     e1 = generator.gen_environment("env1")
@@ -271,7 +270,7 @@ def test_bulk_review_rejects_if_review_belongs_to_different_artefact(test_client
 
 def test_bulk_review_reset_review(test_client: TestClient, generator: DataGenerator):
     """Test resetting reviews (clearing comment and decisions) in bulk."""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("env1")
     e2 = generator.gen_environment("env2")
@@ -310,8 +309,8 @@ def test_bulk_review_reset_review(test_client: TestClient, generator: DataGenera
 
 
 def test_requires_review_to_belong_to_artefact(test_client: TestClient, generator: DataGenerator):
-    a1 = generator.gen_artefact(StageName.beta, name="a1")
-    a2 = generator.gen_artefact(StageName.beta, name="a2")
+    a1 = generator.gen_artefact("beta", name="a1")
+    a2 = generator.gen_artefact("beta", name="a2")
     ab = generator.gen_artefact_build(a1)
     e = generator.gen_environment("env1")
     er = generator.gen_artefact_build_environment_review(ab, e)
@@ -325,7 +324,7 @@ def test_requires_review_to_belong_to_artefact(test_client: TestClient, generato
 
 
 def test_environment_review_fails_if_both_rejected_and_approved(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
     er = generator.gen_artefact_build_environment_review(ab, e)
@@ -347,7 +346,7 @@ def test_environment_review_fails_if_both_rejected_and_approved(test_client: Tes
 
 
 def test_environment_review_reset_review(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
     er = generator.gen_artefact_build_environment_review(
@@ -385,7 +384,7 @@ def test_environment_review_reset_review(test_client: TestClient, generator: Dat
 
 
 def test_get_environment_reviews_includes_reviewers(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
     user1 = generator.gen_user(name="User One", email="user1@test.com")
@@ -434,7 +433,7 @@ def test_get_environment_reviews_includes_reviewers(test_client: TestClient, gen
 
 
 def test_patch_environment_review_includes_reviewers(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
     user = generator.gen_user(name="Reviewer", email="reviewer@test.com")
@@ -475,7 +474,7 @@ def test_patch_environment_review_includes_reviewers(test_client: TestClient, ge
 
 def test_bulk_review_includes_reviewers(test_client: TestClient, generator: DataGenerator):
     """Test bulk reviewing includes reviewers in response."""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("env1")
     e2 = generator.gen_environment("env2")

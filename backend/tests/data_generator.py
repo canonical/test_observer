@@ -47,7 +47,6 @@ from test_observer.data_access.models_enums import (
     IssueSource,
     IssueStatus,
     NotificationType,
-    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -132,7 +131,7 @@ class DataGenerator:
 
     def gen_artefact(
         self,
-        stage: StageName = StageName.beta,
+        stage: str = "beta",
         family: FamilyName = FamilyName.snap,
         name: str = "core",
         version: str = "1.1.1",
@@ -192,7 +191,7 @@ class DataGenerator:
 
     def gen_image(
         self,
-        stage: StageName = StageName.pending,
+        stage: str = "pending",
         name: str = "noble-desktop-amd64",
         version: str = "20240827",
         os: str = "ubuntu",

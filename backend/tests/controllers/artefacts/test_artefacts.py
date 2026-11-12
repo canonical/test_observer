@@ -40,25 +40,23 @@ from test_observer.data_access.models_enums import (
     ArtefactStatus,
     FamilyName,
     NotificationType,
-    SolutionStage,
-    StageName,
 )
 from test_observer.main import app
 from test_observer.users.user_injection import get_current_user
-from tests.conftest import authenticate_user, make_authenticated_request
+from tests.conftest import authenticate_user, make_authenticated_request, override_permissions
 from tests.data_generator import DataGenerator
 
 
 def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: TestClient):
     a1 = generator.gen_artefact(
-        stage=StageName.proposed,
+        stage="proposed",
         family=FamilyName.deb,
         name="linux-raspi",
         version="2",
         series="noble",
     )
     a2 = generator.gen_artefact(
-        stage=StageName.beta,
+        stage="beta",
         family=FamilyName.snap,
         name="pi-kernel",
         version="2",
@@ -66,7 +64,7 @@ def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: T
         track="latest",
     )
     a3 = generator.gen_artefact(
-        stage=StageName.beta,
+        stage="beta",
         family=FamilyName.charm,
         name="postgresql",
         version="2",
@@ -74,7 +72,7 @@ def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: T
     )
 
     generator.gen_artefact(
-        stage=StageName.proposed,
+        stage="proposed",
         family=FamilyName.deb,
         name="linux-raspi",
         version="1",
@@ -82,7 +80,7 @@ def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: T
         archived=True,
     )
     generator.gen_artefact(
-        stage=StageName.beta,
+        stage="beta",
         family=FamilyName.snap,
         name="pi-kernel",
         version="1",
@@ -91,7 +89,7 @@ def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: T
         archived=True,
     )
     generator.gen_artefact(
-        stage=StageName.beta,
+        stage="beta",
         family=FamilyName.charm,
         name="postgresql",
         version="1",
@@ -112,13 +110,13 @@ def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: T
     [
         {
             "family": FamilyName.deb,
-            "stage": StageName.proposed,
+            "stage": "proposed",
             "name": "server:linux-generic",
             "series": "noble",
         },
         {
             "family": FamilyName.snap,
-            "stage": StageName.beta,
+            "stage": "beta",
             "name": "core",
             "track": "latest",
             "store": "ubuntu",
@@ -161,8 +159,8 @@ def test_get_artefacts_treats_branches_as_unique(
     test_client: TestClient,
     generator: DataGenerator,
 ):
-    generator.gen_artefact(StageName.beta)
-    generator.gen_artefact(StageName.beta, branch="test-branch")
+    generator.gen_artefact("beta")
+    generator.gen_artefact("beta", branch="test-branch")
 
     response = make_authenticated_request(
         lambda: test_client.get("/v1/artefacts"),
@@ -180,7 +178,7 @@ def test_get_charm_artefacts_returns_all_non_archived(
 ):
     """Charm family should return all non-archived artefacts, not just the latest"""
     a1 = generator.gen_artefact(
-        stage=StageName.beta,
+        stage="beta",
         family=FamilyName.charm,
         name="postgresql",
         version="1",
@@ -189,7 +187,7 @@ def test_get_charm_artefacts_returns_all_non_archived(
         archived=False,
     )
     a2 = generator.gen_artefact(
-        stage=StageName.beta,
+        stage="beta",
         family=FamilyName.charm,
         name="postgresql",
         version="2",
@@ -199,7 +197,7 @@ def test_get_charm_artefacts_returns_all_non_archived(
     )
     # This one is archived, so shouldn't be returned
     generator.gen_artefact(
-        stage=StageName.beta,
+        stage="beta",
         family=FamilyName.charm,
         name="postgresql",
         version="0",
@@ -224,7 +222,7 @@ def test_get_artefact(test_client: TestClient, generator: DataGenerator):
     """Should be able to fetch an existing artefact"""
     u = generator.gen_user()
     a = generator.gen_artefact(
-        StageName.edge,
+        "edge",
         status=ArtefactStatus.APPROVED,
         bug_link="localhost/bug",
         due_date=date(2024, 12, 24),
@@ -253,7 +251,7 @@ def test_get_artefact_includes_attributes(test_client: TestClient, generator: Da
 
 
 def test_get_artefact_environment_reviews_counts_only_latest_build(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(artefact=a, revision=1)
     e = generator.gen_environment()
     # Test Execution for the first artefact build
@@ -282,7 +280,7 @@ def test_get_artefact_environment_reviews_counts(
     generator: DataGenerator,
     db_session: Session,
 ):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
     er = generator.gen_artefact_build_environment_review(ab, e)
@@ -311,7 +309,7 @@ def test_get_artefact_environment_reviews_counts(
 
 
 def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.candidate)
+    artefact = generator.gen_artefact("candidate")
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -326,7 +324,7 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
 
 
 def test_artefact_signoff_disallow_approve(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("env1")
     generator.gen_artefact_build_environment_review(ab, e)
@@ -541,7 +539,7 @@ def test_get_artefacts_skips_execution_query_without_expected_environments(
 
 
 def test_artefact_signoff_ignore_old_build_on_approve(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.candidate)
+    artefact = generator.gen_artefact("candidate")
     build1 = generator.gen_artefact_build(artefact, revision=1)
     build2 = generator.gen_artefact_build(artefact, revision=1, architecture="arm64")
     build3 = generator.gen_artefact_build(artefact, revision=2)
@@ -571,7 +569,7 @@ def test_artefact_signoff_ignore_old_build_on_approve(test_client: TestClient, g
 
 
 def test_artefact_signoff_ignore_old_build_on_reject(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.candidate)
+    artefact = generator.gen_artefact("candidate")
     build_1 = generator.gen_artefact_build(artefact, revision=1)
     build_2 = generator.gen_artefact_build(artefact, revision=2)
     environment = generator.gen_environment()
@@ -626,7 +624,7 @@ def test_artefact_rejection_requires_comment(test_client: TestClient, test_execu
 
 
 def test_artefact_archive(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.candidate, archived=False)
+    artefact = generator.gen_artefact("candidate", archived=False)
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -641,7 +639,7 @@ def test_artefact_archive(test_client: TestClient, generator: DataGenerator):
 
 
 def test_artefact_unarchive(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.candidate, archived=True)
+    artefact = generator.gen_artefact("candidate", archived=True)
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -656,78 +654,64 @@ def test_artefact_unarchive(test_client: TestClient, generator: DataGenerator):
 
 
 def test_artefact_promote(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.candidate)
+    artefact = generator.gen_artefact("candidate")
 
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{artefact.id}",
-            json={"stage": StageName.stable},
+            json={"stage": "stable"},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert artefact.stage == StageName.stable
+    assert artefact.stage == "stable"
 
 
-def test_artefact_promote_invalid_stage(
-    test_client: TestClient,
-    generator: DataGenerator,
-):
-    artefact = generator.gen_artefact(family=FamilyName.charm)
-
-    response = make_authenticated_request(
-        lambda: test_client.patch(
-            f"/v1/artefacts/{artefact.id}",
-            json={"stage": StageName.current},
-        ),
-        Permission.change_artefact,
-    )
-
-    assert response.status_code == 400
-
-
-def test_artefact_promote_unknown_stage(
+def test_artefact_promote_custom_stage(
     test_client: TestClient,
     generator: DataGenerator,
 ):
     artefact = generator.gen_artefact()
 
-    response = test_client.patch(
-        f"/v1/artefacts/{artefact.id}",
-        json={"stage": "unknown"},
-    )
-
-    assert response.status_code == 422
-
-
-def test_artefact_promote_solution_valid_stage(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(stage=StageName.candidate, family=FamilyName.solution)
-
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{artefact.id}",
-            json={"stage": SolutionStage.stable},
+            json={"stage": "unknown"},
         ),
         Permission.change_artefact,
     )
 
     assert response.status_code == 200
-    assert artefact.stage == SolutionStage.stable
+    assert artefact.stage == "unknown"
 
 
-def test_artefact_promote_solution_invalid_stage(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(stage=StageName.candidate, family=FamilyName.solution)
+def test_artefact_stage_is_limited_to_database_length(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    artefact = generator.gen_artefact()
+    with override_permissions(Permission.change_artefact):
+        response = test_client.patch(
+            f"/v1/artefacts/{artefact.id}",
+            json={"stage": "s" * 101},
+        )
+    assert response.status_code == 422
+
+
+def test_artefact_promote_solution_valid_stage(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(stage="candidate", family=FamilyName.solution)
 
     response = make_authenticated_request(
         lambda: test_client.patch(
             f"/v1/artefacts/{artefact.id}",
-            json={"stage": StageName.current},
+            json={"stage": "stable"},
         ),
         Permission.change_artefact,
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 200
+    assert artefact.stage == "stable"
 
 
 def test_update_artefact_comment(test_client: TestClient, generator: DataGenerator):
@@ -1225,9 +1209,9 @@ def test_patch_artefact_new_reviewer_by_email_creates_notification(
 
 
 def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator):
-    artefact1 = generator.gen_artefact(StageName.beta, version="1")
-    artefact2 = generator.gen_artefact(StageName.beta, version="2")
-    artefact3 = generator.gen_artefact(StageName.beta, version="3", branch="test")
+    artefact1 = generator.gen_artefact("beta", version="1")
+    artefact2 = generator.gen_artefact("beta", version="2")
+    artefact3 = generator.gen_artefact("beta", version="3", branch="test")
 
     expected_result = [
         {"version": "2", "artefact_id": artefact2.id},
@@ -1311,14 +1295,14 @@ def test_get_artefact_history_default_filters(test_client: TestClient, generator
         name="postgresql-k8s",
         version="499",
         track="latest",
-        stage=StageName.edge,
+        stage="edge",
     )
     charm_latest_2 = generator.gen_artefact(
         family=FamilyName.charm,
         name="postgresql-k8s",
         version="498",
         track="latest",
-        stage=StageName.beta,
+        stage="beta",
     )
 
     # Different family should be excluded by default family=charm
@@ -1327,7 +1311,7 @@ def test_get_artefact_history_default_filters(test_client: TestClient, generator
         name="postgresql-k8s",
         version="999",
         track="latest",
-        stage=StageName.edge,
+        stage="edge",
     )
     # Different track should be excluded by default track=latest
     generator.gen_artefact(
@@ -1335,7 +1319,7 @@ def test_get_artefact_history_default_filters(test_client: TestClient, generator
         name="postgresql-k8s",
         version="497",
         track="2.0",
-        stage=StageName.stable,
+        stage="stable",
     )
 
     response = make_authenticated_request(
@@ -1360,7 +1344,7 @@ def test_get_artefact_history_limit(test_client: TestClient, generator: DataGene
             name="postgresql-k8s",
             version=str(i),
             track="latest",
-            stage=StageName.edge,
+            stage="edge",
         )
 
     response = make_authenticated_request(
@@ -1384,20 +1368,20 @@ def test_get_artefact_history_filters_by_stage(test_client: TestClient, generato
         name="mysql-k8s",
         version="2",
         track="latest",
-        stage=StageName.edge,
+        stage="edge",
     )
     beta = generator.gen_artefact(
         family=FamilyName.charm,
         name="mysql-k8s",
         version="1",
         track="latest",
-        stage=StageName.beta,
+        stage="beta",
     )
 
     response = make_authenticated_request(
         lambda: test_client.get(
             "/v1/artefacts/history",
-            params={"name": "mysql-k8s", "family": FamilyName.charm, "stage": StageName.beta, "offset": 0},
+            params={"name": "mysql-k8s", "family": FamilyName.charm, "stage": "beta", "offset": 0},
         ),
         Permission.view_artefact,
     )
@@ -1406,7 +1390,7 @@ def test_get_artefact_history_filters_by_stage(test_client: TestClient, generato
     body = response.json()
     assert body["count"] == 1
     assert body["items"][0]["artefact_id"] == beta.id
-    assert body["items"][0]["stage"] == StageName.beta
+    assert body["items"][0]["stage"] == "beta"
 
 
 def _assert_get_artefacts_response(response_json: list[dict[str, Any]], artefacts: list[Artefact]) -> None:
@@ -1505,7 +1489,7 @@ class TestArtefactPatchAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         # Mock the user injection
@@ -1545,7 +1529,7 @@ class TestArtefactPatchAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         # Mock the user
@@ -1581,7 +1565,7 @@ class TestArtefactPatchAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.beta,
+            stage="beta",
         )
 
         # Mock the user
@@ -1608,7 +1592,7 @@ class TestArtefactPatchAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         app.dependency_overrides[get_current_user] = lambda: user
@@ -1628,7 +1612,7 @@ class TestArtefactPatchAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         # Test with app permission (using make_authenticated_request pattern)
@@ -1659,7 +1643,7 @@ class TestArtefactPatchAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         # Test with app permission (using make_authenticated_request pattern)
@@ -1696,7 +1680,7 @@ class TestArtefactPatchAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         app.dependency_overrides[get_current_user] = lambda: user
@@ -1724,7 +1708,7 @@ class TestArtefactPatchAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         app.dependency_overrides[get_current_user] = lambda: user
@@ -1752,7 +1736,7 @@ class TestArtefactDeletePermissions:
         generator: DataGenerator,
         db_session: Session,
     ):
-        artefact = generator.gen_artefact(stage=StageName.beta)
+        artefact = generator.gen_artefact(stage="beta")
 
         response = make_authenticated_request(
             lambda: test_client.delete(f"/v1/artefacts/{artefact.id}"),
@@ -1769,7 +1753,7 @@ class TestArtefactDeletePermissions:
         generator: DataGenerator,
         db_session: Session,
     ):
-        artefact = generator.gen_artefact(stage=StageName.beta)
+        artefact = generator.gen_artefact(stage="beta")
         build = generator.gen_artefact_build(artefact)
         environment = generator.gen_environment()
         review = generator.gen_artefact_build_environment_review(
@@ -1818,9 +1802,9 @@ class TestArtefactDeletePermissions:
         generator: DataGenerator,
         db_session: Session,
     ):
-        first_artefact = generator.gen_artefact(name="first-artefact", stage=StageName.beta)
+        first_artefact = generator.gen_artefact(name="first-artefact", stage="beta")
         first_build = generator.gen_artefact_build(first_artefact)
-        second_artefact = generator.gen_artefact(name="second-artefact", stage=StageName.beta)
+        second_artefact = generator.gen_artefact(name="second-artefact", stage="beta")
         second_build = generator.gen_artefact_build(second_artefact)
         environment = generator.gen_environment()
         shared_values = {"hardware": ["shared-device"]}
@@ -1850,7 +1834,7 @@ class TestArtefactDeletePermissions:
         generator: DataGenerator,
         db_session: Session,
     ):
-        artefact = generator.gen_artefact(name="sole-owner-artefact", stage=StageName.beta)
+        artefact = generator.gen_artefact(name="sole-owner-artefact", stage="beta")
         build = generator.gen_artefact_build(artefact)
         environment = generator.gen_environment()
         execution = generator.gen_test_execution(
@@ -1870,7 +1854,7 @@ class TestArtefactDeletePermissions:
         assert db_session.get(TestExecutionMetadata, metadata_id) is None
 
     def test_delete_artefact_with_team_permission(self, test_client: TestClient, generator: DataGenerator):
-        artefact = generator.gen_artefact(stage=StageName.beta)
+        artefact = generator.gen_artefact(stage="beta")
         team = generator.gen_team(name="deletion-team")
         team.permissions = [Permission.delete_artefact]
         user = generator.gen_user(name="authorized")
@@ -1886,7 +1870,7 @@ class TestArtefactDeletePermissions:
             del app.dependency_overrides[get_current_user]
 
     def test_delete_artefact_without_permission_denied(self, test_client: TestClient, generator: DataGenerator):
-        artefact = generator.gen_artefact(stage=StageName.beta)
+        artefact = generator.gen_artefact(stage="beta")
         user = generator.gen_user(name="unauthorized")
         user.teams = []
         user.is_admin = False
@@ -1900,7 +1884,7 @@ class TestArtefactDeletePermissions:
             del app.dependency_overrides[get_current_user]
 
     def test_delete_artefact_admin_bypasses_permission(self, test_client: TestClient, generator: DataGenerator):
-        artefact = generator.gen_artefact(stage=StageName.beta)
+        artefact = generator.gen_artefact(stage="beta")
         user = generator.gen_user(name="admin")
         user.teams = []
         user.is_admin = True
