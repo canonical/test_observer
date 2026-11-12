@@ -146,7 +146,7 @@ class _StartManualTestingDialogState
         if (artefact.branch.isNotEmpty) {
           fields['branch'] = artefact.branch;
         }
-        fields['execution_stage'] = artefact.stage.name;
+        fields['execution_stage'] = artefact.stage;
         break;
 
       case FamilyName.deb:
@@ -155,7 +155,7 @@ class _StartManualTestingDialogState
         if (artefact.source.isNotEmpty) {
           fields['source'] = artefact.source;
         }
-        fields['execution_stage'] = artefact.stage.name;
+        fields['execution_stage'] = artefact.stage;
         break;
 
       case FamilyName.charm:
@@ -167,7 +167,7 @@ class _StartManualTestingDialogState
         if (artefact.branch.isNotEmpty) {
           fields['branch'] = artefact.branch;
         }
-        fields['execution_stage'] = artefact.stage.name;
+        fields['execution_stage'] = artefact.stage;
         break;
 
       case FamilyName.image:
@@ -176,13 +176,13 @@ class _StartManualTestingDialogState
         fields['sha256'] = artefact.sha256;
         fields['owner'] = artefact.owner;
         fields['image_url'] = artefact.imageUrl;
-        fields['execution_stage'] = artefact.stage.name;
+        fields['execution_stage'] = artefact.stage;
         break;
 
       case FamilyName.solution:
         fields['track'] = artefact.track;
         fields['source'] = artefact.source;
-        fields['execution_stage'] = artefact.stage.name;
+        fields['execution_stage'] = artefact.stage;
         break;
     }
 

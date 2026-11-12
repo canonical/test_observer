@@ -21,7 +21,6 @@ import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/artefact_build.dart';
 import 'package:testcase_dashboard/models/environment.dart';
 import 'package:testcase_dashboard/models/family_name.dart';
-import 'package:testcase_dashboard/models/stage_name.dart';
 import 'package:testcase_dashboard/models/test_execution.dart';
 import 'package:testcase_dashboard/models/test_result.dart';
 import 'package:testcase_dashboard/providers/api.dart';
@@ -66,7 +65,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
       repo: '',
       status: ArtefactStatus.undecided,
       comment: '',
-      stage: StageName.beta,
+      stage: 'beta',
       bugLink: '',
       allEnvironmentReviewsCount: 1,
       completedEnvironmentReviewsCount: 0,

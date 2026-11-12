@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../models/stage_name.dart';
+import '../../../providers/filtered_family_artefacts.dart';
 import '../../../routing.dart';
 import '../../spacing.dart';
 import '../stage_column.dart';
@@ -26,8 +27,15 @@ class ArtefactsColumnsView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final family = AppRoutes.familyFromUri(AppRoutes.uriFromContext(context));
-    final stages = familyStages(family);
+    final uri = AppRoutes.uriFromContext(context);
+    final family = AppRoutes.familyFromUri(uri);
+    final stages = <String>{
+      ...familyStages(family),
+      ...ref
+          .watch(filteredFamilyArtefactsProvider(uri))
+          .values
+          .map((a) => a.stage),
+    }.toList();
 
     return ListView.separated(
       padding: const EdgeInsets.only(

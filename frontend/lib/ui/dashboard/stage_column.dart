@@ -19,7 +19,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../models/family_name.dart';
-import '../../models/stage_name.dart';
 import '../../providers/filtered_family_artefacts.dart';
 import '../../routing.dart';
 import '../spacing.dart';
@@ -28,7 +27,7 @@ import 'artefact_card.dart';
 class StageColumn extends ConsumerWidget {
   const StageColumn({super.key, required this.stage});
 
-  final StageName stage;
+  final String stage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,9 +43,9 @@ class StageColumn extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          (stage.isEmpty && family == FamilyName.deb)
-              ? 'PPAs'
-              : stage.name.capitalize(),
+          stage.isEmpty
+              ? (family == FamilyName.deb ? 'PPAs' : 'No stage')
+              : stage.capitalize(),
           style: Theme.of(context).textTheme.headlineSmall,
         ),
         const SizedBox(height: Spacing.level4),

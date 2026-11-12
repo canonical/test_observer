@@ -13,6 +13,8 @@
 // SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -71,6 +73,9 @@ class DashboardFiltersView extends ConsumerWidget {
         CheckboxListExpandable(
           title: filter.name,
           options: filter.options,
+          optionLabel: filter.name == 'Risk' || filter.name == 'Pocket'
+              ? (stage) => stage.isEmpty ? '(no stage)' : jsonEncode(stage)
+              : null,
           onChanged: (option, isSelected) => ref
               .read(pageFiltersProvider(pageUri).notifier)
               .onChanged(filter.name, option, isSelected),

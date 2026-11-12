@@ -42,7 +42,7 @@ class ArtefactPageInfoSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!artefact.stage.isEmpty) _StagesRow(artefactStage: artefact.stage),
+        _StagesRow(artefactStage: artefact.stage),
         _ArtefactVersionSelector(artefact: artefact, labelFontStyle: fontStyle),
         if (artefact.track.isNotEmpty)
           Text('track: ${artefact.track}', style: fontStyle),
@@ -135,17 +135,21 @@ class _ArtefactVersionSelector extends ConsumerWidget {
 class _StagesRow extends ConsumerWidget {
   const _StagesRow({required this.artefactStage});
 
-  final StageName artefactStage;
+  final String artefactStage;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final family = AppRoutes.familyFromUri(AppRoutes.uriFromContext(context));
-    final stages = familyStages(family);
+    final knownStages = familyStages(family);
+    final stages =
+        knownStages.contains(artefactStage) && artefactStage.isNotEmpty
+            ? knownStages
+            : [artefactStage];
 
     final stageNamesWidgets = <Widget>[];
     bool passedSelectedStage = false;
     for (final stage in stages) {
-      if (stage.isEmpty) continue;
+      if (stage.isEmpty && stage != artefactStage) continue;
 
       Color fontColor = YaruColors.warmGrey;
       if (passedSelectedStage) {
@@ -157,7 +161,7 @@ class _StagesRow extends ConsumerWidget {
 
       stageNamesWidgets.add(
         Text(
-          stage.name.capitalize(),
+          stage.isEmpty ? 'No stage' : stage.capitalize(),
           style: Theme.of(context).textTheme.bodyLarge?.apply(color: fontColor),
         ),
       );

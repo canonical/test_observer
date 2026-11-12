@@ -41,6 +41,7 @@ class PageFilters extends _$PageFilters {
         getArtefactFiltersFor(family),
         queryParams,
         artefacts.values.toList(),
+        isDashboard: true,
       );
     }
 
@@ -61,11 +62,14 @@ class PageFilters extends _$PageFilters {
   List<FilterState> _createFiltersState<T>(
     List<Filter<T>> filters,
     Map<String, List<String>> queryParams,
-    List<T> items,
-  ) {
+    List<T> items, {
+    bool isDashboard = false,
+  }) {
     final result = <FilterState>[];
     for (var filter in filters) {
-      final selectedOptions = (queryParams[filter.name] ?? []).toSet();
+      final selectedOptions = isDashboard
+          ? selectedArtefactFilterOptions(filter.name, queryParams)
+          : (queryParams[filter.name] ?? []).toSet();
       final allOptions = filter.extractOptions(items).sorted();
       result.add(
         (
@@ -109,6 +113,9 @@ class PageFilters extends _$PageFilters {
   }
 
   Map<String, List<String>> toQueryParams() => ({
+        if (state
+            .any((filter) => filter.name == 'Risk' || filter.name == 'Pocket'))
+          stageFilterFormat: ['2'],
         for (var filter in state)
           filter.name: filter.options
               .filter((option) => option.isSelected)

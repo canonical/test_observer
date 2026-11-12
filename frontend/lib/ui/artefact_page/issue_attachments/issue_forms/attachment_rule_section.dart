@@ -45,9 +45,8 @@ class AttachmentRuleSection extends ConsumerWidget {
     final familyName = artefact?.family ?? '';
     final artefactName = artefact?.name ?? '';
     final artefactVersion = artefact?.version ?? '';
-    final artefactStage = (artefact != null && !artefact.stage.isEmpty)
-        ? artefact.stage.name
-        : '';
+    final artefactStage =
+        (artefact != null && artefact.stage.isNotEmpty) ? artefact.stage : '';
     final artefactTrack = artefact?.track ?? '';
     final templateId = testResult?.templateId ?? '';
     final testCaseName = testResult?.name ?? '';

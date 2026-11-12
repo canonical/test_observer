@@ -70,7 +70,7 @@ int Function(Artefact, Artefact) _getArtefactCompareFunction(
     case ArtefactSortingQuery.track:
       return (a1, a2) => a1.track.compareTo(a2.track);
     case ArtefactSortingQuery.risk:
-      return (a1, a2) => a1.stage.name.compareTo(a2.stage.name);
+      return (a1, a2) => a1.stage.compareTo(a2.stage);
     case ArtefactSortingQuery.branch:
       return (a1, a2) => a1.branch.compareTo(a2.branch);
     case ArtefactSortingQuery.dueDate:
@@ -105,7 +105,7 @@ int Function(Artefact, Artefact) _getArtefactCompareFunction(
     case ArtefactSortingQuery.source:
       return (a1, a2) => a1.source.compareTo(a2.source);
     case ArtefactSortingQuery.pocket:
-      return (a1, a2) => a1.stage.name.compareTo(a2.stage.name);
+      return (a1, a2) => a1.stage.compareTo(a2.stage);
     case ArtefactSortingQuery.os:
       return (a1, a2) => a1.os.compareTo(a2.os);
     case ArtefactSortingQuery.release:
