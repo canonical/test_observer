@@ -333,6 +333,7 @@ class StartTestExecutionController:
                 # An image is single-architecture: a provided arch must match the existing build.
                 if (
                     existing_image is not None
+                    and existing_image.architectures
                     and self.request.arch is not None
                     and self.request.arch not in existing_image.architectures
                 ):
@@ -352,15 +353,18 @@ class StartTestExecutionController:
             case StartSolutionTestExecutionRequest():
                 creation_kwargs["attributes"] = self.request.attributes
 
-        if self.request.expected_environments and self.request.arch is not None:
-            existing_artefact = self.db.query(Artefact).filter_by(**filter_kwargs).first()
-            if existing_artefact is None:
-                creation_kwargs["expected_environments"] = get_or_create_environments(
-                    self.db,
-                    [(name, self.request.arch) for name in self.request.expected_environments],
-                )
-
         self.artefact = get_or_create(self.db, Artefact, filter_kwargs=filter_kwargs, creation_kwargs=creation_kwargs)
+
+        if (
+            self.request.expected_environments
+            and self.request.arch is not None
+            and not self.artefact.builds
+            and not self.artefact.expected_environments
+        ):
+            self.artefact.expected_environments = get_or_create_environments(
+                self.db,
+                [(name, self.request.arch) for name in self.request.expected_environments],
+            )
 
         request = self.request
         if isinstance(request, StartSolutionTestExecutionRequest) and "attributes" in request.model_fields_set:

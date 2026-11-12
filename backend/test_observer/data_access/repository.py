@@ -16,10 +16,10 @@
 """Services for working with objects from DB"""
 
 from collections.abc import Iterable
-from typing import Any
+from typing import Any, cast
 
 from pydantic import HttpUrl
-from sqlalchemy import and_, func, select, tuple_
+from sqlalchemy import Table, and_, func, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
@@ -270,6 +270,14 @@ def get_or_create(
         instance = db.query(model).filter_by(**filter_kwargs).one()
 
     return instance
+
+
+def get_artefact_identity(fields: dict[str, Any]) -> dict[str, Any]:
+    """Use the existing partial unique index as the artefact's identity."""
+    family = FamilyName(fields["family"])
+    table = cast(Table, Artefact.__table__)
+    index = next(index for index in table.indexes if index.name == f"unique_{family.value}")
+    return {"family": family, **{column.name: fields[column.name] for column in index.columns}}
 
 
 def get_or_create_environments(

@@ -32,6 +32,7 @@ from test_observer.controllers.execution_metadata.models import ExecutionMetadat
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
+    FamilyName,
     StageName,
     TestExecutionStatus,
 )
@@ -61,6 +62,25 @@ class EnvironmentResponse(BaseModel):
 class ExpectedEnvironmentInput(BaseModel):
     name: str = Field(max_length=200)
     architecture: str = Field(max_length=100)
+
+
+class ArtefactCreate(BaseModel):
+    family: FamilyName
+    name: str = Field(min_length=1, max_length=200)
+    version: str = Field(min_length=1)
+    stage: StageName
+    track: str = ""
+    branch: str = Field(default="", max_length=200)
+    store: str = ""
+    series: str = ""
+    repo: str = ""
+    source: str = Field(default="", max_length=200)
+    os: str = Field(default="", max_length=200)
+    release: str = Field(default="", max_length=200)
+    sha256: str = Field(default="", max_length=200)
+    owner: str = Field(default="", max_length=200)
+    image_url: str = Field(default="", max_length=200)
+    attributes: dict[str, Any] = Field(default_factory=dict)
 
 
 class ArtefactResponse(BaseModel):

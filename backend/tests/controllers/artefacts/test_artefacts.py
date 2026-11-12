@@ -21,12 +21,14 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import event
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Query, Session
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models import (
     Artefact,
+    ArtefactBuild,
     ArtefactBuildEnvironmentReview,
+    Environment,
     IssueTestResultAttachment,
     Notification,
     TestEvent,
@@ -34,6 +36,9 @@ from test_observer.data_access.models import (
     TestExecutionMetadata,
     TestExecutionRelevantLink,
     TestResult,
+)
+from test_observer.data_access.models import (
+    TestPlan as ArtefactTestPlan,
 )
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
@@ -45,8 +50,188 @@ from test_observer.data_access.models_enums import (
 )
 from test_observer.main import app
 from test_observer.users.user_injection import get_current_user
-from tests.conftest import authenticate_user, make_authenticated_request
+from tests.conftest import authenticate_user, make_authenticated_request, override_permissions
 from tests.data_generator import DataGenerator
+
+
+@pytest.fixture
+def artefact_request() -> dict[str, Any]:
+    return {
+        "family": "charm",
+        "name": "postgresql",
+        "version": "42",
+        "track": "14",
+        "branch": "",
+        "stage": "edge",
+    }
+
+
+def test_create_empty_artefact(test_client: TestClient, db_session: Session, artefact_request: dict[str, Any]):
+    response = make_authenticated_request(
+        lambda: test_client.post("/v1/artefacts", json=artefact_request), Permission.change_artefact
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body.items() >= artefact_request.items()
+    assert body["status"] == ArtefactStatus.UNDECIDED
+    assert body["reviewers"] == []
+    assert body["expected_environments"] == []
+    assert body["all_environment_reviews_count"] == 0
+    assert body["completed_environment_reviews_count"] == 0
+    assert db_session.query(Artefact).count() == 1
+    for model in (ArtefactBuild, TestExecution, TestResult, ArtefactTestPlan, Environment):
+        assert db_session.query(model).count() == 0
+
+
+@pytest.mark.parametrize(
+    "fields,changes",
+    [
+        ({"family": "snap"}, {"store": "another-store"}),
+        ({"family": "charm"}, {"store": "another-store"}),
+        (
+            {"family": "deb", "series": "noble", "repo": "main", "source": "postgresql"},
+            {"track": "another-track", "branch": "another-branch"},
+        ),
+        (
+            {"family": "image", "sha256": "abc123"},
+            {"name": "another-name", "version": "another-version", "image_url": "https://example.com/image"},
+        ),
+        ({"family": "solution"}, {"track": "another-track", "branch": "another-branch"}),
+    ],
+)
+def test_create_artefact_is_idempotent(
+    test_client: TestClient, artefact_request: dict[str, Any], fields: dict, changes: dict
+):
+    request = artefact_request | fields
+    with override_permissions(Permission.change_artefact):
+        created = test_client.post("/v1/artefacts", json=request)
+        repeated = test_client.post(
+            "/v1/artefacts", json=request | changes | {"stage": "stable", "attributes": {"new": "value"}}
+        )
+
+    assert created.status_code == 200
+    assert repeated.status_code == 200
+    assert repeated.json() == created.json()
+
+
+@pytest.mark.parametrize(
+    "fields,changes",
+    [
+        ({}, {"name": "mysql"}),
+        ({}, {"version": "43"}),
+        ({}, {"track": "16"}),
+        ({}, {"branch": "test-branch"}),
+        ({}, {"family": "snap"}),
+        ({"family": "snap"}, {"branch": "test-branch"}),
+        ({"family": "deb"}, {"series": "noble"}),
+        ({"family": "deb"}, {"repo": "universe"}),
+        ({"family": "deb"}, {"source": "another-source"}),
+        ({"family": "image", "sha256": "abc123"}, {"sha256": "def456"}),
+        ({"family": "solution"}, {"version": "43"}),
+    ],
+)
+def test_create_artefact_isolates_identity(
+    test_client: TestClient, artefact_request: dict[str, Any], fields: dict, changes: dict
+):
+    request = artefact_request | fields
+    with override_permissions(Permission.change_artefact):
+        first = test_client.post("/v1/artefacts", json=request)
+        second = test_client.post("/v1/artefacts", json=request | changes)
+
+    assert first.status_code == second.status_code == 200
+    assert first.json()["id"] != second.json()["id"]
+
+
+@pytest.mark.parametrize("concurrent_insert", [False, True])
+def test_create_artefact_preserves_existing(
+    generator: DataGenerator,
+    test_client: TestClient,
+    artefact_request: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    concurrent_insert: bool,
+):
+    artefact = generator.gen_artefact(
+        family=FamilyName.charm,
+        name="postgresql",
+        version="42",
+        track="14",
+        stage=StageName.stable,
+        status=ArtefactStatus.APPROVED,
+        archived=True,
+        attributes={"existing": "value"},
+    )
+    updated_at = artefact.updated_at
+    if concurrent_insert:
+        # Simulate another request winning the insert after the initial lookup.
+        monkeypatch.setattr(Query, "first", lambda _: None)
+
+    response = make_authenticated_request(
+        lambda: test_client.post("/v1/artefacts", json=artefact_request), Permission.change_artefact
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["id"] == artefact.id
+    assert body["stage"] == StageName.stable
+    assert body["status"] == ArtefactStatus.APPROVED
+    assert body["archived"] is True
+    assert body["attributes"] == {"existing": "value"}
+    assert artefact.updated_at == updated_at
+
+
+@pytest.mark.parametrize("permissions", [[], [Permission.view_artefact], [Permission.change_test]])
+def test_create_artefact_requires_change_permission(
+    test_client: TestClient, artefact_request: dict[str, Any], permissions: list[Permission]
+):
+    with override_permissions(*permissions):
+        response = test_client.post("/v1/artefacts", json=artefact_request)
+    assert response.status_code == 403
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        {"family": "unknown"},
+        {"name": ""},
+        {"name": "n" * 201},
+        {"version": ""},
+        {"stage": "s" * 101},
+        {"stage": "unknown"},
+        {"stage": None},
+        {"branch": "b" * 201},
+        {"os": "o" * 201},
+        {"release": "r" * 201},
+    ],
+)
+def test_create_artefact_validates_input(
+    test_client: TestClient, db_session: Session, artefact_request: dict[str, Any], changes: dict
+):
+    response = make_authenticated_request(
+        lambda: test_client.post("/v1/artefacts", json=artefact_request | changes), Permission.change_artefact
+    )
+    assert response.status_code == 422
+    assert db_session.query(Artefact).count() == 0
+
+
+@pytest.mark.parametrize("fields", [{}, {"sha256": ""}, {"sha256": " \t"}])
+def test_create_artefact_rejects_empty_identity(
+    test_client: TestClient, db_session: Session, artefact_request: dict[str, Any], fields: dict
+):
+    response = make_authenticated_request(
+        lambda: test_client.post("/v1/artefacts", json=artefact_request | {"family": "image"} | fields),
+        Permission.change_artefact,
+    )
+    assert response.status_code == 422
+    assert db_session.query(Artefact).count() == 0
+
+
+def test_create_artefact_requires_identity(test_client: TestClient, db_session: Session):
+    response = make_authenticated_request(
+        lambda: test_client.post("/v1/artefacts", json={}), Permission.change_artefact
+    )
+    assert response.status_code == 422
+    assert db_session.query(Artefact).count() == 0
 
 
 def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: TestClient):
@@ -312,6 +497,12 @@ def test_get_artefact_environment_reviews_counts(
 
 def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenerator):
     artefact = generator.gen_artefact(StageName.candidate)
+    build = generator.gen_artefact_build(artefact)
+    generator.gen_artefact_build_environment_review(
+        build,
+        generator.gen_environment(),
+        review_decision=[ArtefactBuildEnvironmentReviewDecision.APPROVED_ALL_TESTS_PASS],
+    )
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -323,6 +514,24 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
 
     assert response.status_code == 200
     assert artefact.status == ArtefactStatus.APPROVED
+
+
+@pytest.mark.parametrize("family", list(FamilyName))
+@pytest.mark.parametrize("has_build", [False, True])
+def test_artefact_signoff_requires_review_evidence(
+    test_client: TestClient, generator: DataGenerator, family: FamilyName, has_build: bool
+) -> None:
+    artefact = generator.gen_artefact(family=family)
+    if has_build:
+        generator.gen_artefact_build(artefact)
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(f"/v1/artefacts/{artefact.id}", json={"status": ArtefactStatus.APPROVED}),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 400
+    assert artefact.status == ArtefactStatus.UNDECIDED
 
 
 def test_artefact_signoff_disallow_approve(test_client: TestClient, generator: DataGenerator):

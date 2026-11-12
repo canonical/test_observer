@@ -129,6 +129,71 @@ solution_test_request = {
 }
 
 
+@pytest.mark.parametrize(
+    "test_request",
+    [snap_test_request, deb_test_request, charm_test_request, image_test_request, solution_test_request],
+    ids=["snap", "deb", "charm", "image", "solution"],
+)
+def test_start_test_reuses_registered_artefact(
+    execute: Execute,
+    test_client: TestClient,
+    db_session: Session,
+    test_request: dict[str, Any],
+) -> None:
+    request = {key: value for key, value in test_request.items() if key != "execution_stage"} | {
+        "stage": test_request["execution_stage"],
+    }
+    registered = make_authenticated_request(
+        lambda: test_client.post("/v1/artefacts", json=request), Permission.change_artefact
+    )
+    assert registered.status_code == 200
+
+    response = execute(test_request | {"expected_environments": ["expected"]})
+
+    assert response.status_code == 200
+    execution = db_session.get(TestExecution, response.json()["id"])
+    assert execution is not None
+    assert execution.artefact_build.artefact_id == registered.json()["id"]
+    assert execution.artefact_build.architecture == test_request["arch"]
+    assert {(env.name, env.architecture) for env in execution.artefact_build.artefact.expected_environments} == {
+        ("expected", test_request["arch"]),
+    }
+    assert db_session.query(Artefact).count() == 1
+
+
+def test_start_test_preserves_declared_expectations_without_builds(
+    execute: Execute, generator: DataGenerator, db_session: Session
+) -> None:
+    expected_environment = generator.gen_environment("declared", architecture="amd64")
+    artefact = generator.gen_artefact(
+        family=FamilyName.solution,
+        name=solution_test_request["name"],
+        version=solution_test_request["version"],
+        expected_environments=[expected_environment],
+    )
+
+    response = execute(solution_test_request | {"expected_environments": ["replacement"]})
+
+    assert response.status_code == 200
+    db_session.refresh(artefact)
+    assert artefact.expected_environments == [expected_environment]
+
+
+def test_start_test_does_not_initialize_expectations_after_first_build(execute: Execute, db_session: Session) -> None:
+    first = execute(solution_test_request)
+    assert first.status_code == 200
+    execution = db_session.get(TestExecution, first.json()["id"])
+    assert execution is not None
+
+    second = execute(
+        solution_test_request | {"ci_link": "http://localhost/second", "expected_environments": ["too-late"]}
+    )
+
+    assert second.status_code == 200
+    db_session.refresh(execution.artefact_build.artefact)
+    assert execution.artefact_build.artefact.expected_environments == []
+
+
 def test_start_test_creates_new_solution_with_attributes(
     execute: Execute,
     db_session: Session,
@@ -155,7 +220,7 @@ def test_start_test_without_attributes_creates_new_solution_with_empty_attribute
     assert test_execution.artefact_build.artefact.attributes == {}
 
 
-def test_start_test_sets_expected_environments_only_when_creating_artefact(
+def test_start_test_sets_expected_environments_only_before_first_build(
     execute: Execute,
     db_session: Session,
 ) -> None:

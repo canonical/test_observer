@@ -53,6 +53,10 @@ def process_artefact_promotions(
     processed_artefacts_error_messages: dict[int, str] = {}
     promotion_updates: dict[int, PromotionUpdate] = {}
 
+    # Missing builds provide no evidence for promotion or archival.
+    snap_artefacts = [artefact for artefact in snap_artefacts if artefact.builds]
+    deb_artefacts = [artefact for artefact in deb_artefacts if artefact.builds]
+
     for snap in snap_artefacts:
         try:
             new_stage = fetch_snap_promotion(snap)
