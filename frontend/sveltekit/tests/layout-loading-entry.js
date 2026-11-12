@@ -11,7 +11,16 @@ export function mountLayout(target) {
   const component = mount(Layout, {
     target,
     props: {
-      data: { artefactFamilies: [{ name: "alpha" }, { name: "beta" }] },
+      data: {
+        artefactFamilies: ["alpha", "beta"].map((name) => ({
+          name,
+          api_name: name,
+          friendly_name: name,
+          stages: [],
+          columns: [],
+          filters: [],
+        })),
+      },
       children: createRawSnippet(() => ({
         render: () => '<button id="page-action">Page action</button>',
       })),

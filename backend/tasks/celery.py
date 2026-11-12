@@ -24,6 +24,7 @@ from celery import Celery, Task
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import Artefact, Issue
 from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_artefacts_by_family
@@ -111,6 +112,7 @@ def run_promote_artefacts():
 
         try:
             with SessionLocal() as db:
+                set_audit_context(db, automation_name="celery.run_promote_artefacts")
                 update_values = promotion_updates[artefact.id]
                 original_stage, original_archived = promotion_source_values[artefact.id]
                 conditions = [Artefact.id == artefact.id]
@@ -138,6 +140,7 @@ def run_promote_artefacts():
 @app.task
 def clean_user_sessions():
     with SessionLocal() as db:
+        set_audit_context(db, automation_name="celery.clean_user_sessions")
         delete_expired_user_sessions(db)
 
 
@@ -207,6 +210,7 @@ def _sync_issues_by_priority(priority: str) -> dict:
 
             # Write phase
             with SessionLocal() as db:
+                set_audit_context(db, automation_name=f"celery.sync_{priority}_priority_issues")
                 _apply_sync_results(db, issues, results)
                 db.commit()
 
@@ -248,6 +252,7 @@ def sync_all_issues() -> dict:
 
         # Write phase
         with SessionLocal() as db:
+            set_audit_context(db, automation_name="celery.sync_all_issues")
             _apply_sync_results(db, issues, results)
             db.commit()
 
@@ -279,6 +284,7 @@ def sync_issue_by_id(self: Task, issue_id: int) -> dict:
 
         # Write phase
         with SessionLocal() as db:
+            set_audit_context(db, automation_name="celery.sync_issue_by_id")
             _apply_sync_results(db, [issue], SyncResults.from_results([result]))
             db.commit()
 

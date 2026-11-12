@@ -19,6 +19,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
+from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import (
     Application,
     Artefact,
@@ -58,6 +59,7 @@ DEFAULT_ARCHITECTURE = "amd64"
 class DataGenerator:
     def __init__(self, db_session: Session):
         self.db_session = db_session
+        set_audit_context(db_session, automation_name="tests")
 
     def gen_team(
         self,

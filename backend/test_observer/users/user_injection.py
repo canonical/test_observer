@@ -18,6 +18,7 @@ from datetime import datetime
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session, selectinload
 
+from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import User, UserSession
 from test_observer.data_access.setup import get_db
 
@@ -41,8 +42,10 @@ def get_user_session(request: Request, db: Session = Depends(get_db)) -> UserSes
 
 def get_current_user(
     session: UserSession | None = Depends(get_user_session),
+    db: Session = Depends(get_db),
 ) -> User | None:
     if session:
+        set_audit_context(db, user_id=session.user.id)
         return session.user
     return None
 
@@ -83,7 +86,9 @@ def get_user_session_browser_friendly(request: Request, db: Session = Depends(ge
 
 def get_current_user_browser_friendly(
     session: UserSession | None = Depends(get_user_session_browser_friendly),
+    db: Session = Depends(get_db),
 ) -> User | None:
     if session:
+        set_audit_context(db, user_id=session.user.id)
         return session.user
     return None
