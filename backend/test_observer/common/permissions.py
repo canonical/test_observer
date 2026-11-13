@@ -15,7 +15,7 @@
 
 from collections.abc import Sequence
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import SecurityScopes
 from sqlalchemy.orm import Session, selectinload
 
@@ -49,6 +49,21 @@ def authentication_checker(
     This is used for endpoints that don't require specific permissions, but still require authentication.
     """
     if authentication_required and not user and not app:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+
+def local_or_authenticated(
+    request: Request,
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+    authentication_required: bool = Depends(requires_authentication),
+) -> None:
+    """
+    Allow local clients (127.0.0.1, ::1) without authentication,
+    but require authentication for remote clients.
+    """
+    is_local = request.client and request.client.host in {"127.0.0.1", "::1"}
+    if not is_local and authentication_required and not user and not app:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
 
