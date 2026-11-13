@@ -25,11 +25,13 @@ class CheckboxListExpandable extends StatelessWidget {
     required this.title,
     required this.options,
     required this.onChanged,
+    this.optionLabel,
   });
 
   final String title;
   final List<FilterOptionState> options;
   final Function(String optionName, bool isSelected) onChanged;
+  final String Function(String)? optionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -55,12 +57,13 @@ class CheckboxListExpandable extends StatelessWidget {
               ),
               Flexible(
                 child: Tooltip(
-                  message: option.name,
+                  message: optionLabel?.call(option.name) ?? option.name,
                   child: Text(
-                    option.name.contains('::')
-                        ? option.name
-                            .substring(option.name.lastIndexOf('::') + 2)
-                        : option.name,
+                    optionLabel?.call(option.name) ??
+                        (option.name.contains('::')
+                            ? option.name
+                                .substring(option.name.lastIndexOf('::') + 2)
+                            : option.name),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

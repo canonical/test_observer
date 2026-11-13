@@ -41,7 +41,10 @@ LinkedHashMap<int, Artefact> filteredFamilyArtefacts(Ref ref, Uri pageUri) {
     final filterOptions = parameters[filter.name] ??
         (filter.name == 'Reviewer' ? parameters['Assignee'] : null);
     if (filterOptions != null) {
-      artefacts = filter.filter(artefacts, filterOptions.toSet());
+      final options = filter.name == 'Risk' || filter.name == 'Pocket'
+          ? selectedArtefactFilterOptions(filter.name, parameters)
+          : filterOptions.toSet();
+      artefacts = filter.filter(artefacts, options);
     }
   }
 

@@ -181,7 +181,9 @@ abstract class TestResultsFilters with _$TestResultsFilters {
         .toList();
     final artefacts = parseParam(parameters['artefacts']);
     final artefactVersions = parseParam(parameters['artefact_versions']);
-    final artefactStages = parseParam(parameters['artefact_stages']);
+    final artefactStages = parameters['stage_filter_format']?.firstOrNull == '2'
+        ? parameters['artefact_stages'] ?? <String>[]
+        : parseParam(parameters['artefact_stages']);
     final artefactTracks = parseParam(parameters['artefact_tracks']);
     final artefactIsArchived = parseParam(parameters['artefact_is_archived'])
         .map((s) => s.toLowerCase() == 'true')
@@ -331,10 +333,16 @@ abstract class TestResultsFilters with _$TestResultsFilters {
       untilDate != null;
 
   Uri toTestResultsUri() {
+    final params = toQueryParams().map<String, dynamic>(
+      (key, value) => MapEntry(key, value.join(',')),
+    );
+    if (artefactStages.isNotEmpty) {
+      params['artefact_stages'] = artefactStages;
+      params['stage_filter_format'] = '2';
+    }
     return Uri(
       path: AppRoutes.testResults,
-      queryParameters:
-          toQueryParams().map((key, value) => MapEntry(key, value.join(','))),
+      queryParameters: params,
     );
   }
 }
