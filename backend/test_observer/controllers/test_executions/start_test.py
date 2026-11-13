@@ -281,6 +281,7 @@ class StartTestExecutionController:
                 "artefact_id": self.artefact.id,
             },
         )
+        self.db.expire(self.artefact, ["builds"])
 
     def create_environment(self):
         self.environment = get_or_create(
@@ -355,16 +356,23 @@ class StartTestExecutionController:
 
         self.artefact = get_or_create(self.db, Artefact, filter_kwargs=filter_kwargs, creation_kwargs=creation_kwargs)
 
-        if (
-            self.request.expected_environments
-            and self.request.arch is not None
-            and not self.artefact.builds
-            and not self.artefact.expected_environments
-        ):
-            self.artefact.expected_environments = get_or_create_environments(
-                self.db,
-                [(name, self.request.arch) for name in self.request.expected_environments],
+        if not self.artefact.builds:
+            # Serialize first-build setup before acquiring environment or build locks.
+            self.db.refresh(
+                self.artefact,
+                ["builds", "expected_environments"],
+                with_for_update={"of": Artefact},
             )
+            if (
+                self.request.expected_environments
+                and self.request.arch is not None
+                and not self.artefact.builds
+                and not self.artefact.expected_environments
+            ):
+                self.artefact.expected_environments = get_or_create_environments(
+                    self.db,
+                    [(name, self.request.arch) for name in self.request.expected_environments],
+                )
 
         request = self.request
         if isinstance(request, StartSolutionTestExecutionRequest) and "attributes" in request.model_fields_set:

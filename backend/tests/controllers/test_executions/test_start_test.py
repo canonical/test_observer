@@ -14,19 +14,29 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Callable, Generator
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
+from queue import Queue
+from threading import Event
+from time import monotonic, sleep
 from typing import Any
 from unittest.mock import patch
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 from httpx import Response
+from sqlalchemy import delete, func, select
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
+from test_observer.controllers.test_executions.models import StartSolutionTestExecutionRequest
 from test_observer.controllers.test_executions.start_test import StartTestExecutionController
 from test_observer.data_access.models import (
     Artefact,
+    ArtefactBuild,
+    Environment,
     Notification,
     TestExecution,
 )
@@ -192,6 +202,85 @@ def test_start_test_does_not_initialize_expectations_after_first_build(execute: 
     assert second.status_code == 200
     db_session.refresh(execution.artefact_build.artefact)
     assert execution.artefact_build.artefact.expected_environments == []
+
+
+@pytest.mark.parametrize(
+    "declares_expected,second_environment",
+    [(True, "first"), (True, "second"), (False, "second")],
+    ids=["same-expectations", "different-expectations", "no-initial-expectations"],
+)
+def test_start_test_serializes_initial_expectations(
+    db_engine: Engine, declares_expected: bool, second_environment: str
+) -> None:
+    name = f"initial-expectations-{uuid4().hex}"
+    first_environment = f"{name}-first"
+    other_environment = f"{name}-{second_environment}"
+    ready: Queue[int] = Queue()
+    start = Event()
+    expected_names = [first_environment] if declares_expected else []
+    request = solution_test_request | {"name": name, "expected_environments": expected_names}
+
+    with Session(db_engine) as first:
+        # The generator commits here; fixture data is invisible to independent connections.
+        artefact = DataGenerator(first).gen_artefact(
+            family=FamilyName.solution, name=name, version=solution_test_request["version"]
+        )
+        artefact_id = artefact.id
+
+        def start_second() -> list[str]:
+            with Session(db_engine) as second:
+                cached_artefact = second.get(Artefact, artefact_id)
+                assert cached_artefact is not None
+                assert cached_artefact.builds == []
+                assert cached_artefact.expected_environments == []
+                pid = second.scalar(select(func.pg_backend_pid()))
+                assert pid is not None
+                ready.put(pid)
+                assert start.wait(timeout=10)
+                controller = StartTestExecutionController(
+                    StartSolutionTestExecutionRequest.model_validate(
+                        request | {"expected_environments": [other_environment]}
+                    ),
+                    second,
+                )
+                controller.create_artefact()
+                second.commit()
+                return [environment.name for environment in controller.artefact.expected_environments]
+
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(start_second)
+                try:
+                    second_pid = ready.get(timeout=10)
+                    controller = StartTestExecutionController(
+                        StartSolutionTestExecutionRequest.model_validate(request), first
+                    )
+                    controller.create_artefact()
+                    first.add(ArtefactBuild(artefact=controller.artefact, architecture=solution_test_request["arch"]))
+                    first.flush()
+                    start.set()
+
+                    with Session(db_engine) as observer:
+                        deadline = monotonic() + 10
+                        while not future.done():
+                            if observer.scalar(select(func.cardinality(func.pg_blocking_pids(second_pid)))):
+                                break
+                            assert monotonic() < deadline, "Second request did not reach a database lock"
+                            sleep(0.01)
+                        else:
+                            future.result()
+                            pytest.fail("Second request did not wait for initialization")
+
+                    first.commit()
+                    assert future.result(timeout=10) == expected_names
+                finally:
+                    first.rollback()
+                    start.set()
+        finally:
+            with Session(db_engine) as cleanup:
+                cleanup.execute(delete(Artefact).where(Artefact.id == artefact_id))
+                cleanup.execute(delete(Environment).where(Environment.name.in_({first_environment, other_environment})))
+                cleanup.commit()
 
 
 def test_start_test_creates_new_solution_with_attributes(
@@ -361,8 +450,13 @@ class TestFamilyIndependentTests:
         assert test_execution.artefact_build.artefact.reviewers == []
         assert test_execution.artefact_build.artefact.due_date is None
 
+    @pytest.mark.parametrize("expected_environments", [[], ["expected"]])
     def test_new_artefacts_get_assigned_a_reviewer(
-        self, execute: Execute, generator: DataGenerator, start_request: dict[str, Any]
+        self,
+        execute: Execute,
+        generator: DataGenerator,
+        start_request: dict[str, Any],
+        expected_environments: list[str],
     ):
         # Create a team with matching rules for all families
         snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
@@ -378,7 +472,7 @@ class TestFamilyIndependentTests:
         # User is member of this team
         user = generator.gen_user(teams=[team])
 
-        response = execute({**start_request, "needs_assignment": True})
+        response = execute({**start_request, "needs_assignment": True, "expected_environments": expected_environments})
 
         test_execution = self._db_session.get(TestExecution, response.json()["id"])
         assert test_execution

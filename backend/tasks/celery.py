@@ -95,8 +95,11 @@ def integrate_with_kernel_swm():
 @app.task
 def run_promote_artefacts():
     with SessionLocal() as db:
-        snap_artefacts = get_artefacts_by_family(db, FamilyName.snap, load_builds=True)
-        deb_artefacts = get_artefacts_by_family(db, FamilyName.deb, load_builds=True)
+        # Missing builds provide no evidence for promotion or archival.
+        snap_artefacts, deb_artefacts = (
+            [artefact for artefact in get_artefacts_by_family(db, family, load_builds=True) if artefact.builds]
+            for family in (FamilyName.snap, FamilyName.deb)
+        )
         promotion_source_values = {
             artefact.id: (artefact.stage, artefact.archived) for artefact in snap_artefacts + deb_artefacts
         }
