@@ -35,6 +35,8 @@ EXECUTION_PATHS = {"/v1/test-executions"}
 RESULT_PATHS = {"/v1/test-results"}
 LISTING_PATHS = {
     "/v1/artefacts/search",
+    "/v1/audit/artefacts/{artefact_id}",
+    "/v1/audit/environment-reviews/{review_id}",
     "/v1/environments",
     "/v1/issues",
     "/v1/test-cases",

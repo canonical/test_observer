@@ -1059,6 +1059,12 @@ class TestExecutionRelevantLink(Base):
 # The audit extension does not copy foreign keys from context columns.
 for table_name in ("artefact_audit", "artefact_build_environment_review_audit"):
     Base.metadata.tables[table_name].c.audit_author_id.append_foreign_key(ForeignKey("change_author.id"))
+    Index(
+        f"{table_name}_history_idx",
+        Base.metadata.tables[table_name].c.id,
+        Base.metadata.tables[table_name].c.audit_timestamp,
+        Base.metadata.tables[table_name].c.audit_pk,
+    )
 
 
 # is_triaged is defined here (after IssueTestResultAttachment) to avoid forward references

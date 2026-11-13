@@ -26,6 +26,7 @@ from test_observer.controllers.users import users
 from test_observer.data_access.setup import get_db
 
 from . import (
+    audit,
     auth,
     environments,
     health,
@@ -55,6 +56,7 @@ router.include_router(issues.router, prefix="/v1/issues")
 router.include_router(test_results.router, prefix="/v1/test-results")
 router.include_router(execution_metadata.router, prefix="/v1/execution-metadata")
 router.include_router(auth.router, prefix="/v1/auth")
+router.include_router(audit.router, prefix="/v1/audit")
 router.include_router(users.router, prefix="/v1/users")
 router.include_router(teams.router, prefix="/v1/teams")
 router.include_router(permissions.router, prefix="/v1/permissions")
