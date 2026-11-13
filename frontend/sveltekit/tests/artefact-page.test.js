@@ -369,6 +369,7 @@ void test("sidebar toggle names its action in both states", async () => {
             id: 1,
             name: "Test artefact",
             family: "snap",
+            stage: "",
             status: "UNDECIDED",
             reviewers: [],
             comment: "",
