@@ -17,6 +17,21 @@ import '../models/artefact.dart';
 import '../models/family_name.dart';
 import 'filter.dart';
 
+const stageFilterFormat = 'stage_filter_format';
+
+Set<String> selectedArtefactFilterOptions(
+  String name,
+  Map<String, List<String>> parameters,
+) {
+  final options = (parameters[name] ?? []).toSet();
+  if ((name == 'Risk' || name == 'Pocket') &&
+      parameters[stageFilterFormat]?.firstOrNull != '2' &&
+      options.remove('empty')) {
+    options.add('');
+  }
+  return options;
+}
+
 List<Filter<Artefact>> getArtefactFiltersFor(FamilyName family) =>
     switch (family) {
       FamilyName.snap => [
@@ -80,7 +95,7 @@ final _artefactDueDateFilter = createFilterFromExtractor<Artefact>(
 
 final _artefactRiskFilter = createFilterFromExtractor<Artefact>(
   'Risk',
-  (artefact) => artefact.stage.name,
+  (artefact) => artefact.stage,
 );
 
 final _artefactSeriesFilter = createFilterFromExtractor<Artefact>(
@@ -105,5 +120,5 @@ final _artefactOwnerFilter = createFilterFromExtractor<Artefact>(
 
 final _artefactPocketFilter = createFilterFromExtractor<Artefact>(
   'Pocket',
-  (artefact) => artefact.stage.name,
+  (artefact) => artefact.stage,
 );

@@ -385,6 +385,16 @@ void main() {
     });
 
     group('query params conversion', () {
+      test('stage URL preserves empty and arbitrary values', () {
+        const values = ['', 'custom,stage', '  spaced  ', '(none)', 'empty'];
+        const filters = TestResultsFilters(artefactStages: values);
+        final uri = filters.toTestResultsUri();
+        final parsed =
+            TestResultsFilters.fromQueryParams(uri.queryParametersAll);
+        expect(parsed.artefactStages, values);
+        expect(filters.toQueryParams()['artefact_stages'], values);
+      });
+
       test('fromQueryParams parses all parameters', () {
         final params = {
           'families': ['family1,family2'],

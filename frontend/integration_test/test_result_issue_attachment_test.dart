@@ -23,7 +23,6 @@ import 'package:testcase_dashboard/models/attachment_rule_filters.dart';
 import 'package:testcase_dashboard/models/attachment_rule.dart';
 import 'package:testcase_dashboard/models/issue_attachment.dart';
 import 'package:testcase_dashboard/models/issue.dart';
-import 'package:testcase_dashboard/models/stage_name.dart';
 import 'package:testcase_dashboard/models/detailed_test_results.dart';
 import 'package:testcase_dashboard/models/test_result.dart';
 import 'package:testcase_dashboard/models/test_results_filters.dart';
@@ -63,7 +62,7 @@ class ApiRepositoryMock extends Mock implements ApiRepository {
     repo: '',
     status: ArtefactStatus.undecided,
     comment: '',
-    stage: StageName.beta,
+    stage: 'beta',
     bugLink: '',
     allEnvironmentReviewsCount: 1,
     completedEnvironmentReviewsCount: 0,

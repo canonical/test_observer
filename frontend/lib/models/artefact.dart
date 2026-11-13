@@ -18,7 +18,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:yaru/yaru.dart';
 
 import 'environment.dart';
-import 'stage_name.dart';
 import 'user.dart';
 
 part 'artefact.freezed.dart';
@@ -46,7 +45,7 @@ abstract class Artefact with _$Artefact {
     @Default('') @JsonKey(name: 'image_url') String imageUrl,
     required ArtefactStatus status,
     required String comment,
-    required StageName stage,
+    required String stage,
     @JsonKey(name: 'all_environment_reviews_count')
     required int allEnvironmentReviewsCount,
     @JsonKey(name: 'missing_expected_environments')

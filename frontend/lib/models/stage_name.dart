@@ -13,62 +13,50 @@
 // SPDX-FileCopyrightText: Copyright 2023 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
-import 'package:freezed_annotation/freezed_annotation.dart';
-
 import 'family_name.dart';
 
-enum StageName {
-  edge,
-  beta,
-  candidate,
-  stable,
-  proposed,
-  updates,
-  pending,
-  current,
-  @JsonValue('')
-  empty;
-
-  bool get isEmpty => this == empty;
-
-  /// The value used when this stage is serialized to/from JSON and the API
-  /// (an empty string for [StageName.empty], the enum name otherwise).
-  String get apiValue => isEmpty ? '' : name;
-}
-
-List<StageName> familyStages(FamilyName family) {
+List<String> familyStages(FamilyName family) {
   switch (family) {
     case FamilyName.snap:
       return [
-        StageName.edge,
-        StageName.beta,
-        StageName.candidate,
-        StageName.stable,
+        'edge',
+        'beta',
+        'candidate',
+        'stable',
       ];
     case FamilyName.deb:
       return [
-        StageName.proposed,
-        StageName.updates,
-        StageName.empty,
+        'proposed',
+        'updates',
+        '',
       ];
     case FamilyName.charm:
       return [
-        StageName.edge,
-        StageName.beta,
-        StageName.candidate,
-        StageName.stable,
+        'edge',
+        'beta',
+        'candidate',
+        'stable',
       ];
     case FamilyName.image:
       return [
-        StageName.pending,
-        StageName.current,
+        'pending',
+        'current',
       ];
     case FamilyName.solution:
       return [
-        StageName.edge,
-        StageName.beta,
-        StageName.candidate,
-        StageName.stable,
+        'edge',
+        'beta',
+        'candidate',
+        'stable',
       ];
   }
+}
+
+const noStageLabel = '(no stage)';
+
+String stageFilterLabel(String stage) {
+  if (stage.isEmpty) return noStageLabel;
+  // Quote a literal stage named like the empty-stage label to tell them apart.
+  if (stage == noStageLabel) return '"$stage"';
+  return stage;
 }

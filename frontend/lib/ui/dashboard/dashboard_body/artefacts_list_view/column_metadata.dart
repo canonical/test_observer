@@ -305,7 +305,7 @@ Widget _buildTrackCell(BuildContext context, Artefact artefact) =>
     Text(artefact.track);
 
 Widget _buildStageCell(BuildContext context, Artefact artefact) =>
-    Text(artefact.stage.isEmpty ? '' : artefact.stage.name);
+    Text(artefact.stage);
 
 Widget _buildBranchCell(BuildContext context, Artefact artefact) =>
     Text(artefact.branch);

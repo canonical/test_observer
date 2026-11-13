@@ -12,6 +12,26 @@ import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/environment.dart';
 
 void main() {
+  test('preserves arbitrary and empty stages from API responses', () {
+    final json = <String, Object?>{
+      'id': 1,
+      'name': 'example',
+      'version': '1.0',
+      'family': 'generic',
+      'status': 'UNDECIDED',
+      'comment': '',
+      'stage': '',
+      'all_environment_reviews_count': 0,
+      'completed_environment_reviews_count': 0,
+      'bug_link': '',
+    };
+    for (final stage in ['', 'custom stage', 'beta']) {
+      final artefact = Artefact.fromJson({...json, 'stage': stage});
+      expect(artefact.stage, stage);
+      expect(artefact.toJson()['stage'], stage);
+    }
+  });
+
   test('parses missing expected environments from the API response', () {
     final artefact = Artefact.fromJson({
       'id': 1,

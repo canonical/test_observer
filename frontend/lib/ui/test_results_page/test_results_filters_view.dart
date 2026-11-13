@@ -82,6 +82,7 @@ class _TestResultsFiltersViewState
   static const double _controlHeight = 48;
 
   late TestResultsFilters _selectedFilters;
+  String _customStage = '';
 
   @override
   void initState() {
@@ -240,8 +241,11 @@ class _TestResultsFiltersViewState
     final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
     final allTestResultStatusesOptions =
         TestResultStatus.values.map((s) => s.name).toList();
-    final allArtefactStageOptions =
-        StageName.values.map((s) => s.apiValue).toList();
+    final allArtefactStageOptions = <String>{
+      for (final family in FamilyName.values) ...familyStages(family),
+      ..._selectedFilters.artefactStages,
+      if (_customStage.isNotEmpty) _customStage,
+    }.toList();
     final executionMetadata = ref.watch(executionMetadataProvider).value ??
         ExecutionMetadata(data: {});
 
@@ -435,23 +439,32 @@ class _TestResultsFiltersViewState
           ),
         if (_isFilterEnabled(FilterType.artefactStages))
           _box(
-            MultiSelectCombobox<String>(
-              title: 'Artefact Stage',
-              allOptions: allArtefactStageOptions,
-              showAllOptionsWithoutSearch: true,
-              itemToString: (stage) => stage.isEmpty ? '(none)' : stage,
-              initialSelected: _selectedFilters.artefactStages.toSet(),
-              onChanged: (val, isSelected) {
-                setState(() {
-                  _selectedFilters = _selectedFilters.copyWith(
-                    artefactStages: [
-                      ..._selectedFilters.artefactStages.where((s) => s != val),
-                      if (isSelected) val,
-                    ],
-                  );
-                  _notifyChanged(_selectedFilters);
-                });
-              },
+            Column(
+              children: [
+                TextField(
+                  decoration: const InputDecoration(labelText: 'Custom stage'),
+                  onChanged: (value) => setState(() => _customStage = value),
+                ),
+                MultiSelectCombobox<String>(
+                  title: 'Artefact Stage',
+                  allOptions: allArtefactStageOptions,
+                  showAllOptionsWithoutSearch: true,
+                  itemToString: stageFilterLabel,
+                  initialSelected: _selectedFilters.artefactStages.toSet(),
+                  onChanged: (val, isSelected) {
+                    setState(() {
+                      _selectedFilters = _selectedFilters.copyWith(
+                        artefactStages: [
+                          ..._selectedFilters.artefactStages
+                              .where((s) => s != val),
+                          if (isSelected) val,
+                        ],
+                      );
+                      _notifyChanged(_selectedFilters);
+                    });
+                  },
+                ),
+              ],
             ),
           ),
         if (_isFilterEnabled(FilterType.artefactTracks))

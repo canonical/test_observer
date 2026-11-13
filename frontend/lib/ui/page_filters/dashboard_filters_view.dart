@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../models/stage_name.dart';
 import '../../providers/page_filters.dart';
 import '../../providers/search_value.dart';
 import '../../routing.dart';
@@ -71,6 +72,9 @@ class DashboardFiltersView extends ConsumerWidget {
         CheckboxListExpandable(
           title: filter.name,
           options: filter.options,
+          optionLabel: filter.name == 'Risk' || filter.name == 'Pocket'
+              ? stageFilterLabel
+              : null,
           onChanged: (option, isSelected) => ref
               .read(pageFiltersProvider(pageUri).notifier)
               .onChanged(filter.name, option, isSelected),
