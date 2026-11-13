@@ -43,6 +43,7 @@ from test_observer.data_access.models_enums import NotificationType
 from test_observer.data_access.queries import match_artefact_considering_specificity
 from test_observer.data_access.repository import (
     create_test_execution_relevant_link,
+    get_artefact_identity,
     get_or_create,
     get_or_create_environments,
 )
@@ -293,34 +294,16 @@ class StartTestExecutionController:
         )
 
     def create_artefact(self) -> None:
-        # The lookup filter must hold exactly the artefact's family-specific unique key;
-        # any other fields go in creation_kwargs so a differing value can't miss the
-        # existing row and then trip the unique constraint on insert.
-        filter_kwargs = {
-            "name": self.request.name,
-            "version": self.request.version,
-            "family": self.request.family,
-        }
+        filter_kwargs = get_artefact_identity(self.request.model_dump())
         creation_kwargs: dict = {"stage": self.request.execution_stage}
 
         match self.request:
             case StartSnapTestExecutionRequest():
-                # Store is not part of the snap uniqueness constraint
                 creation_kwargs["store"] = self.request.store
-                filter_kwargs["track"] = self.request.track
-                filter_kwargs["branch"] = self.request.branch
-            case StartCharmTestExecutionRequest():
-                filter_kwargs["track"] = self.request.track
-                filter_kwargs["branch"] = self.request.branch
-            case StartDebTestExecutionRequest():
-                filter_kwargs["series"] = self.request.series
-                filter_kwargs["repo"] = self.request.repo
-                filter_kwargs["source"] = self.request.source
 
             # An image is identified by its sha256 alone, so an existing image can be
             # tested by submitting only its sha256; the rest is needed only to create it.
             case StartImageTestExecutionRequest():
-                filter_kwargs = {"family": self.request.family, "sha256": self.request.sha256}
                 existing_image = self.db.query(Artefact).filter_by(**filter_kwargs).one_or_none()
 
                 if existing_image is None and any(
