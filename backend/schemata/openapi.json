@@ -1398,6 +1398,49 @@
       }
     },
     "/v1/artefacts": {
+      "post": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Create Artefact",
+        "description": "Register an artefact without creating builds or test executions.\n\nAn existing artefact is returned unchanged, including its stage and status.",
+        "operationId": "create_artefact_v1_artefacts_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtefactCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_artefact"
+        ]
+      },
       "get": {
         "tags": [
           "artefacts"
@@ -6241,6 +6284,105 @@
           "test_executions"
         ],
         "title": "ArtefactBuildResponse"
+      },
+      "ArtefactCreate": {
+        "properties": {
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Version"
+          },
+          "stage": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Stage"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track",
+            "default": ""
+          },
+          "branch": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Branch",
+            "default": ""
+          },
+          "store": {
+            "type": "string",
+            "title": "Store",
+            "default": ""
+          },
+          "series": {
+            "type": "string",
+            "title": "Series",
+            "default": ""
+          },
+          "repo": {
+            "type": "string",
+            "title": "Repo",
+            "default": ""
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Source",
+            "default": ""
+          },
+          "os": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Os",
+            "default": ""
+          },
+          "release": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Release",
+            "default": ""
+          },
+          "sha256": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Sha256",
+            "default": ""
+          },
+          "owner": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Owner",
+            "default": ""
+          },
+          "image_url": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Image Url",
+            "default": ""
+          },
+          "attributes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Attributes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "family",
+          "name",
+          "version",
+          "stage"
+        ],
+        "title": "ArtefactCreate",
+        "description": "Register without builds using the existing identity.\n\nOmitted fields use their defaults. At least one value in the selected identity\nmust be nonblank; fields outside that identity cannot satisfy this requirement."
       },
       "ArtefactHistoryItemResponse": {
         "properties": {

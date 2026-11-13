@@ -50,7 +50,9 @@ from test_observer.data_access.models_enums import (
     NotificationType,
 )
 from test_observer.data_access.repository import (
+    get_artefact_identity,
     get_artefacts_by_family,
+    get_or_create,
     get_or_create_environments,
     populate_expected_environment_status,
 )
@@ -63,6 +65,7 @@ from .logic import (
     is_there_a_rejected_environment,
 )
 from .models import (
+    ArtefactCreate,
     ArtefactHistoryItemResponse,
     ArtefactHistoryResponse,
     ArtefactPatch,
@@ -72,6 +75,33 @@ from .models import (
 )
 
 router = APIRouter(tags=["artefacts"])
+
+
+@router.post(
+    "",
+    response_model=ArtefactResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.change_artefact])],
+)
+def create_artefact(
+    request: ArtefactCreate,
+    db: Session = Depends(get_db),
+) -> Artefact:
+    """Register an artefact without creating builds or test executions.
+
+    An existing artefact is returned unchanged, including its stage and status.
+    """
+    fields = request.model_dump()
+    identity = get_artefact_identity(fields)
+    if not any(value.strip() for key, value in identity.items() if key != "family"):
+        raise HTTPException(status_code=422, detail="Artefact identity must not be empty.")
+    artefact = get_or_create(
+        db,
+        Artefact,
+        filter_kwargs=identity,
+        creation_kwargs={key: value for key, value in fields.items() if key not in identity},
+    )
+    db.commit()
+    return artefact
 
 
 @router.get(
