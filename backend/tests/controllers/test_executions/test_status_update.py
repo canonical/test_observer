@@ -19,13 +19,13 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import StageName, TestExecutionStatus
+from test_observer.data_access.models_enums import TestExecutionStatus
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
 def test_status_updates_stored(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
@@ -73,7 +73,7 @@ def test_status_updates_stored(test_client: TestClient, generator: DataGenerator
 
 
 def test_status_updates_is_idempotent(test_client: TestClient, generator: DataGenerator, db_session: Session):
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
@@ -112,7 +112,7 @@ def test_status_updates_is_idempotent(test_client: TestClient, generator: DataGe
 
 
 def test_get_status_update(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
@@ -165,7 +165,7 @@ def test_get_status_update(test_client: TestClient, generator: DataGenerator):
 
 
 def test_status_updates_invalid_timestamp(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
@@ -201,7 +201,7 @@ def test_status_updates_invalid_timestamp(test_client: TestClient, generator: Da
 
 
 def test_status_update_normal_exit(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(
@@ -242,7 +242,7 @@ def test_status_update_normal_exit(test_client: TestClient, generator: DataGener
 
 
 def test_post_status_update_appends_events(test_client: TestClient, generator: DataGenerator, db_session: Session):
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(

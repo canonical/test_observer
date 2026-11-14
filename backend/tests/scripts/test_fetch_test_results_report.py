@@ -23,7 +23,6 @@ from fastapi.testclient import TestClient
 
 from scripts.fetch_test_results_report import fetch_test_results_report
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import StageName
 from tests.conftest import override_permissions
 from tests.data_generator import DataGenerator
 
@@ -82,7 +81,7 @@ def test_fetch_test_results_report(
     test_client: TestClient,
     _clean_files_created,  # noqa: ANN001
 ):
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(artefact_build, environment)

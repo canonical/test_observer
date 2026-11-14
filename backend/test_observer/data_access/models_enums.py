@@ -24,64 +24,6 @@ class FamilyName(StrEnum):
     solution = "solution"
 
 
-class StageName(StrEnum):
-    proposed = "proposed"
-    updates = "updates"
-    edge = "edge"
-    beta = "beta"
-    candidate = "candidate"
-    stable = "stable"
-    pending = "pending"
-    current = "current"
-
-    def _compare(self, other: str) -> int:
-        stages = list(StageName.__members__.values())
-        return stages.index(self) - stages.index(StageName(other))
-
-    def __lt__(self, other: str) -> bool:
-        return self._compare(other) < 0
-
-    def __le__(self, other: str) -> bool:
-        return self._compare(other) <= 0
-
-    def __gt__(self, other: str) -> bool:
-        return self._compare(other) > 0
-
-    def __ge__(self, other: str) -> bool:
-        return self._compare(other) >= 0
-
-
-class SnapStage(StrEnum):
-    edge = StageName.edge
-    beta = StageName.beta
-    candidate = StageName.candidate
-    stable = StageName.stable
-
-
-class DebStage(StrEnum):
-    proposed = StageName.proposed
-    updates = StageName.updates
-
-
-class CharmStage(StrEnum):
-    edge = StageName.edge
-    beta = StageName.beta
-    candidate = StageName.candidate
-    stable = StageName.stable
-
-
-class ImageStage(StrEnum):
-    pending = StageName.pending
-    current = StageName.current
-
-
-class SolutionStage(StrEnum):
-    edge = StageName.edge
-    beta = StageName.beta
-    candidate = StageName.candidate
-    stable = StageName.stable
-
-
 class TestExecutionStatus(StrEnum):
     __test__ = False
 

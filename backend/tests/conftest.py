@@ -48,7 +48,6 @@ from test_observer.controllers.applications.application_injection import (
 )
 from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import Application, TestExecution, User
-from test_observer.data_access.models_enums import StageName
 from test_observer.data_access.setup import get_db
 from test_observer.main import app
 from tests.data_generator import DataGenerator
@@ -165,7 +164,7 @@ def generator(db_session: Session) -> DataGenerator:
 
 @pytest.fixture
 def test_execution(generator: DataGenerator) -> TestExecution:
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment()
     te = generator.gen_test_execution(ab, e)

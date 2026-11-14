@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import check_amr_permissions, check_artefact_permission
-from test_observer.data_access.models_enums import FamilyName, StageName
+from test_observer.data_access.models_enums import FamilyName
 from tests.data_generator import DataGenerator
 
 
@@ -41,7 +41,7 @@ class TestCheckAMRPermission:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         # Create a user in the team
@@ -75,7 +75,7 @@ class TestCheckAMRPermission:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         # Create a user in team2 (not team1)
@@ -108,7 +108,7 @@ class TestCheckAMRPermission:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         # Create a user with no teams
@@ -141,7 +141,7 @@ class TestCheckAMRPermission:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.beta,
+            stage="beta",
         )
 
         # Create user in team
@@ -174,7 +174,7 @@ class TestCheckAMRPermission:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         # Create user in team
@@ -198,7 +198,7 @@ class TestCheckAMRPermission:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         # Should raise 403 when user is None
@@ -217,7 +217,7 @@ class TestCheckAMRPermission:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         # Create an admin user
@@ -257,7 +257,7 @@ class TestCheckAMRPermission:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
 
         # Create an admin user (not in the team)
@@ -294,7 +294,7 @@ class TestCheckArtefactPermission:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
         user = generator.gen_user(name="frank", teams=[team])
 
@@ -320,7 +320,7 @@ class TestCheckArtefactPermission:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
         user = generator.gen_user(name="grace", teams=[team])
 

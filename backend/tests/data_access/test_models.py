@@ -18,7 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.models import Issue
-from test_observer.data_access.models_enums import FamilyName, IssueSource, StageName
+from test_observer.data_access.models_enums import FamilyName, IssueSource
 from tests.data_generator import DataGenerator
 
 
@@ -91,7 +91,7 @@ def test_solution_unique_constraint_ignores_source_track_and_stage(
         version="1.0",
         source="first-source",
         track="first-track",
-        stage=StageName.beta,
+        stage="beta",
     )
 
     with pytest.raises(IntegrityError):
@@ -101,7 +101,7 @@ def test_solution_unique_constraint_ignores_source_track_and_stage(
             version="1.0",
             source="second-source",
             track="second-track",
-            stage=StageName.stable,
+            stage="stable",
         )
     db_session.rollback()
 
