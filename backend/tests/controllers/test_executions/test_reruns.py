@@ -73,20 +73,35 @@ def get(test_client: TestClient):
         family: FamilyName | None = None,
         limit: int | None = None,
         environment: str | None = None,
+        environments: list[str] | None = None,
         environment_architecture: str | None = None,
         build_architecture: str | None = None,
+        artefacts: list[str] | None = None,
+        priorities: list[int] | None = None,
+        priority_min: int | None = None,
+        priority_max: int | None = None,
     ) -> Response:
-        params: dict[str, str | int] = {}
+        params: dict[str, str | int | list[str] | list[int]] = {}
         if family is not None:
             params["family"] = family.value
         if limit is not None:
             params["limit"] = limit
         if environment is not None:
             params["environment"] = environment
+        if environments is not None:
+            params["environments"] = environments
         if environment_architecture is not None:
             params["environment_architecture"] = environment_architecture
         if build_architecture is not None:
             params["build_architecture"] = build_architecture
+        if artefacts is not None:
+            params["artefacts"] = artefacts
+        if priorities is not None:
+            params["priorities"] = priorities
+        if priority_min is not None:
+            params["priority_min"] = priority_min
+        if priority_max is not None:
+            params["priority_max"] = priority_max
         return make_authenticated_request(
             lambda: test_client.get(reruns_url, params=params),
             Permission.view_rerun,
@@ -474,7 +489,10 @@ def test_rerun_preserves_ci_and_relevant_links(get: Get, post: Post, generator: 
     assert retrieved_links == expected_links
 
 
-def test_get_with_environment_filter(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
+@pytest.mark.parametrize("parameter", ["environment", "environments"])
+def test_get_with_environment_filter(
+    get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator, parameter: str
+):
     te1 = test_execution
     te1.environment.name = "rpi2"
 
@@ -484,9 +502,50 @@ def test_get_with_environment_filter(get: Get, post: Post, test_execution: TestE
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert without_server_fields(get(environment="rpi2").json()) == [test_execution_to_pending_rerun(te1)]
-    assert without_server_fields(get(environment="dawson-i").json()) == [test_execution_to_pending_rerun(te2)]
-    assert get(environment="nonexistent").json() == []
+    for name, expected in [
+        ("rpi2", [test_execution_to_pending_rerun(te1)]),
+        ("dawson-i", [test_execution_to_pending_rerun(te2)]),
+        ("nonexistent", []),
+    ]:
+        response = get(**{parameter: name if parameter == "environment" else [name]})
+        assert response.status_code == 200
+        assert without_server_fields(response.json()) == expected
+
+
+@pytest.mark.parametrize(
+    ("names", "expected_indices"),
+    [
+        (["alpha", "beta"], [0, 1, 2]),
+        (["alpha", "alpha"], [0, 1]),
+        (["alpha", "missing"], [0, 1]),
+        (["alp", "Alpha"], []),
+    ],
+)
+def test_get_with_multiple_environments(
+    get: Get, generator: DataGenerator, names: list[str], expected_indices: list[int]
+):
+    artefact = generator.gen_artefact()
+    build = generator.gen_artefact_build(artefact)
+    executions = []
+    for name, architecture in [("alpha", "amd64"), ("alpha", "arm64"), ("beta", "amd64"), ("gamma", "amd64")]:
+        environment = generator.gen_environment(name, architecture=architecture)
+        execution = generator.gen_test_execution(build, environment)
+        generator.gen_rerun_request(execution)
+        executions.append(execution)
+
+    response = get(environments=names)
+
+    assert response.status_code == 200
+    assert [r["test_execution_id"] for r in response.json()] == [executions[i].id for i in expected_indices]
+
+
+@pytest.mark.parametrize("environment", ["alpha", ""])
+@pytest.mark.parametrize("environments", [["alpha"], ["beta"], ["alpha", "beta"], [""]])
+def test_get_rejects_both_environment_parameters(get: Get, environment: str, environments: list[str]):
+    response = get(environment=environment, environments=environments)
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "environment cannot be combined with environments"
 
 
 def test_get_with_build_architecture_filter(get: Get, post: Post, generator: DataGenerator):
@@ -1714,6 +1773,199 @@ def test_get_fifo_within_same_priority(get: Get, generator: DataGenerator):
     # te1's rerun was created first, so it should appear first
     assert te_ids.index(te1.id) < te_ids.index(te2.id)
     assert rr1.priority == rr2.priority == 1
+
+
+@pytest.mark.parametrize(
+    ("names", "expected_names"),
+    [
+        (["alpha"], ["alpha"]),
+        (["alpha", "beta"], ["alpha", "beta"]),
+        (["alpha", "alpha"], ["alpha"]),
+        (["alpha", "missing"], ["alpha"]),
+        (["missing"], []),
+        (["alp"], []),
+        (["Alpha"], []),
+        ([" alpha"], []),
+    ],
+)
+def test_get_filters_by_exact_artefact_names(
+    get: Get, generator: DataGenerator, names: list[str], expected_names: list[str]
+):
+    environment = generator.gen_environment()
+    executions: list[TestExecution] = []
+    for name in ["alpha", "beta", "gamma"]:
+        artefact = generator.gen_artefact(name=name)
+        build = generator.gen_artefact_build(artefact)
+        execution = generator.gen_test_execution(build, environment)
+        generator.gen_rerun_request(execution)
+        executions.append(execution)
+
+    response = get(artefacts=names)
+
+    assert response.status_code == 200
+    assert [r["test_execution_id"] for r in response.json()] == [
+        execution.id for execution in executions if execution.artefact_build.artefact.name in expected_names
+    ]
+
+
+def test_get_artefact_name_matches_multiple_versions_and_builds(get: Get, generator: DataGenerator):
+    environment = generator.gen_environment()
+    executions: list[TestExecution] = []
+    for version in ["1", "2"]:
+        artefact = generator.gen_artefact(name="alpha", version=version)
+        for architecture in ["amd64", "arm64"]:
+            build = generator.gen_artefact_build(artefact, architecture=architecture)
+            execution = generator.gen_test_execution(build, environment)
+            generator.gen_rerun_request(execution)
+            executions.append(execution)
+
+    response = get(artefacts=["alpha"])
+
+    assert response.status_code == 200
+    assert [r["test_execution_id"] for r in response.json()] == [execution.id for execution in executions]
+
+
+@pytest.mark.parametrize(
+    ("params", "expected_priorities"),
+    [
+        ({}, [1000000, 20, 10, 0, -10, -1000000]),
+        ({"priorities": [0]}, [0]),
+        ({"priorities": [-10]}, [-10]),
+        ({"priorities": [0, 10, 20]}, [20, 10, 0]),
+        ({"priorities": [10, 10]}, [10]),
+        ({"priorities": [1]}, []),
+        ({"priorities": [-1000000, 1000000]}, [1000000, -1000000]),
+        ({"priority_min": 0}, [1000000, 20, 10, 0]),
+        ({"priority_max": 0}, [0, -10, -1000000]),
+        ({"priority_min": 0, "priority_max": 20}, [20, 10, 0]),
+        ({"priority_min": 10, "priority_max": 10}, [10]),
+        ({"priority_min": -1000000, "priority_max": 1000000}, [1000000, 20, 10, 0, -10, -1000000]),
+        ({"priority_min": 1, "priority_max": 9}, []),
+    ],
+)
+def test_get_filters_by_rerun_priority(
+    get: Get, generator: DataGenerator, params: dict[str, int | list[int]], expected_priorities: list[int]
+):
+    artefact = generator.gen_artefact()
+    build = generator.gen_artefact_build(artefact)
+    for priority in [-1000000, -10, 0, 10, 20, 1000000]:
+        environment = generator.gen_environment(name=f"priority-{priority}")
+        execution = generator.gen_test_execution(build, environment)
+        generator.gen_rerun_request(execution, priority=priority)
+
+    response = get(**params)
+
+    assert response.status_code == 200
+    assert [r["priority"] for r in response.json()] == expected_priorities
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"priorities": [0], "priority_min": 0},
+        {"priorities": [0], "priority_max": 0},
+        {"priorities": [0, 10], "priority_min": 0, "priority_max": 10},
+        {"priority_min": 10, "priority_max": 0},
+    ],
+)
+def test_get_rejects_incompatible_priority_filters(get: Get, params: dict[str, int | list[int]]):
+    response = get(**params)
+
+    assert response.status_code == 422
+    assert "priority" in response.json()["detail"]
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"artefacts": [""]},
+        {"artefacts": ["alpha", ""]},
+        *[
+            {key: value}
+            for key in ["priorities", "priority_min", "priority_max"]
+            for value in ["", "invalid", "1.5", "-1000001", "1000001"]
+        ],
+        {"priorities": ["0", "1000001"]},
+        {"priorities": ["0", "invalid"]},
+    ],
+)
+def test_get_rejects_invalid_filter_values(test_client: TestClient, params: dict[str, str | list[str]]):
+    response = make_authenticated_request(
+        lambda: test_client.get(reruns_url, params=params),
+        Permission.view_rerun,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"][0] == "query"
+
+
+@pytest.mark.parametrize("priority_filters", [{"priorities": [10]}, {"priority_min": 0, "priority_max": 10}])
+def test_get_combines_new_and_existing_filters(
+    get: Get, generator: DataGenerator, priority_filters: dict[str, int | list[int]]
+):
+    selected_artefact = generator.gen_artefact(name="alpha")
+    other_artefact = generator.gen_artefact(name="beta")
+    other_family = generator.gen_artefact(name="alpha", family=FamilyName.charm)
+    selected_build = generator.gen_artefact_build(selected_artefact, architecture="arm64")
+    other_build = generator.gen_artefact_build(selected_artefact, architecture="amd64")
+    selected_environment = generator.gen_environment("selected", architecture="arm64")
+    other_environment = generator.gen_environment("other", architecture="arm64")
+    other_environment_arch = generator.gen_environment("selected", architecture="amd64")
+    executions: list[TestExecution] = []
+    for build, environment, priority in [
+        (selected_build, selected_environment, 10),
+        (selected_build, selected_environment, 20),
+        (generator.gen_artefact_build(other_artefact), selected_environment, 10),
+        (generator.gen_artefact_build(other_family, architecture="arm64"), selected_environment, 10),
+        (other_build, selected_environment, 10),
+        (selected_build, other_environment, 10),
+        (selected_build, other_environment_arch, 10),
+    ]:
+        execution = generator.gen_test_execution(build, environment, test_plan=f"plan-{len(executions)}")
+        generator.gen_rerun_request(execution, priority=priority)
+        executions.append(execution)
+
+    response = get(
+        artefacts=["alpha"],
+        family=selected_artefact.family,
+        environments=["selected", "missing"],
+        environment_architecture="arm64",
+        build_architecture="arm64",
+        **priority_filters,
+    )
+
+    assert response.status_code == 200
+    assert [r["test_execution_id"] for r in response.json()] == [executions[0].id]
+
+
+@pytest.mark.parametrize(
+    ("names", "priorities"),
+    [(["alpha"], [0, 10, 100]), (["alpha", "other"], [0, 10])],
+)
+def test_get_filters_before_limit_and_preserves_order(
+    get: Get, generator: DataGenerator, names: list[str], priorities: list[int]
+):
+    environment = generator.gen_environment()
+    executions: list[TestExecution] = []
+    for name, priority in [("other", 100), ("alpha", 0), ("alpha", 10), ("alpha", 10), ("alpha", 10)]:
+        artefact = generator.gen_artefact(name=name, version=str(len(executions)))
+        build = generator.gen_artefact_build(artefact)
+        execution = generator.gen_test_execution(build, environment)
+        rerun = generator.gen_rerun_request(execution, priority=priority)
+        if priority == 10:
+            rerun.created_at = datetime(2025 if len(executions) == 4 else 2026, 1, 1)
+        executions.append(execution)
+    generator.db_session.flush()
+
+    response = get(artefacts=names, priorities=priorities, limit=3)
+
+    assert response.status_code == 200
+    assert [r["test_execution_id"] for r in response.json()] == [
+        executions[4].id,
+        executions[2].id,
+        executions[3].id,
+    ]
+    assert get(artefacts=["alpha"], priority_min=0, limit=0).json() == []
 
 
 def test_post_without_priority_does_not_change_existing_priority(post: Post, get: Get, test_execution: TestExecution):
