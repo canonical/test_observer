@@ -92,11 +92,16 @@ def integrate_with_kernel_swm():
         update_artefacts_with_tracker_info(db, swm_info)
 
 
+def _get_artefacts_with_builds(db: Session, family: FamilyName) -> list[Artefact]:
+    # Missing builds provide no evidence for promotion or archival.
+    return [artefact for artefact in get_artefacts_by_family(db, family, load_builds=True) if artefact.builds]
+
+
 @app.task
 def run_promote_artefacts():
     with SessionLocal() as db:
-        snap_artefacts = get_artefacts_by_family(db, FamilyName.snap, load_builds=True)
-        deb_artefacts = get_artefacts_by_family(db, FamilyName.deb, load_builds=True)
+        snap_artefacts = _get_artefacts_with_builds(db, FamilyName.snap)
+        deb_artefacts = _get_artefacts_with_builds(db, FamilyName.deb)
         promotion_source_values = {
             artefact.id: (artefact.stage, artefact.archived) for artefact in snap_artefacts + deb_artefacts
         }
