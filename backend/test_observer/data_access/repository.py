@@ -272,6 +272,20 @@ def get_or_create(
     return instance
 
 
+def get_artefact_identity(fields: dict[str, Any]) -> dict[str, Any]:
+    """Return lookup fields without metadata outside the existing unique keys."""
+    family = FamilyName(fields["family"])
+    identity = {"name": fields["name"], "version": fields["version"], "family": family}
+    match family:
+        case FamilyName.snap | FamilyName.charm:
+            identity |= {"track": fields["track"], "branch": fields["branch"]}
+        case FamilyName.deb:
+            identity |= {"series": fields["series"], "repo": fields["repo"], "source": fields["source"]}
+        case FamilyName.image:
+            identity = {"family": family, "sha256": fields["sha256"]}
+    return identity
+
+
 def get_or_create_environments(
     session: Session,
     environment_keys: Iterable[tuple[str, str]],
