@@ -1606,7 +1606,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/StageName"
+                  "type": "string"
                 },
                 {
                   "type": "null"
@@ -6881,12 +6881,14 @@
           "stage": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/StageName"
+                "type": "string",
+                "maxLength": 100
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Stage"
           },
           "comment": {
             "anyOf": [
@@ -7435,24 +7437,6 @@
         ],
         "title": "C3TestResultStatus"
       },
-      "CharmStage": {
-        "type": "string",
-        "enum": [
-          "edge",
-          "beta",
-          "candidate",
-          "stable"
-        ],
-        "title": "CharmStage"
-      },
-      "DebStage": {
-        "type": "string",
-        "enum": [
-          "proposed",
-          "updates"
-        ],
-        "title": "DebStage"
-      },
       "DeleteReruns": {
         "properties": {
           "test_execution_ids": {
@@ -7810,14 +7794,6 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
-      },
-      "ImageStage": {
-        "type": "string",
-        "enum": [
-          "pending",
-          "current"
-        ],
-        "title": "ImageStage"
       },
       "IssueAttachmentRequest": {
         "properties": {
@@ -8764,40 +8740,6 @@
         ],
         "title": "ReviewerResponse"
       },
-      "SnapStage": {
-        "type": "string",
-        "enum": [
-          "edge",
-          "beta",
-          "candidate",
-          "stable"
-        ],
-        "title": "SnapStage"
-      },
-      "SolutionStage": {
-        "type": "string",
-        "enum": [
-          "edge",
-          "beta",
-          "candidate",
-          "stable"
-        ],
-        "title": "SolutionStage"
-      },
-      "StageName": {
-        "type": "string",
-        "enum": [
-          "proposed",
-          "updates",
-          "edge",
-          "beta",
-          "candidate",
-          "stable",
-          "pending",
-          "current"
-        ],
-        "title": "StageName"
-      },
       "StartCharmTestExecutionRequest": {
         "properties": {
           "name": {
@@ -8891,8 +8833,10 @@
             "default": ""
           },
           "execution_stage": {
-            "$ref": "#/components/schemas/CharmStage",
-            "description": "Distribution channel/risk level of the charm being tested. Options: 'edge' (cutting-edge updates), 'beta' (pre-release), 'candidate' (release candidate), 'stable' (production). Choose based on where the charm currently resides in the release pipeline."
+            "type": "string",
+            "maxLength": 100,
+            "title": "Execution Stage",
+            "description": "Distribution channel/risk level of the charm being tested. Examples include 'edge' (cutting-edge updates), 'beta' (pre-release), 'candidate' (release candidate), 'stable' (production). Choose based on where the charm currently resides in the release pipeline."
           }
         },
         "type": "object",
@@ -8999,22 +8943,14 @@
             "type": "string",
             "maxLength": 200,
             "title": "Source",
-            "description": "Source package name for PPA builds, or empty string for archive pockets. Provide this OR execution_stage, not both. Use source when testing from a PPA, use execution_stage when testing from official archive pockets.",
+            "description": "Source package name for PPA builds, or empty string for archive pockets. Use source when testing from a PPA, and execution_stage when testing from official archive pockets. They cannot both be nonempty.",
             "default": ""
           },
           "execution_stage": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DebStage"
-              },
-              {
-                "type": "string",
-                "const": ""
-              }
-            ],
+            "type": "string",
             "maxLength": 100,
             "title": "Execution Stage",
-            "description": "Archive pocket where the deb resides, or empty string for PPAs. Options: 'proposed' (pre-release testing area), 'updates' (stable updates). Provide this OR source, not both. Use execution_stage for official archive testing, leave empty if testing from a PPA (and provide source instead).",
+            "description": "Archive pocket where the deb resides, or empty string for PPAs. Common archive pockets include 'proposed' (pre-release testing area) and 'updates' (stable updates). Use execution_stage for official archive testing. This and source cannot both be nonempty.",
             "default": ""
           }
         },
@@ -9132,13 +9068,15 @@
           "execution_stage": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/ImageStage"
+                "type": "string",
+                "maxLength": 100
               },
               {
                 "type": "null"
               }
             ],
-            "description": "Promotion stage of the image being tested. Options: 'pending' (awaiting approval), 'current' (approved and published). Use 'pending' for images undergoing testing before promotion."
+            "title": "Execution Stage",
+            "description": "Promotion stage of the image being tested. Examples include 'pending' (awaiting approval) and 'current' (approved and published). Use 'pending' for images undergoing testing before promotion."
           },
           "os": {
             "anyOf": [
@@ -9304,8 +9242,10 @@
             "default": ""
           },
           "execution_stage": {
-            "$ref": "#/components/schemas/SnapStage",
-            "description": "Distribution channel/risk level of the snap being tested. Options: 'edge' (cutting-edge, frequent updates), 'beta' (pre-release testing), 'candidate' (release candidate), 'stable' (production ready). Choose based on where the snap currently resides in the release pipeline."
+            "type": "string",
+            "maxLength": 100,
+            "title": "Execution Stage",
+            "description": "Distribution channel/risk level of the snap being tested. Examples include 'edge' (cutting-edge, frequent updates), 'beta' (pre-release testing), 'candidate' (release candidate), 'stable' (production ready). Choose based on where the snap currently resides in the release pipeline."
           }
         },
         "type": "object",
@@ -9405,7 +9345,9 @@
             "title": "Attributes"
           },
           "execution_stage": {
-            "$ref": "#/components/schemas/SolutionStage",
+            "type": "string",
+            "maxLength": 100,
+            "title": "Execution Stage",
             "description": "Promotion stage of the solution being tested."
           }
         },

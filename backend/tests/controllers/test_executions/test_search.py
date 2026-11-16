@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import FamilyName, StageName, TestExecutionStatus
+from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -295,8 +295,8 @@ class TestSearchTestExecutions:
         assert te_b.id not in te_ids
 
     def test_filter_by_artefact_stage(self, test_client: TestClient, generator: DataGenerator):
-        artefact_edge = generator.gen_artefact(name=_uid("artefact"), stage=StageName.edge)
-        artefact_beta = generator.gen_artefact(name=_uid("artefact"), stage=StageName.beta)
+        artefact_edge = generator.gen_artefact(name=_uid("artefact"), stage="edge")
+        artefact_beta = generator.gen_artefact(name=_uid("artefact"), stage="beta")
         env = generator.gen_environment(name=_uid("env"))
 
         te_edge = generator.gen_test_execution(generator.gen_artefact_build(artefact_edge), env)

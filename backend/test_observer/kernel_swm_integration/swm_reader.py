@@ -18,7 +18,7 @@ from typing import TypedDict
 
 import requests
 
-from test_observer.data_access.models_enums import StageName
+_STAGE_KEYS = ("proposed", "updates", "edge", "beta", "candidate", "stable", "pending", "current")
 
 
 class ArtefactTrackerInfo(TypedDict):
@@ -59,7 +59,7 @@ def _is_tracker_open(tracker: dict) -> bool:
 def _extract_artefact_id(tracker: dict) -> int | None:
     to_info = tracker.get("test-observer")
     if to_info:
-        for stage in StageName:
+        for stage in _STAGE_KEYS:
             if stage in to_info:
                 return to_info[stage]
     return None

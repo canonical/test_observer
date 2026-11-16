@@ -23,7 +23,6 @@ from fastapi.testclient import TestClient
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
     FamilyName,
-    StageName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -1011,7 +1010,7 @@ class TestSearchTestResults:
         artefact = generator.gen_artefact(
             name=generate_unique_name(f"artefact_{unique_marker}"),
             family=FamilyName.snap,
-            stage=StageName.edge,
+            stage="edge",
         )
         artefact_build = generator.gen_artefact_build(artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
@@ -1021,7 +1020,7 @@ class TestSearchTestResults:
         other_artefact = generator.gen_artefact(
             name=generate_unique_name(f"other_{unique_marker}"),
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
         other_build = generator.gen_artefact_build(other_artefact)
         other_execution = generator.gen_test_execution(other_build, environment)

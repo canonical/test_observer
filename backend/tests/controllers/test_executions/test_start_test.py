@@ -31,14 +31,8 @@ from test_observer.data_access.models import (
     TestExecution,
 )
 from test_observer.data_access.models_enums import (
-    CharmStage,
-    DebStage,
     FamilyName,
-    ImageStage,
     NotificationType,
-    SnapStage,
-    SolutionStage,
-    StageName,
     TestExecutionStatus,
 )
 from tests.asserts import assert_fails_validation
@@ -69,7 +63,7 @@ snap_test_request = {
     "track": "22",
     "store": "ubuntu",
     "arch": "arm64",
-    "execution_stage": SnapStage.beta,
+    "execution_stage": "beta",
     "environment": "cm3",
     "ci_link": "http://localhost",
     "test_plan": "test plan",
@@ -81,7 +75,7 @@ deb_test_request = {
     "version": "6.8.0-50.51~22.04.1",
     "series": "jammy",
     "repo": "main",
-    "execution_stage": DebStage.proposed,
+    "execution_stage": "proposed",
     "arch": "amd64",
     "environment": "xps",
     "ci_link": "http://localhost",
@@ -95,7 +89,7 @@ charm_test_request = {
     "revision": 123,
     "track": "22",
     "arch": "arm64",
-    "execution_stage": CharmStage.beta,
+    "execution_stage": "beta",
     "environment": "juju 3 - microk8s 2",
     "ci_link": "http://localhost",
     "test_plan": "test plan",
@@ -111,7 +105,7 @@ image_test_request = {
     "sha256": "e71fb5681e63330445eec6fc3fe043f365289c2e595e3ceeac08fbeccfb9a957",
     "owner": "foundations",
     "image_url": "https://cdimage.ubuntu.com/noble/daily-live/20240827/noble-desktop-amd64.iso",
-    "execution_stage": ImageStage.pending,
+    "execution_stage": "pending",
     "test_plan": "image test plan",
     "environment": "xps",
     "ci_link": "http://localhost",
@@ -122,7 +116,7 @@ solution_test_request = {
     "name": "ubuntu-pro-fips",
     "version": "1.2.3",
     "arch": "amd64",
-    "execution_stage": SolutionStage.beta,
+    "execution_stage": "beta",
     "environment": "test-lab",
     "ci_link": "http://localhost",
     "test_plan": "fips test plan",
@@ -1077,32 +1071,31 @@ def test_kernel_artefact_due_date(db_session: Session, execute: Execute):
 
 
 @pytest.mark.parametrize(
-    "invalid_stage",
-    set(StageName) - set(DebStage),
+    "start_request",
+    [snap_test_request, deb_test_request, charm_test_request, image_test_request, solution_test_request],
 )
-def test_validates_stage_for_debs(execute: Execute, invalid_stage: StageName):
-    response = execute({**deb_test_request, "execution_stage": invalid_stage})
-
-    assert response.status_code == 422
+def test_accepts_custom_and_empty_stages(execute: Execute, start_request: dict[str, Any]) -> None:
+    for stage in ("custom-stage", ""):
+        response = execute({**start_request, "execution_stage": stage})
+        assert response.status_code == 200
 
 
 @pytest.mark.parametrize(
-    "invalid_stage",
-    set(StageName) - set(SnapStage),
+    "start_request",
+    [snap_test_request, deb_test_request, charm_test_request, image_test_request, solution_test_request],
 )
-def test_validates_stage_for_snaps(execute: Execute, invalid_stage: StageName):
-    response = execute({**snap_test_request, "execution_stage": invalid_stage})
-
+def test_rejects_overlong_execution_stage(execute: Execute, start_request: dict[str, Any]) -> None:
+    response = execute({**start_request, "execution_stage": "s" * 101})
     assert response.status_code == 422
 
 
-@pytest.mark.parametrize(
-    "invalid_stage",
-    set(StageName) - set(CharmStage),
-)
-def test_validates_stage_for_charms(execute: Execute, invalid_stage: StageName):
-    response = execute({**charm_test_request, "execution_stage": invalid_stage})
+def test_deb_empty_stage_does_not_require_source(execute: Execute) -> None:
+    response = execute({**deb_test_request, "execution_stage": "", "source": ""})
+    assert response.status_code == 200
 
+
+def test_deb_source_and_stage_cannot_both_be_nonempty(execute: Execute) -> None:
+    response = execute({**deb_test_request, "source": "linux", "execution_stage": "proposed"})
     assert response.status_code == 422
 
 
@@ -1157,12 +1150,12 @@ def test_deb_source_is_part_of_uniqueness(execute: Execute, db_session: Session)
     assert te1.artefact_build.artefact_id != te2.artefact_build.artefact_id
 
 
-def test_deb_without_source_must_have_a_stage(execute: Execute):
+def test_deb_without_source_or_stage(execute: Execute):
     request = {**deb_test_request}
     request.pop("execution_stage")
     response = execute(request)
 
-    assert response.status_code == 422
+    assert response.status_code == 200
 
 
 def test_deb_with_source_and_no_stage(execute: Execute):

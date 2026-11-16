@@ -15,16 +15,12 @@
 
 """Mappings for json objects from snapcraft"""
 
-from typing import Literal
-
 from pydantic import BaseModel
-
-from test_observer.data_access.models_enums import StageName
 
 
 class Channel(BaseModel):
     architecture: str
-    risk: Literal[StageName.edge, StageName.beta, StageName.candidate, StageName.stable]
+    risk: str
     track: str
 
 

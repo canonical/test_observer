@@ -17,13 +17,12 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import StageName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
 
 def test_post_relevant_link_success(test_client: TestClient, generator: DataGenerator, db_session: Session):
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(artefact_build, environment, ci_link="http://test.ci/link")
@@ -59,7 +58,7 @@ def test_post_relevant_link_test_execution_not_found(test_client: TestClient):
 
 
 def test_post_relevant_link_invalid_body(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(artefact_build, environment, ci_link="http://test.ci/link")
@@ -86,7 +85,7 @@ def test_post_relevant_link_invalid_body(test_client: TestClient, generator: Dat
 
 
 def test_delete_relevant_link_success(test_client: TestClient, generator: DataGenerator, db_session: Session):
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(

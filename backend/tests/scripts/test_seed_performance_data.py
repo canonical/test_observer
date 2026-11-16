@@ -28,7 +28,7 @@ from test_observer.data_access.models import (
     TestExecution,
     TestResult,
 )
-from test_observer.data_access.models_enums import StageName, TestExecutionStatus, TestResultStatus
+from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from tests.data_generator import DataGenerator
 
 
@@ -126,7 +126,7 @@ def test_attaches_issues_to_failed_results_through_rules_with_metadata(db_sessio
 
 
 def test_leaves_failed_results_it_did_not_create_alone(db_session: Session, generator: DataGenerator):
-    build = generator.gen_artefact_build(generator.gen_artefact(StageName.beta))
+    build = generator.gen_artefact_build(generator.gen_artefact("beta"))
     execution = generator.gen_test_execution(build, generator.gen_environment())
     existing = generator.gen_test_result(generator.gen_test_case(), execution, status=TestResultStatus.FAILED)
 

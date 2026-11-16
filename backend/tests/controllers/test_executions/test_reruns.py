@@ -30,7 +30,6 @@ from test_observer.controllers.applications.application_injection import (
 from test_observer.data_access.models import Artefact, ArtefactMatchingRule, Environment, Team, TestExecution, User
 from test_observer.data_access.models_enums import (
     FamilyName,
-    StageName,
     TestResultStatus,
 )
 from test_observer.main import app
@@ -284,7 +283,7 @@ def test_get_after_two_different_posts(get: Get, post: Post, test_execution: Tes
 
 
 def test_get_after_post_with_two_test_execution_ids(get: Get, post: Post, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("e1")
     e2 = generator.gen_environment("e2")
@@ -327,7 +326,7 @@ def test_delete_with_multiple_test_executions_same_composite_key(
     get: Get, post: Post, delete: Delete, generator: DataGenerator
 ):
     """Test deleting when multiple test executions share the same composite key"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
 
@@ -352,7 +351,7 @@ def test_delete_with_multiple_test_executions_same_composite_key(
 
 def test_delete_with_multiple_different_composite_keys(get: Get, post: Post, delete: Delete, generator: DataGenerator):
     """Test deleting multiple rerun requests with different composite keys"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
 
     e1 = generator.gen_environment("env1")
@@ -378,7 +377,7 @@ def test_delete_with_multiple_different_composite_keys(get: Get, post: Post, del
 
 def test_delete_partial_match(get: Get, post: Post, delete: Delete, generator: DataGenerator):
     """Test deleting when only some test_execution_ids match rerun requests"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
 
@@ -398,7 +397,7 @@ def test_delete_partial_match(get: Get, post: Post, delete: Delete, generator: D
 
 def test_delete_non_matching_composite_keys(get: Get, post: Post, delete: Delete, generator: DataGenerator):
     """Test deleting with test_execution_ids that don't match any rerun requests"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab1 = generator.gen_artefact_build(a, architecture="arm64")
     ab2 = generator.gen_artefact_build(a, architecture="amd64")
     e = generator.gen_environment("test-env")
@@ -426,7 +425,7 @@ def test_delete_non_matching_composite_keys(get: Get, post: Post, delete: Delete
 
 def test_get_with_family(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
     te1 = test_execution
-    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    a = generator.gen_artefact("beta", family=FamilyName.charm)
     ab = generator.gen_artefact_build(a)
     e2 = generator.gen_environment("e2")
     te2 = generator.gen_test_execution(ab, e2)
@@ -441,7 +440,7 @@ def test_get_with_family(get: Get, post: Post, test_execution: TestExecution, ge
 
 def test_rerun_preserves_ci_and_relevant_links(get: Get, post: Post, generator: DataGenerator):
     environment = generator.gen_environment()
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
 
     expected_ci_link = "http://ci.example.com/build-123"
@@ -490,7 +489,7 @@ def test_get_with_environment_filter(get: Get, post: Post, test_execution: TestE
 
 
 def test_get_with_build_architecture_filter(get: Get, post: Post, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab_arm64 = generator.gen_artefact_build(a, architecture="arm64")
     ab_amd64 = generator.gen_artefact_build(a, architecture="amd64")
     ab_armhf = generator.gen_artefact_build(a, architecture="armhf")
@@ -509,7 +508,7 @@ def test_get_with_build_architecture_filter(get: Get, post: Post, generator: Dat
 
 
 def test_get_with_environment_architecture_filter(get: Get, post: Post, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
 
     e_arm64 = generator.gen_environment("rpi4", architecture="arm64")
@@ -529,11 +528,11 @@ def test_get_with_environment_architecture_filter(get: Get, post: Post, generato
 
 def test_get_with_combined_filters(get: Get, post: Post, generator: DataGenerator):
     # Create snap artefact with arm64 build
-    snap_artefact = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    snap_artefact = generator.gen_artefact("beta", family=FamilyName.snap)
     snap_build_arm64 = generator.gen_artefact_build(snap_artefact, architecture="arm64")
 
     # Create deb artefact with amd64 build
-    deb_artefact = generator.gen_artefact(StageName.proposed, family=FamilyName.deb)
+    deb_artefact = generator.gen_artefact("proposed", family=FamilyName.deb)
     deb_build_amd64 = generator.gen_artefact_build(deb_artefact, architecture="amd64")
 
     # Create environments
@@ -580,7 +579,7 @@ def test_get_with_combined_filters(get: Get, post: Post, generator: DataGenerato
 
 def test_get_multiple_reruns_same_build_different_environments(get: Get, post: Post, generator: DataGenerator):
     """Test filtering when same build is tested on multiple environments"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a, architecture="arm64")
 
     e1 = generator.gen_environment("rpi4", architecture="arm64")
@@ -612,7 +611,7 @@ def test_get_multiple_reruns_same_build_different_environments(get: Get, post: P
 
 def test_post_with_test_results_filters_requires_silent(test_client: TestClient, generator: DataGenerator):
     """Test that using test_results_filters without silent=true returns 422"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e)
@@ -638,7 +637,7 @@ def test_post_with_test_results_filters_requires_silent(test_client: TestClient,
 
 def test_post_silent_with_test_results_filters(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test creating reruns silently with test_results_filters"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -676,7 +675,7 @@ def test_post_silent_with_test_results_filters(test_client: TestClient, get: Get
 
 def test_post_silent_with_multiple_test_results_filters(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test creating reruns with multiple filter criteria"""
-    a = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    a = generator.gen_artefact("beta", family=FamilyName.snap)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -730,7 +729,7 @@ def test_post_silent_with_empty_test_results_filters_returns_422(
 
 def test_post_silent_with_test_execution_ids(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test creating reruns silently with test_execution_ids"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -756,7 +755,7 @@ def test_post_silent_with_test_execution_ids(test_client: TestClient, get: Get, 
 
 def test_post_silent_with_both_filters_and_ids(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test creating reruns with both test_execution_ids and test_results_filters"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -795,7 +794,7 @@ def test_post_silent_with_both_filters_and_ids(test_client: TestClient, get: Get
 
 def test_delete_with_test_results_filters(test_client: TestClient, post: Post, get: Get, generator: DataGenerator):
     """Test deleting reruns with test_results_filters"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("env1")
     e2 = generator.gen_environment("env2")
@@ -860,7 +859,7 @@ def test_delete_with_empty_test_results_filters_returns_422(
 
 def test_bulk_permission_required_for_multiple_test_execution_ids(test_client: TestClient, generator: DataGenerator):
     """Test that change_rerun_bulk permission is required for multiple IDs"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -880,7 +879,7 @@ def test_bulk_permission_required_for_multiple_test_execution_ids(test_client: T
 
 def test_bulk_permission_not_required_for_single_test_execution_id(test_client: TestClient, generator: DataGenerator):
     """Test that change_rerun_bulk permission is NOT required for single ID"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -899,7 +898,7 @@ def test_bulk_permission_not_required_for_single_test_execution_id(test_client: 
 
 def test_bulk_permission_required_for_test_results_filters(test_client: TestClient, generator: DataGenerator):
     """Test that change_rerun_bulk permission is required for test_results_filters"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -927,7 +926,7 @@ def test_delete_bulk_permission_required_for_multiple_ids(
     test_client: TestClient, post: Post, generator: DataGenerator
 ):
     """Test that change_rerun_bulk permission is required for deleting multiple IDs"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("env1")
     e2 = generator.gen_environment("env2")
@@ -954,7 +953,7 @@ def test_delete_bulk_permission_not_required_for_single_id(
     test_client: TestClient, post: Post, get: Get, generator: DataGenerator
 ):
     """Test that change_rerun_bulk permission is NOT required for deleting single ID"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -982,7 +981,7 @@ def test_user_team_permission_respected_for_post(
     """Test that team permissions are respected for POST and not ignored by AMR permission checks.
     If no AMR exists, but the user has the required team permissions, the request should succeed.
     """
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te_1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -1038,7 +1037,7 @@ def test_post_silent_with_empty_ids_does_nothing(test_client: TestClient, get: G
 
 def test_post_with_filters_matching_no_results(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test that filters matching no test results does nothing"""
-    a = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    a = generator.gen_artefact("beta", family=FamilyName.snap)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -1068,8 +1067,8 @@ def test_post_with_filters_matching_no_results(test_client: TestClient, get: Get
 
 def test_post_filters_by_artefact_name(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test filtering reruns by artefact name"""
-    a1 = generator.gen_artefact(StageName.beta, name="firefox")
-    a2 = generator.gen_artefact(StageName.beta, name="chrome")
+    a1 = generator.gen_artefact("beta", name="firefox")
+    a2 = generator.gen_artefact("beta", name="chrome")
     ab1 = generator.gen_artefact_build(a1)
     ab2 = generator.gen_artefact_build(a2)
     e = generator.gen_environment("test-env")
@@ -1106,7 +1105,7 @@ def test_post_filters_by_artefact_name(test_client: TestClient, get: Get, genera
 
 def test_post_filters_by_environment_name(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test filtering reruns by environment name"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("rpi4")
     e2 = generator.gen_environment("laptop")
@@ -1143,7 +1142,7 @@ def test_post_filters_by_environment_name(test_client: TestClient, get: Get, gen
 
 def test_delete_with_empty_ids_does_nothing(post: Post, get: Get, delete: Delete, generator: DataGenerator):
     """Test that deleting with empty IDs does nothing"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -1162,7 +1161,7 @@ def test_delete_with_empty_ids_does_nothing(post: Post, get: Get, delete: Delete
 
 def test_post_non_silent_with_single_id_and_filters_fails(test_client: TestClient, generator: DataGenerator):
     """Test that non-silent mode fails even with single ID if filters are provided"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -1238,7 +1237,7 @@ class TestRerunAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
@@ -1269,7 +1268,7 @@ class TestRerunAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
@@ -1300,7 +1299,7 @@ class TestRerunAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.beta,
+            stage="beta",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
@@ -1329,7 +1328,7 @@ class TestRerunAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
@@ -1374,7 +1373,7 @@ class TestRerunAMRPermissions:
             artefact = generator.gen_artefact(
                 name=f"test-snap-{i}",
                 family=FamilyName.snap,
-                stage=StageName.stable,
+                stage="stable",
             )
             test_execution = self._create_test_execution_for_artefact(generator, artefact, environment)
             test_execution_ids.append(test_execution.id)
@@ -1411,14 +1410,14 @@ class TestRerunAMRPermissions:
         snap_artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
         snap_te = self._create_test_execution_for_artefact(generator, snap_artefact, environment)
 
         deb_artefact = generator.gen_artefact(
             name="test-deb",
             family=FamilyName.deb,
-            stage=StageName.proposed,
+            stage="proposed",
         )
         deb_te = self._create_test_execution_for_artefact(generator, deb_artefact, environment)
 
@@ -1454,7 +1453,7 @@ class TestRerunAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
@@ -1496,7 +1495,7 @@ class TestRerunAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-deb",
             family=FamilyName.deb,
-            stage=StageName.proposed,
+            stage="proposed",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
@@ -1533,7 +1532,7 @@ class TestRerunAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
@@ -1563,7 +1562,7 @@ class TestRerunAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
@@ -1623,7 +1622,7 @@ class TestRerunAMRPermissions:
         artefact = generator.gen_artefact(
             name="test-snap",
             family=FamilyName.snap,
-            stage=StageName.stable,
+            stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
 
@@ -1679,7 +1678,7 @@ def test_post_negative_priority_is_returned(post: Post, get: Get, test_execution
 
 
 def test_get_sorted_by_priority_descending(post: Post, get: Get, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("e1")
     e2 = generator.gen_environment("e2")
@@ -1699,7 +1698,7 @@ def test_get_sorted_by_priority_descending(post: Post, get: Get, generator: Data
 
 def test_get_fifo_within_same_priority(get: Get, generator: DataGenerator):
     """Within same priority, older reruns should come first."""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e1 = generator.gen_environment("env-fifo-1")
     e2 = generator.gen_environment("env-fifo-2")
@@ -1730,7 +1729,7 @@ def test_silent_post_without_priority_does_not_change_existing_priority(
     test_client: TestClient, get: Get, generator: DataGenerator
 ):
     """Silent post without priority should not overwrite an existing rerun's priority."""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("silent-no-priority-env")
     te = generator.gen_test_execution(ab, e)
@@ -1767,7 +1766,7 @@ def test_silent_post_updates_priority_if_rerun_already_exists(
     test_client: TestClient, get: Get, generator: DataGenerator
 ):
     """Silent post with a different priority should update an existing rerun's priority."""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("silent-update-env")
     te = generator.gen_test_execution(ab, e)
@@ -1801,7 +1800,7 @@ def test_silent_post_updates_priority_if_rerun_already_exists(
 
 def test_post_with_test_executions_filters_requires_silent(test_client: TestClient, generator: DataGenerator):
     """test_executions_filters without silent=True returns 422"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     generator.gen_test_execution(ab, e)
@@ -1823,7 +1822,7 @@ def test_post_silent_with_test_executions_filters_on_not_started_execution(
     test_client: TestClient, get: Get, generator: DataGenerator
 ):
     """Can create reruns for NOT_STARTED executions (no test results) via test_executions_filters"""
-    a = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    a = generator.gen_artefact("beta", family=FamilyName.snap)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e)
@@ -1851,8 +1850,8 @@ def test_post_silent_with_test_executions_filters_matches_by_family(
     test_client: TestClient, get: Get, generator: DataGenerator
 ):
     """test_executions_filters with families filter only matches matching artefacts"""
-    a_snap = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
-    a_deb = generator.gen_artefact(StageName.beta, family=FamilyName.deb)
+    a_snap = generator.gen_artefact("beta", family=FamilyName.snap)
+    a_deb = generator.gen_artefact("beta", family=FamilyName.deb)
     ab_snap = generator.gen_artefact_build(a_snap)
     ab_deb = generator.gen_artefact_build(a_deb)
     e = generator.gen_environment("test-env")
@@ -1893,8 +1892,8 @@ def test_post_silent_with_empty_test_executions_filters_returns_422(test_client:
 
 def test_delete_with_test_executions_filters(test_client: TestClient, post: Post, get: Get, generator: DataGenerator):
     """Can delete reruns using test_executions_filters"""
-    a1 = generator.gen_artefact(StageName.beta, name="snap-a")
-    a2 = generator.gen_artefact(StageName.beta, name="snap-b")
+    a1 = generator.gen_artefact("beta", name="snap-a")
+    a2 = generator.gen_artefact("beta", name="snap-b")
     ab1 = generator.gen_artefact_build(a1)
     ab2 = generator.gen_artefact_build(a2)
     e = generator.gen_environment("test-env")
@@ -1922,7 +1921,7 @@ def test_delete_with_test_executions_filters(test_client: TestClient, post: Post
 
 def test_bulk_permission_required_for_test_executions_filters(test_client: TestClient, generator: DataGenerator):
     """change_rerun_bulk is required when using test_executions_filters"""
-    a = generator.gen_artefact(StageName.beta)
+    a = generator.gen_artefact("beta")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     generator.gen_test_execution(ab, e)
@@ -1982,7 +1981,7 @@ def _get_details(test_client: TestClient, **params: Any) -> Response:  # noqa: A
 
 
 def test_details_groups_counts_by_priority_and_defaults_to_highest(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    a = generator.gen_artefact("beta", family=FamilyName.charm)
     ab = generator.gen_artefact_build(a)
     # Distinct environments so each rerun is its own (test_plan, build, environment) group.
     for i, priority in enumerate([5, 5, 0, -3]):
@@ -2004,7 +2003,7 @@ def test_details_groups_counts_by_priority_and_defaults_to_highest(test_client: 
 
 
 def test_details_selected_priority_returns_fields_and_paginates(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    a = generator.gen_artefact("beta", family=FamilyName.charm)
     ab = generator.gen_artefact_build(a)
     total = 55
     for i in range(total):
@@ -2038,8 +2037,8 @@ def test_details_selected_priority_returns_fields_and_paginates(test_client: Tes
 
 
 def test_details_filters_by_family_and_is_empty_when_none_exist(test_client: TestClient, generator: DataGenerator):
-    charm = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
-    snap = generator.gen_artefact(StageName.beta, family=FamilyName.snap)
+    charm = generator.gen_artefact("beta", family=FamilyName.charm)
+    snap = generator.gen_artefact("beta", family=FamilyName.snap)
     e = generator.gen_environment("family-env")
     for artefact in (charm, snap):
         ab = generator.gen_artefact_build(artefact)
@@ -2058,7 +2057,7 @@ def test_details_filters_by_family_and_is_empty_when_none_exist(test_client: Tes
 
 
 def test_details_rejects_priority_with_no_reruns(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact(StageName.beta, family=FamilyName.charm)
+    a = generator.gen_artefact("beta", family=FamilyName.charm)
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("unavailable-priority-env")
     te = generator.gen_test_execution(ab, e)

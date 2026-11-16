@@ -20,7 +20,6 @@ from fastapi.testclient import TestClient
 from test_observer.common.constants import PREVIOUS_TEST_RESULT_COUNT
 from test_observer.common.enums import Permission
 from test_observer.data_access.models import TestExecution, TestExecutionMetadata
-from test_observer.data_access.models_enums import StageName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -29,7 +28,7 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
     environment = generator.gen_environment()
     test_case = generator.gen_test_case(template_id="template")
 
-    artefact_first = generator.gen_artefact(StageName.beta, version="1.1.1")
+    artefact_first = generator.gen_artefact("beta", version="1.1.1")
     artefact_build_first = generator.gen_artefact_build(artefact_first)
     test_execution_first = generator.gen_test_execution(
         artefact_build_first,
@@ -41,7 +40,7 @@ def test_fetch_test_results(test_client: TestClient, generator: DataGenerator):
         test_execution_first,
     )
 
-    artefact_second = generator.gen_artefact(StageName.beta, version="1.1.2")
+    artefact_second = generator.gen_artefact("beta", version="1.1.2")
     artefact_build_second = generator.gen_artefact_build(artefact_second)
     test_execution_second = generator.gen_test_execution(
         artefact_build_second,
@@ -107,7 +106,7 @@ def test_previous_results_shows_reruns(test_client: TestClient, generator: DataG
     e = generator.gen_environment()
     tc = generator.gen_test_case()
 
-    a = generator.gen_artefact(StageName.beta, version="1")
+    a = generator.gen_artefact("beta", version="1")
     ab = generator.gen_artefact_build(a)
 
     te1 = generator.gen_test_execution(ab, e)
@@ -150,8 +149,8 @@ def test_previous_results_orders_by_artefact(test_client: TestClient, generator:
     e = generator.gen_environment()
     tc = generator.gen_test_case()
 
-    a1 = generator.gen_artefact(StageName.candidate, version="1")
-    a2 = generator.gen_artefact(StageName.beta, version="2")
+    a1 = generator.gen_artefact("candidate", version="1")
+    a2 = generator.gen_artefact("beta", version="2")
 
     ab1 = generator.gen_artefact_build(a1)
     ab2 = generator.gen_artefact_build(a2)
@@ -196,7 +195,7 @@ def test_shows_up_to_maximum_previous_results(test_client: TestClient, generator
     e = generator.gen_environment()
     tc = generator.gen_test_case()
 
-    a = generator.gen_artefact(StageName.beta, version="1")
+    a = generator.gen_artefact("beta", version="1")
     ab = generator.gen_artefact_build(a)
 
     for _ in range(PREVIOUS_TEST_RESULT_COUNT * 2):

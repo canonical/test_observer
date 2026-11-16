@@ -18,7 +18,6 @@ from prometheus_client import REGISTRY
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models import FamilyName
-from test_observer.data_access.models_enums import StageName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -52,7 +51,7 @@ def test_triaged_metric_incremented_on_attach(test_client: TestClient, generator
         name="test-charm",
         family=FamilyName.charm,
         track="latest",
-        stage=StageName.edge,
+        stage="edge",
     )
     artefact_build = generator.gen_artefact_build(artefact)
     test_plan_name = "integration/provider:endpoint1/interface1/requirer:endpoint2"
@@ -104,7 +103,7 @@ def test_triaged_metric_decremented_on_detach(test_client: TestClient, generator
         name="test-charm",
         family=FamilyName.charm,
         track="latest",
-        stage=StageName.edge,
+        stage="edge",
     )
     artefact_build = generator.gen_artefact_build(artefact)
     test_plan_name = "integration/provider:endpoint1/interface1/requirer:endpoint2"
@@ -157,7 +156,7 @@ def test_triaged_metric_not_updated_for_non_charm_family(test_client: TestClient
     # Generate test data for snap family
     environment = generator.gen_environment()
     test_case = generator.gen_test_case()
-    artefact = generator.gen_artefact(name="test-snap", family=FamilyName.snap, track="latest", stage=StageName.edge)
+    artefact = generator.gen_artefact(name="test-snap", family=FamilyName.snap, track="latest", stage="edge")
     artefact_build = generator.gen_artefact_build(artefact)
     test_execution = generator.gen_test_execution(artefact_build, environment)
     test_result = generator.gen_test_result(test_case, test_execution)

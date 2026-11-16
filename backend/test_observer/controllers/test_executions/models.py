@@ -40,12 +40,7 @@ from test_observer.controllers.test_executions.shared_models import (
 )
 from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 from test_observer.data_access.models_enums import (
-    CharmStage,
-    DebStage,
     FamilyName,
-    ImageStage,
-    SnapStage,
-    SolutionStage,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -156,12 +151,13 @@ class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
         "level. Branches are temporary testing channels. Usually empty "
         "string (default) unless testing a specific branch.",
     )
-    execution_stage: SnapStage = Field(
+    execution_stage: str = Field(
+        max_length=100,
         description="Distribution channel/risk level of the snap being "
-        "tested. Options: 'edge' (cutting-edge, frequent updates), "
+        "tested. Examples include 'edge' (cutting-edge, frequent updates), "
         "'beta' (pre-release testing), 'candidate' (release candidate), "
         "'stable' (production ready). Choose based on where the snap "
-        "currently resides in the release pipeline."
+        "currently resides in the release pipeline.",
     )
 
 
@@ -181,24 +177,21 @@ class StartDebTestExecutionRequest(_StartTestExecutionRequest):
         max_length=200,
         default="",
         description="Source package name for PPA builds, or empty string "
-        "for archive pockets. Provide this OR execution_stage, not both. "
-        "Use source when testing from a PPA, use execution_stage when "
-        "testing from official archive pockets.",
+        "for archive pockets. Use source when testing from a PPA, and "
+        "execution_stage when testing from official archive pockets. "
+        "They cannot both be nonempty.",
     )
-    execution_stage: DebStage | Literal[""] = Field(
+    execution_stage: str = Field(
         max_length=100,
         default="",
         description="Archive pocket where the deb resides, or empty "
-        "string for PPAs. Options: 'proposed' (pre-release testing "
-        "area), 'updates' (stable updates). Provide this OR source, not "
-        "both. Use execution_stage for official archive testing, leave "
-        "empty if testing from a PPA (and provide source instead).",
+        "string for PPAs. Common archive pockets include 'proposed' (pre-release testing "
+        "area) and 'updates' (stable updates). Use execution_stage for "
+        "official archive testing. This and source cannot both be nonempty.",
     )
 
     @model_validator(mode="after")
     def one_of_source_or_stage(self) -> Self:
-        if not (self.source or self.execution_stage):
-            raise ValueError("Received no source or execution_stage")
         if self.source and self.execution_stage:
             raise ValueError("Received both source and execution_stage")
         return self
@@ -223,11 +216,12 @@ class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
         "level. Branches are temporary testing channels. Usually empty "
         "string (default) unless testing a specific branch.",
     )
-    execution_stage: CharmStage = Field(
+    execution_stage: str = Field(
+        max_length=100,
         description="Distribution channel/risk level of the charm being tested. "
-        "Options: 'edge' (cutting-edge updates), 'beta' (pre-release), "
+        "Examples include 'edge' (cutting-edge updates), 'beta' (pre-release), "
         "'candidate' (release candidate), 'stable' (production). "
-        "Choose based on where the charm currently resides in the release pipeline."
+        "Choose based on where the charm currently resides in the release pipeline.",
     )
 
 
@@ -269,10 +263,11 @@ class StartImageTestExecutionRequest(_StartTestExecutionRequest):
         description="CPU architecture where tests will execute. "
         "Common values: 'amd64', 'arm64', 'armhf', 's390x', 'ppc64el'",
     )
-    execution_stage: ImageStage | None = Field(
+    execution_stage: str | None = Field(
+        max_length=100,
         default=None,
         description="Promotion stage of the image being tested. "
-        "Options: 'pending' (awaiting approval), 'current' (approved and published). "
+        "Examples include 'pending' (awaiting approval) and 'current' (approved and published). "
         "Use 'pending' for images undergoing testing before promotion.",
     )
     os: str | None = Field(
@@ -300,7 +295,7 @@ class StartImageTestExecutionRequest(_StartTestExecutionRequest):
 class StartSolutionTestExecutionRequest(_StartTestExecutionRequest):
     family: Literal[FamilyName.solution]
     attributes: dict[str, Any] = Field(default_factory=dict)
-    execution_stage: SolutionStage = Field(description="Promotion stage of the solution being tested.")
+    execution_stage: str = Field(max_length=100, description="Promotion stage of the solution being tested.")
 
 
 class C3TestResultStatus(StrEnum):

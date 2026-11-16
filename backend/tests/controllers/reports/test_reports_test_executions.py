@@ -27,7 +27,6 @@ from test_observer.data_access.models import (
     ArtefactBuildEnvironmentReview,
     TestExecution,
 )
-from test_observer.data_access.models_enums import StageName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -60,7 +59,7 @@ EXPECTED_COLUMN_NAMES = [
 def test_get_testexecutions_report_in_range_with_test_events(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(artefact_build, environment, created_at=datetime.now())
@@ -86,7 +85,7 @@ def test_get_testexecutions_report_in_range_with_test_events(
 def test_get_testexecutions_report_in_range_without_test_events(
     test_client: TestClient, generator: DataGenerator, db_session: Session
 ):
-    artefact = generator.gen_artefact(StageName.beta)
+    artefact = generator.gen_artefact("beta")
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     test_execution = generator.gen_test_execution(artefact_build, environment, created_at=datetime.now())
@@ -108,7 +107,7 @@ def test_get_testexecutions_report_in_range_without_test_events(
 
 
 def test_get_testexecutions_report_out_range(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(StageName.beta, created_at=datetime.now() - timedelta(days=2))
+    artefact = generator.gen_artefact("beta", created_at=datetime.now() - timedelta(days=2))
     artefact_build = generator.gen_artefact_build(artefact)
     environment = generator.gen_environment()
     generator.gen_test_execution(artefact_build, environment, created_at=datetime.now() - timedelta(days=2))

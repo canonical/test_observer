@@ -32,7 +32,6 @@ from test_observer.controllers.execution_metadata.models import ExecutionMetadat
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
-    StageName,
     TestExecutionStatus,
 )
 
@@ -159,7 +158,7 @@ class ArtefactBuildResponse(BaseModel):
 class ArtefactPatch(BaseModel):
     status: ArtefactStatus | None = None
     archived: bool | None = None
-    stage: StageName | None = None
+    stage: str | None = Field(default=None, max_length=100)
     comment: str | None = None
     jira_issue: str | None = None
     attributes: dict[str, Any] | None = None
