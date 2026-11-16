@@ -44,6 +44,24 @@ def _get_artefact(db_session: Session, artefact: Artefact) -> Artefact:
     return persisted_artefact
 
 
+@pytest.mark.parametrize("family,stage", [(FamilyName.snap, "edge"), (FamilyName.deb, "proposed")])
+def test_run_promoter_defers_artefacts_without_builds(
+    db_session: Session, generator: DataGenerator, requests_mock: Mocker, family: FamilyName, stage: str
+) -> None:
+    artefact = generator.gen_artefact(family=family, stage=stage, series="noble", repo="main")
+    requests_mock.get(
+        f"https://api.snapcraft.io/v2/snaps/info/{artefact.name}",
+        json={"channel-map": []},
+    )
+
+    _run_promoter(db_session)
+
+    persisted_artefact = _get_artefact(db_session, artefact)
+    assert persisted_artefact.archived is False
+    assert persisted_artefact.stage == stage
+    assert requests_mock.called is False
+
+
 def test_run_promoter_preserves_concurrent_review_changes(
     db_session: Session,
     generator: DataGenerator,
