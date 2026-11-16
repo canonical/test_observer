@@ -27,6 +27,7 @@ export interface Family {
   friendly_name: string;
   api_name: string;
   stages: string[];
+  empty_stage_label?: string;
   columns: ColumnSpec[];
   filters: FilterSpec[];
 }
@@ -110,8 +111,11 @@ export function formatDueDate(isoDate: string | null): string | null {
   return `${month} ${d.getDate()}`;
 }
 
-export function stageDisplayName(stage: string): string {
-  if (stage === "") return "PPAs";
+export function stageDisplayName(
+  stage: string,
+  emptyLabel = "No stage",
+): string {
+  if (stage === "") return emptyLabel;
   return stage.charAt(0).toUpperCase() + stage.slice(1);
 }
 

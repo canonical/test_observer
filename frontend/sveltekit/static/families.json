@@ -10,7 +10,7 @@
         { "label": "Name", "key": "name", "field": "name" },
         { "label": "Version", "key": "version", "field": "version" },
         { "label": "Track", "key": "track", "field": "track" },
-        { "label": "Risk", "key": "risk", "field": "stage" },
+        { "label": "Risk", "key": "risk", "field": "stage", "format": "stage" },
         { "label": "Branch", "key": "branch", "field": "branch" },
         {
           "label": "Due date",
@@ -80,12 +80,18 @@
       "friendly_name": "Deb Testing",
       "api_name": "deb",
       "stages": ["proposed", "updates", ""],
+      "empty_stage_label": "PPAs",
       "columns": [
         { "label": "Name", "key": "name", "field": "name" },
         { "label": "Version", "key": "version", "field": "version" },
         { "label": "Series", "key": "series", "field": "series" },
         { "label": "Repo", "key": "repo", "field": "repo" },
-        { "label": "Pocket", "key": "pocket", "field": "stage" },
+        {
+          "label": "Pocket",
+          "key": "pocket",
+          "field": "stage",
+          "format": "stage"
+        },
         { "label": "Source", "key": "source", "field": "source" },
         {
           "label": "Due date",
@@ -159,7 +165,7 @@
         { "label": "Name", "key": "name", "field": "name" },
         { "label": "Version", "key": "version", "field": "version" },
         { "label": "Track", "key": "track", "field": "track" },
-        { "label": "Risk", "key": "risk", "field": "stage" },
+        { "label": "Risk", "key": "risk", "field": "stage", "format": "stage" },
         { "label": "Branch", "key": "branch", "field": "branch" },
         {
           "label": "Due date",
@@ -346,7 +352,13 @@
           "format": "status"
         },
         { "label": "Reviewers", "key": "reviewers", "format": "reviewers" },
-        { "label": "Stage", "key": "stage", "field": "stage", "hidden": true },
+        {
+          "label": "Stage",
+          "key": "stage",
+          "field": "stage",
+          "format": "stage",
+          "hidden": true
+        },
         {
           "label": "Bug link",
           "key": "bugLink",

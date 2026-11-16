@@ -44,7 +44,11 @@ function reviewersColumnValue(reviewers: Artefact["reviewers"]): string {
 }
 
 /** Value shown in a table cell for the given column. */
-export function columnValue(a: Artefact, col: ColumnSpec): string {
+export function columnValue(
+  a: Artefact,
+  col: ColumnSpec,
+  emptyStageLabel?: string,
+): string {
   switch (col.format) {
     case "date": {
       const raw = fieldValue(a, col.field);
@@ -54,6 +58,8 @@ export function columnValue(a: Artefact, col: ColumnSpec): string {
       return String(reviewsRemaining(a));
     case "status":
       return STATUS_LABELS[a.status];
+    case "stage":
+      return fieldValue(a, col.field) || (emptyStageLabel ?? "No stage");
     case "reviewers":
       return reviewersColumnValue(a.reviewers);
     default:

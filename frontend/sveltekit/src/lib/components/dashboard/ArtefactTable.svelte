@@ -95,13 +95,15 @@
         // rarely-wanted artefact fields are available without crowding the
         // default view.
         visible: !col.hidden,
-        // Everything else filters and sorts on the text the user can actually
-        // see, so the filter menu lists "Approved" rather than "APPROVED".
+        // Stage filters use the raw value, so an empty stage cannot be
+        // confused with a stage whose name matches its display label.
         fieldFn: (a: Artefact) =>
-          cellDataType ? columnSortValue(a, col) : columnValue(a, col),
+          cellDataType || col.format === 'stage'
+            ? columnSortValue(a, col)
+            : columnValue(a, col, family.empty_stage_label),
         cell: (ctx) => {
           const artefact = ctx.row.original;
-          const text = columnValue(artefact, col);
+          const text = columnValue(artefact, col, family.empty_stage_label);
           const color = columnColor(artefact, col);
           return color ? renderComponent(ColouredCell, { text, color }) : text;
         }
@@ -254,7 +256,7 @@
 
     const text = toCsv(
       columns.map((col) => col.header),
-      rows.map((artefact) => columns.map((col) => columnValue(artefact, col.spec)))
+      rows.map((artefact) => columns.map((col) => columnValue(artefact, col.spec, family.empty_stage_label)))
     );
     const date = new Date().toISOString().slice(0, 10);
     downloadCsv(`${family.name}-${date}.csv`, text);

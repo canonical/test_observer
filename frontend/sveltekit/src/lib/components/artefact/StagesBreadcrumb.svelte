@@ -13,8 +13,8 @@
 
   let { artefact, family }: Props = $props();
 
-  const stages = $derived(family.stages);
-  const currentIndex = $derived(stages.indexOf(artefact.stage));
+  const currentIndex = $derived(family.stages.indexOf(artefact.stage));
+  const stages = $derived(currentIndex < 0 ? [artefact.stage] : family.stages);
 </script>
 
 <nav class="stages-breadcrumb" aria-label="Artefact stages">
@@ -24,12 +24,12 @@
     {/if}
     <span
       class="stage"
-      class:past={i < currentIndex}
-      class:current={i === currentIndex}
-      class:future={i > currentIndex}
-      aria-current={i === currentIndex ? 'step' : undefined}
+      class:past={currentIndex >= 0 && i < currentIndex}
+      class:current={stage === artefact.stage}
+      class:future={currentIndex >= 0 && i > currentIndex}
+      aria-current={stage === artefact.stage ? 'step' : undefined}
     >
-      {stageDisplayName(stage)}
+      {stageDisplayName(stage, family.empty_stage_label)}
     </span>
   {/each}
 </nav>
