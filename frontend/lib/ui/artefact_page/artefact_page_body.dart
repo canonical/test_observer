@@ -73,33 +73,41 @@ class ArtefactPageBody extends ConsumerWidget {
         ),
         const SizedBox(height: Spacing.level3),
         _MissingEnvironmentsWarning(artefact: artefact),
-        BulkEnvironmentSelectionControls(
-          environments: environments,
-          artefactId: artefact.id,
-        ),
+        if (environments.isNotEmpty)
+          BulkEnvironmentSelectionControls(
+            environments: environments,
+            artefactId: artefact.id,
+          ),
         const SizedBox(height: Spacing.level2),
-        NonBlockingProviderPreloader(
-          provider: environmentsIssuesProvider,
-          child: NonBlockingProviderPreloader(
-            provider: testsIssuesProvider,
-            child: Expanded(
-              child: CustomScrollView(
-                slivers: environments
-                    .map(
-                      (env) => SliverPadding(
-                        // Padding is to avoid scroll bar covering trailing buttons
-                        padding: const EdgeInsets.only(right: Spacing.level3),
-                        sliver: EnvironmentExpandable(
-                          artefactId: artefact.id,
-                          artefactEnvironment: env,
+        if (environments.isEmpty)
+          const Expanded(
+            child: Center(
+              child: Text('No test executions to display.'),
+            ),
+          )
+        else
+          NonBlockingProviderPreloader(
+            provider: environmentsIssuesProvider,
+            child: NonBlockingProviderPreloader(
+              provider: testsIssuesProvider,
+              child: Expanded(
+                child: CustomScrollView(
+                  slivers: environments
+                      .map(
+                        (env) => SliverPadding(
+                          // Padding is to avoid scroll bar covering trailing buttons
+                          padding: const EdgeInsets.only(right: Spacing.level3),
+                          sliver: EnvironmentExpandable(
+                            artefactId: artefact.id,
+                            artefactEnvironment: env,
+                          ),
                         ),
-                      ),
-                    )
-                    .toList(),
+                      )
+                      .toList(),
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
