@@ -23,7 +23,6 @@ from tasks import celery as celery_tasks
 FLAGS = (
     "ENABLE_PERIODIC_TASKS",
     "ENABLE_KERNEL_SWM",
-    "ENABLE_ARTEFACT_PROMOTION",
     "ENABLE_USER_SESSION_CLEANUP",
     "ENABLE_ISSUE_SYNC",
 )
@@ -40,7 +39,6 @@ def test_periodic_task_switches(
     config = celery_tasks.SyncConfig
     groups: tuple[tuple[tuple[int, str], ...], ...] = (
         ((300, "integrate_with_kernel_swm"),),
-        ((600, "run_promote_artefacts"),),
         ((600, "clean_user_sessions"),),
         (
             (config.OPEN_ISSUE_INTERVAL, "sync_high_priority_issues"),

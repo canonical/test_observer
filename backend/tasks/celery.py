@@ -21,13 +21,10 @@ from datetime import UTC, datetime
 from os import environ
 
 from celery import Celery, Task
-from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from test_observer.data_access.audit import set_audit_context
-from test_observer.data_access.models import Artefact, Issue
-from test_observer.data_access.models_enums import FamilyName
-from test_observer.data_access.repository import get_artefacts_by_family
+from test_observer.data_access.models import Issue
 from test_observer.data_access.setup import SessionLocal
 from test_observer.external_apis.synchronizers.config import SyncConfig
 from test_observer.external_apis.synchronizers.factory import (
@@ -39,7 +36,6 @@ from test_observer.kernel_swm_integration.swm_integrator import (
     update_artefacts_with_tracker_info,
 )
 from test_observer.kernel_swm_integration.swm_reader import get_artefacts_swm_info
-from test_observer.promotion.promoter import process_artefact_promotions
 from test_observer.users.delete_expired_user_sessions import (
     delete_expired_user_sessions,
 )
@@ -56,14 +52,12 @@ logger = logging.getLogger(__name__)
 def setup_periodic_tasks(sender, **kwargs):  # noqa
     enable_periodic_tasks = environ.get("ENABLE_PERIODIC_TASKS", "true").lower() == "true"
     enable_kernel_swm = environ.get("ENABLE_KERNEL_SWM", "true").lower() == "true"
-    enable_artefact_promotion = environ.get("ENABLE_ARTEFACT_PROMOTION", "true").lower() == "true"
     enable_user_session_cleanup = environ.get("ENABLE_USER_SESSION_CLEANUP", "true").lower() == "true"
     # Default to false since this involves external API calls
     enable_issue_sync = environ.get("ENABLE_ISSUE_SYNC", "false").lower() == "true"
 
     logger.info("ENABLE_PERIODIC_TASKS=%s", enable_periodic_tasks)
     logger.info("ENABLE_KERNEL_SWM=%s", enable_kernel_swm)
-    logger.info("ENABLE_ARTEFACT_PROMOTION=%s", enable_artefact_promotion)
     logger.info("ENABLE_USER_SESSION_CLEANUP=%s", enable_user_session_cleanup)
     logger.info("ENABLE_ISSUE_SYNC=%s", enable_issue_sync)
 
@@ -72,8 +66,6 @@ def setup_periodic_tasks(sender, **kwargs):  # noqa
 
     if enable_kernel_swm:
         sender.add_periodic_task(300, integrate_with_kernel_swm.s())
-    if enable_artefact_promotion:
-        sender.add_periodic_task(600, run_promote_artefacts.s())
     if enable_user_session_cleanup:
         sender.add_periodic_task(600, clean_user_sessions.s())
 
@@ -90,56 +82,6 @@ def integrate_with_kernel_swm():
     swm_info = get_artefacts_swm_info()
     with SessionLocal() as db:
         update_artefacts_with_tracker_info(db, swm_info)
-
-
-def _get_artefacts_with_builds(db: Session, family: FamilyName) -> list[Artefact]:
-    # Missing builds provide no evidence for promotion or archival.
-    return [artefact for artefact in get_artefacts_by_family(db, family, load_builds=True) if artefact.builds]
-
-
-@app.task
-def run_promote_artefacts():
-    with SessionLocal() as db:
-        snap_artefacts = _get_artefacts_with_builds(db, FamilyName.snap)
-        deb_artefacts = _get_artefacts_with_builds(db, FamilyName.deb)
-        promotion_source_values = {
-            artefact.id: (artefact.stage, artefact.archived) for artefact in snap_artefacts + deb_artefacts
-        }
-        db.expunge_all()  # detach objects before session closes so attributes remain accessible
-
-    # HTTP — no session open
-    processed_status, error_messages, promotion_updates = process_artefact_promotions(snap_artefacts, deb_artefacts)
-
-    # Write phase — one session per artefact so a single failure doesn't roll back others
-    for artefact in snap_artefacts + deb_artefacts:
-        if processed_status.get(artefact.id) is not True:
-            continue
-
-        try:
-            with SessionLocal() as db:
-                set_audit_context(db, automation_name="celery.run_promote_artefacts")
-                update_values = promotion_updates[artefact.id]
-                original_stage, original_archived = promotion_source_values[artefact.id]
-                conditions = [Artefact.id == artefact.id]
-                if "stage" in update_values or "archived" in update_values:
-                    conditions.append(Artefact.stage == original_stage)
-                if "archived" in update_values:
-                    conditions.append(Artefact.archived == original_archived)
-
-                result = db.execute(update(Artefact).where(*conditions).values(**update_values))
-                db.commit()
-                if result.rowcount != 1:
-                    processed_status[artefact.id] = False
-                    error_messages[artefact.id] = "Promotion fields changed during fetch; update skipped"
-                    logger.warning("Skipped promotion update for artefact %s due to concurrent changes", artefact.id)
-        except Exception as exc:
-            processed_status[artefact.id] = False
-            error_messages[artefact.id] = str(exc)
-            logger.error("Failed to write artefact %s: %s", artefact.id, exc)
-
-    logger.info("INFO: Processed artefacts %s", processed_status)
-    if False in processed_status.values():
-        logger.error({key: error_messages[key] for key, status in processed_status.items() if status is False})
 
 
 @app.task
