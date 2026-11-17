@@ -28,7 +28,7 @@ FLAGS = (
 )
 
 
-@pytest.mark.parametrize("enabled", list(product((False, True), repeat=5)))
+@pytest.mark.parametrize("enabled", list(product((False, True), repeat=len(FLAGS))))
 def test_periodic_task_switches(
     monkeypatch: pytest.MonkeyPatch,
     enabled: tuple[bool, ...],
