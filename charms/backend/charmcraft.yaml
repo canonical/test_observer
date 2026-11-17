@@ -100,7 +100,7 @@ config:
       description: Comma separated list of API permissions to ignore for all requests
       type: string
     enable_periodic_tasks:
-      description: Whether to enable periodic tasks such as syncing issues, integrating with kernel SWM, promoting artefacts, and cleaning user sessions.
+      description: Whether to enable periodic tasks such as syncing issues, integrating with kernel SWM, and cleaning user sessions.
       type: boolean
       default: true
     enable_kernel_swm:
@@ -108,7 +108,9 @@ config:
       type: boolean
       default: true
     enable_artefact_promotion:
-      description: Whether to enable periodic promotion of artefacts.
+      description: |
+        (Deprecated: No longer used)
+        Whether to enable periodic promotion of artefacts.
       type: boolean
       default: true
     enable_user_session_cleanup:
