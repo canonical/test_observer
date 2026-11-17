@@ -30,37 +30,38 @@ before(async () => {
       return handler(path, options);
     }
   `;
-  const buildResult = /** @type {{ output: { type: string; code: string }[] }[]} */ (
-    /** @type {unknown} */ (
-      await build({
-        configFile: false,
-        logLevel: "silent",
-        plugins: [
-          svelte({ compilerOptions: { runes: true } }),
-          {
-            name: "test-results-api-stub",
-            resolveId(id) {
-              if (id === "$lib/api/client") return "\0test-results-api";
+  const buildResult =
+    /** @type {{ output: { type: string; code: string }[] }[]} */ (
+      /** @type {unknown} */ (
+        await build({
+          configFile: false,
+          logLevel: "silent",
+          plugins: [
+            svelte({ compilerOptions: { runes: true } }),
+            {
+              name: "test-results-api-stub",
+              resolveId(id) {
+                if (id === "$lib/api/client") return "\0test-results-api";
+              },
+              load(id) {
+                if (id === "\0test-results-api") return apiModule;
+              },
             },
-            load(id) {
-              if (id === "\0test-results-api") return apiModule;
-            },
-          },
-        ],
-        resolve: {
-          alias: [
-            { find: "$lib/api/client", replacement: "\0test-results-api" },
-            { find: "$lib", replacement: resolve("src/lib") },
           ],
-        },
-        build: {
-          write: false,
-          lib: { entry: "tests/test-results-entry.js", formats: ["es"] },
-          rolldownOptions: { output: { codeSplitting: false } },
-        },
-      })
-    )
-  );
+          resolve: {
+            alias: [
+              { find: "$lib/api/client", replacement: "\0test-results-api" },
+              { find: "$lib", replacement: resolve("src/lib") },
+            ],
+          },
+          build: {
+            write: false,
+            lib: { entry: "tests/test-results-entry.js", formats: ["es"] },
+            rolldownOptions: { output: { codeSplitting: false } },
+          },
+        })
+      )
+    );
   const bundle = buildResult[0]?.output.find((item) => item.type === "chunk");
   assert.ok(bundle, "test results page bundle should be generated");
 
@@ -69,18 +70,24 @@ before(async () => {
     "window",
     "document",
     "navigator",
+    "customElements",
     "Comment",
     "Text",
     "Node",
     "Element",
     "HTMLElement",
+    "HTMLMediaElement",
     "Event",
     "MouseEvent",
+    "ResizeObserver",
     "getComputedStyle",
     "requestAnimationFrame",
     "cancelAnimationFrame",
   ]) {
-    originalGlobals.set(name, Object.getOwnPropertyDescriptor(globalThis, name));
+    originalGlobals.set(
+      name,
+      Object.getOwnPropertyDescriptor(globalThis, name),
+    );
     Object.defineProperty(globalThis, name, {
       configurable: true,
       value:
@@ -109,22 +116,22 @@ function makeRow(id, name) {
       id,
       created_at: "2026-01-02T03:04:05Z",
       name,
-      category: "category",
+      category: `category-${id}`,
       status: "PASSED",
     },
     test_execution: {
       id: id + 100,
-      environment: { name: "lab" },
-      test_plan: "smoke",
+      environment: { name: `lab-${id}` },
+      test_plan: `smoke-${id}`,
     },
     artefact: {
       id: id + 200,
-      name: "artefact",
-      version: "1.0",
-      track: "stable",
+      name: `artefact-${id}`,
+      version: `1.${id}`,
+      track: `stable-${id}`,
       family: "snap",
     },
-    artefact_build: { architecture: "amd64" },
+    artefact_build: { architecture: `amd64-${id}` },
   };
 }
 
@@ -185,18 +192,77 @@ void test("renders rows in the order received from the server using only the fir
   assert.ok(harness);
   harness.resetApi();
   harness.setHandler(() =>
-    Promise.resolve(makePage([makeRow(5, "server-newest"), makeRow(2, "server-next")])),
+    Promise.resolve(
+      makePage([makeRow(5, "server-newest"), makeRow(2, "server-next")]),
+    ),
   );
   const { component, target } = mountInDocument();
   await settlePromises();
 
-  const resultRows = [...target.querySelectorAll("tbody tr")];
+  assert.ok(target.querySelector(".sv-grid-root"), target.innerHTML);
+  const resultRows = [...target.querySelectorAll("tbody tr.sv-grid-row")];
   assert.equal(resultRows.length, 2);
-  assert.match(resultRows[0].textContent, /server-newest/);
-  assert.match(resultRows[1].textContent, /server-next/);
+  assert.match(
+    resultRows[0].textContent,
+    new RegExp(
+      [
+        new Date("2026-01-02T03:04:05Z").toLocaleString(),
+        "artefact-5",
+        "server-newest",
+        "category-5",
+        "105",
+        "PASSED",
+        "stable-5",
+        "1.5",
+        "lab-5 / amd64-5",
+        "smoke-5",
+      ].join("[\\s\\S]*"),
+    ),
+  );
+  assert.match(
+    resultRows[1].textContent,
+    new RegExp(
+      [
+        new Date("2026-01-02T03:04:05Z").toLocaleString(),
+        "artefact-2",
+        "server-next",
+        "category-2",
+        "102",
+        "PASSED",
+        "stable-2",
+        "1.2",
+        "lab-2 / amd64-2",
+        "smoke-2",
+      ].join("[\\s\\S]*"),
+    ),
+  );
+  assert.deepEqual(
+    [...target.querySelectorAll("thead th")].map((cell) =>
+      cell.textContent.trim(),
+    ),
+    [
+      "Created",
+      "Artefact",
+      "Test Case",
+      "Category",
+      "Test Execution ID",
+      "Status",
+      "Track",
+      "Version",
+      "Environment / Architecture",
+      "Test Plan",
+    ],
+  );
+  assert.equal(target.querySelectorAll('[aria-label^="Filter "]').length, 0);
+  assert.equal(target.querySelectorAll('[role="checkbox"]').length, 0);
+  assert.equal(resultRows[0].querySelectorAll("button").length, 0);
+
+  resultRows[0].dispatchEvent(
+    new browserWindow.MouseEvent("contextmenu", { bubbles: true }),
+  );
+  await settlePromises();
+  assert.equal(target.querySelector('[role="menu"]'), null);
   assertFirstPageRequest();
-  assert.match(target.textContent, /Test Execution ID/);
-  assert.match(target.textContent, /Environment \/ Architecture/);
 
   await unmountFromDocument(component, target);
 });
@@ -209,7 +275,7 @@ void test("renders a clear empty state for an empty first page", async () => {
   await settlePromises();
 
   assert.match(target.textContent, /No test results found/);
-  assert.equal(target.querySelector("table"), null);
+  assert.equal(target.querySelector(".sv-grid-root"), null);
   assertFirstPageRequest();
 
   await unmountFromDocument(component, target);
@@ -236,7 +302,10 @@ void test("shows a local failure and retries the same first-page endpoint", asyn
   assert.equal(harness.requests[0].options.signal.aborted, true);
   await settlePromises();
 
-  assert.match(target.querySelector("tbody")?.textContent ?? "", /after-retry/);
+  assert.match(
+    target.querySelector("tbody tr.sv-grid-row")?.textContent ?? "",
+    /after-retry/,
+  );
   assertFirstPageRequest();
   assert.equal(harness.requests.length, 2);
   assert.deepEqual(

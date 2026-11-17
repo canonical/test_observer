@@ -18,6 +18,7 @@
 
 <script lang="ts">
   import { onMount } from "svelte";
+  import { SvGrid, type GridColumns } from "@svgrid/grid";
   import { silentApi } from "$lib/api/client";
   import type {
     TestResultSearchPageResponse,
@@ -26,10 +27,94 @@
 
   const FIRST_PAGE_REQUEST = "test-results/search-page?limit=50&offset=0";
 
-  let rows = $state<TestResultSearchPageRow[]>([]);
+  type TestResultGridRow = Record<string, unknown> & {
+    id: number;
+    createdAt: string;
+    artefact: string;
+    testCase: string;
+    category: string;
+    execution: number;
+    status: string;
+    track: string;
+    version: string;
+    environmentArchitecture: string;
+    testPlan: string;
+  };
+
+  function toGridRows(results: TestResultSearchPageRow[]): TestResultGridRow[] {
+    return results.map((row) => ({
+      id: row.test_result.id,
+      createdAt: row.test_result.created_at,
+      artefact: row.artefact.name,
+      testCase: row.test_result.name,
+      category: row.test_result.category,
+      execution: row.test_execution.id,
+      status: row.test_result.status,
+      track: row.artefact.track || "—",
+      version: row.artefact.version,
+      environmentArchitecture: `${row.test_execution.environment.name} / ${row.artefact_build.architecture}`,
+      testPlan: row.test_execution.test_plan,
+    }));
+  }
+
+  let rows = $state<TestResultGridRow[]>([]);
   let loadState = $state<"loading" | "loaded" | "failed">("loading");
   let activeRequest: AbortController | undefined;
   let requestGeneration = 0;
+
+  const columns: GridColumns<TestResultGridRow> = [
+    {
+      id: "created",
+      header: "Created",
+      field: "createdAt",
+      cell: ({ row }) => new Date(row.original.createdAt).toLocaleString(),
+    },
+    {
+      id: "artefact",
+      header: "Artefact",
+      field: "artefact",
+    },
+    {
+      id: "testCase",
+      header: "Test Case",
+      field: "testCase",
+    },
+    {
+      id: "category",
+      header: "Category",
+      field: "category",
+    },
+    {
+      id: "execution",
+      header: "Test Execution ID",
+      field: "execution",
+    },
+    {
+      id: "status",
+      header: "Status",
+      field: "status",
+    },
+    {
+      id: "track",
+      header: "Track",
+      field: "track",
+    },
+    {
+      id: "version",
+      header: "Version",
+      field: "version",
+    },
+    {
+      id: "environmentArchitecture",
+      header: "Environment / Architecture",
+      field: "environmentArchitecture",
+    },
+    {
+      id: "testPlan",
+      header: "Test Plan",
+      field: "testPlan",
+    },
+  ];
 
   function loadFirstPage() {
     activeRequest?.abort();
@@ -42,13 +127,15 @@
       signal: controller.signal,
     })
       .then((response) => {
-        if (generation !== requestGeneration || controller.signal.aborted) return;
+        if (generation !== requestGeneration || controller.signal.aborted)
+          return;
         if (!response) throw new Error("The search page response was empty.");
-        rows = response.test_results;
+        rows = toGridRows(response.test_results);
         loadState = "loaded";
       })
       .catch(() => {
-        if (generation !== requestGeneration || controller.signal.aborted) return;
+        if (generation !== requestGeneration || controller.signal.aborted)
+          return;
         loadState = "failed";
       });
   }
@@ -62,52 +149,48 @@
   });
 </script>
 
-<section class="results-page" aria-labelledby="page-title" aria-busy={loadState === "loading"}>
+<section
+  class="results-page"
+  aria-labelledby="page-title"
+  aria-busy={loadState === "loading"}
+>
   <h1 id="page-title" class="page-title">Search Results</h1>
 
   {#if loadState === "loading"}
-    <p class="state-message" role="status" aria-live="polite">Loading test results…</p>
+    <p class="state-message" role="status" aria-live="polite">
+      Loading test results…
+    </p>
   {:else if loadState === "failed"}
     <div class="state-message error-message" role="alert">
       <p>Test results could not be loaded.</p>
-      <button class="retry-button" type="button" onclick={loadFirstPage}>Retry</button>
+      <button class="retry-button" type="button" onclick={loadFirstPage}
+        >Retry</button
+      >
     </div>
   {:else if rows.length === 0}
     <p class="state-message" role="status">No test results found.</p>
   {:else}
-    <div class="table-scroll">
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Created</th>
-            <th scope="col">Artefact</th>
-            <th scope="col">Test Case</th>
-            <th scope="col">Category</th>
-            <th scope="col">Test Execution ID</th>
-            <th scope="col">Status</th>
-            <th scope="col">Track</th>
-            <th scope="col">Version</th>
-            <th scope="col">Environment / Architecture</th>
-            <th scope="col">Test Plan</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each rows as row (row.test_result.id)}
-            <tr>
-              <td><time datetime={row.test_result.created_at}>{new Date(row.test_result.created_at).toLocaleString()}</time></td>
-              <td>{row.artefact.name}</td>
-              <td>{row.test_result.name}</td>
-              <td>{row.test_result.category}</td>
-              <td>{row.test_execution.id}</td>
-              <td>{row.test_result.status}</td>
-              <td>{row.artefact.track || "—"}</td>
-              <td>{row.artefact.version}</td>
-              <td>{row.test_execution.environment.name} / {row.artefact_build.architecture}</td>
-              <td>{row.test_execution.test_plan}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
+    <div class="grid-wrapper">
+      <SvGrid
+        data={rows}
+        {columns}
+        getRowId={(row) => String(row.id)}
+        sortable={false}
+        filterable={false}
+        filterMode="none"
+        showGlobalFilter={false}
+        showColumnFilters={false}
+        showFilterRow={false}
+        showPagination={false}
+        pageable={false}
+        selectionMode="none"
+        showRowSelection={false}
+        contextMenu={false}
+        virtualization={false}
+        columnVirtualization={false}
+        columnResize={false}
+        rowResize={false}
+      />
     </div>
   {/if}
 </section>
@@ -142,26 +225,9 @@
     padding: 0.375rem 0.75rem;
   }
 
-  .table-scroll {
+  .grid-wrapper {
     max-width: 100%;
     overflow: auto;
-  }
-
-  table {
-    border-collapse: collapse;
-    min-width: 70rem;
-    text-align: left;
     width: 100%;
-  }
-
-  th,
-  td {
-    border-bottom: 1px solid var(--lp-color-border-default, #d9d9d9);
-    padding: 0.75rem;
-    vertical-align: top;
-  }
-
-  th {
-    font-weight: 500;
   }
 </style>
