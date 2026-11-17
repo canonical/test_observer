@@ -204,7 +204,15 @@ void test("renders rows in the order received from the server using only the fir
   const { component, target } = mountInDocument();
   await settlePromises();
 
-  assert.ok(target.querySelector(".sv-grid-root"), target.innerHTML);
+  const grid = target.querySelector(".sv-grid-root");
+  assert.ok(grid, target.innerHTML);
+  const gridShell = target.querySelector(".sv-grid-shell");
+  assert.ok(gridShell);
+  assert.match(gridShell.getAttribute("style") ?? "", /height:\s*auto/);
+  assert.equal(
+    target.querySelector("h1")?.textContent.trim(),
+    "Search Results (WIP)",
+  );
   const resultRows = [...target.querySelectorAll("tbody tr.sv-grid-row")];
   assert.equal(resultRows.length, 2);
   assert.match(

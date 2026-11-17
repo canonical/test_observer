@@ -154,7 +154,7 @@
   aria-labelledby="page-title"
   aria-busy={loadState === "loading"}
 >
-  <h1 id="page-title" class="page-title">Search Results</h1>
+  <h1 id="page-title" class="page-title">Search Results (WIP)</h1>
 
   {#if loadState === "loading"}
     <p class="state-message" role="status" aria-live="polite">
@@ -174,6 +174,7 @@
       <SvGrid
         data={rows}
         {columns}
+        containerHeight="auto"
         getRowId={(row) => String(row.id)}
         sortable={false}
         filterable={false}
