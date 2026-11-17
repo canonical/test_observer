@@ -231,4 +231,10 @@
     overflow: auto;
     width: 100%;
   }
+
+  /* Let vertical wheel scrolling chain to the containing pane. This unpaginated
+     grid grows to its content, so it should not trap scroll at its own edge. */
+  .grid-wrapper :global(.sv-grid-container) {
+    overscroll-behavior-y: auto;
+  }
 </style>
