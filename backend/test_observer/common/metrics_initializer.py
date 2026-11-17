@@ -139,7 +139,7 @@ def _initialize_test_results_metric(db: Session) -> int:
     count = 0
     for row in query.all():
         test_results.labels(
-            family=row.family.value,
+            family=row.family,
             artefact_name=row.artefact_name,
             artefact_stage=row.artefact_stage,
             track=row.track or "",
@@ -218,7 +218,7 @@ def _initialize_triaged_metrics(db: Session) -> int:
     count = 0
     for row in query.all():
         test_results_triaged.labels(
-            family=row.family.value,
+            family=row.family,
             artefact_name=row.artefact_name,
             artefact_stage=row.artefact_stage,
             track=row.track or "",
@@ -301,7 +301,7 @@ def _initialize_metadata_metrics(db: Session) -> int:
     count = 0
     for row in query.all():
         test_results_metadata.labels(
-            family=row.family.value,
+            family=row.family,
             artefact_name=row.artefact_name,
             artefact_stage=row.artefact_stage,
             track=row.artefact_track or "",

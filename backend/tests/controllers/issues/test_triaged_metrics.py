@@ -15,9 +15,17 @@
 
 from fastapi.testclient import TestClient
 from prometheus_client import REGISTRY
+from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models import FamilyName
+from test_observer.common.metric_collectors import _get_base_metric_labels
+from test_observer.common.metrics_initializer import (
+    _initialize_metadata_metrics,
+    _initialize_test_results_metric,
+    _initialize_triaged_metrics,
+)
+from test_observer.data_access.models import IssueTestResultAttachment
+from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -37,6 +45,25 @@ def get_metric_value(metric_name: str, labels: dict) -> float:
                 if sample.name == metric_name and all(sample.labels.get(k) == v for k, v in labels.items()):
                     return sample.value
     return 0.0
+
+
+def test_metrics_support_string_families(generator: DataGenerator, db_session: Session) -> None:
+    artefact = generator.gen_artefact(name="metric-string-family")
+    execution = generator.gen_test_execution(
+        generator.gen_artefact_build(artefact),
+        generator.gen_environment(),
+        execution_metadata={"category": ["value"]},
+    )
+    result = generator.gen_test_result(generator.gen_test_case(), execution)
+    issue = generator.gen_issue()
+    db_session.add(IssueTestResultAttachment(issue=issue, test_result=result))
+    db_session.commit()
+    db_session.refresh(artefact)
+
+    assert _get_base_metric_labels(execution)["family"] == "snap"
+    assert _initialize_test_results_metric(db_session) == 1
+    assert _initialize_triaged_metrics(db_session) == 1
+    assert _initialize_metadata_metrics(db_session) == 1
 
 
 def test_triaged_metric_incremented_on_attach(test_client: TestClient, generator: DataGenerator):
@@ -62,7 +89,7 @@ def test_triaged_metric_incremented_on_attach(test_client: TestClient, generator
 
     # Get initial metric value
     metric_labels = {
-        "family": artefact.family.value,
+        "family": artefact.family,
         "artefact_name": artefact.name,
         "artefact_stage": artefact.stage,
         "track": artefact.track or "",
@@ -122,7 +149,7 @@ def test_triaged_metric_decremented_on_detach(test_client: TestClient, generator
 
     # Get metric value after attach
     metric_labels = {
-        "family": artefact.family.value,
+        "family": artefact.family,
         "artefact_name": artefact.name,
         "artefact_stage": artefact.stage,
         "track": artefact.track or "",

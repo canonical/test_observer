@@ -46,13 +46,13 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     Environment,
-    FamilyName,
     TestExecution,
     TestExecutionRerunRequest,
     TestPlan,
     TestResult,
     User,
 )
+from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_or_create, populate_expected_environment_status
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
