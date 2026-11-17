@@ -175,6 +175,7 @@
         data={rows}
         {columns}
         containerHeight="auto"
+        fitColumns
         getRowId={(row) => String(row.id)}
         sortable={false}
         filterable={false}
@@ -190,6 +191,7 @@
         virtualization={false}
         columnVirtualization={false}
         columnResize
+        enableRowHover
         rowResize={false}
       />
     </div>

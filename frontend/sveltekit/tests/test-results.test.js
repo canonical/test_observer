@@ -210,6 +210,7 @@ void test("renders rows in the order received from the server using only the fir
   const gridShell = target.querySelector(".sv-grid-shell");
   assert.ok(gridShell);
   assert.match(gridShell.getAttribute("style") ?? "", /height:\s*auto/);
+  assert.equal(grid.classList.contains("sv-grid-no-row-hover"), false);
   assert.equal(
     target.querySelector("h1")?.textContent.trim(),
     "Search Results (WIP)",
