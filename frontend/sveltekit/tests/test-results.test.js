@@ -31,40 +31,19 @@ let browserWindow;
 const originalGlobals = new Map();
 
 before(async () => {
-  const apiModule = `
-    export const requests = [];
-    let handler = () => Promise.resolve(null);
-    export function setHandler(next) { handler = next; }
-    export function resetApi() {
-      requests.length = 0;
-      handler = () => Promise.resolve(null);
-    }
-    export function silentApi(path, options = {}) {
-      requests.push({ path, options });
-      return handler(path, options);
-    }
-  `;
   const buildResult =
     /** @type {{ output: { type: string; code: string }[] }[]} */ (
       /** @type {unknown} */ (
         await build({
           configFile: false,
           logLevel: "silent",
-          plugins: [
-            svelte({ compilerOptions: { runes: true } }),
-            {
-              name: "test-results-api-stub",
-              resolveId(id) {
-                if (id === "$lib/api/client") return "\0test-results-api";
-              },
-              load(id) {
-                if (id === "\0test-results-api") return apiModule;
-              },
-            },
-          ],
+          plugins: [svelte({ compilerOptions: { runes: true } })],
           resolve: {
             alias: [
-              { find: "$lib/api/client", replacement: "\0test-results-api" },
+              {
+                find: "$lib/api/client",
+                replacement: resolve("tests/test-results-api.js"),
+              },
               { find: "$lib", replacement: resolve("src/lib") },
             ],
           },
@@ -168,15 +147,15 @@ async function settlePromises() {
 function mountInDocument() {
   assert.ok(harness);
   assert.ok(browserWindow);
-  const target = /** @type {HTMLElement} */ (
-    /** @type {unknown} */ (browserWindow.document.createElement("div"))
-  );
+  const target = browserWindow.document.createElement("div");
   browserWindow.document.body.append(target);
-  const component = harness.mountPage(target);
+  const component = harness.mountPage(
+    /** @type {HTMLElement} */ (/** @type {unknown} */ (target)),
+  );
   return { component, target };
 }
 
-/** @param {object} component @param {HTMLElement} target */
+/** @param {object} component @param {{ remove: () => void }} target */
 async function unmountFromDocument(component, target) {
   assert.ok(harness);
   await harness.unmountPage(component);
@@ -326,7 +305,10 @@ void test("shows a local failure and retries the same first-page endpoint", asyn
   const retry = target.querySelector("button");
   assert.ok(retry);
   retry.click();
-  assert.equal(harness.requests[0].options.signal.aborted, true);
+  const firstRequest = harness.requests[0];
+  assert.ok(firstRequest);
+  assert.ok(firstRequest.options.signal);
+  assert.equal(firstRequest.options.signal.aborted, true);
   await settlePromises();
 
   assert.match(
