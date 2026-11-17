@@ -23,6 +23,7 @@
   import {
     AUTOSAVE_SLOT,
     EMPTY_VIEW,
+    createUserResizeViewHost,
     VIEW_PARAM,
     decodeView,
     encodeView,
@@ -141,7 +142,73 @@
   }
 
   let detachAutosave: (() => void) | null = null;
+  let resizeWidthPersistence: ReturnType<typeof createUserResizeViewHost> | null = null;
   let exportAvailabilityTimer: ReturnType<typeof setInterval> | null = null;
+
+  function handleColumnResize(event: { columnId: string; width: number }) {
+    resizeWidthPersistence?.recordResize(event.columnId, event.width);
+  }
+
+  // SvGrid 3.0.20's menu actions mutate its private width overrides directly:
+  // "Reset columns" and menu autosizing do not emit onColumnResize. Observe
+  // those user actions at the grid boundary so reset widths are forgotten and
+  // autosized widths are saved only for columns that actually had a rendered
+  // cell for the grid's autosize implementation to measure.
+  function trackColumnWidthActions(node: HTMLDivElement) {
+    function handleClick(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      const menuItem = target.closest<HTMLElement>('[role="menuitem"]');
+      const action = menuItem?.textContent?.replace(/\s+/g, ' ').trim();
+      const persistence = resizeWidthPersistence;
+      if (!menuItem || !persistence || !action) return;
+
+      if (action === 'Reset columns') {
+        persistence.resetResizes();
+        return;
+      }
+
+      const autosizeAll = action === 'Autosize all columns';
+      if (!autosizeAll && action !== 'Autosize this column') return;
+
+      const ready = currentApi;
+      if (!ready) return;
+      const gridRoot = node.querySelector<HTMLElement>('.sv-grid-root');
+      const measurableColumns = new Set(
+        Array.from(gridRoot?.querySelectorAll<HTMLElement>('[data-col-id]') ?? [])
+          .map((cell) => cell.getAttribute('data-col-id'))
+          .filter((id): id is string => id !== null),
+      );
+      const columnId = autosizeAll
+        ? null
+        : node
+            .querySelector<HTMLElement>('.sv-grid-col-menu-btn.is-open')
+            ?.closest<HTMLElement>('[data-svgrid-header-col]')
+            ?.getAttribute('data-svgrid-header-col') ?? null;
+      const columnIds = autosizeAll
+        ? ready.getColumns().map((column) => column.id)
+        : columnId
+          ? [columnId]
+          : [];
+      // autosizeColumn() returns without changing state when no rendered body
+      // cell exists. That same condition must not turn a fitted width into an
+      // apparent explicit width in our persistence layer.
+      const measuredIds = columnIds.filter((id) => measurableColumns.has(id));
+      if (measuredIds.length === 0) return;
+
+      queueMicrotask(() => {
+        if (resizeWidthPersistence !== persistence || currentApi !== ready) return;
+        const widths = ready.getState().columnWidths;
+        for (const id of measuredIds) {
+          const width = widths[id];
+          if (width !== undefined) persistence.recordResize(id, width);
+        }
+      });
+    }
+
+    node.addEventListener('click', handleClick, true);
+    return { destroy: () => node.removeEventListener('click', handleClick, true) };
+  }
 
   // If the grid later loads data incrementally (pagination or infinite
   // scrolling), keep export disabled until the displayed dataset is complete.
@@ -167,7 +234,11 @@
     detachAutosave?.();
     detachAutosave = null;
 
-    const views = createNamedViews(ready, { storage: familyViewStorage(family.name) });
+    // `getState()` includes fitted effective widths, so wrap the API with the
+    // widths reported by user resize gestures before giving it to autosave.
+    resizeWidthPersistence = createUserResizeViewHost(ready);
+    const viewHost = resizeWidthPersistence.host;
+    const views = createNamedViews(viewHost, { storage: familyViewStorage(family.name) });
     // Layout first, then the link: a shared view's filters should land on top of
     // the column widths and ordering this tab was already using.
     views.load(AUTOSAVE_SLOT);
@@ -180,13 +251,14 @@
 
     // SvGrid has no column visibility or resize equivalent of onSortingChange,
     // so the manager polls getState() and saves when the snapshot changes.
-    detachAutosave = attachAutoSavedView(ready, views, { skipRestore: true });
+    detachAutosave = attachAutoSavedView(viewHost, views, { skipRestore: true });
   }
 
   onDestroy(() => {
     exportAvailable = false;
     if (exportAvailabilityTimer) clearInterval(exportAvailabilityTimer);
     detachAutosave?.();
+    resizeWidthPersistence = null;
   });
 
   // Mirror the grid's state into the URL so the current view is always the
@@ -274,7 +346,7 @@
 {#key family.name}
   <!-- selectionMode="none" because clicking a row opens the artefact, so cell
        and row selection would only fight with navigation. -->
-  <div class="grid-wrapper">
+  <div class="grid-wrapper" use:trackColumnWidthActions>
     <SvGrid
       data={artefacts}
       {columns}
@@ -287,6 +359,7 @@
       virtualization
       fitColumns
       columnResize
+      onColumnResize={handleColumnResize}
       enableRowHover
       selectionMode="none"
       emptyMessage="No artefacts match the current filters."
