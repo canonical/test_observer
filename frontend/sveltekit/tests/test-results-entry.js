@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+// SPDX-License-Identifier: Apache-2.0
+
 import { flushSync, mount, unmount } from "svelte";
 import Page from "../src/routes/test-results/+page.svelte";
 import { requests, resetApi, setHandler } from "./test-results-api.js";
