@@ -37,7 +37,7 @@
     status: string;
     track: string;
     version: string;
-    environmentArchitecture: string;
+    environmentBuildArchitecture: string;
     testPlan: string;
   };
 
@@ -52,7 +52,7 @@
       status: row.test_result.status,
       track: row.artefact.track || "—",
       version: row.artefact.version,
-      environmentArchitecture: `${row.test_execution.environment.name} / ${row.artefact_build.architecture}`,
+      environmentBuildArchitecture: `${row.test_execution.environment.name} / ${row.artefact_build.architecture}`,
       testPlan: row.test_execution.test_plan,
     }));
   }
@@ -105,9 +105,9 @@
       field: "version",
     },
     {
-      id: "environmentArchitecture",
-      header: "Environment / Architecture",
-      field: "environmentArchitecture",
+      id: "environmentBuildArchitecture",
+      header: "Environment / Build Architecture",
+      field: "environmentBuildArchitecture",
     },
     {
       id: "testPlan",

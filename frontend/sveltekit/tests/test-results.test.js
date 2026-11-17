@@ -241,23 +241,29 @@ void test("renders rows in the order received from the server using only the fir
       ].join("[\\s\\S]*"),
     ),
   );
-  assert.deepEqual(
-    [...target.querySelectorAll("thead th")].map((cell) =>
-      cell.textContent.trim(),
-    ),
-    [
-      "Created",
-      "Artefact",
-      "Test Case",
-      "Category",
-      "Test Execution ID",
-      "Status",
-      "Track",
-      "Version",
-      "Environment / Architecture",
-      "Test Plan",
-    ],
+  const headers = [...target.querySelectorAll("thead th")].map((cell) =>
+    cell.textContent.trim(),
   );
+  assert.deepEqual(headers, [
+    "Created",
+    "Artefact",
+    "Test Case",
+    "Category",
+    "Test Execution ID",
+    "Status",
+    "Track",
+    "Version",
+    "Environment / Build Architecture",
+    "Test Plan",
+  ]);
+  const buildArchitectureColumn = headers.indexOf(
+    "Environment / Build Architecture",
+  );
+  assert.notEqual(buildArchitectureColumn, -1);
+  const buildArchitectureCell = resultRows[0]
+    ?.querySelectorAll("td")
+    .item(buildArchitectureColumn);
+  assert.equal(buildArchitectureCell?.textContent.trim(), "lab-5 / amd64-5");
   assert.equal(target.querySelectorAll('[aria-label^="Filter "]').length, 0);
   assert.equal(target.querySelectorAll('[role="checkbox"]').length, 0);
   assert.equal(resultRows[0].querySelectorAll("button").length, 0);
