@@ -73,6 +73,7 @@ before(async () => {
     "Event",
     "MouseEvent",
     "ResizeObserver",
+    "MutationObserver",
     "getComputedStyle",
     "requestAnimationFrame",
     "cancelAnimationFrame",
@@ -264,6 +265,12 @@ void test("renders rows in the order received from the server using only the fir
     "Environment / Build Architecture",
     "Test Plan",
   ]);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  await settlePromises();
+  const resizeHandles = target.querySelectorAll(
+    '.sv-grid-resize-handle[role="separator"]',
+  );
+  assert.equal(resizeHandles.length, headers.length);
   const buildArchitectureColumn = headers.indexOf(
     "Environment / Build Architecture",
   );

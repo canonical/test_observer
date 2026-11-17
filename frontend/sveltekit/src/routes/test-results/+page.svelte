@@ -189,7 +189,7 @@
         contextMenu={false}
         virtualization={false}
         columnVirtualization={false}
-        columnResize={false}
+        columnResize
         rowResize={false}
       />
     </div>
