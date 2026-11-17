@@ -681,7 +681,6 @@ class TestObserverBackendCharm(CharmBase):
             "IGNORE_PERMISSIONS": str(self.config.get("ignore_permissions", "")),
             "ENABLE_PERIODIC_TASKS": str(self.config["enable_periodic_tasks"]),
             "ENABLE_KERNEL_SWM": str(self.config["enable_kernel_swm"]),
-            "ENABLE_ARTEFACT_PROMOTION": str(self.config["enable_artefact_promotion"]),
             "ENABLE_USER_SESSION_CLEANUP": str(self.config["enable_user_session_cleanup"]),
             "ENABLE_ISSUE_SYNC": str(self.config["enable_issue_sync"]),
             "METRICS_INIT_DAYS": str(self.config.get("metrics_init_days", 30)),
