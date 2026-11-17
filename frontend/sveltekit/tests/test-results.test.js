@@ -9,9 +9,23 @@ import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { Window } from "happy-dom";
 
 const endpoint = "test-results/search-page?limit=50&offset=0";
-/** @type {typeof import("./test-results-entry") | undefined} */
+/** @typedef {{ signal?: AbortSignal }} RequestOptions */
+/** @typedef {{ path: string; options: RequestOptions }} TestRequest */
+/** @typedef {(path: string, options: RequestOptions) => Promise<unknown>} ApiHandler */
+/** @typedef {import("../src/lib/types/test-results-search-page").TestResultSearchPageRow} SearchPageRow */
+/** @typedef {import("../src/lib/types/test-results-search-page").TestResultSearchPageResponse} SearchPage */
+/**
+ * @typedef {object} TestResultsHarness
+ * @property {() => void} flushSync
+ * @property {(target: HTMLElement) => object} mountPage
+ * @property {TestRequest[]} requests
+ * @property {() => void} resetApi
+ * @property {(handler: ApiHandler) => void} setHandler
+ * @property {(component: object) => Promise<void>} unmountPage
+ */
+/** @type {TestResultsHarness | undefined} */
 let harness;
-/** @type {Window} */
+/** @type {Window | undefined} */
 let browserWindow;
 /** @type {Map<string, PropertyDescriptor | undefined>} */
 const originalGlobals = new Map();
@@ -95,11 +109,12 @@ before(async () => {
     });
   }
 
-  harness = /** @type {typeof import("./test-results-entry")} */ (
+  const importedModule = /** @type {unknown} */ (
     await import(
       `data:text/javascript;base64,${Buffer.from(bundle.code).toString("base64")}`
     )
   );
+  harness = /** @type {TestResultsHarness} */ (importedModule);
 });
 
 after(async () => {
@@ -110,6 +125,11 @@ after(async () => {
   if (browserWindow) await browserWindow.happyDOM.abort();
 });
 
+/**
+ * @param {number} id
+ * @param {string} name
+ * @returns {SearchPageRow}
+ */
 function makeRow(id, name) {
   return {
     test_result: {
@@ -135,6 +155,7 @@ function makeRow(id, name) {
   };
 }
 
+/** @param {SearchPageRow[]} rows @returns {SearchPage} */
 function makePage(rows) {
   return { limit: 50, offset: 0, test_results: rows };
 }
@@ -146,12 +167,16 @@ async function settlePromises() {
 
 function mountInDocument() {
   assert.ok(harness);
-  const target = browserWindow.document.createElement("div");
+  assert.ok(browserWindow);
+  const target = /** @type {HTMLElement} */ (
+    /** @type {unknown} */ (browserWindow.document.createElement("div"))
+  );
   browserWindow.document.body.append(target);
   const component = harness.mountPage(target);
   return { component, target };
 }
 
+/** @param {object} component @param {HTMLElement} target */
 async function unmountFromDocument(component, target) {
   assert.ok(harness);
   await harness.unmountPage(component);
@@ -171,7 +196,7 @@ function assertFirstPageRequest() {
 void test("shows accessible loading state and aborts its request on teardown", async () => {
   assert.ok(harness);
   harness.resetApi();
-  harness.setHandler(() => new Promise(() => {}));
+  harness.setHandler(() => new Promise(() => undefined));
   const { component, target } = mountInDocument();
 
   const region = target.querySelector(".results-page");
@@ -182,7 +207,8 @@ void test("shows accessible loading state and aborts its request on teardown", a
   assert.equal(loading.getAttribute("aria-live"), "polite");
   assert.match(loading.textContent, /Loading test results/);
   assertFirstPageRequest();
-  const { signal } = harness.requests[0].options;
+  const signal = harness.requests[0]?.options.signal;
+  assert.ok(signal);
 
   await unmountFromDocument(component, target);
   assert.equal(signal.aborted, true);
@@ -257,6 +283,7 @@ void test("renders rows in the order received from the server using only the fir
   assert.equal(target.querySelectorAll('[role="checkbox"]').length, 0);
   assert.equal(resultRows[0].querySelectorAll("button").length, 0);
 
+  assert.ok(browserWindow);
   resultRows[0].dispatchEvent(
     new browserWindow.MouseEvent("contextmenu", { bubbles: true }),
   );

@@ -1,10 +1,6 @@
 import { flushSync, mount, unmount } from "svelte";
 import Page from "../src/routes/test-results/+page.svelte";
-import {
-  requests,
-  resetApi,
-  setHandler,
-} from "$lib/api/client";
+import { requests, resetApi, setHandler } from "$lib/api/client";
 
 /** @param {import("svelte").MountOptions["target"]} target */
 export function mountPage(target) {
