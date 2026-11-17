@@ -82,6 +82,7 @@ PUBLIC_OPERATIONS: tuple[tuple[str, str], ...] = (
 # accepting applications for real makes an entry here stale; tests in
 # tests/controllers/docs/test_docs.py detect that.
 USER_ONLY_OVERRIDES: tuple[tuple[str, str], ...] = (
+    ("post", "/v1/families"),
     ("get", "/v1/users/me/notifications"),
     ("get", "/v1/users/me/notifications/count"),
     ("post", "/v1/users/me/notifications/{notification_id}/dismiss"),

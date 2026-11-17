@@ -2809,6 +2809,86 @@
         ]
       }
     },
+    "/v1/families": {
+      "get": {
+        "tags": [
+          "families"
+        ],
+        "summary": "List Families",
+        "operationId": "list_families_v1_families_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FamilyResponse"
+                  },
+                  "type": "array",
+                  "title": "Response List Families V1 Families Get"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "families"
+        ],
+        "summary": "Add Family",
+        "description": "Create a family. Only admin users may do this, regardless of IGNORE_PERMISSIONS.",
+        "operationId": "add_family_v1_families_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FamilyCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FamilyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "403": {
+            "description": "Administrator access required"
+          },
+          "409": {
+            "description": "Family already exists"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "sessionCookieAuth": [],
+            "csrfTokenAuth": []
+          }
+        ]
+      }
+    },
     "/v1/test-plans": {
       "get": {
         "tags": [
@@ -7771,6 +7851,22 @@
         ],
         "title": "ExpectedEnvironmentInput"
       },
+      "FamilyCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "pattern": "^[A-Za-z0-9-]+$",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "FamilyCreate"
+      },
       "FamilyName": {
         "type": "string",
         "enum": [
@@ -7781,6 +7877,19 @@
           "solution"
         ],
         "title": "FamilyName"
+      },
+      "FamilyResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "FamilyResponse"
       },
       "HTTPValidationError": {
         "properties": {

@@ -25,8 +25,11 @@ OPENAPI_JSON="$1"
 # They are used by Docker for health checks that would be cumbersome to authenticate.
 # The endpoints that include a /me are exceptions because they have their own
 # checks that just require authentication without specific permissions
+# Families use authentication for reads and a strict admin-only check for creation.
 EXCEPTIONS='[
   {"method": "get", "path": "/v1/version"},
+  {"method": "get", "path": "/v1/families"},
+  {"method": "post", "path": "/v1/families"},
   {"method": "get", "path": "/"},
   {"method": "get", "path": "/openapi.json"},
   {"method": "get", "path": "/docs"},

@@ -92,6 +92,13 @@ class Base(DeclarativeBase):
 DataModel = TypeVar("DataModel", bound=Base)
 
 
+class Family(Base):
+    __tablename__ = "family"
+
+    id = None  # type: ignore[assignment]
+    name: Mapped[str] = mapped_column(String(100), primary_key=True)
+
+
 def data_model_repr(obj: DataModel, *keys: str) -> str:
     all_keys = ("id", "created_at", "updated_at") + keys
     kwargs = [f"{key}={getattr(obj, key)!r}" for key in all_keys]

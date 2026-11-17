@@ -240,6 +240,7 @@ EXPECTED_PUBLIC_OPERATIONS: list[tuple[str, str]] = [
 ]
 
 EXPECTED_USER_ONLY_OPERATIONS: list[tuple[str, str]] = [
+    ("post", "/v1/families"),
     ("get", "/v1/users/me"),
     ("get", "/v1/users/me/notifications"),
     ("get", "/v1/users/me/notifications/count"),
