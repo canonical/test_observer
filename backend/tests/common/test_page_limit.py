@@ -32,7 +32,7 @@ from test_observer.main import app
 from tests.conftest import override_permissions
 
 EXECUTION_PATHS = {"/v1/test-executions"}
-RESULT_PATHS = {"/v1/test-results"}
+RESULT_PATHS = {"/v1/test-results", "/v1/test-results/search-page"}
 LISTING_PATHS = {
     "/v1/artefacts/search",
     "/v1/audit/artefacts/{artefact_id}",

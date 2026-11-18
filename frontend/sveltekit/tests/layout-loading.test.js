@@ -112,6 +112,9 @@ void test("navigation makes only the page inert and keeps status and shell contr
     const action = target.querySelector("#page-action");
     const sidebar = target.querySelector(".side-navigation");
     assert.ok(main && page && action && sidebar);
+    const searchLink = sidebar.querySelector('a[href="/test-results"]');
+    assert.ok(searchLink);
+    assert.equal(searchLink.textContent.trim(), "Search Results (WIP)");
     assert.equal(main.getAttribute("aria-busy"), "false");
     assert.equal(page.hasAttribute("inert"), false);
     assert.equal(target.querySelector(".loading-overlay"), null);

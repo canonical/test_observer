@@ -91,7 +91,7 @@
 
     <SideNavigation.NavigationItem href={resolve('test-results')} selected={pathname.startsWith(resolve('test-results'))}>
       {#snippet icon()}<SearchIcon />{/snippet}
-      Search Results
+      Search Results (WIP)
     </SideNavigation.NavigationItem>
 
     <SideNavigation.NavigationItem href={resolve('/issues')} selected={pathname.startsWith(resolve('/issues'))}>
