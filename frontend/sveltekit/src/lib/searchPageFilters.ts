@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import { isFamilyName } from "./types/openapi";
+
 export const SEARCH_FILTER_LIST_KEYS = [
   "families",
   "test_result_statuses",
@@ -97,6 +99,11 @@ export function parseSearchFilters(
     );
   }
 
+  for (const family of filters.families) {
+    if (!isFamilyName(family)) {
+      problems.push(`Invalid families: unsupported family value “${family}”.`);
+    }
+  }
   for (const status of filters.test_result_statuses) {
     if (!RESULT_STATUSES.has(status)) {
       problems.push(

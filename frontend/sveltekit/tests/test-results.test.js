@@ -391,6 +391,7 @@ void test("invalid, duplicate, unsupported, and unsafe URL paging state sends no
     "?page_size=10",
     "?page=1&page=2",
     "?page_size=25&page_size=50",
+    "?families=unknown",
     "?test_result_statuses=UNKNOWN",
     "?from_date=not-a-date",
     "?from_date=2026-02-02T00%3A00%3A00Z&until_date=2026-02-01T00%3A00%3A00Z",
@@ -825,7 +826,7 @@ void test("invalid filter values and unsupported URL keys fail closed", () => {
   const futureFamily = harness.parseSearchFilters(
     new URLSearchParams("families=future-family"),
   );
-  assert.deepEqual(futureFamily.problems, []);
+  assert.match(futureFamily.problems[0] ?? "", /unsupported family/);
   assert.deepEqual(futureFamily.filters.families, ["future-family"]);
 
   for (const query of [
@@ -842,30 +843,6 @@ void test("invalid filter values and unsupported URL keys fail closed", () => {
     harness.validateSearchFilters(harness.emptySearchFilters()),
     [],
   );
-});
-
-void test("family URL values are left for backend contract validation", async () => {
-  assert.ok(harness);
-  harness.resetApi();
-  harness.resetSearchUrl("http://localhost/test-results?families=unknown");
-  harness.setHandler(() => Promise.reject(new Error("invalid family")));
-
-  const { component, target } = mountInDocument();
-  await settlePromises();
-
-  assert.equal(harness.requests.length, 1);
-  assert.deepEqual(
-    new URL(harness.requests[0].path, "http://localhost/").searchParams.getAll(
-      "families",
-    ),
-    ["unknown"],
-  );
-  assert.match(
-    target.querySelector('[role="alert"]')?.textContent ?? "",
-    /Test results could not be loaded/,
-  );
-
-  await unmountFromDocument(component, target);
 });
 
 void test("filter drafts do not fetch until Search; apply, clear, page-size, and history use applied state", async () => {
