@@ -21,8 +21,20 @@
   import { page } from "$app/state";
   import { SvelteURL } from "svelte/reactivity";
   import { goto } from "$app/navigation";
-  import { SvGrid, type GridColumns } from "@svgrid/grid";
+  import {
+    SvGrid,
+    attachAutoSavedView,
+    createNamedViews,
+    type GridColumns,
+    type SvGridApi,
+  } from "@svgrid/grid";
   import { silentApi } from "$lib/api/client";
+  import { createTrackColumnWidthActions } from "$lib/components/dashboard/trackColumnWidthActions";
+  import {
+    AUTOSAVE_SLOT,
+    createUserResizeViewHost,
+    searchGridViewStorage,
+  } from "$lib/gridViewUrl";
   import type {
     TestResultSearchPageResponse,
     TestResultSearchPageRow,
@@ -53,6 +65,53 @@
     environmentBuildArchitecture: string;
     testPlan: string;
   };
+
+  let gridApi: SvGridApi<never, TestResultGridRow> | null = null;
+  let detachAutosave: (() => void) | null = null;
+  let saveCurrentView: (() => void) | null = null;
+  let resizeWidthPersistence: ReturnType<
+    typeof createUserResizeViewHost
+  > | null = null;
+
+  function handleColumnResize(event: { columnId: string; width: number }) {
+    resizeWidthPersistence?.recordResize(event.columnId, event.width);
+  }
+
+  const trackColumnWidthActions = createTrackColumnWidthActions({
+    getPersistence: () => resizeWidthPersistence,
+    getCurrentApi: () => gridApi,
+  });
+
+  function clearGridPersistence() {
+    saveCurrentView?.();
+    saveCurrentView = null;
+    detachAutosave?.();
+    detachAutosave = null;
+    resizeWidthPersistence = null;
+    gridApi = null;
+  }
+
+  function cleanupGridPersistence(_node: HTMLDivElement) {
+    return { destroy: clearGridPersistence };
+  }
+
+  function handleApiReady(ready: SvGridApi<never, TestResultGridRow>) {
+    clearGridPersistence();
+    gridApi = ready;
+
+    // Keep fitColumns' effective widths out of autosaved state; only the
+    // explicit widths reported by user resize actions belong in this view.
+    resizeWidthPersistence = createUserResizeViewHost(ready);
+    const viewHost = resizeWidthPersistence.host;
+    const views = createNamedViews(viewHost, {
+      storage: searchGridViewStorage(),
+    });
+    views.load(AUTOSAVE_SLOT);
+    saveCurrentView = () => views.save(AUTOSAVE_SLOT);
+    detachAutosave = attachAutoSavedView(viewHost, views, {
+      skipRestore: true,
+    });
+  }
 
   function toGridRows(results: TestResultSearchPageRow[]): TestResultGridRow[] {
     return results.map((row) => ({
@@ -233,6 +292,7 @@
 
   onDestroy(() => {
     requestGeneration += 1;
+    clearGridPersistence();
   });
 
   function navigateToPage(targetPage: number, replace = false) {
@@ -319,6 +379,8 @@
             class="grid-wrapper"
             role="region"
             aria-label="Search results table"
+            use:trackColumnWidthActions
+            use:cleanupGridPersistence
           >
             <SvGrid
               data={rows}
@@ -340,6 +402,8 @@
               virtualization
               columnVirtualization={false}
               columnResize
+              onColumnResize={handleColumnResize}
+              onApiReady={handleApiReady}
               enableRowHover
               rowResize={false}
             />

@@ -367,3 +367,50 @@ export function familyViewStorage(family: string): ViewStorage {
     },
   };
 }
+
+/**
+ * Per-session storage for the Search grid's autosaved layout. Its separate
+ * namespace keeps Search widths independent from each family dashboard.
+ */
+function sparseWidths(value: unknown): Record<string, number> {
+  if (!isRecord(value)) return {};
+  const widths: Record<string, number> = {};
+  for (const [columnId, width] of Object.entries(value)) {
+    if (typeof width === "number" && Number.isFinite(width)) {
+      widths[columnId] = width;
+    }
+  }
+  return widths;
+}
+
+function searchSavedViews(views: SavedView[]): SavedView[] {
+  return views.map((view) => ({
+    ...view,
+    // Search only persists widths; filters, visibility, ordering and other
+    // grid state remain transient and are never restored from this store.
+    state: { columnWidths: sparseWidths(view.state.columnWidths) },
+  }));
+}
+
+export function searchGridViewStorage(): ViewStorage {
+  const key = "test-observer-search-grid-view";
+  return {
+    read() {
+      try {
+        const raw = sessionStorage.getItem(key);
+        if (raw === null) return [];
+        return searchSavedViews(readSavedViews(JSON.parse(raw)));
+      } catch {
+        // Storage can be blocked outright by browser privacy settings.
+        return [];
+      }
+    },
+    write(views) {
+      try {
+        sessionStorage.setItem(key, JSON.stringify(searchSavedViews(views)));
+      } catch {
+        // The layout simply does not outlive the page when storage is blocked.
+      }
+    },
+  };
+}

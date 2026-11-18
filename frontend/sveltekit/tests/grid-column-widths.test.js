@@ -13,6 +13,8 @@ let vite;
 let createUserResizeViewHost;
 /** @type {typeof import("../src/lib/gridViewUrl").familyViewStorage | undefined} */
 let familyViewStorage;
+/** @type {typeof import("../src/lib/gridViewUrl").searchGridViewStorage | undefined} */
+let searchGridViewStorage;
 /** @type {typeof import("../src/lib/gridViewUrl").encodeView | undefined} */
 let encodeView;
 /** @type {typeof import("../src/lib/gridViewUrl").AUTOSAVE_SLOT | undefined} */
@@ -31,8 +33,12 @@ before(async () => {
     logLevel: "silent",
     server: { middlewareMode: true },
   });
-  ({ createUserResizeViewHost, familyViewStorage, encodeView } =
-    await vite.ssrLoadModule("/src/lib/gridViewUrl.ts"));
+  ({
+    createUserResizeViewHost,
+    familyViewStorage,
+    searchGridViewStorage,
+    encodeView,
+  } = await vite.ssrLoadModule("/src/lib/gridViewUrl.ts"));
   ({ AUTOSAVE_SLOT: autosaveSlot } = await vite.ssrLoadModule(
     "/src/lib/gridViewUrl.ts",
   ));
@@ -228,6 +234,168 @@ void test("family grid wires fit and resize events into the autosave policy", as
   assert.match(actionSource, /action === ["']Reset columns["']/);
   assert.match(actionSource, /persistence\.resetResizes\(\)/);
   assert.match(componentSource, /use:trackColumnWidthActions/);
+});
+
+void test("Search grid autosaves sparse resize overrides to isolated session storage", async () => {
+  if (
+    !createUserResizeViewHost ||
+    !familyViewStorage ||
+    !searchGridViewStorage ||
+    !autosaveSlot ||
+    !createNamedViews ||
+    !attachAutoSavedView ||
+    !encodeView
+  ) {
+    throw new Error("Grid view helpers were not loaded");
+  }
+
+  const originalSessionStorage = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "sessionStorage",
+  );
+  const sessionStorage = new MemorySessionStorage();
+  Object.defineProperty(globalThis, "sessionStorage", {
+    configurable: true,
+    value: sessionStorage,
+  });
+
+  const familyViews = familyViewStorage("snaps");
+  familyViews.write([
+    {
+      name: autosaveSlot,
+      createdAt: 1,
+      state: { columnWidths: { name: 222 } },
+    },
+  ]);
+  const familySnapshot = sessionStorage.getItem(
+    "test-observer-grid-view:snaps",
+  );
+
+  const first = createFittingGrid(900);
+  const firstWidthHost = createUserResizeViewHost(first.api);
+  const firstViews = createNamedViews(firstWidthHost.host, {
+    storage: searchGridViewStorage(),
+  });
+  const detachAutosave = attachAutoSavedView(firstWidthHost.host, firstViews, {
+    skipRestore: true,
+    intervalMs: 100,
+  });
+
+  try {
+    assert.deepEqual(first.api.getState().columnWidths, {
+      name: 300,
+      status: 300,
+      updated: 300,
+    });
+    assert.equal(
+      sessionStorage.getItem("test-observer-search-grid-view"),
+      null,
+      "fresh Search autosave must not serialize fitted effective widths",
+    );
+
+    // Even an explicit initial snapshot contains no fitted width overrides.
+    firstViews.save(autosaveSlot);
+    const freshSnapshot = sessionStorage.getItem(
+      "test-observer-search-grid-view",
+    );
+    assert.ok(freshSnapshot);
+    const freshSnapshotValue = /** @type {unknown} */ (
+      JSON.parse(freshSnapshot)
+    );
+    assert.ok(Array.isArray(freshSnapshotValue));
+    const freshViews =
+      /** @type {Array<{ name: string; state: { columnWidths: Record<string, number> } }>} */ (
+        freshSnapshotValue
+      );
+    const freshView = freshViews.find((view) => view.name === autosaveSlot);
+    assert.ok(freshView);
+    assert.deepEqual(freshView.state.columnWidths, {});
+    assert.deepEqual(Object.keys(freshView.state), ["columnWidths"]);
+
+    // SvGrid's public resize callback records only the explicitly dragged
+    // column; autosave persists that sparse map to Search's dedicated key.
+    first.resizeUserColumn("name", 240);
+    firstWidthHost.recordResize("name", 240);
+    await new Promise((resolve) => setTimeout(resolve, 125));
+    const savedSnapshot = sessionStorage.getItem(
+      "test-observer-search-grid-view",
+    );
+    assert.ok(savedSnapshot);
+    const savedSnapshotValue = /** @type {unknown} */ (
+      JSON.parse(savedSnapshot)
+    );
+    assert.ok(Array.isArray(savedSnapshotValue));
+    const savedViews =
+      /** @type {Array<{ name: string; state: { columnWidths: Record<string, number> } }>} */ (
+        savedSnapshotValue
+      );
+    const savedView = savedViews.find((view) => view.name === autosaveSlot);
+    assert.ok(savedView);
+    assert.deepEqual(savedView.state.columnWidths, { name: 240 });
+    assert.deepEqual(Object.keys(savedView.state), ["columnWidths"]);
+    assert.equal(
+      sessionStorage.getItem("test-observer-grid-view:snaps"),
+      familySnapshot,
+      "Search persistence must not overwrite family view storage",
+    );
+
+    const restored = createFittingGrid(1200);
+    const restoredWidthHost = createUserResizeViewHost(restored.api);
+    const restoredViews = createNamedViews(restoredWidthHost.host, {
+      storage: searchGridViewStorage(),
+    });
+    assert.equal(restoredViews.load(autosaveSlot), true);
+    assert.deepEqual(restored.api.getState().columnWidths, {
+      name: 240,
+      status: 480,
+      updated: 480,
+    });
+    restored.setContainerWidth(1500);
+    assert.deepEqual(restored.api.getState().columnWidths, {
+      name: 240,
+      status: 630,
+      updated: 630,
+    });
+
+    const shareStateWithWidth =
+      /** @type {import("../src/lib/gridViewUrl").SharedGridView & { columnWidths: Record<string, number> }} */ ({
+        columnWidths: { name: 240 },
+      });
+    assert.equal(
+      encodeView(shareStateWithWidth),
+      null,
+      "column widths must remain outside URL state",
+    );
+  } finally {
+    detachAutosave();
+    if (originalSessionStorage) {
+      Object.defineProperty(
+        globalThis,
+        "sessionStorage",
+        originalSessionStorage,
+      );
+    } else {
+      Reflect.deleteProperty(globalThis, "sessionStorage");
+    }
+  }
+});
+
+void test("Search grid wires resize persistence and menu action tracking", async () => {
+  const componentSource = await readFile(
+    new URL("../src/routes/test-results/+page.svelte", import.meta.url),
+    "utf8",
+  );
+  assert.match(componentSource, /fitColumns/);
+  assert.match(componentSource, /columnResize/);
+  assert.match(componentSource, /onColumnResize=\{handleColumnResize\}/);
+  assert.match(componentSource, /onApiReady=\{handleApiReady\}/);
+  assert.match(componentSource, /createUserResizeViewHost\(ready\)/);
+  assert.match(componentSource, /searchGridViewStorage\(\)/);
+  assert.match(componentSource, /attachAutoSavedView\(viewHost/);
+  assert.match(componentSource, /use:trackColumnWidthActions/);
+  assert.match(componentSource, /detachAutosave\?\.\(\)/);
+  assert.match(componentSource, /virtualization/);
+  assert.match(componentSource, /enableRowHover/);
 });
 
 void test("family grid menu actions persist only measured width overrides", async () => {
