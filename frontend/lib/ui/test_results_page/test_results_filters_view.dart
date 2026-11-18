@@ -441,6 +441,10 @@ class _TestResultsFiltersViewState
               title: 'Artefact Stage',
               allOptions: allArtefactStageOptions,
               showAllOptionsWithoutSearch: true,
+              parseCustomValue: (text) {
+                final stage = text.trim();
+                return stage.isEmpty ? null : stage;
+              },
               itemToString: stageFilterLabel,
               initialSelected: _selectedFilters.artefactStages.toSet(),
               onChanged: (val, isSelected) {

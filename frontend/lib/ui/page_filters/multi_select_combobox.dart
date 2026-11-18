@@ -60,6 +60,10 @@ class MultiSelectCombobox<T> extends StatefulWidget {
   // Show all options without search box
   final bool showAllOptionsWithoutSearch;
 
+  // When set together with showAllOptionsWithoutSearch, shows a text input that
+  // lets users add a value not in allOptions. Return null to reject the text.
+  final T? Function(String text)? parseCustomValue;
+
   // Make selections mutually exclusive (only one item can be selected at a time)
   final bool isMutuallyExclusive;
 
@@ -83,6 +87,7 @@ class MultiSelectCombobox<T> extends StatefulWidget {
     this.selectedMetaOption,
     this.onMetaOptionChanged,
     this.showAllOptionsWithoutSearch = false,
+    this.parseCustomValue,
     this.isMutuallyExclusive = false,
     this.titleSuffixSeparator = ' ',
   })  : assert(
@@ -124,6 +129,7 @@ class MultiSelectComboboxState<T> extends State<MultiSelectCombobox<T>> {
   late bool _isExpanded;
 
   late TextEditingController _controller;
+  late TextEditingController _customValueController;
   late FocusNode _internalFocusNode;
   FocusNode? _typeAheadFocusNode;
 
@@ -131,6 +137,7 @@ class MultiSelectComboboxState<T> extends State<MultiSelectCombobox<T>> {
   void initState() {
     super.initState();
     _controller = TextEditingController();
+    _customValueController = TextEditingController();
     _internalFocusNode = FocusNode();
 
     // Initialize with URL parameters
@@ -172,6 +179,7 @@ class MultiSelectComboboxState<T> extends State<MultiSelectCombobox<T>> {
   @override
   void dispose() {
     _controller.dispose();
+    _customValueController.dispose();
     _internalFocusNode.dispose();
     super.dispose();
   }
@@ -224,6 +232,25 @@ class MultiSelectComboboxState<T> extends State<MultiSelectCombobox<T>> {
     return _filterSelected(filtered);
   }
 
+  void _addCustomValue(String text) {
+    final value = widget.parseCustomValue!(text);
+    if (value == null) return;
+    setState(() {
+      if (widget.isMutuallyExclusive) {
+        for (final item in _selected.toList()) {
+          widget.onChanged(item, false);
+        }
+        _selected.clear();
+      }
+      _selected.add(value);
+      _customValueController.clear();
+    });
+    widget.onChanged(value, true);
+    if (widget.selectedMetaOption != null) {
+      widget.onMetaOptionChanged!(null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasMetaOptionSelected = widget.selectedMetaOption != null;
@@ -269,6 +296,18 @@ class MultiSelectComboboxState<T> extends State<MultiSelectCombobox<T>> {
                 // Notify parent of meta option change
                 widget.onMetaOptionChanged!(value);
               },
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (widget.showAllOptionsWithoutSearch &&
+              widget.parseCustomValue != null) ...[
+            TextField(
+              controller: _customValueController,
+              decoration: const InputDecoration(
+                labelText: 'Add custom value',
+                isDense: true,
+              ),
+              onSubmitted: _addCustomValue,
             ),
             const SizedBox(height: 8),
           ],
