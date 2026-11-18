@@ -47,12 +47,14 @@ void main() {
     );
     await tester.tap(find.text('Artefact Stage (0 selected)'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), '(no stage)');
-    await tester.pumpAndSettle();
     await tester.tap(stageOption('(no stage)'));
     await tester.pumpAndSettle();
-    await tester.tap(stageOption('"(no stage)"'));
+    await tester.tap(stageOption('stable'));
     await tester.pumpAndSettle();
-    expect(filters.artefactStages, ['', '(no stage)']);
+    await tester.enterText(find.byType(TextField), '(no stage)');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(filters.artefactStages, ['', 'stable', '(no stage)']);
+    expect(stageOption('"(no stage)"'), findsOneWidget);
   });
 }
