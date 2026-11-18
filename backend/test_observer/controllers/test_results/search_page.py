@@ -17,7 +17,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Security
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session, joinedload, load_only, raiseload
 
 from test_observer.common.config import MAX_RESULT_PAGE_LIMIT
@@ -58,9 +58,21 @@ def get_test_results_search_page(
         Query(ge=1, le=MAX_RESULT_PAGE_LIMIT, description="Maximum number of results to return"),
     ] = 50,
     offset: Annotated[int, Query(ge=0, description="Number of results to skip")] = 0,
+    include_count: Annotated[
+        bool,
+        Query(description="Include the exact total count; null is returned when false"),
+    ] = True,
     db: Session = Depends(get_db),
 ) -> TestResultSearchPage:
-    """Return a bounded page of compact test-result data, newest result first."""
+    """Return a bounded page of compact test-result data, newest result first.
+
+    ``count`` is exact and independent of the requested page. It is null when
+    ``include_count`` is false.
+    """
+    count = None
+    if include_count:
+        count = db.execute(select(func.count()).select_from(TestResult)).scalar_one()
+
     stmt = (
         select(TestResult)
         .options(
@@ -121,6 +133,7 @@ def get_test_results_search_page(
     results = db.execute(stmt).scalars().all()
 
     return TestResultSearchPage(
+        count=count,
         limit=limit,
         offset=offset,
         test_results=[

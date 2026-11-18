@@ -42,6 +42,7 @@ export interface TestResultSearchPageRow {
 }
 
 export interface TestResultSearchPageResponse {
+  count: number | null;
   limit: number;
   offset: number;
   test_results: TestResultSearchPageRow[];

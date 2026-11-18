@@ -59,6 +59,7 @@ class TestResultSearchPageRow(BaseModel):
 
 
 class TestResultSearchPage(BaseModel):
+    count: int | None
     limit: int
     offset: int
     test_results: list[TestResultSearchPageRow]

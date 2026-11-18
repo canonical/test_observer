@@ -70,6 +70,7 @@ def test_search_page_defaults_to_first_fifty_rows(
     body = response.json()
     assert body["limit"] == 50
     assert body["offset"] == 0
+    assert body["count"] == 1
     assert [row["test_result"]["id"] for row in body["test_results"]] == [result.id]
 
 
@@ -94,6 +95,7 @@ def test_search_page_accepts_limit_boundaries(
         {"limit": 0},
         {"limit": MAX_RESULT_PAGE_LIMIT + 1},
         {"offset": -1},
+        {"include_count": "not-a-boolean"},
     ],
 )
 def test_search_page_rejects_invalid_pagination(
@@ -136,16 +138,18 @@ def test_search_page_applies_bounded_offset_and_limit(
     db_session.flush()
 
     with override_permissions(Permission.view_test):
-        response = test_client.get(SEARCH_PAGE_ENDPOINT, params={"limit": 2, "offset": 1})
+        responses = [
+            test_client.get(SEARCH_PAGE_ENDPOINT, params={"limit": 2, "offset": offset}) for offset in (0, 2, 4)
+        ]
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["limit"] == 2
-    assert body["offset"] == 1
-    expected_ids = sorted((result.id for result in results), reverse=True)[1:3]
-    assert [row["test_result"]["id"] for row in body["test_results"]] == expected_ids
-    assert len(body["test_results"]) <= 2
-    assert "count" not in body
+    assert all(response.status_code == 200 for response in responses)
+    pages = [response.json() for response in responses]
+    assert [body["limit"] for body in pages] == [2, 2, 2]
+    assert [body["offset"] for body in pages] == [0, 2, 4]
+    assert [body["count"] for body in pages] == [5, 5, 5]
+    page_ids = [row["test_result"]["id"] for body in pages for row in body["test_results"]]
+    assert page_ids == sorted((result.id for result in results), reverse=True)
+    assert [len(body["test_results"]) for body in pages] == [2, 2, 1]
 
 
 def test_search_page_response_is_compact_and_does_not_select_detail_fields(
@@ -181,7 +185,7 @@ def test_search_page_response_is_compact_and_does_not_select_detail_fields(
 
     assert response.status_code == 200
     body = response.json()
-    assert "count" not in body
+    assert body["count"] == 1
     assert len(body["test_results"]) == 1
     row = body["test_results"][0]
     assert set(row) == {"test_result", "test_execution", "artefact", "artefact_build"}
@@ -205,4 +209,107 @@ def test_search_page_response_is_compact_and_does_not_select_detail_fields(
     assert statements
     assert all("io_log" not in statement for statement in statements)
     assert all("comment" not in statement for statement in statements)
+    assert len(statements) == 2
+    count_statement = next(statement for statement in statements if "count(" in statement)
+    page_statement = next(statement for statement in statements if "count(" not in statement)
+    assert "from test_result" in count_statement
+    assert " join " not in count_statement
+    assert "io_log" not in page_statement
+    assert "comment" not in page_statement
+
+
+def test_search_page_count_is_zero_for_empty_result_set(test_client: TestClient):
+    with override_permissions(Permission.view_test):
+        response = test_client.get(SEARCH_PAGE_ENDPOINT)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "count": 0,
+        "limit": 50,
+        "offset": 0,
+        "test_results": [],
+    }
+
+
+def test_search_page_can_omit_count(
+    test_client: TestClient,
+    db_session: Session,
+    generator: DataGenerator,
+):
+    _create_test_result(generator)
+    statements: list[str] = []
+
+    def capture_select(
+        _connection: Connection,
+        _cursor: object,
+        statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: bool,
+    ) -> None:
+        if statement.lstrip().lower().startswith("select"):
+            statements.append(statement.lower())
+
+    connection = db_session.connection()
+    event.listen(connection, "before_cursor_execute", capture_select)
+    try:
+        with override_permissions(Permission.view_test):
+            response = test_client.get(SEARCH_PAGE_ENDPOINT, params={"include_count": "false"})
+    finally:
+        event.remove(connection, "before_cursor_execute", capture_select)
+
+    assert response.status_code == 200
+    assert response.json()["count"] is None
     assert len(statements) == 1
+    assert all("count(" not in statement for statement in statements)
+
+
+def test_search_page_count_is_a_separate_unjoined_query(
+    test_client: TestClient,
+    db_session: Session,
+    generator: DataGenerator,
+):
+    results = [_create_test_result(generator) for _ in range(3)]
+    statements: list[str] = []
+
+    def capture_select(
+        _connection: Connection,
+        _cursor: object,
+        statement: str,
+        _parameters: object,
+        _context: object,
+        _executemany: bool,
+    ) -> None:
+        if statement.lstrip().lower().startswith("select"):
+            statements.append(statement.lower())
+
+    connection = db_session.connection()
+    event.listen(connection, "before_cursor_execute", capture_select)
+    try:
+        with override_permissions(Permission.view_test):
+            response = test_client.get(
+                SEARCH_PAGE_ENDPOINT,
+                params={"limit": 1, "offset": 1},
+            )
+    finally:
+        event.remove(connection, "before_cursor_execute", capture_select)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == len(results)
+    assert len(body["test_results"]) == 1
+    count_statement = next(statement for statement in statements if "count(" in statement)
+    page_statement = next(statement for statement in statements if "count(" not in statement)
+    assert "from test_result" in count_statement
+    assert " join " not in count_statement
+    assert "limit" not in count_statement
+    assert "offset" not in count_statement
+    assert "limit" in page_statement
+    assert "offset" in page_statement
+
+
+def test_search_page_include_count_must_be_boolean(test_client: TestClient):
+    with override_permissions(Permission.view_test):
+        response = test_client.get(SEARCH_PAGE_ENDPOINT, params={"include_count": "sometimes"})
+
+    assert response.status_code == 422
