@@ -13,3 +13,23 @@ export function mountPage(target) {
 }
 
 export { flushSync, requests, resetApi, setHandler, unmount as unmountPage };
+
+export {
+  currentSearchUrl,
+  resetSearchUrl,
+  searchHistoryBack,
+  searchHistoryForward,
+} from "./test-results-runtime.svelte.js";
+export {
+  DEFAULT_SEARCH_PAGE,
+  DEFAULT_SEARCH_PAGE_SIZE,
+  parseSearchPageState,
+  searchLastPage,
+  searchPageItems,
+  searchPageParams,
+  searchPageRange,
+  searchPageRangeLabel,
+  searchPageRequestParams,
+  searchPageSizeParams,
+  searchTotalPages,
+} from "../src/lib/searchPagination.ts";
