@@ -313,7 +313,11 @@ class MultiSelectComboboxState<T> extends State<MultiSelectCombobox<T>> {
           ],
           if (widget.showAllOptionsWithoutSearch)
             _AllOptionsList<T>(
-              allOptions: widget.allOptions!,
+              // Include selected custom values so they can be deselected
+              allOptions: [
+                ...widget.allOptions!,
+                ..._selected.where((s) => !widget.allOptions!.contains(s)),
+              ],
               selectedItems: _selected,
               itemBuilder: _itemBuilder,
               isMutuallyExclusive: widget.isMutuallyExclusive,
