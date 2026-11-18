@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { after, before, test } from "node:test";
 import { createServer } from "vite";
+import { Window } from "happy-dom";
 
 /** @type {import("vite").ViteDevServer | undefined} */
 let vite;
@@ -20,6 +21,8 @@ let autosaveSlot;
 let createNamedViews;
 /** @type {typeof import("@svgrid/grid").attachAutoSavedView | undefined} */
 let attachAutoSavedView;
+/** @type {typeof import("../src/lib/components/dashboard/trackColumnWidthActions").createTrackColumnWidthActions | undefined} */
+let createTrackColumnWidthActions;
 
 before(async () => {
   vite = await createServer({
@@ -35,6 +38,9 @@ before(async () => {
   ));
   ({ createNamedViews, attachAutoSavedView } =
     await vite.ssrLoadModule("@svgrid/grid"));
+  ({ createTrackColumnWidthActions } = await vite.ssrLoadModule(
+    "/src/lib/components/dashboard/trackColumnWidthActions.ts",
+  ));
 });
 
 after(async () => {
@@ -201,20 +207,181 @@ void test("fitColumns autosave stores only user overrides and migrates legacy wi
 });
 
 void test("family grid wires fit and resize events into the autosave policy", async () => {
-  const source = await readFile(
+  const componentSource = await readFile(
     new URL(
       "../src/lib/components/dashboard/ArtefactTable.svelte",
       import.meta.url,
     ),
     "utf8",
   );
-  assert.match(source, /fitColumns/);
-  assert.match(source, /onColumnResize=\{handleColumnResize\}/);
-  assert.match(source, /createUserResizeViewHost\(ready\)/);
-  assert.match(source, /attachAutoSavedView\(viewHost/);
-  assert.match(source, /action === 'Reset columns'/);
-  assert.match(source, /persistence\.resetResizes\(\)/);
-  assert.match(source, /use:trackColumnWidthActions/);
+  const actionSource = await readFile(
+    new URL(
+      "../src/lib/components/dashboard/trackColumnWidthActions.ts",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  assert.match(componentSource, /fitColumns/);
+  assert.match(componentSource, /onColumnResize=\{handleColumnResize\}/);
+  assert.match(componentSource, /createUserResizeViewHost\(ready\)/);
+  assert.match(componentSource, /attachAutoSavedView\(viewHost/);
+  assert.match(actionSource, /action === ["']Reset columns["']/);
+  assert.match(actionSource, /persistence\.resetResizes\(\)/);
+  assert.match(componentSource, /use:trackColumnWidthActions/);
+});
+
+void test("family grid menu actions persist only measured width overrides", async () => {
+  if (
+    !createUserResizeViewHost ||
+    !familyViewStorage ||
+    !autosaveSlot ||
+    !createNamedViews ||
+    !attachAutoSavedView ||
+    !createTrackColumnWidthActions
+  ) {
+    throw new Error("Grid view helpers were not loaded");
+  }
+
+  const originalSessionStorage = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "sessionStorage",
+  );
+  const originalElement = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "Element",
+  );
+  const browserWindow = new Window();
+  const sessionStorage = new MemorySessionStorage();
+  Object.defineProperty(globalThis, "sessionStorage", {
+    configurable: true,
+    value: sessionStorage,
+  });
+  Object.defineProperty(globalThis, "Element", {
+    configurable: true,
+    value: browserWindow.Element,
+  });
+
+  const grid = createFittingGrid(900);
+  const persistence = createUserResizeViewHost(grid.api);
+  const views = createNamedViews(persistence.host, {
+    storage: familyViewStorage("snaps"),
+  });
+  const wrapper = browserWindow.document.createElement("div");
+  wrapper.innerHTML = `
+    <div class="sv-grid-root">
+      <header data-svgrid-header-col="name"><button class="sv-grid-col-menu-btn"></button></header>
+      <header data-svgrid-header-col="status"><button class="sv-grid-col-menu-btn is-open"></button></header>
+      <header data-svgrid-header-col="updated"><button class="sv-grid-col-menu-btn"></button></header>
+      <div data-col-id="name"></div>
+      <div data-col-id="status"></div>
+    </div>
+    <div role="menu">
+      <button role="menuitem"><span>Autosize</span> this column</button>
+      <button role="menuitem">Autosize all columns</button>
+      <button role="menuitem">Reset columns</button>
+    </div>
+  `;
+  browserWindow.document.body.append(wrapper);
+
+  const trackColumnWidthActions = createTrackColumnWidthActions({
+    getPersistence: () => persistence,
+    getCurrentApi: () => grid.api,
+  });
+  const action = trackColumnWidthActions(
+    /** @type {HTMLDivElement} */ (/** @type {unknown} */ (wrapper)),
+  );
+  const detachAutosave = attachAutoSavedView(persistence.host, views, {
+    skipRestore: true,
+    intervalMs: 100,
+  });
+
+  const waitForAutosave = () =>
+    new Promise((resolve) => setTimeout(resolve, 125));
+  /**
+   * @param {string} label
+   * @param {() => void} applyGridAction
+   */
+  const clickMenuItem = (label, applyGridAction) => {
+    const menuItem = Array.from(
+      wrapper.querySelectorAll('[role="menuitem"]'),
+    ).find((item) => item.textContent.replace(/\s+/g, " ").trim() === label);
+    assert.ok(menuItem, `menu should contain ${label}`);
+    menuItem.addEventListener("click", applyGridAction, { once: true });
+    menuItem.dispatchEvent(
+      new browserWindow.MouseEvent("click", { bubbles: true }),
+    );
+  };
+
+  try {
+    // User drags are already tracked by onColumnResize; menu actions must add
+    // their widths without turning untouched fitted widths into overrides.
+    grid.resizeUserColumn("name", 240);
+    persistence.recordResize("name", 240);
+    await waitForAutosave();
+    assert.deepEqual(views.list()[0]?.state.columnWidths, { name: 240 });
+
+    clickMenuItem("Autosize this column", () => {
+      grid.resizeUserColumn("status", 360);
+    });
+    await waitForAutosave();
+    assert.deepEqual(views.list()[0]?.state.columnWidths, {
+      name: 240,
+      status: 360,
+    });
+
+    clickMenuItem("Autosize all columns", () => {
+      grid.resizeUserColumn("name", 250);
+      grid.resizeUserColumn("status", 350);
+      // The updated column has no rendered cell, so SvGrid cannot measure it.
+    });
+    await waitForAutosave();
+    assert.deepEqual(views.list()[0]?.state.columnWidths, {
+      name: 250,
+      status: 350,
+    });
+    assert.equal(
+      Object.hasOwn(views.list()[0]?.state.columnWidths ?? {}, "updated"),
+      false,
+      "unmeasurable fitted columns must not become persisted overrides",
+    );
+
+    clickMenuItem("Reset columns", () => {
+      grid.resetColumns();
+    });
+    await waitForAutosave();
+    assert.deepEqual(views.list()[0]?.state.columnWidths, {});
+
+    const resetReload = createFittingGrid(1200);
+    const resetViews = createNamedViews(
+      createUserResizeViewHost(resetReload.api).host,
+      { storage: familyViewStorage("snaps") },
+    );
+    assert.equal(resetViews.load(autosaveSlot), true);
+    assert.deepEqual(resetReload.api.getState().columnWidths, {
+      name: 400,
+      status: 400,
+      updated: 400,
+    });
+  } finally {
+    detachAutosave();
+    action.destroy();
+    wrapper.remove();
+    await browserWindow.happyDOM.abort();
+    if (originalSessionStorage) {
+      Object.defineProperty(
+        globalThis,
+        "sessionStorage",
+        originalSessionStorage,
+      );
+    } else {
+      Reflect.deleteProperty(globalThis, "sessionStorage");
+    }
+    if (originalElement) {
+      Object.defineProperty(globalThis, "Element", originalElement);
+    } else {
+      Reflect.deleteProperty(globalThis, "Element");
+    }
+  }
 });
 
 /**
@@ -239,6 +406,9 @@ function createFittingGrid(initialContainerWidth) {
   };
 
   const api = {
+    getColumns() {
+      return columns.map((id) => ({ id }));
+    },
     getState() {
       return {
         sorting: [],

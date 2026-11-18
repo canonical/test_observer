@@ -20,6 +20,7 @@
   import { columnValue, columnColor, columnSortValue } from '$lib/artefactMetadata';
   import { downloadCsv, toCsv } from '$lib/utils/csv';
   import ColouredCell from './ColouredCell.svelte';
+  import { createTrackColumnWidthActions } from './trackColumnWidthActions';
   import {
     AUTOSAVE_SLOT,
     EMPTY_VIEW,
@@ -149,66 +150,12 @@
     resizeWidthPersistence?.recordResize(event.columnId, event.width);
   }
 
-  // SvGrid 3.0.20's menu actions mutate its private width overrides directly:
-  // "Reset columns" and menu autosizing do not emit onColumnResize. Observe
-  // those user actions at the grid boundary so reset widths are forgotten and
-  // autosized widths are saved only for columns that actually had a rendered
-  // cell for the grid's autosize implementation to measure.
-  function trackColumnWidthActions(node: HTMLDivElement) {
-    function handleClick(event: MouseEvent) {
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      const menuItem = target.closest<HTMLElement>('[role="menuitem"]');
-      const action = menuItem?.textContent?.replace(/\s+/g, ' ').trim();
-      const persistence = resizeWidthPersistence;
-      if (!menuItem || !persistence || !action) return;
-
-      if (action === 'Reset columns') {
-        persistence.resetResizes();
-        return;
-      }
-
-      const autosizeAll = action === 'Autosize all columns';
-      if (!autosizeAll && action !== 'Autosize this column') return;
-
-      const ready = currentApi;
-      if (!ready) return;
-      const gridRoot = node.querySelector<HTMLElement>('.sv-grid-root');
-      const measurableColumns = new Set(
-        Array.from(gridRoot?.querySelectorAll<HTMLElement>('[data-col-id]') ?? [])
-          .map((cell) => cell.getAttribute('data-col-id'))
-          .filter((id): id is string => id !== null),
-      );
-      const columnId = autosizeAll
-        ? null
-        : node
-            .querySelector<HTMLElement>('.sv-grid-col-menu-btn.is-open')
-            ?.closest<HTMLElement>('[data-svgrid-header-col]')
-            ?.getAttribute('data-svgrid-header-col') ?? null;
-      const columnIds = autosizeAll
-        ? ready.getColumns().map((column) => column.id)
-        : columnId
-          ? [columnId]
-          : [];
-      // autosizeColumn() returns without changing state when no rendered body
-      // cell exists. That same condition must not turn a fitted width into an
-      // apparent explicit width in our persistence layer.
-      const measuredIds = columnIds.filter((id) => measurableColumns.has(id));
-      if (measuredIds.length === 0) return;
-
-      queueMicrotask(() => {
-        if (resizeWidthPersistence !== persistence || currentApi !== ready) return;
-        const widths = ready.getState().columnWidths;
-        for (const id of measuredIds) {
-          const width = widths[id];
-          if (width !== undefined) persistence.recordResize(id, width);
-        }
-      });
-    }
-
-    node.addEventListener('click', handleClick, true);
-    return { destroy: () => node.removeEventListener('click', handleClick, true) };
-  }
+  // SvGrid 3.0.20's menu actions mutate its private width overrides directly;
+  // its boundary action tracks those changes for autosave.
+  const trackColumnWidthActions = createTrackColumnWidthActions({
+    getPersistence: () => resizeWidthPersistence,
+    getCurrentApi: () => currentApi,
+  });
 
   // If the grid later loads data incrementally (pagination or infinite
   // scrolling), keep export disabled until the displayed dataset is complete.
