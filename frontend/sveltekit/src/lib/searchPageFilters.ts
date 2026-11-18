@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
-import { isFamilyName } from "./types/openapi";
-
 export const SEARCH_FILTER_LIST_KEYS = [
   "families",
   "test_result_statuses",
@@ -61,6 +59,7 @@ export function emptySearchFilters(): SearchFilters {
 /** Parse only the supported search condition keys; unknown keys fail closed. */
 export function parseSearchFilters(
   params: Pick<URLSearchParams, "getAll" | "keys">,
+  familyNames?: readonly string[],
 ): ParsedSearchFilters {
   const filters = emptySearchFilters();
   const problems: string[] = [];
@@ -99,9 +98,14 @@ export function parseSearchFilters(
     );
   }
 
-  for (const family of filters.families) {
-    if (!isFamilyName(family)) {
-      problems.push(`Invalid families: unsupported family value “${family}”.`);
+  if (familyNames !== undefined) {
+    const knownFamilyNames = new Set(familyNames);
+    for (const family of filters.families) {
+      if (!knownFamilyNames.has(family)) {
+        problems.push(
+          `Invalid families: unsupported family value “${family}”.`,
+        );
+      }
     }
   }
   for (const status of filters.test_result_statuses) {
@@ -124,7 +128,10 @@ export function parseSearchFilters(
   return { filters, problems };
 }
 
-export function validateSearchFilters(filters: SearchFilters): string[] {
+export function validateSearchFilters(
+  filters: SearchFilters,
+  familyNames?: readonly string[],
+): string[] {
   const params = new URLSearchParams();
   for (const key of SEARCH_FILTER_LIST_KEYS) {
     for (const value of filters[key]) params.append(key, value);
@@ -132,7 +139,7 @@ export function validateSearchFilters(filters: SearchFilters): string[] {
   for (const key of DATE_KEYS) {
     if (filters[key] !== null) params.append(key, filters[key]);
   }
-  return parseSearchFilters(params).problems;
+  return parseSearchFilters(params, familyNames).problems;
 }
 
 /** Canonically serialize valid filter state as repeated list-valued keys. */

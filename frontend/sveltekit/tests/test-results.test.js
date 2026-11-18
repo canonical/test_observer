@@ -16,7 +16,7 @@ import { Window } from "happy-dom";
 /**
  * @typedef {object} TestResultsHarness
  * @property {() => void} flushSync
- * @property {(target: HTMLElement) => object} mountPage
+ * @property {(target: HTMLElement, data: {artefactFamilies: unknown[]; apiFamilyNames: string[]; familyNamesError: boolean}) => object} mountPage
  * @property {TestRequest[]} requests
  * @property {() => void} resetApi
  * @property {(handler: ApiHandler) => void} setHandler
@@ -26,11 +26,13 @@ import { Window } from "happy-dom";
  * @property {() => void} searchHistoryBack
  * @property {() => void} searchHistoryForward
  * @property {(params: URLSearchParams) => {page: number; pageSize: number; problems: string[]}} parseSearchPageState
- * @property {(params: URLSearchParams) => {filters: import("../src/lib/searchPageFilters.ts").SearchFilters; problems: string[]}} parseSearchFilters
+ * @property {(params: URLSearchParams, familyNames?: string[]) => {filters: import("../src/lib/searchPageFilters.ts").SearchFilters; problems: string[]}} parseSearchFilters
  * @property {() => import("../src/lib/searchPageFilters.ts").SearchFilters} emptySearchFilters
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters, source?: URLSearchParams) => URLSearchParams} serializeSearchFilters
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters) => URLSearchParams} searchFilterRequestParams
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters) => string[]} validateSearchFilters
+ * @property {(document: unknown) => string[]} extractApiFamilyNames
+ * @property {(fetcher: typeof fetch, apiRoot: string) => Promise<string[]>} fetchApiFamilyNames
  * @property {(count: number, pageSize: number) => number} searchLastPage
  * @property {(currentPage: number, totalPages: number) => (number | "gap")[]} searchPageItems
  * @property {(source: URLSearchParams, page: number) => URLSearchParams} searchPageParams
@@ -207,13 +209,19 @@ function clickButton(target, selector) {
   /** @type {HTMLButtonElement} */ (/** @type {unknown} */ (button)).click();
 }
 
-function mountInDocument() {
+function mountInDocument(
+  data = {
+    apiFamilyNames: ["snap", "deb", "charm", "image", "solution"],
+    familyNamesError: false,
+  },
+) {
   assert.ok(harness);
   assert.ok(browserWindow);
   const target = browserWindow.document.createElement("div");
   browserWindow.document.body.append(target);
   const component = harness.mountPage(
     /** @type {HTMLElement} */ (/** @type {unknown} */ (target)),
+    { artefactFamilies: [], ...data },
   );
   return { component, target };
 }
@@ -825,6 +833,7 @@ void test("invalid filter values and unsupported URL keys fail closed", () => {
   assert.ok(harness);
   const futureFamily = harness.parseSearchFilters(
     new URLSearchParams("families=future-family"),
+    ["snap", "deb", "charm", "image", "solution"],
   );
   assert.match(futureFamily.problems[0] ?? "", /unsupported family/);
   assert.deepEqual(futureFamily.filters.families, ["future-family"]);
@@ -843,6 +852,105 @@ void test("invalid filter values and unsupported URL keys fail closed", () => {
     harness.validateSearchFilters(harness.emptySearchFilters()),
     [],
   );
+});
+
+void test("family URL validation uses the API enum and permits future API values", async () => {
+  assert.ok(harness);
+  const apiFamilyNames = harness.extractApiFamilyNames({
+    components: {
+      schemas: {
+        FamilyName: { type: "string", enum: ["snap", "future-family"] },
+      },
+    },
+  });
+  assert.deepEqual(apiFamilyNames, ["snap", "future-family"]);
+
+  harness.resetApi();
+  harness.resetSearchUrl(
+    "http://localhost/test-results?families=future-family",
+  );
+  harness.setHandler((path) => {
+    const params = new URL(path, "http://localhost/").searchParams;
+    assert.deepEqual(params.getAll("families"), ["future-family"]);
+    return Promise.resolve(makePage([], { count: 0 }));
+  });
+  const { component, target } = mountInDocument({
+    apiFamilyNames,
+    familyNamesError: false,
+  });
+  await settlePromises();
+
+  assert.equal(harness.requests.length, 1);
+  assert.deepEqual(
+    new URL(harness.requests[0].path, "http://localhost/").searchParams.getAll(
+      "families",
+    ),
+    ["future-family"],
+  );
+  assert.equal(target.querySelector('[role="alert"]'), null);
+  await unmountFromDocument(component, target);
+});
+
+void test("family schema is fetched from the API OpenAPI document", async () => {
+  assert.ok(harness);
+  /** @type {{url: string; credentials: RequestCredentials | undefined; csrf: string | null}[]} */
+  const requests = [];
+  const familyNames = await harness.fetchApiFamilyNames((input, init = {}) => {
+    if (typeof input !== "string") {
+      throw new TypeError("Expected the API URL to be a string.");
+    }
+    const url = new URL(input);
+    requests.push({
+      url: url.href,
+      credentials: init.credentials,
+      csrf: new Headers(init.headers).get("X-CSRF-Token"),
+    });
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          components: {
+            schemas: {
+              FamilyName: { type: "string", enum: ["future-family"] },
+            },
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+  }, "https://api.example");
+
+  assert.deepEqual(familyNames, ["future-family"]);
+  assert.deepEqual(requests, [
+    {
+      url: "https://api.example/openapi.json",
+      credentials: "include",
+      csrf: "1",
+    },
+  ]);
+});
+
+void test("family URLs fail closed when the API schema cannot be loaded", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl(
+    "http://localhost/test-results?families=future-family",
+  );
+  const { component, target } = mountInDocument({
+    apiFamilyNames: [],
+    familyNamesError: true,
+  });
+  await settlePromises();
+
+  assert.equal(harness.requests.length, 0);
+  assert.match(
+    target.querySelector('[role="alert"]')?.textContent ?? "",
+    /API schema/,
+  );
+  assert.match(
+    target.querySelector('[role="alert"]')?.textContent ?? "",
+    /No request was sent/,
+  );
+  await unmountFromDocument(component, target);
 });
 
 void test("filter drafts do not fetch until Search; apply, clear, page-size, and history use applied state", async () => {

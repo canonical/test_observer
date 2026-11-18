@@ -17,6 +17,7 @@
 -->
 
 <script lang="ts">
+  import type { PageProps } from "./$types";
   import { onDestroy, untrack } from "svelte";
   import { page } from "$app/state";
   import { SvelteURL } from "svelte/reactivity";
@@ -78,6 +79,8 @@
     environmentBuildArchitecture: string;
     testPlan: string;
   };
+
+  let { data }: PageProps = $props();
 
   let gridApi: SvGridApi<never, TestResultGridRow> | null = null;
   let detachAutosave: (() => void) | null = null;
@@ -187,7 +190,12 @@
   let clearAllRequested = $state(false);
 
   const pageState = $derived(parseSearchPageState(page.url.searchParams));
-  const filterState = $derived(parseSearchFilters(page.url.searchParams));
+  const filterState = $derived(
+    parseSearchFilters(
+      page.url.searchParams,
+      data.familyNamesError ? undefined : data.apiFamilyNames,
+    ),
+  );
   const appliedFilters = $derived(filterState.filters);
   const draftFilters = $derived.by(() => {
     const filters = emptySearchFilters();
@@ -232,7 +240,21 @@
       (unknownAppliedFilter && clearAllRequested),
   );
   let jumpValue = $derived<number | null>(pageState.page);
-  const problems = $derived([...pageState.problems, ...filterState.problems]);
+  const familyValidationProblem = $derived(
+    data.familyNamesError &&
+      page.url.searchParams
+        .getAll("families")
+        .some((value) => value.trim() !== "")
+      ? [
+          "Could not validate family values against the API schema. No request was sent.",
+        ]
+      : [],
+  );
+  const problems = $derived([
+    ...pageState.problems,
+    ...filterState.problems,
+    ...familyValidationProblem,
+  ]);
   const isInvalid = $derived(problems.length > 0);
   const isLoading = $derived(
     !isInvalid &&
@@ -331,14 +353,24 @@
   $effect(() => {
     const requestUrl = page.url.href;
     const parsed = parseSearchPageState(page.url.searchParams);
-    const parsedFilters = parseSearchFilters(page.url.searchParams);
+    const parsedFilters = parseSearchFilters(
+      page.url.searchParams,
+      data.familyNamesError ? undefined : data.apiFamilyNames,
+    );
+    const familyValidationUnavailable =
+      data.familyNamesError &&
+      parsedFilters.filters.families.some((value) => value.trim() !== "");
     const attempt = retryGeneration;
     const generation = ++requestGeneration;
     response = null;
     requestUrlState = requestUrl;
     navigationError = false;
 
-    if (parsed.problems.length > 0 || parsedFilters.problems.length > 0) {
+    if (
+      parsed.problems.length > 0 ||
+      parsedFilters.problems.length > 0 ||
+      familyValidationUnavailable
+    ) {
       loadState = "invalid";
       return;
     }
