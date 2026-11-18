@@ -1035,4 +1035,4 @@ def _create_missing_expected_environment_executions() -> list[StartSnapTestExecu
 
 if __name__ == "__main__":
     # small | medium (~115k results) | large (~1M results); empty string disables bulk seeding
-    seed_data(requests.Session(), bulk_profile=os.environ.get("SEED_BULK_PROFILE", "medium") or None)
+    seed_data(requests.Session(), bulk_profile=os.environ.get("SEED_BULK_PROFILE", "") or None)
