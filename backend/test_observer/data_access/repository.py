@@ -36,8 +36,6 @@ def get_families(session: Session) -> list[Family]:
 def create_family(session: Session, name: str) -> Family:
     family = Family(name=name)
     session.add(family)
-    session.commit()
-    session.refresh(family)
     return family
 
 

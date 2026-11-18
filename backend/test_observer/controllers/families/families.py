@@ -50,7 +50,9 @@ def list_families(db: Session = Depends(get_db)) -> list[Family]:
 )
 def add_family(request: FamilyCreate, db: Session = Depends(get_db)) -> Family:
     try:
-        return create_family(db, request.name)
+        family = create_family(db, request.name)
+        db.commit()
     except IntegrityError as error:
         db.rollback()
         raise HTTPException(status_code=409, detail=f"Family {request.name} already exists") from error
+    return family
