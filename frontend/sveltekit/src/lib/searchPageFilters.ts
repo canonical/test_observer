@@ -32,7 +32,6 @@ export interface ParsedSearchFilters {
   problems: string[];
 }
 
-const FAMILIES = new Set(["snap", "deb", "charm", "image", "solution"]);
 const RESULT_STATUSES = new Set(["PASSED", "FAILED", "SKIPPED"]);
 const PAGINATION_KEYS = new Set(["page", "page_size"]);
 const DATE_KEYS = ["from_date", "until_date"] as const;
@@ -98,11 +97,6 @@ export function parseSearchFilters(
     );
   }
 
-  for (const family of filters.families) {
-    if (!FAMILIES.has(family)) {
-      problems.push(`Invalid families: unsupported family value “${family}”.`);
-    }
-  }
   for (const status of filters.test_result_statuses) {
     if (!RESULT_STATUSES.has(status)) {
       problems.push(
@@ -183,11 +177,14 @@ export function searchFiltersEqual(
   right: SearchFilters,
 ): boolean {
   return (
-    SEARCH_FILTER_LIST_KEYS.every(
-      (key) =>
-        left[key].length === right[key].length &&
-        left[key].every((value, index) => value === right[key][index]),
-    ) &&
+    SEARCH_FILTER_LIST_KEYS.every((key) => {
+      const leftValues = new Set(left[key]);
+      const rightValues = new Set(right[key]);
+      return (
+        leftValues.size === rightValues.size &&
+        [...leftValues].every((value) => rightValues.has(value))
+      );
+    }) &&
     left.from_date === right.from_date &&
     left.until_date === right.until_date
   );
