@@ -17,7 +17,7 @@
 -->
 
 <script lang="ts">
-  import { onDestroy } from "svelte";
+  import { onDestroy, untrack } from "svelte";
   import { page } from "$app/state";
   import { SvelteURL } from "svelte/reactivity";
   import { goto } from "$app/navigation";
@@ -39,6 +39,19 @@
     TestResultSearchPageResponse,
     TestResultSearchPageRow,
   } from "$lib/types/test-results-search-page";
+  import {
+    emptySearchFilters,
+    formatSearchFilterText,
+    parseSearchFilters,
+    searchFilterQueryKey,
+    searchFilterRequestParams,
+    searchFiltersEqual,
+    serializeSearchFilters,
+    splitSearchFilterText,
+    validateSearchFilters,
+    type SearchFilterListKey,
+    type SearchFilters,
+  } from "$lib/searchPageFilters";
   import {
     hasValidSearchPageCount,
     parseSearchPageState,
@@ -138,9 +151,89 @@
   let requestUrlState = $state<string | null>(null);
   let requestGeneration = 0;
 
+  type DraftKey = SearchFilterListKey | "from_date" | "until_date";
+  function draftTextFor(filters: SearchFilters): Record<DraftKey, string> {
+    return {
+      families: formatSearchFilterText(filters.families),
+      test_result_statuses: formatSearchFilterText(
+        filters.test_result_statuses,
+      ),
+      artefacts: formatSearchFilterText(filters.artefacts),
+      artefact_versions: formatSearchFilterText(filters.artefact_versions),
+      artefact_tracks: formatSearchFilterText(filters.artefact_tracks),
+      environments: formatSearchFilterText(filters.environments),
+      test_cases: formatSearchFilterText(filters.test_cases),
+      test_plans: formatSearchFilterText(filters.test_plans),
+      from_date: filters.from_date ?? "",
+      until_date: filters.until_date ?? "",
+    };
+  }
+
+  const filterFields: { key: SearchFilterListKey; label: string }[] = [
+    { key: "families", label: "Family" },
+    { key: "test_result_statuses", label: "Result status" },
+    { key: "artefacts", label: "Artefact" },
+    { key: "artefact_versions", label: "Version" },
+    { key: "artefact_tracks", label: "Track" },
+    { key: "environments", label: "Environment" },
+    { key: "test_cases", label: "Test case" },
+    { key: "test_plans", label: "Test plan" },
+  ];
+  let draftValues = $state<Record<DraftKey, string>>(
+    draftTextFor(emptySearchFilters()),
+  );
+  let draftFilterKey = $state<string | null>(null);
+  let editedDraftKeys = $state<string[]>([]);
+  let clearAllRequested = $state(false);
+
   const pageState = $derived(parseSearchPageState(page.url.searchParams));
+  const filterState = $derived(parseSearchFilters(page.url.searchParams));
+  const appliedFilters = $derived(filterState.filters);
+  const draftFilters = $derived.by(() => {
+    const filters = emptySearchFilters();
+    for (const { key } of filterFields) {
+      filters[key] = splitSearchFilterText(draftValues[key]);
+    }
+    filters.from_date = draftValues.from_date.trim() || null;
+    filters.until_date = draftValues.until_date.trim() || null;
+    return filters;
+  });
+  const draftProblems = $derived.by(() => {
+    const problems = validateSearchFilters(draftFilters);
+    if (clearAllRequested) return problems;
+    for (const problem of filterState.problems) {
+      if (problem.startsWith("Unsupported search parameter:")) continue;
+      const field = problem.match(/^Invalid ([a-z_]+):/)?.[1];
+      const isDateRange = problem.startsWith("Invalid date range:");
+      const wasEdited = isDateRange
+        ? editedDraftKeys.includes("from_date") ||
+          editedDraftKeys.includes("until_date")
+        : field !== undefined && editedDraftKeys.includes(field);
+      if (wasEdited) continue;
+      const duplicateProblem = problems.some((draftProblem) =>
+        isDateRange
+          ? draftProblem.startsWith("Invalid date range:")
+          : field !== undefined && draftProblem.startsWith(`Invalid ${field}:`),
+      );
+      if (!duplicateProblem) problems.push(problem);
+    }
+    return problems;
+  });
+  const unknownAppliedFilter = $derived(
+    filterState.problems.some((problem) =>
+      problem.startsWith("Unsupported search parameter:"),
+    ),
+  );
+  const canApplySearch = $derived(
+    draftProblems.length === 0 && (!unknownAppliedFilter || clearAllRequested),
+  );
+  const unapplied = $derived(
+    !searchFiltersEqual(draftFilters, appliedFilters) ||
+      (unknownAppliedFilter && clearAllRequested),
+  );
   let jumpValue = $derived<number | null>(pageState.page);
-  const isInvalid = $derived(pageState.problems.length > 0);
+  const problems = $derived([...pageState.problems, ...filterState.problems]);
+  const isInvalid = $derived(problems.length > 0);
   const isLoading = $derived(
     !isInvalid &&
       (requestUrlState !== page.url.href || loadState === "loading"),
@@ -223,22 +316,40 @@
     },
   ];
 
+  $effect.pre(() => {
+    const key = searchFilterQueryKey(page.url.searchParams);
+    if (key === draftFilterKey) return;
+    const parsed = parseSearchFilters(page.url.searchParams);
+    untrack(() => {
+      draftFilterKey = key;
+      draftValues = draftTextFor(parsed.filters);
+      editedDraftKeys = [];
+      clearAllRequested = false;
+    });
+  });
+
   $effect(() => {
     const requestUrl = page.url.href;
     const parsed = parseSearchPageState(page.url.searchParams);
+    const parsedFilters = parseSearchFilters(page.url.searchParams);
     const attempt = retryGeneration;
     const generation = ++requestGeneration;
     response = null;
     requestUrlState = requestUrl;
     navigationError = false;
 
-    if (parsed.problems.length > 0) {
+    if (parsed.problems.length > 0 || parsedFilters.problems.length > 0) {
       loadState = "invalid";
       return;
     }
 
     const controller = new AbortController();
     const params = searchPageRequestParams(parsed.page, parsed.pageSize);
+    for (const [key, value] of searchFilterRequestParams(
+      parsedFilters.filters,
+    )) {
+      params.append(key, value);
+    }
     loadState = "loading";
     void silentApi<TestResultSearchPageResponse>(
       `test-results/search-page?${params}`,
@@ -333,6 +444,46 @@
   function retry() {
     retryGeneration += 1;
   }
+
+  function editDraft(key: DraftKey) {
+    clearAllRequested = false;
+    if (!editedDraftKeys.includes(key))
+      editedDraftKeys = [...editedDraftKeys, key];
+  }
+
+  function clearDrafts() {
+    draftValues = draftTextFor(emptySearchFilters());
+    editedDraftKeys = [];
+    clearAllRequested = true;
+  }
+
+  function submitSearch(event: SubmitEvent) {
+    event.preventDefault();
+    if (!canApplySearch) return;
+    const target = new SvelteURL(page.url.href);
+    target.search = serializeSearchFilters(
+      draftFilters,
+      page.url.searchParams,
+    ).toString();
+    navigationError = false;
+    if (target.href === page.url.href) {
+      retryGeneration += 1;
+      return;
+    }
+    void goto(target).catch(() => {
+      navigationError = true;
+    });
+  }
+
+  function canClearDrafts() {
+    return (
+      !searchFiltersEqual(draftFilters, emptySearchFilters()) ||
+      filterState.problems.length > 0 ||
+      filterFields.some(({ key }) => page.url.searchParams.has(key)) ||
+      page.url.searchParams.has("from_date") ||
+      page.url.searchParams.has("until_date")
+    );
+  }
 </script>
 
 <section
@@ -342,6 +493,86 @@
 >
   <h1 id="page-title" class="page-title">Search Results (WIP)</h1>
 
+  <form
+    class="filter-form"
+    aria-label="Test result search filters"
+    onsubmit={submitSearch}
+  >
+    <div class="filter-grid">
+      {#each filterFields as field (field.key)}
+        <label class="filter-control" for="filter-{field.key}">
+          {field.label}
+          <textarea
+            id="filter-{field.key}"
+            name={field.key}
+            autocomplete="off"
+            rows="2"
+            placeholder="Enter exact value(s), one per line"
+            bind:value={draftValues[field.key]}
+            oninput={() => editDraft(field.key)}></textarea>
+          <span
+            >Enter one exact value per line; values in this field are ORed. Use
+            \n and \r for line breaks within a value, and \\ for a literal
+            backslash.</span
+          >
+        </label>
+      {/each}
+      <label class="filter-control" for="filter-from-date">
+        Created from (UTC)
+        <input
+          id="filter-from-date"
+          name="from_date"
+          type="text"
+          autocomplete="off"
+          placeholder="2026-01-02T03:04:05Z"
+          bind:value={draftValues.from_date}
+          oninput={() => editDraft("from_date")}
+        />
+        <span>Inclusive ISO-8601 timestamp lower bound.</span>
+      </label>
+      <label class="filter-control" for="filter-until-date">
+        Created to (UTC)
+        <input
+          id="filter-until-date"
+          name="until_date"
+          type="text"
+          autocomplete="off"
+          placeholder="2026-01-02T03:04:05Z"
+          bind:value={draftValues.until_date}
+          oninput={() => editDraft("until_date")}
+        />
+        <span>Inclusive ISO-8601 timestamp upper bound.</span>
+      </label>
+    </div>
+    <div class="filter-actions">
+      <button
+        class="pager-button search-button"
+        type="submit"
+        disabled={!canApplySearch}>Search</button
+      >
+      {#if canClearDrafts()}
+        <button class="pager-button" type="button" onclick={clearDrafts}
+          >Clear all</button
+        >
+      {/if}
+    </div>
+  </form>
+
+  {#if unapplied}
+    <p class="draft-notice" role="status">
+      Changes not applied. Search to update results.
+    </p>
+  {/if}
+  {#if draftProblems.length > 0}
+    <div class="state-message error-message" role="alert">
+      <h2>Invalid filter draft</h2>
+      <ul>
+        {#each draftProblems as problem (problem)}<li>{problem}</li>{/each}
+      </ul>
+      <p>No request was sent. Correct the filter values before searching.</p>
+    </div>
+  {/if}
+
   {#if isInvalid}
     <div
       class="state-message error-message"
@@ -350,12 +581,13 @@
     >
       <h2 id="url-error-title">Invalid search page URL</h2>
       <ul>
-        {#each pageState.problems as problem (problem)}
+        {#each problems as problem (problem)}
           <li>{problem}</li>
         {/each}
       </ul>
       <p>
-        No request was sent. Correct the page and page_size values in the URL.
+        No request was sent. Correct the page, page_size, and filter values in
+        the URL, or clear all filters.
       </p>
     </div>
   {:else}
@@ -512,6 +744,68 @@
     font-size: 1.75rem;
     font-weight: 500;
     margin: 0 0 0.75rem;
+  }
+
+  .filter-form {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+    gap: 0.75rem;
+  }
+
+  .filter-control {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+  }
+
+  .filter-control input,
+  .filter-control textarea {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 2rem;
+    padding: 0.25rem 0.5rem;
+    color: var(--lp-color-text-default, #222);
+    background: var(--lp-color-background-default, #fff);
+    border: 1px solid var(--lp-color-border-default, #ccc);
+    border-radius: 0.25rem;
+    font: inherit;
+  }
+
+  .filter-control span,
+  .draft-notice {
+    color: var(--lp-color-text-muted, #666);
+    font-size: 0.8125rem;
+  }
+
+  .filter-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .search-button {
+    background: var(--lp-color-brand-default, #06c);
+    color: var(--lp-color-text-inverted, #fff);
+  }
+
+  .filter-control input:focus-visible,
+  .filter-control textarea:focus-visible {
+    outline: 2px solid var(--lp-color-brand-default, #06c);
+    outline-offset: 1px;
+  }
+
+  .draft-notice {
+    margin: 0 0 0.5rem;
   }
 
   .grid-region {

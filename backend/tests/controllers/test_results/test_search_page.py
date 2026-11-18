@@ -14,7 +14,7 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -25,7 +25,8 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.config import MAX_RESULT_PAGE_LIMIT
 from test_observer.common.enums import Permission
-from test_observer.data_access.models import TestResult
+from test_observer.data_access.models import Environment, TestCase, TestResult
+from test_observer.data_access.models_enums import FamilyName, TestResultStatus
 from tests.conftest import override_permissions
 from tests.data_generator import DataGenerator
 
@@ -40,6 +41,43 @@ def _create_test_result(generator: DataGenerator) -> TestResult:
     artefact_build = generator.gen_artefact_build(artefact, architecture="arm64")
     test_execution = generator.gen_test_execution(artefact_build, environment, test_plan="search-page-plan")
     return generator.gen_test_result(test_case, test_execution)
+
+
+def _create_search_result(
+    generator: DataGenerator,
+    *,
+    name: str,
+    family: FamilyName = FamilyName.snap,
+    version: str = "1.2.3",
+    track: str = "stable",
+    environment_name: str = "search-env",
+    test_case_name: str = "search-case",
+    test_plan_name: str = "search-plan",
+    status: TestResultStatus = TestResultStatus.PASSED,
+    created_at: datetime | None = None,
+) -> TestResult:
+    environment = generator.db_session.query(Environment).filter_by(name=environment_name, architecture="amd64").first()
+    if environment is None:
+        environment = generator.gen_environment(name=environment_name)
+    test_case = generator.db_session.query(TestCase).filter_by(name=test_case_name).first()
+    if test_case is None:
+        test_case = generator.gen_test_case(name=test_case_name)
+    artefact = generator.gen_artefact(
+        name=name,
+        family=family,
+        version=version,
+        track=track,
+    )
+    artefact_build = generator.gen_artefact_build(artefact, architecture="arm64")
+    test_execution = generator.gen_test_execution(
+        artefact_build,
+        environment,
+        test_plan=test_plan_name,
+    )
+    result = generator.gen_test_result(test_case, test_execution, status=status)
+    if created_at is not None:
+        result.created_at = created_at
+    return result
 
 
 def test_search_page_requires_view_test_permission(
@@ -313,3 +351,179 @@ def test_search_page_include_count_must_be_boolean(test_client: TestClient):
         response = test_client.get(SEARCH_PAGE_ENDPOINT, params={"include_count": "sometimes"})
 
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("filter_name", "matching_value", "nonmatching_value"),
+    [
+        ("families", "snap", "charm"),
+        ("test_result_statuses", "PASSED", "FAILED"),
+        ("artefacts", "search-filter-artefact", "other-artefact"),
+        ("artefact_versions", "7.2.1", "7.2.2"),
+        ("artefact_tracks", "edge", "stable"),
+        ("environments", "search-filter-env", "other-env"),
+        ("test_cases", "search-filter-case", "other-case"),
+        ("test_plans", "search-filter-plan", "other-plan"),
+    ],
+)
+def test_search_page_filters_each_supported_field_exactly(
+    test_client: TestClient,
+    generator: DataGenerator,
+    filter_name: str,
+    matching_value: str,
+    nonmatching_value: str,
+):
+    _create_search_result(
+        generator,
+        name="search-filter-artefact",
+        version="7.2.1",
+        track="edge",
+        environment_name="search-filter-env",
+        test_case_name="search-filter-case",
+        test_plan_name="search-filter-plan",
+    )
+
+    with override_permissions(Permission.view_test):
+        matched = test_client.get(SEARCH_PAGE_ENDPOINT, params={filter_name: matching_value})
+        unmatched = test_client.get(SEARCH_PAGE_ENDPOINT, params={filter_name: nonmatching_value})
+
+    assert matched.status_code == 200
+    assert matched.json()["count"] == 1
+    assert len(matched.json()["test_results"]) == 1
+    assert unmatched.status_code == 200
+    assert unmatched.json()["count"] == 0
+    assert unmatched.json()["test_results"] == []
+
+
+def test_search_page_combines_repeated_values_with_or_and_fields_with_and(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    matched_ids = {
+        _create_search_result(
+            generator,
+            name="search-combined-snap-pass",
+            environment_name="search-combined-env",
+            status=TestResultStatus.PASSED,
+        ).id,
+        _create_search_result(
+            generator,
+            name="search-combined-deb-fail",
+            family=FamilyName.deb,
+            environment_name="search-combined-env",
+            status=TestResultStatus.FAILED,
+        ).id,
+    }
+    _create_search_result(
+        generator,
+        name="search-combined-snap-skip",
+        environment_name="search-other-env",
+        status=TestResultStatus.SKIPPED,
+    )
+
+    params = [
+        ("families", "snap"),
+        ("families", "deb"),
+        ("test_result_statuses", "PASSED"),
+        ("test_result_statuses", "FAILED"),
+        ("environments", "search-combined-env"),
+    ]
+    with override_permissions(Permission.view_test):
+        response = test_client.get(SEARCH_PAGE_ENDPOINT, params=params)
+        different_field = test_client.get(SEARCH_PAGE_ENDPOINT, params=[*params, ("test_plans", "wrong-plan")])
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 2
+    assert {row["test_result"]["id"] for row in body["test_results"]} == matched_ids
+    assert different_field.status_code == 200
+    assert different_field.json()["count"] == 0
+
+
+def test_search_page_date_bounds_are_inclusive_utc_timestamps(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    lower = datetime(2026, 2, 1, 0, 0, tzinfo=UTC)
+    upper = datetime(2026, 2, 2, 0, 0, tzinfo=UTC)
+    included = [
+        _create_search_result(generator, name=f"date-bound-{index}", created_at=timestamp)
+        for index, timestamp in enumerate(
+            (
+                datetime(2026, 1, 31, 23, 59, tzinfo=UTC),
+                lower,
+                datetime(2026, 2, 1, 12, 0, tzinfo=UTC),
+                upper,
+                datetime(2026, 2, 2, 0, 1, tzinfo=UTC),
+            )
+        )
+    ]
+    params = {
+        "from_date": lower.isoformat().replace("+00:00", "Z"),
+        "until_date": upper.isoformat().replace("+00:00", "Z"),
+    }
+
+    with override_permissions(Permission.view_test):
+        response = test_client.get(SEARCH_PAGE_ENDPOINT, params=params)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["count"] == 3
+    assert {row["test_result"]["id"] for row in body["test_results"]} == {result.id for result in included[1:4]}
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"families": "unknown-family"},
+        {"test_result_statuses": "UNKNOWN"},
+        {"artefacts": ""},
+        {"artefacts": "   "},
+        {"from_date": "not-a-date"},
+        {"from_date": "2026-01-02T03:04:05"},
+        {"from_date": "2026-02-02T00:00:00Z", "until_date": "2026-02-01T00:00:00Z"},
+        {"unsupported_filter": "value"},
+        [("from_date", "2026-01-01T00:00:00Z"), ("from_date", "2026-01-02T00:00:00Z")],
+    ],
+)
+def test_search_page_rejects_invalid_or_unsupported_filter_values(
+    test_client: TestClient,
+    params: dict[str, str] | list[tuple[str, str]],
+):
+    with override_permissions(Permission.view_test):
+        response = test_client.get(SEARCH_PAGE_ENDPOINT, params=params)
+
+    assert response.status_code == 422
+
+
+def test_search_page_filtered_count_matches_offsets_and_stable_order(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    timestamp = datetime(2026, 3, 1, 12, 0, tzinfo=UTC)
+    results = [
+        _create_search_result(
+            generator,
+            name=f"filtered-page-{index}",
+            track="filtered-track",
+            created_at=timestamp,
+        )
+        for index in range(5)
+    ]
+    _create_search_result(generator, name="filtered-page-excluded", track="other-track", created_at=timestamp)
+
+    with override_permissions(Permission.view_test):
+        responses = [
+            test_client.get(
+                SEARCH_PAGE_ENDPOINT,
+                params={"artefact_tracks": "filtered-track", "limit": 2, "offset": offset},
+            )
+            for offset in (0, 2, 4)
+        ]
+
+    assert all(response.status_code == 200 for response in responses)
+    pages = [response.json() for response in responses]
+    assert [page["count"] for page in pages] == [5, 5, 5]
+    assert [len(page["test_results"]) for page in pages] == [2, 2, 1]
+    returned_ids = [row["test_result"]["id"] for page in pages for row in page["test_results"]]
+    assert returned_ids == sorted((result.id for result in results), reverse=True)

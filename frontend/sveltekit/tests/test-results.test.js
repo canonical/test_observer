@@ -26,6 +26,11 @@ import { Window } from "happy-dom";
  * @property {() => void} searchHistoryBack
  * @property {() => void} searchHistoryForward
  * @property {(params: URLSearchParams) => {page: number; pageSize: number; problems: string[]}} parseSearchPageState
+ * @property {(params: URLSearchParams) => {filters: import("../src/lib/searchPageFilters.ts").SearchFilters; problems: string[]}} parseSearchFilters
+ * @property {() => import("../src/lib/searchPageFilters.ts").SearchFilters} emptySearchFilters
+ * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters, source?: URLSearchParams) => URLSearchParams} serializeSearchFilters
+ * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters) => URLSearchParams} searchFilterRequestParams
+ * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters) => string[]} validateSearchFilters
  * @property {(count: number, pageSize: number) => number} searchLastPage
  * @property {(currentPage: number, totalPages: number) => (number | "gap")[]} searchPageItems
  * @property {(source: URLSearchParams, page: number) => URLSearchParams} searchPageParams
@@ -339,12 +344,10 @@ void test("loads the first server page and preserves server row order", async ()
   await unmountFromDocument(component, target);
 });
 
-void test("requests a valid shared page URL without forwarding unrelated parameters", async () => {
+void test("requests an applied page URL with only server paging parameters", async () => {
   assert.ok(harness);
   harness.resetApi();
-  harness.resetSearchUrl(
-    "http://localhost/test-results?page=3&page_size=25&campaign=summer&tag=a&tag=b",
-  );
+  harness.resetSearchUrl("http://localhost/test-results?page=3&page_size=25");
   harness.setHandler((path) => {
     const url = new URL(path, "http://localhost/");
     return Promise.resolve(
@@ -388,6 +391,12 @@ void test("invalid, duplicate, unsupported, and unsafe URL paging state sends no
     "?page_size=10",
     "?page=1&page=2",
     "?page_size=25&page_size=50",
+    "?families=unknown",
+    "?test_result_statuses=UNKNOWN",
+    "?from_date=not-a-date",
+    "?from_date=2026-02-02T00%3A00%3A00Z&until_date=2026-02-01T00%3A00%3A00Z",
+    "?unsupported_filter=value",
+    "?artefacts=",
   ];
   for (const query of invalidUrls) {
     harness.resetApi();
@@ -397,17 +406,15 @@ void test("invalid, duplicate, unsupported, and unsafe URL paging state sends no
     assert.equal(harness.requests.length, 0, query);
     const alert = target.querySelector('[role="alert"]');
     assert.ok(alert, query);
-    assert.match(alert.textContent, /Invalid search page URL/);
+    assert.match(alert.textContent, /No request was sent/);
     await unmountFromDocument(component, target);
   }
 });
 
-void test("page navigation pushes history and preserves URL extras; size changes reset page one", async () => {
+void test("page navigation pushes history; size changes reset page one", async () => {
   assert.ok(harness);
   harness.resetApi();
-  harness.resetSearchUrl(
-    "http://localhost/test-results?page=1&page_size=25&campaign=x&tag=a&tag=b",
-  );
+  harness.resetSearchUrl("http://localhost/test-results?page=1&page_size=25");
   harness.setHandler((_path) => {
     const params = new URL(_path, "http://localhost/").searchParams;
     const limit = Number(params.get("limit"));
@@ -476,9 +483,7 @@ void test("page navigation pushes history and preserves URL extras; size changes
 void test("out-of-range pages replace the URL with the last valid page and refetch", async () => {
   assert.ok(harness);
   harness.resetApi();
-  harness.resetSearchUrl(
-    "http://localhost/test-results?page=8&page_size=25&source=deep-link",
-  );
+  harness.resetSearchUrl("http://localhost/test-results?page=8&page_size=25");
   harness.setHandler((_path) => {
     const params = new URL(_path, "http://localhost/").searchParams;
     const limit = Number(params.get("limit"));
@@ -519,7 +524,7 @@ void test("out-of-range pages replace the URL with the last valid page and refet
 void test("empty results keep the range and pager available", async () => {
   assert.ok(harness);
   harness.resetApi();
-  harness.resetSearchUrl("http://localhost/test-results?source=empty");
+  harness.resetSearchUrl("http://localhost/test-results");
   harness.setHandler(() => Promise.resolve(makePage([], { count: 0 })));
   const { component, target } = mountInDocument();
   await settlePromises();
@@ -549,9 +554,7 @@ void test("empty results keep the range and pager available", async () => {
 void test("an empty deep link is replaced with canonical page one", async () => {
   assert.ok(harness);
   harness.resetApi();
-  harness.resetSearchUrl(
-    "http://localhost/test-results?page=7&page_size=25&source=empty",
-  );
+  harness.resetSearchUrl("http://localhost/test-results?page=7&page_size=25");
   harness.setHandler((path) => {
     const params = new URL(path, "http://localhost/").searchParams;
     return Promise.resolve(
@@ -592,9 +595,7 @@ void test("an empty deep link is replaced with canonical page one", async () => 
 void test("loading, failure, and retry show no stale pager and retry the current URL", async () => {
   assert.ok(harness);
   harness.resetApi();
-  harness.resetSearchUrl(
-    "http://localhost/test-results?page=2&page_size=25&origin=shared",
-  );
+  harness.resetSearchUrl("http://localhost/test-results?page=2&page_size=25");
   let attempts = 0;
   harness.setHandler((_path) => {
     attempts += 1;
@@ -786,4 +787,277 @@ void test("session-only resize controls remain and no width persistence is intro
   assert.match(source, /fitColumns/);
   assert.match(source, /enableRowHover/);
   assert.doesNotMatch(source, /localStorage|sessionStorage/);
+});
+
+void test("filter URL parsing and canonical serialization use repeated exact values", () => {
+  assert.ok(harness);
+  const parsed = harness.parseSearchFilters(
+    new URLSearchParams(
+      "families=snap&families=deb&test_result_statuses=PASSED&artefacts=zeta&artefacts=alpha&from_date=2026-01-01T00%3A00%3A00Z",
+    ),
+  );
+  assert.deepEqual(parsed.problems, []);
+  assert.deepEqual(parsed.filters.families, ["snap", "deb"]);
+  const serialized = harness.serializeSearchFilters(
+    parsed.filters,
+    new URLSearchParams("page=9&page_size=25"),
+  );
+  assert.deepEqual(
+    [...serialized.entries()],
+    [
+      ["page_size", "25"],
+      ["page", "1"],
+      ["families", "deb"],
+      ["families", "snap"],
+      ["test_result_statuses", "PASSED"],
+      ["artefacts", "alpha"],
+      ["artefacts", "zeta"],
+      ["from_date", "2026-01-01T00:00:00Z"],
+    ],
+  );
+  const request = harness.searchFilterRequestParams(parsed.filters);
+  assert.deepEqual(request.getAll("families"), ["snap", "deb"]);
+  assert.equal(request.get("page"), null);
+  assert.equal(request.get("page_size"), null);
+});
+
+void test("invalid filter values and unsupported URL keys fail closed", () => {
+  assert.ok(harness);
+  for (const query of [
+    "families=invalid",
+    "test_result_statuses=UNKNOWN",
+    "from_date=2026-02-02T00%3A00%3A00Z&until_date=2026-02-01T00%3A00%3A00Z",
+    "from_date=not-a-date",
+    "families=",
+    "unsupported_filter=value",
+  ]) {
+    const parsed = harness.parseSearchFilters(new URLSearchParams(query));
+    assert.ok(parsed.problems.length > 0, query);
+  }
+  assert.deepEqual(
+    harness.validateSearchFilters(harness.emptySearchFilters()),
+    [],
+  );
+});
+
+void test("filter drafts do not fetch until Search; apply, clear, page-size, and history use applied state", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl(
+    "http://localhost/test-results?page=3&page_size=25&families=snap&artefacts=old",
+  );
+  const requests = harness.requests;
+  harness.setHandler((path) => {
+    const params = new URL(path, "http://localhost/").searchParams;
+    const limit = Number(params.get("limit"));
+    const offset = Number(params.get("offset"));
+    const row = makeRow(10 + requests.length, "applied-row");
+    return Promise.resolve(makePage([row], { limit, offset, count: 80 }));
+  });
+  const { component, target } = mountInDocument();
+  await settlePromises();
+  assert.equal(harness.requests.length, 1);
+  const firstRequest = new URL(harness.requests[0].path, "http://localhost/");
+  assert.deepEqual(firstRequest.searchParams.getAll("families"), ["snap"]);
+  assert.deepEqual(firstRequest.searchParams.getAll("artefacts"), ["old"]);
+
+  const artefactInput = target.querySelector('[name="artefacts"]');
+  assert.ok(artefactInput);
+  assert.ok(browserWindow);
+  const input = /** @type {HTMLTextAreaElement} */ (
+    /** @type {unknown} */ (artefactInput)
+  );
+  input.value = "new";
+  input.dispatchEvent(
+    /** @type {Event} */ (
+      /** @type {unknown} */ (
+        new browserWindow.Event("input", { bubbles: true })
+      )
+    ),
+  );
+  await settlePromises();
+  assert.equal(harness.requests.length, 1, "editing drafts must not fetch");
+  assert.match(target.textContent, /Changes not applied/);
+  assert.equal(
+    new URL(harness.currentSearchUrl()).searchParams.get("artefacts"),
+    "old",
+  );
+
+  clickButton(target, '.filter-form button[type="submit"]');
+  await settlePromises();
+  assert.equal(harness.requests.length, 2);
+  let appliedUrl = new URL(harness.currentSearchUrl());
+  assert.equal(appliedUrl.searchParams.get("page"), "1");
+  assert.equal(appliedUrl.searchParams.get("page_size"), "25");
+  assert.deepEqual(appliedUrl.searchParams.getAll("families"), ["snap"]);
+  assert.deepEqual(appliedUrl.searchParams.getAll("artefacts"), ["new"]);
+  const appliedRequest = new URL(harness.requests[1].path, "http://localhost/");
+  assert.deepEqual(appliedRequest.searchParams.getAll("artefacts"), ["new"]);
+
+  clickButton(target, '.filter-form button[type="button"]');
+  await settlePromises();
+  assert.equal(harness.requests.length, 2, "Clear all only changes the draft");
+  assert.equal(
+    new URL(harness.currentSearchUrl()).searchParams.get("artefacts"),
+    "new",
+  );
+  assert.equal(input.value, "");
+  assert.match(target.textContent, /Changes not applied/);
+  clickButton(target, '.filter-form button[type="submit"]');
+  await settlePromises();
+  assert.equal(harness.requests.length, 3);
+  appliedUrl = new URL(harness.currentSearchUrl());
+  assert.equal(appliedUrl.searchParams.get("page"), "1");
+  assert.equal(appliedUrl.searchParams.get("page_size"), "25");
+  assert.equal(appliedUrl.searchParams.has("families"), false);
+  assert.equal(appliedUrl.searchParams.has("artefacts"), false);
+
+  harness.searchHistoryBack();
+  await settlePromises();
+  assert.equal(harness.requests.length, 4);
+  assert.equal(
+    /** @type {HTMLTextAreaElement} */ (
+      /** @type {unknown} */ (target.querySelector('[name="artefacts"]'))
+    ).value,
+    "new",
+  );
+  assert.equal(
+    new URL(harness.requests[3].path, "http://localhost/").searchParams.get(
+      "artefacts",
+    ),
+    "new",
+  );
+  harness.searchHistoryBack();
+  await settlePromises();
+  assert.equal(harness.requests.length, 5);
+  assert.equal(
+    /** @type {HTMLTextAreaElement} */ (
+      /** @type {unknown} */ (target.querySelector('[name="artefacts"]'))
+    ).value,
+    "old",
+  );
+  assert.equal(
+    new URL(harness.requests[4].path, "http://localhost/").searchParams.get(
+      "artefacts",
+    ),
+    "old",
+  );
+
+  await unmountFromDocument(component, target);
+});
+
+void test("filter drafts preserve exact values with commas, whitespace, and line breaks", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl();
+  harness.setHandler((path) => {
+    const params = new URL(path, "http://localhost/").searchParams;
+    const limit = Number(params.get("limit"));
+    const offset = Number(params.get("offset"));
+    return Promise.resolve(makePage([], { limit, offset, count: 0 }));
+  });
+  const { component, target } = mountInDocument();
+  await settlePromises();
+  assert.equal(harness.requests.length, 1);
+
+  const testCaseInput = target.querySelector('[name="test_cases"]');
+  assert.ok(testCaseInput);
+  assert.ok(browserWindow);
+  const textarea = /** @type {HTMLTextAreaElement} */ (
+    /** @type {unknown} */ (testCaseInput)
+  );
+  textarea.value =
+    "one, two\n leading and trailing \nline one\\nline two\nliteral \\\\n text";
+  textarea.dispatchEvent(
+    /** @type {Event} */ (
+      /** @type {unknown} */ (
+        new browserWindow.Event("input", { bubbles: true })
+      )
+    ),
+  );
+  await settlePromises();
+  assert.equal(harness.requests.length, 1, "editing drafts must not fetch");
+
+  clickButton(target, '.filter-form button[type="submit"]');
+  await settlePromises();
+  assert.equal(harness.requests.length, 2);
+  const expectedValues = [
+    " leading and trailing ",
+    "line one\nline two",
+    "literal \\n text",
+    "one, two",
+  ];
+  assert.deepEqual(
+    new URL(harness.currentSearchUrl()).searchParams.getAll("test_cases"),
+    expectedValues,
+  );
+  assert.deepEqual(
+    new URL(harness.requests[1].path, "http://localhost/").searchParams.getAll(
+      "test_cases",
+    ),
+    expectedValues,
+  );
+
+  harness.searchHistoryBack();
+  await settlePromises();
+  harness.searchHistoryForward();
+  await settlePromises();
+  const restoredInput = target.querySelector('[name="test_cases"]');
+  assert.ok(restoredInput);
+  assert.equal(
+    /** @type {HTMLTextAreaElement} */ (/** @type {unknown} */ (restoredInput))
+      .value,
+    " leading and trailing \nline one\\nline two\nliteral \\\\n text\none, two",
+  );
+
+  await unmountFromDocument(component, target);
+});
+
+void test("page-size changes preserve applied common filters", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl(
+    "http://localhost/test-results?page=2&page_size=25&families=deb&artefacts=kernel",
+  );
+  harness.setHandler((path) => {
+    const params = new URL(path, "http://localhost/").searchParams;
+    const limit = Number(params.get("limit"));
+    const offset = Number(params.get("offset"));
+    return Promise.resolve(
+      makePage(makeRows(80, limit, offset), { limit, offset, count: 80 }),
+    );
+  });
+  const { component, target } = mountInDocument();
+  await settlePromises();
+  assert.equal(harness.requests.length, 1);
+
+  const pageSize = target.querySelector("#search-page-size");
+  assert.ok(pageSize);
+  assert.ok(browserWindow);
+  const select = /** @type {HTMLSelectElement} */ (
+    /** @type {unknown} */ (pageSize)
+  );
+  select.value = "100";
+  select.dispatchEvent(
+    /** @type {Event} */ (
+      /** @type {unknown} */ (
+        new browserWindow.Event("change", { bubbles: true })
+      )
+    ),
+  );
+  await settlePromises();
+
+  assert.equal(harness.requests.length, 2);
+  const url = new URL(harness.currentSearchUrl());
+  assert.equal(url.searchParams.get("page"), "1");
+  assert.equal(url.searchParams.get("page_size"), "100");
+  assert.deepEqual(url.searchParams.getAll("families"), ["deb"]);
+  assert.deepEqual(url.searchParams.getAll("artefacts"), ["kernel"]);
+  const request = new URL(harness.requests[1].path, "http://localhost/");
+  assert.deepEqual(request.searchParams.getAll("families"), ["deb"]);
+  assert.deepEqual(request.searchParams.getAll("artefacts"), ["kernel"]);
+  assert.equal(request.searchParams.get("limit"), "100");
+  assert.equal(request.searchParams.get("offset"), "0");
+
+  await unmountFromDocument(component, target);
 });
