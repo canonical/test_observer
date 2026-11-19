@@ -2171,3 +2171,14 @@ def test_get_artefacts_for_registered_family_excludes_rows_sharing_latest_timest
 
     assert response.status_code == 200
     _assert_get_artefacts_response(response.json(), [expected])
+
+
+@pytest.mark.parametrize("family", ["unregistered", ""])
+def test_get_artefacts_unknown_family(test_client: TestClient, family: str):
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts", params={"family": family}),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["query", "family"]

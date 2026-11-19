@@ -338,7 +338,7 @@ def get_rerun_requests(
     build_architecture: str | None = None,
     db: Session = Depends(get_db),
 ):
-    ensure_families_exist(db, [family] if family else None, ("query", "family"))
+    ensure_families_exist(db, None if family is None else [family], ("query", "family"))
     stmt = (
         select(TestExecutionRerunRequest)
         .join(TestExecutionRerunRequest.artefact_build)

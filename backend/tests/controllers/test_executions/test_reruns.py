@@ -2083,3 +2083,14 @@ def test_details_requires_view_rerun_permission(test_client: TestClient):
     # view_rerun grants access.
     with override_permissions(Permission.view_rerun):
         assert test_client.get(details_url, params={"family": "charm"}).status_code == 200
+
+
+@pytest.mark.parametrize("family", ["unregistered", ""])
+def test_get_reruns_unknown_family(test_client: TestClient, family: str):
+    response = make_authenticated_request(
+        lambda: test_client.get(reruns_url, params={"family": family}),
+        Permission.view_rerun,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["query", "family"]

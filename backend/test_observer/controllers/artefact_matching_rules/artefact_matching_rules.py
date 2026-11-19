@@ -154,7 +154,7 @@ def get_artefact_matching_rules(
     family: str | None = None,
 ):
     """Get all artefact matching rules, optionally filtered by family"""
-    ensure_families_exist(db, [family] if family else None, ("query", "family"))
+    ensure_families_exist(db, None if family is None else [family], ("query", "family"))
     query = select(ArtefactMatchingRule).options(selectinload(ArtefactMatchingRule.teams))
 
     if family:

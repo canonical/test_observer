@@ -113,7 +113,7 @@ def create_artefact(
 )
 def get_artefacts(family: str | None = None, db: Session = Depends(get_db)):
     """Get latest artefacts optionally by family"""
-    ensure_families_exist(db, [family] if family else None, ("query", "family"))
+    ensure_families_exist(db, None if family is None else [family], ("query", "family"))
     artefacts = []
     order_by = (Artefact.name, Artefact.created_at)
 

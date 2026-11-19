@@ -781,9 +781,10 @@ def test_create_artefact_matching_rule_with_registered_family(test_client: TestC
     assert response.json()["family"] == "custom"
 
 
-def test_get_artefact_matching_rules_unknown_family(test_client: TestClient):
+@pytest.mark.parametrize("family", ["unregistered", ""])
+def test_get_artefact_matching_rules_unknown_family(test_client: TestClient, family: str):
     response = make_authenticated_request(
-        lambda: test_client.get("/v1/artefact-matching-rules", params={"family": "unregistered"}),
+        lambda: test_client.get("/v1/artefact-matching-rules", params={"family": family}),
         Permission.view_team,
     )
 
