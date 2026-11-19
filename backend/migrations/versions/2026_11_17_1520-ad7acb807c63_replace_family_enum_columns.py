@@ -50,6 +50,33 @@ def _create_family_indexes() -> None:
         op.create_index(name, "artefact", columns, unique=True, postgresql_where=sa.text(f"family = '{family}'"))
 
 
+def _ensure_families_fit_enum() -> None:
+    unsupported = (
+        op.get_bind()
+        .scalars(
+            sa.text(
+                """
+                SELECT DISTINCT family FROM (
+                    SELECT family FROM artefact
+                    UNION SELECT family FROM artefact_audit
+                    UNION SELECT family FROM artefact_matching_rule
+                    UNION SELECT unnest(families) FROM issue_test_result_attachment_rule
+                ) AS families
+                WHERE family IS NOT NULL AND family NOT IN :legacy
+                ORDER BY family
+                """
+            ).bindparams(sa.bindparam("legacy", expanding=True)),
+            {"legacy": list(family_enum.enums)},
+        )
+        .all()
+    )
+    if unsupported:
+        raise RuntimeError(
+            "Cannot downgrade: these families are not part of the familyname enum: "
+            f"{', '.join(unsupported)}. Remove or rename the rows using them before downgrading."
+        )
+
+
 def upgrade() -> None:
     _drop_family_indexes()
     op.alter_column(
@@ -92,6 +119,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    _ensure_families_fit_enum()
     _drop_family_indexes()
     op.alter_column(
         "issue_test_result_attachment_rule",

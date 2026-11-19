@@ -151,3 +151,19 @@ def test_round_trip_preserves_data_and_supports_legacy_enum_bindings(
             {"id": artefact_id},
         ).all() == ["snap", "deb"]
         _assert_unique_indexes(connection, artefacts, "downgraded")
+
+
+def test_downgrade_refuses_families_outside_enum(migration_context: tuple[Engine, Config]) -> None:
+    engine, config = migration_context
+    command.upgrade(config, TARGET_REV)
+    with engine.begin() as connection:
+        set_connection_audit_context(connection, automation_name="family-migration")
+        connection.execute(Base.metadata.tables["family"].insert().values(name="custom-family"))
+        connection.execute(Base.metadata.tables["artefact_matching_rule"].insert().values(family="custom-family"))
+
+    with pytest.raises(RuntimeError, match="custom-family"):
+        command.downgrade(config, PREVIOUS_REV)
+
+    with engine.connect() as connection:
+        assert connection.scalar(text("SELECT version_num FROM alembic_version")) == TARGET_REV
+        assert connection.scalar(text("SELECT family FROM artefact_matching_rule")) == "custom-family"
