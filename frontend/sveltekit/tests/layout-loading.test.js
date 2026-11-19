@@ -52,7 +52,7 @@ before(async () => {
     );
   const bundle = buildResult[0]?.output.find((item) => item.type === "chunk");
   assert.ok(bundle, "layout test bundle should be generated");
-  browserWindow = new Window({ url: "http://localhost/alpha" });
+  browserWindow = new Window({ url: "http://localhost/alphas" });
   for (const name of [
     "window",
     "document",
@@ -119,7 +119,7 @@ void test("navigation makes only the page inert and keeps status and shell contr
     assert.equal(page.hasAttribute("inert"), false);
     assert.equal(target.querySelector(".loading-overlay"), null);
 
-    setDestination("/beta");
+    setDestination("/betas");
     assert.equal(main.getAttribute("aria-busy"), "true");
     assert.equal(page.hasAttribute("inert"), true);
     assert.equal(action.closest("[inert]"), page);
@@ -133,7 +133,7 @@ void test("navigation makes only the page inert and keeps status and shell contr
 
     // The layout leaves ordinary href handling to SvelteKit rather than adding
     // a navigation lock or click interception while another request is pending.
-    const link = sidebar.querySelector('a[href="/alpha"]');
+    const link = sidebar.querySelector('a[href="/alphas"]');
     assert.ok(link);
     const click = new browserWindow.MouseEvent("click", {
       bubbles: true,
@@ -192,7 +192,7 @@ void test("navigation makes only the page inert and keeps status and shell contr
     assert.equal(target.querySelector("#page-action"), action);
 
     // A later navigation can start and clear normally after success or failure.
-    setDestination("/alpha");
+    setDestination("/alphas");
     assert.ok(target.querySelector(".loading-overlay"));
     setDestination(null);
     assert.equal(page.hasAttribute("inert"), false);

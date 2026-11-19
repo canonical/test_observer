@@ -14,9 +14,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import type { LayoutLoad } from "./$types";
-import { asset } from "$app/paths";
+import { getApiRoot } from "$lib/config";
 import { userStore } from "$lib/stores/user.svelte";
-import type { Family } from "$lib/types";
+import type { FamilyResponse } from "$lib/types/openapi";
 
 export const ssr = false;
 export const prerender = false;
@@ -35,18 +35,20 @@ export const load: LayoutLoad = async ({ fetch }) => {
 };
 
 const getFamilies = async (fetch: Parameters<LayoutLoad>[0]["fetch"]) => {
-  let artefactFamilies: Family[] = [];
+  let artefactFamilies: FamilyResponse[] = [];
   try {
-    const resp = await fetch(asset("families.json"));
+    const resp = await fetch(`${getApiRoot()}/v1/families`, {
+      credentials: "include",
+      headers: { "X-CSRF-Token": "1" },
+    });
     if (!resp.ok) {
       throw new Error(
-        `Failed to fetch families.json: ${resp.status} ${resp.statusText}`,
+        `Failed to fetch families: ${resp.status} ${resp.statusText}`,
       );
     }
-    artefactFamilies =
-      ((await resp.json()) as { families?: Family[] }).families ?? [];
+    artefactFamilies = (await resp.json()) as FamilyResponse[];
   } catch (error) {
-    console.error("Error fetching families.json:", error);
+    console.error("Error fetching families:", error);
   }
   return artefactFamilies;
 };
