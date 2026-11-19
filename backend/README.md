@@ -17,6 +17,17 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 # Test Observer Backend
 
+## Family filters
+
+GET endpoint `family` and `families` query parameters match stored family names without
+requiring the names to be registered. Unknown names, including empty strings, match
+no records; they do not disable the filter. Repeated `families` parameters match any
+of the supplied names, so unknown entries do not prevent known entries from matching.
+Omitting the family filter leaves results unfiltered by family.
+
+Write payloads still require registered family names. Only administrators can create
+families through `POST /v1/families`.
+
 ## Development Setup
 
 The development setup is prepared through the docker compose found in the parent directory. The dependencies are managed through uv. The migrations through alembic. Tests are run using PyTest. And finally we use pre-commit to maintain the OpenAPI schema.

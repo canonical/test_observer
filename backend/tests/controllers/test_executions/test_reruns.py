@@ -2086,11 +2086,43 @@ def test_details_requires_view_rerun_permission(test_client: TestClient):
 
 
 @pytest.mark.parametrize("family", ["unregistered", ""])
-def test_get_reruns_unknown_family(test_client: TestClient, family: str):
+def test_get_reruns_unknown_family(
+    test_client: TestClient, generator: DataGenerator, test_execution: TestExecution, family: str
+):
+    generator.gen_rerun_request(test_execution)
+
     response = make_authenticated_request(
         lambda: test_client.get(reruns_url, params={"family": family}),
         Permission.view_rerun,
     )
 
-    assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["query", "family"]
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+@pytest.mark.parametrize("family", ["unregistered", ""])
+@pytest.mark.parametrize("priority", [None, 5])
+def test_details_unknown_family(
+    test_client: TestClient,
+    generator: DataGenerator,
+    test_execution: TestExecution,
+    family: str,
+    priority: int | None,
+):
+    generator.gen_rerun_request(test_execution, priority=5)
+    params: dict[str, str | int] = {"family": family}
+    if priority is not None:
+        params["priority"] = priority
+
+    response = _get_details(test_client, **params)
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "priority_summaries": [],
+        "selected_priority": None,
+        "count": 0,
+        "selected_count": 0,
+        "limit": 50,
+        "offset": 0,
+        "reruns": [],
+    }

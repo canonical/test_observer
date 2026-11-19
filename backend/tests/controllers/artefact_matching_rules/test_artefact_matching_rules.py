@@ -782,11 +782,13 @@ def test_create_artefact_matching_rule_with_registered_family(test_client: TestC
 
 
 @pytest.mark.parametrize("family", ["unregistered", ""])
-def test_get_artefact_matching_rules_unknown_family(test_client: TestClient, family: str):
+def test_get_artefact_matching_rules_unknown_family(test_client: TestClient, generator: DataGenerator, family: str):
+    generator.gen_artefact_matching_rule(family="snap", teams=[generator.gen_team()])
+
     response = make_authenticated_request(
         lambda: test_client.get("/v1/artefact-matching-rules", params={"family": family}),
         Permission.view_team,
     )
 
-    assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["query", "family"]
+    assert response.status_code == 200
+    assert response.json() == []

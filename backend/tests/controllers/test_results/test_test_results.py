@@ -730,13 +730,15 @@ class TestSearchTestResults:
         assert any(tr["test_result"]["id"] == test_result.id for tr in data["test_results"])
 
     def test_search_invalid_family(self, test_client: TestClient):
-        """Test handling invalid family name"""
+        """Unknown family filters return no matches."""
         response = make_authenticated_request(
             lambda: test_client.get("/v1/test-results?families=invalid_family"),
             Permission.view_test,
         )
 
-        assert response.status_code == 422
+        assert response.status_code == 200
+        assert response.json()["count"] == 0
+        assert response.json()["test_results"] == []
 
     def test_search_registered_family_without_results(self, test_client: TestClient, generator: DataGenerator):
         generator.gen_family("custom")
@@ -1501,7 +1503,8 @@ class TestWindowFunctionSpecific:
             Permission.view_test,
         )
 
-        assert response.status_code == 422
+        assert response.status_code == 200
+        assert response.json() == {"count": 0, "limit": 50, "offset": 0, "test_results": []}
 
     def test_window_function_single_result(self, test_client: TestClient, generator: DataGenerator):
         """Test window function with exactly one result"""

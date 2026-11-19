@@ -35,7 +35,7 @@ from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
-from test_observer.controllers.families.validation import ensure_families_exist, ensure_family_exists
+from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.data_access.models import (
     Application,
     Artefact,
@@ -91,7 +91,7 @@ def create_artefact(
 
     An existing artefact is returned unchanged, including its stage and status.
     """
-    ensure_family_exists(db, request.family, ("body", "family"))
+    ensure_families_exist(db, request.family, ("body", "family"))
     fields = request.model_dump()
     identity = get_artefact_identity(fields)
     if not any(value.strip() for key, value in identity.items() if key != "family"):
@@ -113,11 +113,10 @@ def create_artefact(
 )
 def get_artefacts(family: str | None = None, db: Session = Depends(get_db)):
     """Get latest artefacts optionally by family"""
-    ensure_family_exists(db, family, ("query", "family"))
     artefacts = []
     order_by = (Artefact.name, Artefact.created_at)
 
-    if family:
+    if family is not None:
         artefacts = get_artefacts_by_family(
             db,
             family,
@@ -170,7 +169,6 @@ def search_artefacts(
 
     Returns a list of distinct artefact names that match the search query.
     """
-    ensure_families_exist(db, families, ("query", "families"))
     query = select(distinct(Artefact.name)).where(Artefact.archived.is_(False)).order_by(Artefact.name)
 
     if families and len(families) > 0:
@@ -224,7 +222,6 @@ def get_artefact_history(
 
     Returns a list of artefact versions along with their creation date.
     """
-    ensure_family_exists(db, family, ("query", "family"))
     query = (
         select(Artefact)
         .where(Artefact.name == name)

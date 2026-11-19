@@ -45,12 +45,11 @@ def ensure_located_families_exist(db: Session, located: Iterable[tuple[Loc, str]
         raise RequestValidationError(errors)
 
 
-def ensure_family_exists(db: Session, family: str | None, loc: Loc) -> None:
-    """Validate a single, optional family field."""
-    if family is not None:
-        ensure_located_families_exist(db, [(loc, family)])
-
-
-def ensure_families_exist(db: Session, families: Sequence[str] | None, loc: Loc) -> None:
-    """Validate a list of families, locating each error by its index in the list."""
-    ensure_located_families_exist(db, [((*loc, i), family) for i, family in enumerate(families or [])])
+def ensure_families_exist(db: Session, families: str | Sequence[str] | None, loc: Loc) -> None:
+    """Validate optional family fields, locating list errors by their index."""
+    if families is None:
+        return
+    if isinstance(families, str):
+        ensure_located_families_exist(db, [(loc, families)])
+    else:
+        ensure_located_families_exist(db, [((*loc, i), family) for i, family in enumerate(families)])

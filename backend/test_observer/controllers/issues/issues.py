@@ -26,7 +26,6 @@ from test_observer.common.permissions import permission_checker
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
-from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.data_access.models import (
     Application,
     Artefact,
@@ -102,7 +101,6 @@ def get_issues(
     ] = None,
     db: Session = Depends(get_db),
 ):
-    ensure_families_exist(db, families, ("query", "families"))
     stmt = select(Issue)
     if source:
         stmt = stmt.where(Issue.source == source)

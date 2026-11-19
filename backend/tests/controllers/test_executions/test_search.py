@@ -454,12 +454,14 @@ class TestSearchTestExecutions:
         assert len(data["test_executions"]) == 1
         assert data["count"] == 1
 
-    def test_invalid_family_returns_422(self, test_client: TestClient):
+    def test_unknown_family_returns_no_matches(self, test_client: TestClient):
         response = make_authenticated_request(
             lambda: test_client.get("/v1/test-executions?families=not_a_family"),
             Permission.view_test,
         )
-        assert response.status_code == 422
+        assert response.status_code == 200
+        assert response.json()["count"] == 0
+        assert response.json()["test_executions"] == []
 
     def test_no_results_for_nonexistent_artefact(self, test_client: TestClient):
         response = make_authenticated_request(

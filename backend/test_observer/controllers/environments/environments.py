@@ -22,7 +22,6 @@ from sqlalchemy.orm import Session
 from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
-from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -71,7 +70,6 @@ def get_environments(
 
     Supports pagination and search filtering.
     """
-    ensure_families_exist(db, families, ("query", "families"))
     query = select(distinct(Environment.name)).order_by(Environment.name)
 
     # Filter by families if provided

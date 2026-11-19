@@ -2174,11 +2174,26 @@ def test_get_artefacts_for_registered_family_excludes_rows_sharing_latest_timest
 
 
 @pytest.mark.parametrize("family", ["unregistered", ""])
-def test_get_artefacts_unknown_family(test_client: TestClient, family: str):
+def test_get_artefacts_unknown_family(test_client: TestClient, generator: DataGenerator, family: str):
+    generator.gen_artefact()
+
     response = make_authenticated_request(
         lambda: test_client.get("/v1/artefacts", params={"family": family}),
         Permission.view_artefact,
     )
 
-    assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["query", "family"]
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+@pytest.mark.parametrize("family", ["unregistered", ""])
+def test_get_artefact_history_unknown_family(test_client: TestClient, generator: DataGenerator, family: str):
+    artefact = generator.gen_artefact()
+
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts/history", params={"name": artefact.name, "family": family}),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"count": 0, "items": []}

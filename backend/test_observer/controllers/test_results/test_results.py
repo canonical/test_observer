@@ -30,7 +30,6 @@ from test_observer.common.constants import QueryValue
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
-from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -253,7 +252,6 @@ def search_test_results(
 
     Returns one item per matching test result with execution, artefact, and build context.
     """
-    ensure_families_exist(db, families, ("query", "families"))
     filters = TestResultSearchFilters(
         families=families or [],
         artefacts=artefacts or [],
