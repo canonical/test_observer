@@ -14,10 +14,11 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 import pytest
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session
 
-from test_observer.data_access.models import Issue
+from test_observer.common.helpers import get_artefact_url
+from test_observer.data_access.models import Family, Issue
 from test_observer.data_access.models_enums import FamilyName, IssueSource
 from tests.data_generator import DataGenerator
 
@@ -143,3 +144,23 @@ def test_snap_name_and_version_duplicates_are_not_blocked_by_solution_constraint
     )
 
     assert first.id != second.id
+
+
+def test_family_foreign_keys_require_registered_names(generator: DataGenerator, db_session: Session) -> None:
+    artefact = generator.gen_artefact()
+    matching_rule = generator.gen_artefact_matching_rule(FamilyName.snap)
+
+    for entity in (artefact, matching_rule):
+        with pytest.raises(DBAPIError, match="violates foreign key constraint"), db_session.begin_nested():
+            entity.family = "unregistered-family"
+            db_session.flush()
+
+    db_session.add(Family(name="registered-family"))
+    db_session.flush()
+    artefact.family = matching_rule.family = "registered-family"
+    db_session.commit()
+    db_session.refresh(artefact)
+    db_session.refresh(matching_rule)
+
+    assert artefact.family == matching_rule.family == "registered-family"
+    assert get_artefact_url(artefact).endswith(f"/registered-familys/{artefact.id}")

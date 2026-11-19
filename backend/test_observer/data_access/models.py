@@ -59,7 +59,6 @@ from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
-    FamilyName,
     IssueSource,
     IssueStatus,
     NotificationType,
@@ -90,6 +89,13 @@ class Base(DeclarativeBase):
 
 
 DataModel = TypeVar("DataModel", bound=Base)
+
+
+class Family(Base):
+    __tablename__ = "family"
+
+    id = None  # type: ignore[assignment]
+    name: Mapped[str] = mapped_column(String(100), primary_key=True)
 
 
 def data_model_repr(obj: DataModel, *keys: str) -> str:
@@ -258,7 +264,7 @@ class ArtefactMatchingRule(Base):
 
     name: Mapped[str] = mapped_column(String(200), default="", server_default="")
     stage: Mapped[str] = mapped_column(String(100), default="", server_default="")
-    family: Mapped[FamilyName]
+    family: Mapped[str] = mapped_column(String(100), ForeignKey("family.name"))
 
     # Snap-specific field
     store: Mapped[str] = mapped_column(String(200), default="", server_default="")
@@ -337,7 +343,7 @@ class Artefact(Base):
     name: Mapped[str] = mapped_column(String(200), index=True)
     version: Mapped[str]
     stage: Mapped[str] = mapped_column(String(100))
-    family: Mapped[FamilyName]
+    family: Mapped[str] = mapped_column(String(100), ForeignKey("family.name"))
     due_date: Mapped[date | None] = mapped_column(default=None)
     bug_link: Mapped[str] = mapped_column(default="")
     status: Mapped[ArtefactStatus] = mapped_column(default=ArtefactStatus.UNDECIDED)
@@ -389,6 +395,7 @@ class Artefact(Base):
     def architectures(self) -> set[str]:
         return {ab.architecture for ab in self.builds}
 
+    # TODO(raul): remove later in TO-416
     __table_args__ = (
         Index(
             "unique_snap",
@@ -396,7 +403,7 @@ class Artefact(Base):
             "version",
             "track",
             "branch",
-            postgresql_where=column("family") == FamilyName.snap.name,
+            postgresql_where=column("family") == "snap",
             unique=True,
         ),
         Index(
@@ -405,7 +412,7 @@ class Artefact(Base):
             "version",
             "track",
             "branch",
-            postgresql_where=column("family") == FamilyName.charm.name,
+            postgresql_where=column("family") == "charm",
             unique=True,
         ),
         Index(
@@ -415,20 +422,20 @@ class Artefact(Base):
             "series",
             "repo",
             "source",
-            postgresql_where=column("family") == FamilyName.deb.name,
+            postgresql_where=column("family") == "deb",
             unique=True,
         ),
         Index(
             "unique_image",
             "sha256",
-            postgresql_where=column("family") == FamilyName.image.name,
+            postgresql_where=column("family") == "image",
             unique=True,
         ),
         Index(
             "unique_solution",
             "name",
             "version",
-            postgresql_where=column("family") == FamilyName.solution.name,
+            postgresql_where=column("family") == "solution",
             unique=True,
         ),
     )
@@ -974,7 +981,7 @@ class IssueTestResultAttachmentRule(Base):
 
     test_results: Mapped[list["IssueTestResultAttachment"]] = relationship(back_populates="attachment_rule")
 
-    families: Mapped[list[FamilyName]] = mapped_column(ARRAY(Enum(FamilyName)), nullable=False, default=list)
+    families: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     artefacts: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     artefact_versions: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     artefact_stages: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)

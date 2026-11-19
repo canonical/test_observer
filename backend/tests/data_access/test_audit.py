@@ -23,7 +23,8 @@ from test_observer.data_access.audit import (
     set_audit_context,
     set_connection_audit_context,
 )
-from test_observer.data_access.models import Artefact, ChangeAuthor, FamilyName
+from test_observer.data_access.models import Artefact, ChangeAuthor, Family
+from test_observer.data_access.models_enums import FamilyName
 from tests.data_generator import DataGenerator
 
 
@@ -148,6 +149,24 @@ def test_connections_default_to_the_empty_author(db_engine: Engine) -> None:
         connection.rollback()
 
         assert connection.scalar(current_author) == DEFAULT_AUTHOR_ID
+
+
+def test_audit_family_survives_removal_from_catalog(db_session: Session, generator: DataGenerator) -> None:
+    artefact = generator.gen_artefact()
+    artefact_id = artefact.id
+    family = Family(name="retired-family")
+    db_session.add(family)
+    db_session.flush()
+    artefact.family = family.name
+    db_session.flush()
+    db_session.delete(artefact)
+    db_session.flush()
+    db_session.delete(family)
+    db_session.flush()
+
+    assert db_session.scalars(
+        text("SELECT family FROM artefact_audit WHERE id = :id ORDER BY audit_pk"), {"id": artefact_id}
+    ).all() == ["snap", "retired-family", "retired-family"]
 
 
 def test_set_audit_context_requires_exactly_one_actor(db_session: Session) -> None:

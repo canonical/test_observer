@@ -25,8 +25,18 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.orm.attributes import set_committed_value
 
-from .models import Artefact, ArtefactBuild, DataModel, Environment, TestExecution, TestExecutionRelevantLink
+from .models import Artefact, ArtefactBuild, DataModel, Environment, Family, TestExecution, TestExecutionRelevantLink
 from .models_enums import FamilyName
+
+
+def get_families(session: Session) -> list[Family]:
+    return list(session.scalars(select(Family).order_by(Family.name)))
+
+
+def create_family(session: Session, name: str) -> Family:
+    family = Family(name=name)
+    session.add(family)
+    return family
 
 
 def get_artefacts_by_family(

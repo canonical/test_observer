@@ -44,7 +44,7 @@ def _get_base_metric_labels(test_execution: TestExecution) -> dict[str, str]:
     artefact = test_execution.artefact_build.artefact
 
     return {
-        "family": artefact.family.value,
+        "family": artefact.family,
         "artefact_name": artefact.name,
         "artefact_stage": artefact.stage,
         "track": artefact.track or "",

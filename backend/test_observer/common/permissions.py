@@ -69,6 +69,16 @@ def authentication_checker_browser_friendly(
         raise HTTPException(status_code=401, detail="Not authenticated")
 
 
+def require_admin(
+    user: User | None = Depends(get_current_user),
+    app: Application | None = Depends(get_current_application),
+) -> None:
+    if user is None and app is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    if user is None or not user.is_admin:
+        raise HTTPException(status_code=403, detail="Administrator access required")
+
+
 def permission_checker(
     security_scopes: SecurityScopes,
     user: User | None = Depends(get_current_user),
