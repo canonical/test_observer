@@ -444,3 +444,19 @@ def test_attachment_rule_with_empty_statuses_matches_all(
     for result in results:
         assert len(result["issues"]) == 1
         assert result["issues"][0]["issue"]["id"] == issue.id
+
+
+def test_post_attachment_rule_unknown_family(
+    test_client: TestClient, generator: DataGenerator, post_attachment_rule: dict
+):
+    issue = generator.gen_issue()
+
+    response = auth_request(
+        "post",
+        test_client,
+        post_endpoint.format(issue_id=issue.id),
+        json={**post_attachment_rule, "families": ["charm", "unregistered"]},
+    )
+
+    assert response.status_code == 422
+    assert [(e["loc"], e["input"]) for e in response.json()["detail"]] == [(["body", "families"], "unregistered")]

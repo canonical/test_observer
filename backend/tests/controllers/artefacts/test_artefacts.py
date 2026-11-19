@@ -15,6 +15,7 @@
 
 from collections.abc import Callable
 from datetime import date, timedelta
+from functools import partial
 from operator import itemgetter
 from typing import Any
 
@@ -43,7 +44,6 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
-    FamilyName,
     NotificationType,
 )
 from test_observer.main import app
@@ -150,7 +150,7 @@ def test_create_artefact_preserves_existing(
     concurrent_insert: bool,
 ):
     artefact = generator.gen_artefact(
-        family=FamilyName.charm,
+        family="charm",
         name="postgresql",
         version="42",
         track="14",
@@ -246,14 +246,14 @@ def test_create_artefact_requires_identity(test_client: TestClient, db_session: 
 def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: TestClient):
     a1 = generator.gen_artefact(
         stage="proposed",
-        family=FamilyName.deb,
+        family="deb",
         name="linux-raspi",
         version="2",
         series="noble",
     )
     a2 = generator.gen_artefact(
         stage="beta",
-        family=FamilyName.snap,
+        family="snap",
         name="pi-kernel",
         version="2",
         store="ubuntu",
@@ -261,7 +261,7 @@ def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: T
     )
     a3 = generator.gen_artefact(
         stage="beta",
-        family=FamilyName.charm,
+        family="charm",
         name="postgresql",
         version="2",
         track="latest",
@@ -269,7 +269,7 @@ def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: T
 
     generator.gen_artefact(
         stage="proposed",
-        family=FamilyName.deb,
+        family="deb",
         name="linux-raspi",
         version="1",
         series="noble",
@@ -277,7 +277,7 @@ def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: T
     )
     generator.gen_artefact(
         stage="beta",
-        family=FamilyName.snap,
+        family="snap",
         name="pi-kernel",
         version="1",
         store="ubuntu",
@@ -286,7 +286,7 @@ def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: T
     )
     generator.gen_artefact(
         stage="beta",
-        family=FamilyName.charm,
+        family="charm",
         name="postgresql",
         version="1",
         track="latest",
@@ -305,13 +305,13 @@ def test_get_artefacts_ignores_archived(generator: DataGenerator, test_client: T
     "artefact",
     [
         {
-            "family": FamilyName.deb,
+            "family": "deb",
             "stage": "proposed",
             "name": "server:linux-generic",
             "series": "noble",
         },
         {
-            "family": FamilyName.snap,
+            "family": "snap",
             "stage": "beta",
             "name": "core",
             "track": "latest",
@@ -375,7 +375,7 @@ def test_get_charm_artefacts_returns_all_non_archived(
     """Charm family should return all non-archived artefacts, not just the latest"""
     a1 = generator.gen_artefact(
         stage="beta",
-        family=FamilyName.charm,
+        family="charm",
         name="postgresql",
         version="1",
         track="latest",
@@ -384,7 +384,7 @@ def test_get_charm_artefacts_returns_all_non_archived(
     )
     a2 = generator.gen_artefact(
         stage="beta",
-        family=FamilyName.charm,
+        family="charm",
         name="postgresql",
         version="2",
         track="latest",
@@ -394,7 +394,7 @@ def test_get_charm_artefacts_returns_all_non_archived(
     # This one is archived, so shouldn't be returned
     generator.gen_artefact(
         stage="beta",
-        family=FamilyName.charm,
+        family="charm",
         name="postgresql",
         version="0",
         track="latest",
@@ -519,10 +519,10 @@ def test_artefact_signoff_approve(test_client: TestClient, generator: DataGenera
     assert artefact.status == ArtefactStatus.APPROVED
 
 
-@pytest.mark.parametrize("family", list(FamilyName))
+@pytest.mark.parametrize("family", ["snap", "deb", "charm", "image", "solution"])
 @pytest.mark.parametrize("has_build", [False, True])
 def test_artefact_signoff_allows_no_environment_reviews(
-    test_client: TestClient, generator: DataGenerator, family: FamilyName, has_build: bool
+    test_client: TestClient, generator: DataGenerator, family: str, has_build: bool
 ) -> None:
     artefact = generator.gen_artefact(family=family)
     if has_build:
@@ -705,7 +705,7 @@ def test_missing_expected_environments_sorts_null_revision_after_zero(
     null_revision_environment = generator.gen_environment(name="null-revision")
     zero_revision_environment = generator.gen_environment(name="zero-revision")
     artefact = generator.gen_artefact(
-        family=FamilyName.deb,
+        family="deb",
         expected_environments=[null_revision_environment, zero_revision_environment],
     )
     null_revision_build = generator.gen_artefact_build(artefact, revision=None)
@@ -914,7 +914,7 @@ def test_artefact_stage_is_limited_to_database_length(
 
 
 def test_artefact_promote_solution_valid_stage(test_client: TestClient, generator: DataGenerator):
-    artefact = generator.gen_artefact(stage="candidate", family=FamilyName.solution)
+    artefact = generator.gen_artefact(stage="candidate", family="solution")
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -1457,8 +1457,8 @@ def test_get_artefact_versions(test_client: TestClient, generator: DataGenerator
 def test_get_artefact_versions_does_not_mix_families(test_client: TestClient, generator: DataGenerator):
     """Artefacts of different families sharing the same name (and otherwise-blank family-specific
     fields) must not be mixed together in each other's version history."""
-    snap = generator.gen_artefact(family=FamilyName.snap, name="shared-name", version="1")
-    solution = generator.gen_artefact(family=FamilyName.solution, name="shared-name", version="2")
+    snap = generator.gen_artefact(family="snap", name="shared-name", version="1")
+    solution = generator.gen_artefact(family="solution", name="shared-name", version="2")
 
     response = make_authenticated_request(
         lambda: test_client.get(f"/v1/artefacts/{snap.id}/versions"),
@@ -1478,10 +1478,8 @@ def test_get_artefact_versions_does_not_mix_families(test_client: TestClient, ge
 def test_get_artefact_versions_solution_ignores_legacy_family_fields(test_client: TestClient, generator: DataGenerator):
     """A solution's version history is keyed on (name, family) only, so legacy solutions with
     non-empty track/source are grouped with newer rows that leave those columns blank."""
-    legacy = generator.gen_artefact(
-        family=FamilyName.solution, name="my-solution", version="1", track="1.32", source="some-sha"
-    )
-    new = generator.gen_artefact(family=FamilyName.solution, name="my-solution", version="2")
+    legacy = generator.gen_artefact(family="solution", name="my-solution", version="1", track="1.32", source="some-sha")
+    new = generator.gen_artefact(family="solution", name="my-solution", version="2")
 
     expected_result = [
         {"version": "2", "artefact_id": new.id},
@@ -1505,14 +1503,14 @@ def test_get_artefact_versions_solution_ignores_legacy_family_fields(test_client
 
 def test_get_artefact_history_default_filters(test_client: TestClient, generator: DataGenerator):
     charm_latest_1 = generator.gen_artefact(
-        family=FamilyName.charm,
+        family="charm",
         name="postgresql-k8s",
         version="499",
         track="latest",
         stage="edge",
     )
     charm_latest_2 = generator.gen_artefact(
-        family=FamilyName.charm,
+        family="charm",
         name="postgresql-k8s",
         version="498",
         track="latest",
@@ -1521,7 +1519,7 @@ def test_get_artefact_history_default_filters(test_client: TestClient, generator
 
     # Different family should be excluded by default family=charm
     generator.gen_artefact(
-        family=FamilyName.snap,
+        family="snap",
         name="postgresql-k8s",
         version="999",
         track="latest",
@@ -1529,7 +1527,7 @@ def test_get_artefact_history_default_filters(test_client: TestClient, generator
     )
     # Different track should be excluded by default track=latest
     generator.gen_artefact(
-        family=FamilyName.charm,
+        family="charm",
         name="postgresql-k8s",
         version="497",
         track="2.0",
@@ -1539,7 +1537,7 @@ def test_get_artefact_history_default_filters(test_client: TestClient, generator
     response = make_authenticated_request(
         lambda: test_client.get(
             "/v1/artefacts/history",
-            params={"name": "postgresql-k8s", "family": FamilyName.charm, "offset": 0},
+            params={"name": "postgresql-k8s", "family": "charm", "offset": 0},
         ),
         Permission.view_artefact,
     )
@@ -1554,7 +1552,7 @@ def test_get_artefact_history_default_filters(test_client: TestClient, generator
 def test_get_artefact_history_limit(test_client: TestClient, generator: DataGenerator):
     for i in range(20):
         generator.gen_artefact(
-            family=FamilyName.charm,
+            family="charm",
             name="postgresql-k8s",
             version=str(i),
             track="latest",
@@ -1564,7 +1562,7 @@ def test_get_artefact_history_limit(test_client: TestClient, generator: DataGene
     response = make_authenticated_request(
         lambda: test_client.get(
             "/v1/artefacts/history",
-            params={"name": "postgresql-k8s", "family": FamilyName.charm, "limit": 5, "offset": 0},
+            params={"name": "postgresql-k8s", "family": "charm", "limit": 5, "offset": 0},
         ),
         Permission.view_artefact,
     )
@@ -1578,14 +1576,14 @@ def test_get_artefact_history_limit(test_client: TestClient, generator: DataGene
 
 def test_get_artefact_history_filters_by_stage(test_client: TestClient, generator: DataGenerator):
     generator.gen_artefact(
-        family=FamilyName.charm,
+        family="charm",
         name="mysql-k8s",
         version="2",
         track="latest",
         stage="edge",
     )
     beta = generator.gen_artefact(
-        family=FamilyName.charm,
+        family="charm",
         name="mysql-k8s",
         version="1",
         track="latest",
@@ -1595,7 +1593,7 @@ def test_get_artefact_history_filters_by_stage(test_client: TestClient, generato
     response = make_authenticated_request(
         lambda: test_client.get(
             "/v1/artefacts/history",
-            params={"name": "mysql-k8s", "family": FamilyName.charm, "stage": "beta", "offset": 0},
+            params={"name": "mysql-k8s", "family": "charm", "stage": "beta", "offset": 0},
         ),
         Permission.view_artefact,
     )
@@ -1687,7 +1685,7 @@ class TestArtefactPatchAMRPermissions:
         # Create team and AMR
         team = generator.gen_team(name="snap-team")
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
             teams=[team],
             grant_permissions=[Permission.change_artefact],
@@ -1702,7 +1700,7 @@ class TestArtefactPatchAMRPermissions:
         # Create matching artefact
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -1727,7 +1725,7 @@ class TestArtefactPatchAMRPermissions:
 
         # Create AMR for team_a
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
             teams=[team_a],
             grant_permissions=[Permission.change_artefact],
@@ -1742,7 +1740,7 @@ class TestArtefactPatchAMRPermissions:
         # Create matching artefact
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -1763,7 +1761,7 @@ class TestArtefactPatchAMRPermissions:
         # Create team and AMR for stable stage
         team = generator.gen_team(name="snap-team")
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
             teams=[team],
             grant_permissions=[Permission.change_artefact],
@@ -1778,7 +1776,7 @@ class TestArtefactPatchAMRPermissions:
         # Create artefact that doesn't match (different stage)
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="beta",
         )
 
@@ -1805,7 +1803,7 @@ class TestArtefactPatchAMRPermissions:
         # Create artefact with no AMRs
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -1825,7 +1823,7 @@ class TestArtefactPatchAMRPermissions:
         # Create artefact with no AMRs
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -1847,7 +1845,7 @@ class TestArtefactPatchAMRPermissions:
         # Create an AMR that doesn't match
         team = generator.gen_team(name="restricted-team")
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
             teams=[team],
             grant_permissions=[Permission.change_artefact],
@@ -1856,7 +1854,7 @@ class TestArtefactPatchAMRPermissions:
         # Create artefact that matches the AMR (but user not in team)
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -1878,7 +1876,7 @@ class TestArtefactPatchAMRPermissions:
         # Create an AMR that doesn't match
         team = generator.gen_team(name="restricted-team")
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
             teams=[team],
             grant_permissions=[Permission.change_artefact],
@@ -1893,7 +1891,7 @@ class TestArtefactPatchAMRPermissions:
         # Create matching artefact
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -1921,7 +1919,7 @@ class TestArtefactPatchAMRPermissions:
         # Create artefact with no matching AMRs
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -2115,3 +2113,23 @@ class TestArtefactDeletePermissions:
         response = test_client.delete("/v1/artefacts/999999")
 
         assert response.status_code == 404
+
+
+def test_create_and_list_artefact_of_registered_family(
+    test_client: TestClient, generator: DataGenerator, artefact_request: dict[str, Any]
+):
+    generator.gen_family("custom")
+
+    response = make_authenticated_request(
+        lambda: test_client.post("/v1/artefacts", json={**artefact_request, "family": "custom"}),
+        Permission.change_artefact,
+    )
+    assert response.status_code == 200
+
+    for params in ({}, {"family": "custom"}):
+        listed = make_authenticated_request(
+            partial(test_client.get, "/v1/artefacts", params=params),
+            Permission.view_artefact,
+        )
+        assert listed.status_code == 200
+        assert [a["id"] for a in listed.json() if a["family"] == "custom"] == [response.json()["id"]]

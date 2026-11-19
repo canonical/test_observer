@@ -26,7 +26,6 @@ from test_observer.controllers.test_executions.shared_models import (
 )
 from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 from test_observer.data_access.models_enums import (
-    FamilyName,
     IssueSource,
     IssueStatus,
     TestResultStatus,
@@ -57,7 +56,7 @@ class IssueTestResultAttachmentResponse(BaseModel):
 class IssueTestResultAttachmentRulePostRequest(BaseModel):
     enabled: bool = Field(default=True)
 
-    families: list[FamilyName] = Field(default_factory=list)
+    families: list[str] = Field(default_factory=list)
     artefacts: list[str] = Field(default_factory=list)
     artefact_versions: list[str] = Field(default_factory=list)
     artefact_stages: list[str] = Field(default_factory=list)

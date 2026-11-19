@@ -18,7 +18,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy.exc import DBAPIError
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -397,8 +396,8 @@ def test_create_team_with_complex_matching_rules(test_client: TestClient):
 def test_update_team_replaces_matching_rules(test_client: TestClient, generator: DataGenerator):
     """Test that updating matching rules replaces existing ones"""
     # Create a team with initial rules
-    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    snap_rule = generator.gen_artefact_matching_rule(family="snap")
+    deb_rule = generator.gen_artefact_matching_rule(family="deb")
     team = generator.gen_team(artefact_matching_rules=[snap_rule, deb_rule])
 
     assert len(team.artefact_matching_rules) == 2
@@ -436,8 +435,8 @@ def test_update_team_replaces_matching_rules(test_client: TestClient, generator:
 
 def test_update_team_clears_matching_rules(test_client: TestClient, generator: DataGenerator):
     """Test that setting matching rules to empty array clears all rules"""
-    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    snap_rule = generator.gen_artefact_matching_rule(family="snap")
+    deb_rule = generator.gen_artefact_matching_rule(family="deb")
     team = generator.gen_team(artefact_matching_rules=[snap_rule, deb_rule])
 
     assert len(team.artefact_matching_rules) == 2
@@ -459,7 +458,7 @@ def test_update_team_clears_matching_rules(test_client: TestClient, generator: D
 def test_update_team_matching_rules_reuses_existing(test_client: TestClient, generator: DataGenerator):
     """Test that identical matching rules are reused across teams"""
     # Create a rule and assign it to team1
-    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22")
+    snap_rule = generator.gen_artefact_matching_rule(family="snap", track="22")
     team1 = generator.gen_team(name="team1", artefact_matching_rules=[snap_rule])
 
     # Create team2 with the same rule
@@ -513,8 +512,8 @@ def test_update_team_with_duplicate_matching_rules(test_client: TestClient, gene
 
 def test_get_team_returns_matching_rules(test_client: TestClient, generator: DataGenerator):
     """Test that getting a team returns its matching rules"""
-    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", stage="stable")
-    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb, branch="jammy")
+    snap_rule = generator.gen_artefact_matching_rule(family="snap", track="22", stage="stable")
+    deb_rule = generator.gen_artefact_matching_rule(family="deb", branch="jammy")
     team = generator.gen_team(name="test-team", artefact_matching_rules=[snap_rule, deb_rule])
 
     response = make_authenticated_request(lambda: test_client.get(f"/v1/teams/{team.id}"), Permission.view_team)
@@ -557,7 +556,7 @@ def test_update_team_keeps_permissions_when_updating_rules(test_client: TestClie
 
 def test_remove_rule_from_team_making_it_an_orphan_removes_rule(test_client: TestClient, generator: DataGenerator):
     team = generator.gen_team()
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, teams=[team])
+    rule = generator.gen_artefact_matching_rule(family="snap", teams=[team])
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -582,7 +581,7 @@ def test_remove_rule_from_team_without_making_it_an_orphan_does_not_remove_rule(
 ):
     team = generator.gen_team(name="team1")
     other_team = generator.gen_team(name="team2")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, teams=[team, other_team])
+    rule = generator.gen_artefact_matching_rule(family="snap", teams=[team, other_team])
 
     response = make_authenticated_request(
         lambda: test_client.patch(

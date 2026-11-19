@@ -18,6 +18,7 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
+from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.data_access.models import (
     Issue,
     IssueTestResultAttachmentRule,
@@ -44,6 +45,8 @@ def post_attachment_rule(
     request: IssueTestResultAttachmentRulePostRequest,
     db: Session = Depends(get_db),
 ):
+    ensure_families_exist(db, request.families, ("body", "families"))
+
     # Get the issue
     issue = db.get(Issue, issue_id)
     if issue is None:

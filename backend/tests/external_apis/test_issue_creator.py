@@ -18,7 +18,7 @@ from unittest.mock import Mock
 import pytest
 
 from test_observer.common.helpers import get_artefact_url
-from test_observer.data_access.models_enums import FamilyName, NotificationType
+from test_observer.data_access.models_enums import NotificationType
 from test_observer.external_apis.issue_creator import IssueCreator, JiraIssueContext
 from tests.data_generator import DataGenerator
 
@@ -254,20 +254,20 @@ class TestGetArtefactUrl:
     def test_deb_url_generation(self, generator: DataGenerator):
         """Test URL generation for deb artefacts"""
         artefact = generator.gen_artefact(name="test-deb", version="1.0.0")
-        artefact.family = FamilyName.deb
+        artefact.family = "deb"
         url = get_artefact_url(artefact)
         assert url == f"http://localhost:30001/debs/{artefact.id}"
 
     def test_charm_url_generation(self, generator: DataGenerator):
         """Test URL generation for charm artefacts"""
         artefact = generator.gen_artefact(name="test-charm", version="1.0.0")
-        artefact.family = FamilyName.charm
+        artefact.family = "charm"
         url = get_artefact_url(artefact)
         assert url == f"http://localhost:30001/charms/{artefact.id}"
 
     def test_image_url_generation(self, generator: DataGenerator):
         """Test URL generation for image artefacts"""
         artefact = generator.gen_artefact(name="test-image", version="1.0.0")
-        artefact.family = FamilyName.image
+        artefact.family = "image"
         url = get_artefact_url(artefact)
         assert url == f"http://localhost:30001/images/{artefact.id}"

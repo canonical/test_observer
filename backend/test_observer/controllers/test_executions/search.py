@@ -28,6 +28,7 @@ from test_observer.common.constants import QueryValue
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.controllers.test_executions.execution_filters import (
     apply_te_joins,
     build_execution_filters,
@@ -44,7 +45,7 @@ from test_observer.data_access.models import (
     TestExecutionMetadata,
     TestResult,
 )
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import populate_expected_environment_status
 from test_observer.data_access.setup import get_db
 
@@ -237,7 +238,7 @@ def _search_executions(
 )
 def search_test_executions(
     families: Annotated[
-        list[FamilyName] | None,
+        list[str] | None,
         Query(description="Filter by artefact families (e.g., charm,snap)"),
     ] = None,
     artefacts: Annotated[
@@ -338,6 +339,7 @@ def search_test_executions(
     If test_result is omitted, executions are not filtered by result
     presence at all.
     """
+    ensure_families_exist(db, families, ("query", "families"))
     parsed_test_result = parse_list_or_query_value(test_result)  # type: ignore[misc]
 
     filters = TestExecutionSearchFilters(

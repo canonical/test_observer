@@ -22,13 +22,13 @@ from sqlalchemy.orm import Session
 from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
+from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     TestExecution,
     TestPlan,
 )
-from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 from .models import TestPlansResponse
@@ -47,7 +47,7 @@ def get_test_plans(
         Query(description="Search term for test plan names"),
     ] = None,
     families: Annotated[
-        list[FamilyName] | None,
+        list[str] | None,
         Query(description="Filter by artefact families"),
     ] = None,
     limit: Annotated[
@@ -69,6 +69,7 @@ def get_test_plans(
 
     Supports pagination and search filtering.
     """
+    ensure_families_exist(db, families, ("query", "families"))
     query = select(distinct(TestPlan.name))
 
     # Family filtering requires joining through TestExecution/ArtefactBuild/

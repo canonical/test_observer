@@ -30,6 +30,7 @@ from test_observer.common.constants import QueryValue
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
 from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -40,7 +41,6 @@ from test_observer.data_access.models import (
     TestResult,
 )
 from test_observer.data_access.models_enums import (
-    FamilyName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -171,7 +171,7 @@ def _search_with_result_details(
 )
 def search_test_results(
     families: Annotated[
-        list[FamilyName] | None,
+        list[str] | None,
         Query(description="Filter by artefact families (e.g., charm,snap)"),
     ] = None,
     artefacts: Annotated[
@@ -253,6 +253,7 @@ def search_test_results(
 
     Returns one item per matching test result with execution, artefact, and build context.
     """
+    ensure_families_exist(db, families, ("query", "families"))
     filters = TestResultSearchFilters(
         families=families or [],
         artefacts=artefacts or [],

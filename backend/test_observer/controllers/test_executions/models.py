@@ -40,7 +40,6 @@ from test_observer.controllers.test_executions.shared_models import (
 )
 from test_observer.controllers.test_results.shared_models import TestResultSearchFilters
 from test_observer.data_access.models_enums import (
-    FamilyName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -125,7 +124,7 @@ class _StartTestExecutionRequest(BaseModel):
 
 
 class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[FamilyName.snap]
+    family: Literal["snap"]
     revision: int = Field(
         description="Snap package revision number from the store. "
         "Each architecture build has its own revision number. "
@@ -162,7 +161,7 @@ class StartSnapTestExecutionRequest(_StartTestExecutionRequest):
 
 
 class StartDebTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[FamilyName.deb]
+    family: Literal["deb"]
     series: str = Field(
         description="Ubuntu release series being tested. Examples: "
         "'focal' (20.04), 'jammy' (22.04), 'noble' (24.04), 'oracular' "
@@ -198,7 +197,7 @@ class StartDebTestExecutionRequest(_StartTestExecutionRequest):
 
 
 class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[FamilyName.charm]
+    family: Literal["charm"]
     revision: int = Field(
         description="Charm revision number from Charmhub. "
         "Each architecture build has its own revision. "
@@ -226,7 +225,7 @@ class StartCharmTestExecutionRequest(_StartTestExecutionRequest):
 
 
 class StartImageTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[FamilyName.image] = FamilyName.image
+    family: Literal["image"] = "image"
 
     # Fields that must be present to register a brand new image. An existing image is
     # identified by sha256 alone, so these may be omitted when it already exists. Kept
@@ -293,7 +292,7 @@ class StartImageTestExecutionRequest(_StartTestExecutionRequest):
 
 
 class StartSolutionTestExecutionRequest(_StartTestExecutionRequest):
-    family: Literal[FamilyName.solution]
+    family: Literal["solution"]
     attributes: dict[str, Any] = Field(default_factory=dict)
     execution_stage: str = Field(max_length=100, description="Promotion stage of the solution being tested.")
 
@@ -354,7 +353,7 @@ class PendingRerun(BaseModel):
 
     test_execution_id: int = Field(validation_alias=AliasPath("test_executions", 0, "id"))
     ci_link: str | None = Field(validation_alias=AliasPath("test_executions", 0, "ci_link"))
-    family: FamilyName = Field(validation_alias=AliasPath("artefact_build", "artefact", "family"))
+    family: str = Field(validation_alias=AliasPath("artefact_build", "artefact", "family"))
     test_execution: TestExecutionResponse = Field(validation_alias=AliasPath("test_executions", 0))
     artefact: ArtefactResponse = Field(validation_alias=AliasPath("artefact_build", "artefact"))
     artefact_build: ArtefactBuildMinimalResponse = Field(validation_alias=AliasPath("artefact_build"))

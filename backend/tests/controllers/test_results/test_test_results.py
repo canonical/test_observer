@@ -22,7 +22,6 @@ from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models_enums import (
-    FamilyName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -87,7 +86,7 @@ class TestSearchTestResults:
         # Create multiple test results with specific family
         environment = generator.gen_environment()
         test_case = generator.gen_test_case(name=generate_unique_name("window_count"))
-        snap_artefact = generator.gen_artefact(family=FamilyName.snap, name=generate_unique_name("snap_artefact"))
+        snap_artefact = generator.gen_artefact(family="snap", name=generate_unique_name("snap_artefact"))
         artefact_build = generator.gen_artefact_build(snap_artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
 
@@ -118,7 +117,7 @@ class TestSearchTestResults:
         # Create test data
         environment = generator.gen_environment()
         test_case = generator.gen_test_case(name=generate_unique_name("pagination"))
-        charm_artefact = generator.gen_artefact(family=FamilyName.charm, name=generate_unique_name("charm_artefact"))
+        charm_artefact = generator.gen_artefact(family="charm", name=generate_unique_name("charm_artefact"))
         artefact_build = generator.gen_artefact_build(charm_artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
 
@@ -154,39 +153,39 @@ class TestSearchTestResults:
     @pytest.mark.parametrize(
         "family",
         [
-            FamilyName.snap,
-            FamilyName.deb,
-            FamilyName.image,
-            FamilyName.charm,
+            "snap",
+            "deb",
+            "image",
+            "charm",
         ],
     )
-    def test_search_by_family(self, test_client: TestClient, generator: DataGenerator, family: FamilyName):
+    def test_search_by_family(self, test_client: TestClient, generator: DataGenerator, family: str):
         """the filter returns only results from the requested family"""
         env = generator.gen_environment()
-        tc = generator.gen_test_case(name=generate_unique_name(f"family_{family.value}"))
+        tc = generator.gen_test_case(name=generate_unique_name(f"family_{family}"))
 
         # Matching family
-        artefact_yes = generator.gen_artefact(family=family, name=generate_unique_name(f"{family.value}_yes"))
+        artefact_yes = generator.gen_artefact(family=family, name=generate_unique_name(f"{family}_yes"))
         ab_yes = generator.gen_artefact_build(artefact_yes)
         te_yes = generator.gen_test_execution(ab_yes, env)
         tr_yes = generator.gen_test_result(tc, te_yes)
 
         # Non-matching family
         all_families = [
-            FamilyName.snap,
-            FamilyName.deb,
-            FamilyName.image,
-            FamilyName.charm,
+            "snap",
+            "deb",
+            "image",
+            "charm",
         ]
 
         other_family = next(f for f in all_families if f != family)
-        artefact_no = generator.gen_artefact(family=other_family, name=generate_unique_name(f"{other_family.value}_no"))
+        artefact_no = generator.gen_artefact(family=other_family, name=generate_unique_name(f"{other_family}_no"))
         ab_no = generator.gen_artefact_build(artefact_no)
         te_no = generator.gen_test_execution(ab_no, env)
         tr_no = generator.gen_test_result(tc, te_no)
 
         resp = make_authenticated_request(
-            lambda: test_client.get(f"/v1/test-results?families={family.value}"),
+            lambda: test_client.get(f"/v1/test-results?families={family}"),
             Permission.view_test,
         )
         assert resp.status_code == 200
@@ -200,7 +199,7 @@ class TestSearchTestResults:
         assert tr_no.id not in ids
 
         # Every returned row belongs to the requested family
-        assert all(tr["artefact"]["family"] == family.value for tr in data["test_results"])
+        assert all(tr["artefact"]["family"] == family for tr in data["test_results"])
 
     def test_search_by_template_id(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by template ID"""
@@ -632,7 +631,7 @@ class TestSearchTestResults:
         # Create test data with specific family
         environment = generator.gen_environment()
         test_case = generator.gen_test_case(name=generate_unique_name("date_combined"))
-        snap_artefact = generator.gen_artefact(family=FamilyName.snap, name=generate_unique_name("snap_date"))
+        snap_artefact = generator.gen_artefact(family="snap", name=generate_unique_name("snap_date"))
         artefact_build = generator.gen_artefact_build(snap_artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
@@ -700,7 +699,7 @@ class TestSearchTestResults:
             name=test_case_name,
             template_id="multi_filter_template",
         )
-        snap_artefact = generator.gen_artefact(family=FamilyName.snap, name=generate_unique_name("snap_multi"))
+        snap_artefact = generator.gen_artefact(family="snap", name=generate_unique_name("snap_multi"))
         artefact_build = generator.gen_artefact_build(snap_artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
@@ -738,6 +737,17 @@ class TestSearchTestResults:
         )
 
         assert response.status_code == 422
+
+    def test_search_registered_family_without_results(self, test_client: TestClient, generator: DataGenerator):
+        generator.gen_family("custom")
+
+        response = make_authenticated_request(
+            lambda: test_client.get("/v1/test-results?families=custom"),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["count"] == 0
 
     def test_search_no_results(self, test_client: TestClient):
         """Test search with filters that match no results"""
@@ -790,7 +800,7 @@ class TestSearchTestResults:
         # Create a snap artefact
         environment = generator.gen_environment()
         test_case = generator.gen_test_case(name=generate_unique_name("case_insensitive"))
-        snap_artefact = generator.gen_artefact(family=FamilyName.snap, name=generate_unique_name("snap_case"))
+        snap_artefact = generator.gen_artefact(family="snap", name=generate_unique_name("snap_case"))
         artefact_build = generator.gen_artefact_build(snap_artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)
@@ -1009,7 +1019,7 @@ class TestSearchTestResults:
         test_case = generator.gen_test_case(name=generate_unique_name("artefact_stage"))
         artefact = generator.gen_artefact(
             name=generate_unique_name(f"artefact_{unique_marker}"),
-            family=FamilyName.snap,
+            family="snap",
             stage="edge",
         )
         artefact_build = generator.gen_artefact_build(artefact)
@@ -1019,7 +1029,7 @@ class TestSearchTestResults:
         # Create artefact with a different stage that should be excluded
         other_artefact = generator.gen_artefact(
             name=generate_unique_name(f"other_{unique_marker}"),
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
         other_build = generator.gen_artefact_build(other_artefact)
@@ -1044,7 +1054,7 @@ class TestSearchTestResults:
         test_case = generator.gen_test_case(name=generate_unique_name("artefact_track"))
         artefact = generator.gen_artefact(
             name=generate_unique_name(f"artefact_{unique_marker}"),
-            family=FamilyName.snap,
+            family="snap",
             track="1.0",
         )
         artefact_build = generator.gen_artefact_build(artefact)
@@ -1054,7 +1064,7 @@ class TestSearchTestResults:
         # Create artefact with a different track that should be excluded
         other_artefact = generator.gen_artefact(
             name=generate_unique_name(f"other_{unique_marker}"),
-            family=FamilyName.snap,
+            family="snap",
             track="2.0",
         )
         other_build = generator.gen_artefact_build(other_artefact)
@@ -1497,7 +1507,7 @@ class TestWindowFunctionSpecific:
         """Test window function with exactly one result"""
         environment = generator.gen_environment()
         test_case = generator.gen_test_case(name=generate_unique_name("single_result"))
-        image_artefact = generator.gen_artefact(family=FamilyName.image, name=generate_unique_name("image_single"))
+        image_artefact = generator.gen_artefact(family="image", name=generate_unique_name("image_single"))
         artefact_build = generator.gen_artefact_build(image_artefact)
         test_execution = generator.gen_test_execution(artefact_build, environment)
         test_result = generator.gen_test_result(test_case, test_execution)

@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import TestExecutionStatus
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -132,8 +132,8 @@ class TestSearchTestExecutions:
         assert tr2.id not in tr_ids
 
     def test_filter_by_family_with_no_result(self, test_client: TestClient, generator: DataGenerator):
-        snap_artefact = generator.gen_artefact(family=FamilyName.snap, name=_uid("snap"))
-        deb_artefact = generator.gen_artefact(family=FamilyName.deb, name=_uid("deb"))
+        snap_artefact = generator.gen_artefact(family="snap", name=_uid("snap"))
+        deb_artefact = generator.gen_artefact(family="deb", name=_uid("deb"))
         env = generator.gen_environment()
 
         snap_build = generator.gen_artefact_build(snap_artefact)

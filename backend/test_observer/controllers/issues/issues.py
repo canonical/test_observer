@@ -26,6 +26,7 @@ from test_observer.common.permissions import permission_checker
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
+from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.data_access.models import (
     Application,
     Artefact,
@@ -36,7 +37,7 @@ from test_observer.data_access.models import (
     TestResult,
     User,
 )
-from test_observer.data_access.models_enums import FamilyName, IssueSource, IssueStatus
+from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
@@ -77,7 +78,7 @@ def get_issues(
         ),
     ] = None,
     families: Annotated[
-        list[FamilyName] | None,
+        list[str] | None,
         Query(description="Filter by artefact family (e.g., snap, deb, charm, image)"),
     ] = None,
     limit: Annotated[
@@ -101,6 +102,7 @@ def get_issues(
     ] = None,
     db: Session = Depends(get_db),
 ):
+    ensure_families_exist(db, families, ("query", "families"))
     stmt = select(Issue)
     if source:
         stmt = stmt.where(Issue.source == source)
