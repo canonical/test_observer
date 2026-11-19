@@ -219,6 +219,47 @@ function storageKey(family: string): string {
   return `test-observer-grid-view:${family}`;
 }
 
+/**
+ * The state returned by `SvGridApi.getState()` includes effective column
+ * widths, including values calculated by `fitColumns`. For fit-enabled grids,
+ * autosave must instead persist only widths the user explicitly resized.
+ * `onColumnResize` is the compatible public signal: it fires for user resize
+ * gestures, but not for programmatic `setColumnWidth` calls.
+ */
+export function createUserResizeViewHost(host: {
+  getState(): SvGridViewState;
+  setState(state: Partial<SvGridViewState>): void;
+}): {
+  host: {
+    getState(): SvGridViewState;
+    setState(state: Partial<SvGridViewState>): void;
+  };
+  recordResize(columnId: string, width: number): void;
+  resetResizes(): void;
+} {
+  let userWidths: Record<string, number> = {};
+
+  return {
+    host: {
+      getState() {
+        return { ...host.getState(), columnWidths: { ...userWidths } };
+      },
+      setState(state) {
+        if (state.columnWidths !== undefined) {
+          userWidths = { ...state.columnWidths };
+        }
+        host.setState(state);
+      },
+    },
+    recordResize(columnId, width) {
+      userWidths = { ...userWidths, [columnId]: width };
+    },
+    resetResizes() {
+      userWidths = {};
+    },
+  };
+}
+
 /** Slot the autosaved layout occupies in a family's view store. */
 export const AUTOSAVE_SLOT = "__autosave";
 
@@ -227,18 +268,138 @@ export const AUTOSAVE_SLOT = "__autosave";
  * column widths, order and visibility included — none of which belongs in a
  * shared link, hence a separate channel from the `view` parameter above.
  *
+ * The versioned envelope distinguishes new sparse user-resize snapshots from
+ * the old array format, whose `columnWidths` maps contained effective widths
+ * for every column. Those legacy maps are discarded once during migration so
+ * the grid can fit untouched columns to its current container again.
+ *
  * sessionStorage rather than localStorage: a view is what you are working on
  * now, not a saved preference, so it should not still be filtering the
  * dashboard when the browser is reopened days later.
+ */
+const FAMILY_VIEW_STORAGE_VERSION = 2;
+
+interface StoredViews {
+  version: typeof FAMILY_VIEW_STORAGE_VERSION;
+  views: SavedView[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function readSavedViews(value: unknown): SavedView[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (view): view is SavedView =>
+      isRecord(view) &&
+      typeof view.name === "string" &&
+      typeof view.createdAt === "number" &&
+      isRecord(view.state),
+  );
+}
+
+function stripLegacyWidths(view: SavedView): SavedView {
+  const state = { ...view.state };
+  delete state.columnWidths;
+  return { ...view, state };
+}
+
+function encodeStoredViews(views: SavedView[]): StoredViews {
+  return { version: FAMILY_VIEW_STORAGE_VERSION, views };
+}
+
+/**
+ * Per-family storage for the autosaved view and its named-view manager.
  */
 export function familyViewStorage(family: string): ViewStorage {
   const key = storageKey(family);
   return {
     read() {
+      let raw: string | null;
+      try {
+        raw = sessionStorage.getItem(key);
+      } catch {
+        // Storage can be blocked outright by browser privacy settings.
+        return [];
+      }
+      if (raw === null) return [];
+
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        return [];
+      }
+
+      if (
+        isRecord(parsed) &&
+        parsed.version === FAMILY_VIEW_STORAGE_VERSION &&
+        Array.isArray(parsed.views)
+      ) {
+        return readSavedViews(parsed.views);
+      }
+
+      // Before version 2 the manager wrote a bare array, and getState() put
+      // every effective fitColumns width into that array. Remove those widths
+      // rather than restoring them as fixed overrides; other view state remains.
+      if (Array.isArray(parsed)) {
+        const migrated = readSavedViews(parsed).map(stripLegacyWidths);
+        try {
+          sessionStorage.setItem(
+            key,
+            JSON.stringify(encodeStoredViews(migrated)),
+          );
+        } catch {
+          // The migrated snapshot is still safe to use for this mount.
+        }
+        return migrated;
+      }
+      return [];
+    },
+    write(views) {
+      try {
+        sessionStorage.setItem(key, JSON.stringify(encodeStoredViews(views)));
+      } catch {
+        // Without storage the view simply does not outlive the page; the URL
+        // still carries the shareable part of it.
+      }
+    },
+  };
+}
+
+/**
+ * Per-session storage for the Search grid's autosaved layout. Its separate
+ * namespace keeps Search widths independent from each family dashboard.
+ */
+function sparseWidths(value: unknown): Record<string, number> {
+  if (!isRecord(value)) return {};
+  const widths: Record<string, number> = {};
+  for (const [columnId, width] of Object.entries(value)) {
+    if (typeof width === "number" && Number.isFinite(width)) {
+      widths[columnId] = width;
+    }
+  }
+  return widths;
+}
+
+function searchSavedViews(views: SavedView[]): SavedView[] {
+  return views.map((view) => ({
+    ...view,
+    // Search only persists widths; filters, visibility, ordering and other
+    // grid state remain transient and are never restored from this store.
+    state: { columnWidths: sparseWidths(view.state.columnWidths) },
+  }));
+}
+
+export function searchGridViewStorage(): ViewStorage {
+  const key = "test-observer-search-grid-view";
+  return {
+    read() {
       try {
         const raw = sessionStorage.getItem(key);
-        const parsed: unknown = raw === null ? null : JSON.parse(raw);
-        return Array.isArray(parsed) ? (parsed as SavedView[]) : [];
+        if (raw === null) return [];
+        return searchSavedViews(readSavedViews(JSON.parse(raw)));
       } catch {
         // Storage can be blocked outright by browser privacy settings.
         return [];
@@ -246,10 +407,9 @@ export function familyViewStorage(family: string): ViewStorage {
     },
     write(views) {
       try {
-        sessionStorage.setItem(key, JSON.stringify(views));
+        sessionStorage.setItem(key, JSON.stringify(searchSavedViews(views)));
       } catch {
-        // Without storage the view simply does not outlive the page; the URL
-        // still carries the shareable part of it.
+        // The layout simply does not outlive the page when storage is blocked.
       }
     },
   };

@@ -20,9 +20,11 @@
   import { columnValue, columnColor, columnSortValue } from '$lib/artefactMetadata';
   import { downloadCsv, toCsv } from '$lib/utils/csv';
   import ColouredCell from './ColouredCell.svelte';
+  import { createTrackColumnWidthActions } from './trackColumnWidthActions';
   import {
     AUTOSAVE_SLOT,
     EMPTY_VIEW,
+    createUserResizeViewHost,
     VIEW_PARAM,
     decodeView,
     encodeView,
@@ -141,7 +143,19 @@
   }
 
   let detachAutosave: (() => void) | null = null;
+  let resizeWidthPersistence: ReturnType<typeof createUserResizeViewHost> | null = null;
   let exportAvailabilityTimer: ReturnType<typeof setInterval> | null = null;
+
+  function handleColumnResize(event: { columnId: string; width: number }) {
+    resizeWidthPersistence?.recordResize(event.columnId, event.width);
+  }
+
+  // SvGrid 3.0.20's menu actions mutate its private width overrides directly;
+  // its boundary action tracks those changes for autosave.
+  const trackColumnWidthActions = createTrackColumnWidthActions({
+    getPersistence: () => resizeWidthPersistence,
+    getCurrentApi: () => currentApi,
+  });
 
   // If the grid later loads data incrementally (pagination or infinite
   // scrolling), keep export disabled until the displayed dataset is complete.
@@ -167,7 +181,11 @@
     detachAutosave?.();
     detachAutosave = null;
 
-    const views = createNamedViews(ready, { storage: familyViewStorage(family.name) });
+    // `getState()` includes fitted effective widths, so wrap the API with the
+    // widths reported by user resize gestures before giving it to autosave.
+    resizeWidthPersistence = createUserResizeViewHost(ready);
+    const viewHost = resizeWidthPersistence.host;
+    const views = createNamedViews(viewHost, { storage: familyViewStorage(family.name) });
     // Layout first, then the link: a shared view's filters should land on top of
     // the column widths and ordering this tab was already using.
     views.load(AUTOSAVE_SLOT);
@@ -180,13 +198,14 @@
 
     // SvGrid has no column visibility or resize equivalent of onSortingChange,
     // so the manager polls getState() and saves when the snapshot changes.
-    detachAutosave = attachAutoSavedView(ready, views, { skipRestore: true });
+    detachAutosave = attachAutoSavedView(viewHost, views, { skipRestore: true });
   }
 
   onDestroy(() => {
     exportAvailable = false;
     if (exportAvailabilityTimer) clearInterval(exportAvailabilityTimer);
     detachAutosave?.();
+    resizeWidthPersistence = null;
   });
 
   // Mirror the grid's state into the URL so the current view is always the
@@ -274,7 +293,7 @@
 {#key family.name}
   <!-- selectionMode="none" because clicking a row opens the artefact, so cell
        and row selection would only fight with navigation. -->
-  <div class="grid-wrapper">
+  <div class="grid-wrapper" use:trackColumnWidthActions>
     <SvGrid
       data={artefacts}
       {columns}
@@ -287,6 +306,7 @@
       virtualization
       fitColumns
       columnResize
+      onColumnResize={handleColumnResize}
       enableRowHover
       selectionMode="none"
       emptyMessage="No artefacts match the current filters."

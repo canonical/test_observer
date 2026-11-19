@@ -1,0 +1,789 @@
+// SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
+// SPDX-License-Identifier: Apache-2.0
+
+import assert from "node:assert/strict";
+import { after, before, test } from "node:test";
+import { resolve } from "node:path";
+import { build } from "vite";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { Window } from "happy-dom";
+
+/** @typedef {{ signal?: AbortSignal }} RequestOptions */
+/** @typedef {{ path: string; options: RequestOptions }} TestRequest */
+/** @typedef {(path: string, options: RequestOptions) => Promise<unknown>} ApiHandler */
+/** @typedef {import("../src/lib/types/test-results-search-page").TestResultSearchPageRow} SearchPageRow */
+/** @typedef {import("../src/lib/types/test-results-search-page").TestResultSearchPageResponse} SearchPage */
+/**
+ * @typedef {object} TestResultsHarness
+ * @property {() => void} flushSync
+ * @property {(target: HTMLElement) => object} mountPage
+ * @property {TestRequest[]} requests
+ * @property {() => void} resetApi
+ * @property {(handler: ApiHandler) => void} setHandler
+ * @property {(component: object) => Promise<void>} unmountPage
+ * @property {() => string} currentSearchUrl
+ * @property {(url?: string) => void} resetSearchUrl
+ * @property {() => void} searchHistoryBack
+ * @property {() => void} searchHistoryForward
+ * @property {(params: URLSearchParams) => {page: number; pageSize: number; problems: string[]}} parseSearchPageState
+ * @property {(count: number, pageSize: number) => number} searchLastPage
+ * @property {(currentPage: number, totalPages: number) => (number | "gap")[]} searchPageItems
+ * @property {(source: URLSearchParams, page: number) => URLSearchParams} searchPageParams
+ * @property {(response: SearchPage) => {start: number; end: number; count: number}} searchPageRange
+ * @property {(range: {start: number; end: number; count: number}) => string} searchPageRangeLabel
+ * @property {(page: number, pageSize: number) => URLSearchParams} searchPageRequestParams
+ * @property {(source: URLSearchParams, pageSize: number) => URLSearchParams} searchPageSizeParams
+ * @property {(count: number, pageSize: number) => number} searchTotalPages
+ */
+/** @type {TestResultsHarness | undefined} */
+let harness;
+/** @type {Window | undefined} */
+let browserWindow;
+/** @type {Map<string, PropertyDescriptor | undefined>} */
+const originalGlobals = new Map();
+
+before(async () => {
+  const buildResult =
+    /** @type {{ output: { type: string; code: string }[] }[]} */ (
+      /** @type {unknown} */ (
+        await build({
+          configFile: false,
+          logLevel: "silent",
+          plugins: [
+            svelte({ compilerOptions: { runes: true } }),
+            {
+              name: "test-results-sveltekit-modules",
+              resolveId(id) {
+                if (id === "$app/state") return "\0test:$app/state";
+                if (id === "$app/navigation") return "\0test:$app/navigation";
+              },
+              load(id) {
+                if (id === "\0test:$app/state") {
+                  return `export { page } from ${JSON.stringify(resolve("tests/test-results-runtime.svelte.js"))};`;
+                }
+                if (id === "\0test:$app/navigation") {
+                  return `export { testGoto as goto } from ${JSON.stringify(resolve("tests/test-results-runtime.svelte.js"))};`;
+                }
+              },
+            },
+          ],
+          resolve: {
+            alias: [
+              {
+                find: "$lib/api/client",
+                replacement: resolve("tests/test-results-api.js"),
+              },
+              { find: "$lib", replacement: resolve("src/lib") },
+            ],
+          },
+          build: {
+            write: false,
+            lib: { entry: "tests/test-results-entry.js", formats: ["es"] },
+            rolldownOptions: { output: { codeSplitting: false } },
+          },
+        })
+      )
+    );
+  const bundle = buildResult[0]?.output.find((item) => item.type === "chunk");
+  assert.ok(bundle, "test results page bundle should be generated");
+
+  browserWindow = new Window({ url: "http://localhost/test-results" });
+  for (const name of [
+    "window",
+    "document",
+    "navigator",
+    "customElements",
+    "Comment",
+    "Text",
+    "Node",
+    "Element",
+    "HTMLElement",
+    "HTMLMediaElement",
+    "Event",
+    "MouseEvent",
+    "ResizeObserver",
+    "MutationObserver",
+    "getComputedStyle",
+    "requestAnimationFrame",
+    "cancelAnimationFrame",
+  ]) {
+    originalGlobals.set(
+      name,
+      Object.getOwnPropertyDescriptor(globalThis, name),
+    );
+    Object.defineProperty(globalThis, name, {
+      configurable: true,
+      value:
+        name === "window" ? browserWindow : Reflect.get(browserWindow, name),
+    });
+  }
+
+  const importedModule = /** @type {unknown} */ (
+    await import(
+      `data:text/javascript;base64,${Buffer.from(bundle.code).toString("base64")}`
+    )
+  );
+  harness = /** @type {TestResultsHarness} */ (importedModule);
+});
+
+after(async () => {
+  for (const [name, descriptor] of originalGlobals) {
+    if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+    else Reflect.deleteProperty(globalThis, name);
+  }
+  if (browserWindow) await browserWindow.happyDOM.abort();
+});
+
+/**
+ * @param {number} id
+ * @param {string} name
+ * @returns {SearchPageRow}
+ */
+function makeRow(id, name) {
+  return {
+    test_result: {
+      id,
+      created_at: "2026-01-02T03:04:05Z",
+      name,
+      category: `category-${id}`,
+      status: "PASSED",
+    },
+    test_execution: {
+      id: id + 100,
+      environment: { name: `lab-${id}` },
+      test_plan: `smoke-${id}`,
+    },
+    artefact: {
+      id: id + 200,
+      name: `artefact-${id}`,
+      version: `1.${id}`,
+      track: `stable-${id}`,
+      family: "snap",
+    },
+    artefact_build: { architecture: `amd64-${id}` },
+  };
+}
+
+/**
+ * @param {SearchPageRow[]} rows
+ * @param {{limit?: number; offset?: number; count?: number}} [paging]
+ * @returns {SearchPage}
+ */
+function makePage(rows, paging = {}) {
+  return {
+    limit: paging.limit ?? 50,
+    offset: paging.offset ?? 0,
+    count: paging.count ?? rows.length,
+    test_results: rows,
+  };
+}
+
+/** @param {number} count @param {number} limit @param {number} offset */
+function makeRows(count, limit, offset) {
+  return Array.from(
+    { length: Math.min(limit, Math.max(0, count - offset)) },
+    (_, index) => {
+      const id = count - offset - index;
+      return makeRow(id, `server-row-${id}`);
+    },
+  );
+}
+
+async function settlePromises() {
+  for (let index = 0; index < 10; index += 1) await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  harness?.flushSync();
+}
+
+/** @param {{querySelector: (selector: string) => unknown}} target @param {string} selector */
+function clickButton(target, selector) {
+  const button = target.querySelector(selector);
+  assert.ok(button);
+  /** @type {HTMLButtonElement} */ (/** @type {unknown} */ (button)).click();
+}
+
+function mountInDocument() {
+  assert.ok(harness);
+  assert.ok(browserWindow);
+  const target = browserWindow.document.createElement("div");
+  browserWindow.document.body.append(target);
+  const component = harness.mountPage(
+    /** @type {HTMLElement} */ (/** @type {unknown} */ (target)),
+  );
+  return { component, target };
+}
+
+/** @param {object} component @param {{ remove: () => void }} target */
+async function unmountFromDocument(component, target) {
+  assert.ok(harness);
+  await harness.unmountPage(component);
+  target.remove();
+}
+
+/** @param {TestRequest | undefined} request @param {{pageSize?: number; offset?: number}} [paging] */
+function assertRequest(request, { pageSize = 50, offset = 0 } = {}) {
+  assert.ok(request);
+  assert.ok(request.options.signal);
+  const url = new URL(request.path, "http://localhost/");
+  assert.equal(url.pathname, "/test-results/search-page");
+  assert.deepEqual(
+    [...url.searchParams.entries()],
+    [
+      ["limit", String(pageSize)],
+      ["offset", String(offset)],
+      ["include_count", "true"],
+    ],
+  );
+}
+
+function deferred() {
+  /** @type {((value: unknown) => void) | undefined} */
+  let resolve;
+  /** @type {((reason?: unknown) => void) | undefined} */
+  let reject;
+  const promise = new Promise((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return {
+    promise,
+    /** @param {unknown} value */
+    resolve: (value) => {
+      if (!resolve) throw new Error("Promise resolver is not set");
+      resolve(value);
+    },
+    /** @param {unknown} reason */
+    reject: (reason) => {
+      if (!reject) throw new Error("Promise rejecter is not set");
+      reject(reason);
+    },
+  };
+}
+
+void test("loads the first server page and preserves server row order", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl();
+  harness.setHandler(() =>
+    Promise.resolve(
+      makePage([makeRow(5, "server-newest"), makeRow(2, "server-next")]),
+    ),
+  );
+  const { component, target } = mountInDocument();
+  await settlePromises();
+
+  const region = target.querySelector(".results-page");
+  assert.ok(region);
+  assert.equal(region.getAttribute("aria-busy"), "false");
+  assert.equal(
+    target.querySelector("h1")?.textContent.trim(),
+    "Search Results (WIP)",
+  );
+  const grid = target.querySelector(".sv-grid-root");
+  assert.ok(grid, target.innerHTML);
+  const gridShell = target.querySelector(".sv-grid-shell");
+  assert.ok(gridShell);
+  assert.match(gridShell.getAttribute("style") ?? "", /height:\s*100%/);
+  assert.equal(grid.classList.contains("sv-grid-no-row-hover"), false);
+  const resultRows = [...target.querySelectorAll("tbody tr.sv-grid-row")];
+  assert.equal(resultRows.length, 2);
+  assert.match(resultRows[0].textContent, /server-newest/);
+  assert.match(resultRows[1].textContent, /server-next/);
+  const headers = [...target.querySelectorAll("thead th")].map((cell) =>
+    cell.textContent.trim(),
+  );
+  assert.deepEqual(headers, [
+    "Created",
+    "Artefact",
+    "Test Case",
+    "Category",
+    "Test Execution ID",
+    "Status",
+    "Track",
+    "Version",
+    "Environment / Build Architecture",
+    "Test Plan",
+  ]);
+  assert.equal(
+    target.querySelectorAll(".sv-grid-resize-handle[role=separator]").length,
+    10,
+  );
+  assert.equal(target.querySelectorAll('[aria-label^="Filter "]').length, 0);
+  assert.equal(target.querySelectorAll('[role="checkbox"]').length, 0);
+  assert.equal(resultRows[0].querySelectorAll("button").length, 0);
+
+  const pager = target.querySelector('nav[aria-label="Test result pages"]');
+  assert.ok(pager);
+  assert.equal(pager.parentElement, region);
+  assert.equal(target.querySelector(".pager")?.closest(".grid-wrapper"), null);
+  assert.equal(
+    target.querySelector(".range")?.textContent.trim(),
+    "Showing 1–2 of 2 results",
+  );
+  assert.equal(
+    target.querySelector('[aria-current="page"]')?.textContent.trim(),
+    "1",
+  );
+  assert.equal(
+    target
+      .querySelector('[aria-label="Previous page"]')
+      ?.hasAttribute("disabled"),
+    true,
+  );
+  assert.equal(
+    target.querySelector('[aria-label="Next page"]')?.hasAttribute("disabled"),
+    true,
+  );
+  assertRequest(harness.requests[0]);
+
+  await unmountFromDocument(component, target);
+});
+
+void test("requests a valid shared page URL without forwarding unrelated parameters", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl(
+    "http://localhost/test-results?page=3&page_size=25&campaign=summer&tag=a&tag=b",
+  );
+  harness.setHandler((path) => {
+    const url = new URL(path, "http://localhost/");
+    return Promise.resolve(
+      makePage(
+        makeRows(
+          57,
+          Number(url.searchParams.get("limit")),
+          Number(url.searchParams.get("offset")),
+        ),
+        {
+          limit: Number(url.searchParams.get("limit")),
+          offset: Number(url.searchParams.get("offset")),
+          count: 57,
+        },
+      ),
+    );
+  });
+  const { component, target } = mountInDocument();
+  await settlePromises();
+
+  assertRequest(harness.requests[0], { pageSize: 25, offset: 50 });
+  assert.equal(
+    target.querySelector(".range")?.textContent.trim(),
+    "Showing 51–57 of 57 results",
+  );
+  assert.equal(
+    target.querySelector('[aria-current="page"]')?.textContent.trim(),
+    "3",
+  );
+
+  await unmountFromDocument(component, target);
+});
+
+void test("invalid, duplicate, unsupported, and unsafe URL paging state sends no request", async () => {
+  assert.ok(harness);
+  const invalidUrls = [
+    "?page=0",
+    "?page=1tail",
+    "?page=9007199254740992",
+    "?page=900719925474099&page_size=100",
+    "?page_size=10",
+    "?page=1&page=2",
+    "?page_size=25&page_size=50",
+  ];
+  for (const query of invalidUrls) {
+    harness.resetApi();
+    harness.resetSearchUrl(`http://localhost/test-results${query}`);
+    const { component, target } = mountInDocument();
+    await settlePromises();
+    assert.equal(harness.requests.length, 0, query);
+    const alert = target.querySelector('[role="alert"]');
+    assert.ok(alert, query);
+    assert.match(alert.textContent, /Invalid search page URL/);
+    await unmountFromDocument(component, target);
+  }
+});
+
+void test("page navigation pushes history and preserves URL extras; size changes reset page one", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl(
+    "http://localhost/test-results?page=1&page_size=25&campaign=x&tag=a&tag=b",
+  );
+  harness.setHandler((_path) => {
+    const params = new URL(_path, "http://localhost/").searchParams;
+    const limit = Number(params.get("limit"));
+    const offset = Number(params.get("offset"));
+    return Promise.resolve(
+      makePage(makeRows(56, limit, offset), { limit, offset, count: 56 }),
+    );
+  });
+  const { component, target } = mountInDocument();
+  await settlePromises();
+
+  clickButton(target, '[aria-label="Next page"]');
+  await settlePromises();
+  assertRequest(harness.requests[1], { pageSize: 25, offset: 25 });
+  assert.equal(
+    target.querySelector(".range")?.textContent.trim(),
+    "Showing 26–50 of 56 results",
+  );
+
+  harness.searchHistoryBack();
+  await settlePromises();
+  assertRequest(harness.requests[2], { pageSize: 25, offset: 0 });
+  assert.equal(
+    target.querySelector('[aria-current="page"]')?.textContent.trim(),
+    "1",
+  );
+  harness.searchHistoryForward();
+  await settlePromises();
+  assertRequest(harness.requests[3], { pageSize: 25, offset: 25 });
+  assert.equal(
+    target.querySelector('[aria-current="page"]')?.textContent.trim(),
+    "2",
+  );
+
+  const pageSize = target.querySelector("#search-page-size");
+  assert.ok(pageSize);
+  assert.ok(browserWindow);
+  const pageSizeSelect = /** @type {HTMLSelectElement} */ (
+    /** @type {unknown} */ (pageSize)
+  );
+  pageSizeSelect.value = "100";
+  pageSizeSelect.dispatchEvent(
+    /** @type {Event} */ (
+      /** @type {unknown} */ (
+        new browserWindow.Event("change", { bubbles: true })
+      )
+    ),
+  );
+  await settlePromises();
+  assertRequest(harness.requests[4], { pageSize: 100, offset: 0 });
+  assert.equal(
+    target.querySelector('[aria-current="page"]')?.textContent.trim(),
+    "1",
+  );
+  assert.equal(
+    target.querySelector(".range")?.textContent.trim(),
+    "Showing 1–56 of 56 results",
+  );
+  const searchUrl = target.querySelector(".results-page");
+  assert.ok(searchUrl);
+  assert.equal(searchUrl.getAttribute("aria-busy"), "false");
+
+  await unmountFromDocument(component, target);
+});
+
+void test("out-of-range pages replace the URL with the last valid page and refetch", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl(
+    "http://localhost/test-results?page=8&page_size=25&source=deep-link",
+  );
+  harness.setHandler((_path) => {
+    const params = new URL(_path, "http://localhost/").searchParams;
+    const limit = Number(params.get("limit"));
+    const offset = Number(params.get("offset"));
+    return Promise.resolve(
+      makePage(makeRows(57, limit, offset), { limit, offset, count: 57 }),
+    );
+  });
+  const { component, target } = mountInDocument();
+  await settlePromises();
+
+  assert.equal(harness.requests.length, 2);
+  assertRequest(harness.requests[0], { pageSize: 25, offset: 175 });
+  assertRequest(harness.requests[1], { pageSize: 25, offset: 50 });
+  assert.equal(
+    target.querySelector('[aria-current="page"]')?.textContent.trim(),
+    "3",
+  );
+  assert.equal(
+    target.querySelector(".range")?.textContent.trim(),
+    "Showing 51–57 of 57 results",
+  );
+  harness.searchHistoryBack();
+  await settlePromises();
+  assert.equal(
+    harness.requests.length,
+    2,
+    "out-of-range correction replaces rather than pushes history",
+  );
+  assert.equal(
+    target.querySelector('[aria-current="page"]')?.textContent.trim(),
+    "3",
+  );
+
+  await unmountFromDocument(component, target);
+});
+
+void test("empty results keep the range and pager available", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl("http://localhost/test-results?source=empty");
+  harness.setHandler(() => Promise.resolve(makePage([], { count: 0 })));
+  const { component, target } = mountInDocument();
+  await settlePromises();
+
+  assert.match(target.textContent, /No test results found/);
+  assert.equal(target.querySelector(".sv-grid-root"), null);
+  assert.equal(
+    target.querySelector(".range")?.textContent.trim(),
+    "Showing 0–0 of 0 results",
+  );
+  assert.ok(target.querySelector('nav[aria-label="Test result pages"]'));
+  assert.equal(target.querySelector(".pager-jump"), null);
+  assert.equal(
+    target
+      .querySelector('[aria-label="Previous page"]')
+      ?.hasAttribute("disabled"),
+    true,
+  );
+  assert.equal(
+    target.querySelector('[aria-label="Next page"]')?.hasAttribute("disabled"),
+    true,
+  );
+
+  await unmountFromDocument(component, target);
+});
+
+void test("an empty deep link is replaced with canonical page one", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl(
+    "http://localhost/test-results?page=7&page_size=25&source=empty",
+  );
+  harness.setHandler((path) => {
+    const params = new URL(path, "http://localhost/").searchParams;
+    return Promise.resolve(
+      makePage([], {
+        limit: Number(params.get("limit")),
+        offset: Number(params.get("offset")),
+        count: 0,
+      }),
+    );
+  });
+  const { component, target } = mountInDocument();
+  await settlePromises();
+
+  assert.equal(harness.requests.length, 2);
+  assertRequest(harness.requests[0], { pageSize: 25, offset: 150 });
+  assertRequest(harness.requests[1], { pageSize: 25, offset: 0 });
+  const correctedUrl = harness.currentSearchUrl();
+  assert.equal(
+    new URL(correctedUrl).searchParams.get("page"),
+    "1",
+    `${correctedUrl}: ${JSON.stringify(harness.requests.map(({ path }) => path))}`,
+  );
+  assert.equal(
+    target.querySelector(".range")?.textContent.trim(),
+    "Showing 0–0 of 0 results",
+  );
+  harness.searchHistoryBack();
+  await settlePromises();
+  assert.equal(
+    harness.requests.length,
+    2,
+    "empty correction replaces the deep-link history entry",
+  );
+
+  await unmountFromDocument(component, target);
+});
+
+void test("loading, failure, and retry show no stale pager and retry the current URL", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl(
+    "http://localhost/test-results?page=2&page_size=25&origin=shared",
+  );
+  let attempts = 0;
+  harness.setHandler((_path) => {
+    attempts += 1;
+    return attempts === 1
+      ? Promise.reject(new Error("backend unavailable"))
+      : Promise.resolve(
+          makePage([makeRow(7, "after-retry")], {
+            limit: 25,
+            offset: 25,
+            count: 26,
+          }),
+        );
+  });
+  const { component, target } = mountInDocument();
+  await settlePromises();
+
+  assert.ok(target.querySelector('[role="alert"]'));
+  assert.match(target.textContent, /could not be loaded/i);
+  assert.equal(target.querySelector(".pager"), null);
+  assert.equal(target.querySelector(".sv-grid-root"), null);
+  clickButton(target, ".retry-button");
+  await settlePromises();
+
+  assertRequest(harness.requests[0], { pageSize: 25, offset: 25 });
+  assertRequest(harness.requests[1], { pageSize: 25, offset: 25 });
+  assert.equal(harness.requests[0]?.options.signal?.aborted, true);
+  assert.match(
+    target.querySelector("tbody tr")?.textContent ?? "",
+    /after-retry/,
+  );
+  assert.equal(
+    target.querySelector(".range")?.textContent.trim(),
+    "Showing 26–26 of 26 results",
+  );
+
+  await unmountFromDocument(component, target);
+});
+
+void test("count missing, null, negative, or unsafe is treated as an invalid response", async () => {
+  assert.ok(harness);
+  const invalidCounts = [undefined, null, -1, Number.MAX_SAFE_INTEGER + 1];
+  for (const count of invalidCounts) {
+    harness.resetApi();
+    harness.resetSearchUrl();
+    harness.setHandler(() =>
+      Promise.resolve({
+        limit: 50,
+        offset: 0,
+        count,
+        test_results: [],
+      }),
+    );
+    const { component, target } = mountInDocument();
+    await settlePromises();
+    assert.ok(target.querySelector('[role="alert"]'));
+    assert.equal(target.querySelector(".pager"), null);
+    assert.equal(target.querySelector(".sv-grid-root"), null);
+    await unmountFromDocument(component, target);
+  }
+});
+
+void test("stale page responses cannot replace the active URL's rows", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl("http://localhost/test-results?page=1&page_size=25");
+  const oldPage = deferred();
+  let secondRequest = false;
+  harness.setHandler((path) => {
+    const offset = Number(
+      new URL(path, "http://localhost/").searchParams.get("offset"),
+    );
+    if (offset === 25) {
+      secondRequest = true;
+      return oldPage.promise;
+    }
+    return Promise.resolve(
+      makePage([makeRow(100 - offset, `active-page-${offset}`)], {
+        limit: 25,
+        offset,
+        count: 50,
+      }),
+    );
+  });
+  const { component, target } = mountInDocument();
+  await settlePromises();
+
+  clickButton(target, '[aria-label="Next page"]');
+  await settlePromises();
+  assert.equal(secondRequest, true);
+  assert.match(target.textContent, /Loading test results/);
+  assert.equal(target.querySelector(".pager"), null);
+  assert.equal(target.querySelector("tbody tr"), null);
+
+  harness.searchHistoryBack();
+  await settlePromises();
+  assert.match(
+    target.querySelector("tbody tr")?.textContent ?? "",
+    /active-page-0/,
+  );
+  oldPage.resolve(
+    makePage([makeRow(75, "stale-page-2")], {
+      limit: 25,
+      offset: 25,
+      count: 50,
+    }),
+  );
+  await settlePromises();
+  assert.match(
+    target.querySelector("tbody tr")?.textContent ?? "",
+    /active-page-0/,
+  );
+  assert.doesNotMatch(target.textContent, /stale-page-2/);
+
+  await unmountFromDocument(component, target);
+});
+
+void test("page parser, URL preservation, ranges, and compact page windows", () => {
+  assert.ok(harness);
+  assert.deepEqual(harness.parseSearchPageState(new URLSearchParams()), {
+    page: 1,
+    pageSize: 50,
+    problems: [],
+  });
+  assert.deepEqual(
+    harness.parseSearchPageState(new URLSearchParams("page=3&page_size=25")),
+    {
+      page: 3,
+      pageSize: 25,
+      problems: [],
+    },
+  );
+  assert.equal(harness.searchPageRequestParams(3, 25).get("offset"), "50");
+  assert.deepEqual(
+    [
+      ...harness
+        .searchPageParams(new URLSearchParams("page_size=25&x=a&x=b"), 4)
+        .entries(),
+    ],
+    [
+      ["page_size", "25"],
+      ["x", "a"],
+      ["x", "b"],
+      ["page", "4"],
+    ],
+  );
+  assert.deepEqual(
+    [
+      ...harness
+        .searchPageSizeParams(new URLSearchParams("page=8&other=keep"), 100)
+        .entries(),
+    ],
+    [
+      ["page", "1"],
+      ["other", "keep"],
+      ["page_size", "100"],
+    ],
+  );
+  assert.deepEqual(harness.searchPageItems(5, 6), [1, 2, 3, 4, 5, 6]);
+  assert.deepEqual(harness.searchPageItems(50, 100), [
+    1,
+    "gap",
+    49,
+    50,
+    51,
+    "gap",
+    100,
+  ]);
+  assert.deepEqual(harness.searchPageItems(1, 100), [1, 2, "gap", 100]);
+  assert.deepEqual(harness.searchPageItems(100, 100), [1, "gap", 99, 100]);
+  assert.equal(harness.searchTotalPages(57, 25), 3);
+  assert.equal(harness.searchLastPage(0, 25), 1);
+  const range = harness.searchPageRange(
+    makePage(makeRows(57, 25, 50), { limit: 25, offset: 50, count: 57 }),
+  );
+  assert.deepEqual(range, { start: 51, end: 57, count: 57 });
+  assert.equal(
+    harness.searchPageRangeLabel(range),
+    "Showing 51–57 of 57 results",
+  );
+});
+
+void test("session-only resize controls remain and no width persistence is introduced", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(
+    new URL("../src/routes/test-results/+page.svelte", import.meta.url),
+    "utf8",
+  );
+  assert.match(source, /columnResize/);
+  assert.match(source, /fitColumns/);
+  assert.match(source, /enableRowHover/);
+  assert.doesNotMatch(source, /localStorage|sessionStorage/);
+});

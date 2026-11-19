@@ -1398,6 +1398,49 @@
       }
     },
     "/v1/artefacts": {
+      "post": {
+        "tags": [
+          "artefacts"
+        ],
+        "summary": "Create Artefact",
+        "description": "Register an artefact without creating builds or test executions.\n\nAn existing artefact is returned unchanged, including its stage and status.",
+        "operationId": "create_artefact_v1_artefacts_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ArtefactCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtefactResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "change_artefact"
+        ]
+      },
       "get": {
         "tags": [
           "artefacts"
@@ -4131,6 +4174,82 @@
         ]
       }
     },
+    "/v1/test-results/search-page": {
+      "get": {
+        "tags": [
+          "test-results"
+        ],
+        "summary": "Get Test Results Search Page",
+        "description": "Return a bounded page of compact test-result data, newest result first.\n\n``count`` is exact and independent of the requested page. It is null when\n``include_count`` is false.",
+        "operationId": "get_test_results_search_page_v1_test_results_search_page_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of results to return",
+              "default": 50,
+              "title": "Limit"
+            },
+            "description": "Maximum number of results to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of results to skip",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Number of results to skip"
+          },
+          {
+            "name": "include_count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Include the exact total count; null is returned when false",
+              "default": true,
+              "title": "Include Count"
+            },
+            "description": "Include the exact total count; null is returned when false"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResultSearchPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
+      }
+    },
     "/v1/execution-metadata": {
       "get": {
         "tags": [
@@ -6321,6 +6440,105 @@
           "test_executions"
         ],
         "title": "ArtefactBuildResponse"
+      },
+      "ArtefactCreate": {
+        "properties": {
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Version"
+          },
+          "stage": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Stage"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track",
+            "default": ""
+          },
+          "branch": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Branch",
+            "default": ""
+          },
+          "store": {
+            "type": "string",
+            "title": "Store",
+            "default": ""
+          },
+          "series": {
+            "type": "string",
+            "title": "Series",
+            "default": ""
+          },
+          "repo": {
+            "type": "string",
+            "title": "Repo",
+            "default": ""
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Source",
+            "default": ""
+          },
+          "os": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Os",
+            "default": ""
+          },
+          "release": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Release",
+            "default": ""
+          },
+          "sha256": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Sha256",
+            "default": ""
+          },
+          "owner": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Owner",
+            "default": ""
+          },
+          "image_url": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "Image Url",
+            "default": ""
+          },
+          "attributes": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Attributes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "family",
+          "name",
+          "version",
+          "stage"
+        ],
+        "title": "ArtefactCreate",
+        "description": "Register without builds using the existing identity.\n\nOmitted fields use their defaults. At least one value in the selected identity\nmust be nonblank; fields outside that identity cannot satisfy this requirement."
       },
       "ArtefactHistoryItemResponse": {
         "properties": {
@@ -8849,6 +9067,119 @@
         ],
         "title": "ReviewerResponse"
       },
+      "SearchPageArtefact": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "version",
+          "track",
+          "family"
+        ],
+        "title": "SearchPageArtefact"
+      },
+      "SearchPageArtefactBuild": {
+        "properties": {
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          }
+        },
+        "type": "object",
+        "required": [
+          "architecture"
+        ],
+        "title": "SearchPageArtefactBuild"
+      },
+      "SearchPageEnvironment": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "SearchPageEnvironment"
+      },
+      "SearchPageTestExecution": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/SearchPageEnvironment"
+          },
+          "test_plan": {
+            "type": "string",
+            "title": "Test Plan"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "environment",
+          "test_plan"
+        ],
+        "title": "SearchPageTestExecution"
+      },
+      "SearchPageTestResult": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TestResultStatus"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "name",
+          "category",
+          "status"
+        ],
+        "title": "SearchPageTestResult"
+      },
       "StartCharmTestExecutionRequest": {
         "properties": {
           "name": {
@@ -10671,6 +11002,68 @@
         },
         "type": "object",
         "title": "TestResultSearchFilters"
+      },
+      "TestResultSearchPage": {
+        "properties": {
+          "count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "test_results": {
+            "items": {
+              "$ref": "#/components/schemas/TestResultSearchPageRow"
+            },
+            "type": "array",
+            "title": "Test Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "count",
+          "limit",
+          "offset",
+          "test_results"
+        ],
+        "title": "TestResultSearchPage"
+      },
+      "TestResultSearchPageRow": {
+        "properties": {
+          "test_result": {
+            "$ref": "#/components/schemas/SearchPageTestResult"
+          },
+          "test_execution": {
+            "$ref": "#/components/schemas/SearchPageTestExecution"
+          },
+          "artefact": {
+            "$ref": "#/components/schemas/SearchPageArtefact"
+          },
+          "artefact_build": {
+            "$ref": "#/components/schemas/SearchPageArtefactBuild"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_result",
+          "test_execution",
+          "artefact",
+          "artefact_build"
+        ],
+        "title": "TestResultSearchPageRow"
       },
       "TestResultSearchResponseWithContext": {
         "properties": {
