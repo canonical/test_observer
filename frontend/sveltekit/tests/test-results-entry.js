@@ -5,9 +5,12 @@ import { flushSync, mount, unmount } from "svelte";
 import Page from "../src/routes/test-results/+page.svelte";
 import { requests, resetApi, setHandler } from "./test-results-api.js";
 
-/** @param {import("svelte").MountOptions["target"]} target */
-export function mountPage(target) {
-  const component = mount(Page, { target });
+/**
+ * @param {import("svelte").MountOptions["target"]} target
+ * @param {{artefactFamilies: import("../src/lib/types/index.ts").Family[]; apiFamilyNames: string[]; familyNamesError: boolean}} data
+ */
+export function mountPage(target, data) {
+  const component = mount(Page, { target, props: { data, params: {} } });
   flushSync();
   return component;
 }
@@ -33,3 +36,16 @@ export {
   searchPageSizeParams,
   searchTotalPages,
 } from "../src/lib/searchPagination.ts";
+
+export {
+  emptySearchFilters,
+  parseSearchFilters,
+  searchFilterRequestParams,
+  searchFiltersEqual,
+  serializeSearchFilters,
+  validateSearchFilters,
+} from "../src/lib/searchPageFilters.ts";
+export {
+  extractApiFamilyNames,
+  fetchApiFamilyNames,
+} from "../src/lib/apiFamilyNames.ts";
