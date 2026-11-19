@@ -15,9 +15,12 @@
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
+from test_observer.data_access.models import Team
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -599,3 +602,35 @@ def test_remove_rule_from_team_without_making_it_an_orphan_does_not_remove_rule(
         Permission.view_team,
     )
     assert response.status_code == 200
+
+
+def test_create_team_with_unknown_rule_family(test_client: TestClient, db_session: Session):
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            "/v1/teams",
+            json={"name": "new-team", "artefact_matching_rules": [{"family": "snap"}, {"family": "unregistered"}]},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["input"] == "unregistered"
+    assert db_session.scalar(select(Team).where(Team.name == "new-team")) is None
+
+
+def test_update_team_with_unknown_rule_family(test_client: TestClient, generator: DataGenerator, db_session: Session):
+    rule = generator.gen_artefact_matching_rule(family="snap")
+    team = generator.gen_team(artefact_matching_rules=[rule])
+
+    response = make_authenticated_request(
+        lambda: test_client.patch(
+            f"/v1/teams/{team.id}",
+            json={"permissions": [Permission.view_user], "artefact_matching_rules": [{"family": "unregistered"}]},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 422
+    db_session.expire_all()
+    assert team.permissions == []
+    assert [r.id for r in team.artefact_matching_rules] == [rule.id]
