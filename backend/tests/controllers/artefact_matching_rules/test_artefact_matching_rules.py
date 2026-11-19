@@ -22,7 +22,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy.exc import DBAPIError
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -151,7 +150,7 @@ def test_create_artefact_matching_rule_with_multiple_teams(test_client: TestClie
 def test_create_artefact_matching_rule_duplicate(test_client: TestClient, generator: DataGenerator):
     """Test that creating a duplicate rule returns 409"""
     team = generator.gen_team(name="test-team")
-    generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+    generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team])
 
     response = make_authenticated_request(
         lambda: test_client.post(
@@ -182,8 +181,8 @@ def test_create_artefact_matching_rule_invalid_family(test_client: TestClient, g
 
 def test_get_artefact_matching_rules(test_client: TestClient, generator: DataGenerator):
     """Test getting all artefact matching rules"""
-    rule1 = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22")
-    rule2 = generator.gen_artefact_matching_rule(family=FamilyName.deb, stage="proposed")
+    rule1 = generator.gen_artefact_matching_rule(family="snap", track="22")
+    rule2 = generator.gen_artefact_matching_rule(family="deb", stage="proposed")
 
     response = make_authenticated_request(lambda: test_client.get("/v1/artefact-matching-rules"), Permission.view_team)
 
@@ -200,7 +199,7 @@ def test_get_artefact_matching_rules_with_teams(test_client: TestClient, generat
     """Test that getting rules includes team information"""
     team1 = generator.gen_team(name="team1")
     team2 = generator.gen_team(name="team2")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team1, team2])
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team1, team2])
 
     response = make_authenticated_request(lambda: test_client.get("/v1/artefact-matching-rules"), Permission.view_team)
 
@@ -218,9 +217,9 @@ def test_get_artefact_matching_rules_with_teams(test_client: TestClient, generat
 
 def test_get_artefact_matching_rules_filtered_by_family(test_client: TestClient, generator: DataGenerator):
     """Test filtering rules by family"""
-    generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22")
-    generator.gen_artefact_matching_rule(family=FamilyName.snap, track="24")
-    generator.gen_artefact_matching_rule(family=FamilyName.deb, stage="proposed")
+    generator.gen_artefact_matching_rule(family="snap", track="22")
+    generator.gen_artefact_matching_rule(family="snap", track="24")
+    generator.gen_artefact_matching_rule(family="deb", stage="proposed")
 
     response = make_authenticated_request(
         lambda: test_client.get("/v1/artefact-matching-rules?family=snap"),
@@ -235,7 +234,7 @@ def test_get_artefact_matching_rules_filtered_by_family(test_client: TestClient,
 
 def test_get_artefact_matching_rule_by_id(test_client: TestClient, generator: DataGenerator):
     """Test getting a specific rule by ID"""
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", stage="stable")
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", stage="stable")
 
     response = make_authenticated_request(
         lambda: test_client.get(f"/v1/artefact-matching-rules/{rule.id}"),
@@ -261,7 +260,7 @@ def test_get_artefact_matching_rule_not_found(test_client: TestClient):
 def test_update_artefact_matching_rule(test_client: TestClient, generator: DataGenerator):
     """Test updating an artefact matching rule"""
     team = generator.gen_team(name="test-team")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team])
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -287,7 +286,7 @@ def test_update_artefact_matching_rule(test_client: TestClient, generator: DataG
 def test_update_artefact_matching_rule_change_family(test_client: TestClient, generator: DataGenerator):
     """Test changing the family of a rule"""
     team = generator.gen_team(name="test-team")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team])
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -310,7 +309,7 @@ def test_update_artefact_matching_rule_change_teams(test_client: TestClient, gen
     team1 = generator.gen_team(name="team1")
     team2 = generator.gen_team(name="team2")
     team3 = generator.gen_team(name="team3")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team1, team2])
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team1, team2])
 
     # Change to team3 only
     response = make_authenticated_request(
@@ -333,7 +332,7 @@ def test_update_artefact_matching_rule_change_teams(test_client: TestClient, gen
 def test_update_artefact_matching_rule_remove_all_teams(test_client: TestClient, generator: DataGenerator):
     """Test that removing all teams fails"""
     team = generator.gen_team(name="test-team")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team])
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -353,8 +352,8 @@ def test_update_artefact_matching_rule_remove_all_teams(test_client: TestClient,
 def test_update_artefact_matching_rule_conflict(test_client: TestClient, generator: DataGenerator):
     """Test that updating to duplicate values returns 409"""
     team = generator.gen_team(name="test-team")
-    generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
-    rule2 = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="24", teams=[team])
+    generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team])
+    rule2 = generator.gen_artefact_matching_rule(family="snap", track="24", teams=[team])
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -390,7 +389,7 @@ def test_update_artefact_matching_rule_preserves_teams(test_client: TestClient, 
     """Test that updating a rule without team_ids preserves team associations"""
     team1 = generator.gen_team(name="team1")
     team2 = generator.gen_team(name="team2")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team1, team2])
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team1, team2])
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -414,7 +413,7 @@ def test_update_artefact_matching_rule_preserves_teams(test_client: TestClient, 
 def test_delete_artefact_matching_rule(test_client: TestClient, generator: DataGenerator):
     """Test deleting an artefact matching rule"""
     team = generator.gen_team(name="test-team")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team])
 
     response = make_authenticated_request(
         lambda: test_client.delete(f"/v1/artefact-matching-rules/{rule.id}"),
@@ -434,7 +433,7 @@ def test_delete_artefact_matching_rule(test_client: TestClient, generator: DataG
 def test_delete_artefact_matching_rule_with_teams(test_client: TestClient, generator: DataGenerator):
     """Test deleting a rule removes it from teams"""
     team = generator.gen_team(name="test-team")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team])
 
     response = make_authenticated_request(
         lambda: test_client.delete(f"/v1/artefact-matching-rules/{rule.id}"),
@@ -489,7 +488,7 @@ def test_permissions_required_for_create(test_client: TestClient, generator: Dat
 def test_permissions_required_for_update(test_client: TestClient, generator: DataGenerator):
     """Test that change_team permission is required to update rules"""
     team = generator.gen_team(name="test-team")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team])
 
     response = test_client.patch(
         f"/v1/artefact-matching-rules/{rule.id}",
@@ -502,7 +501,7 @@ def test_permissions_required_for_update(test_client: TestClient, generator: Dat
 def test_permissions_required_for_delete(test_client: TestClient, generator: DataGenerator):
     """Test that change_team permission is required to delete rules"""
     team = generator.gen_team(name="test-team")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team])
 
     response = test_client.delete(f"/v1/artefact-matching-rules/{rule.id}")
 
@@ -641,7 +640,7 @@ def test_create_artefact_matching_rule_grant_permissions_default_empty(
 def test_update_artefact_matching_rule_grant_permissions(test_client: TestClient, generator: DataGenerator):
     """Test patching grant_permissions on an existing rule"""
     team = generator.gen_team(name="test-team")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team])
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -659,7 +658,7 @@ def test_update_artefact_matching_rule_clear_grant_permissions(test_client: Test
     """Test clearing grant_permissions via patch"""
     team = generator.gen_team(name="test-team")
     rule = generator.gen_artefact_matching_rule(
-        family=FamilyName.snap,
+        family="snap",
         track="22",
         teams=[team],
         grant_permissions=[Permission.view_artefact],
@@ -681,7 +680,7 @@ def test_teams_api_returns_grant_permissions(test_client: TestClient, generator:
     """Test that GET /v1/teams/{id} includes grant_permissions in artefact_matching_rules"""
     team = generator.gen_team(name="test-team")
     generator.gen_artefact_matching_rule(
-        family=FamilyName.snap,
+        family="snap",
         track="22",
         teams=[team],
         grant_permissions=[Permission.view_artefact, Permission.change_artefact],
@@ -702,7 +701,7 @@ def test_teams_api_returns_empty_grant_permissions_by_default(test_client: TestC
     """Test that GET /v1/teams/{id} returns grant_permissions as [] when not set"""
     team = generator.gen_team(name="test-team")
     generator.gen_artefact_matching_rule(
-        family=FamilyName.snap,
+        family="snap",
         track="22",
         teams=[team],
     )
@@ -741,7 +740,7 @@ def test_create_artefact_matching_rule_invalid_grant_permissions_api(test_client
 def test_update_artefact_matching_rule_invalid_grant_permissions_api(test_client: TestClient, generator: DataGenerator):
     """Test patching grant_permissions on an existing rule"""
     team = generator.gen_team(name="test-team")
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap, track="22", teams=[team])
+    rule = generator.gen_artefact_matching_rule(family="snap", track="22", teams=[team])
 
     response = make_authenticated_request(
         lambda: test_client.patch(
@@ -759,8 +758,34 @@ def test_create_artefact_matching_rule_invalid_grant_permissions_orm(generator: 
     team = generator.gen_team(name="test-team")
     with pytest.raises(DBAPIError):
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             track="22",
             teams=[team],
             grant_permissions=["invalid_permission"],  # type: ignore
         )
+
+
+def test_create_artefact_matching_rule_with_registered_family(test_client: TestClient, generator: DataGenerator):
+    generator.gen_family("custom")
+    team = generator.gen_team(name="test-team")
+
+    response = make_authenticated_request(
+        lambda: test_client.post(
+            "/v1/artefact-matching-rules",
+            json={"family": "custom", "team_ids": [team.id]},
+        ),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 201
+    assert response.json()["family"] == "custom"
+
+
+def test_get_artefact_matching_rules_unknown_family(test_client: TestClient):
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefact-matching-rules", params={"family": "unregistered"}),
+        Permission.view_team,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["query", "family"]

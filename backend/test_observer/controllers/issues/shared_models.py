@@ -30,7 +30,6 @@ from test_observer.data_access.models import (
     TestExecutionMetadata,
 )
 from test_observer.data_access.models_enums import (
-    FamilyName,
     IssueSource,
     IssueStatus,
     TestResultStatus,
@@ -57,7 +56,7 @@ class MinimalIssueTestResultAttachmentRuleResponse(BaseModel):
     id: int
     enabled: bool
 
-    families: list[FamilyName]
+    families: list[str]
     artefacts: list[str]
     artefact_versions: list[str]
     artefact_stages: list[str]

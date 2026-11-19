@@ -29,7 +29,7 @@ def get_artefact_url(artefact: Artefact) -> str:
         Full URL to the artefact page in the frontend
 
     Examples:
-        >>> artefact = Artefact(id=123, family=FamilyName.snap, ...)
+        >>> artefact = Artefact(id=123, family="snap", ...)
         >>> get_artefact_url(artefact)
         'http://localhost:30001/snaps/123'
     """

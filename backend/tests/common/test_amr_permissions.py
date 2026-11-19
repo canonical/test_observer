@@ -19,7 +19,6 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import check_amr_permissions, check_artefact_permission
-from test_observer.data_access.models_enums import FamilyName
 from tests.data_generator import DataGenerator
 
 
@@ -31,7 +30,7 @@ class TestCheckAMRPermission:
         # Create a team and an artefact matching rule granting change_artefact
         team = generator.gen_team(name="snap-team")
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
             teams=[team],
             grant_permissions=[Permission.change_artefact],
@@ -40,7 +39,7 @@ class TestCheckAMRPermission:
         # Create an artefact that matches the rule
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -65,7 +64,7 @@ class TestCheckAMRPermission:
 
         # Create an AMR for team1
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
             teams=[team1],
             grant_permissions=[Permission.change_artefact],
@@ -74,7 +73,7 @@ class TestCheckAMRPermission:
         # Create an artefact matching the rule
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -98,7 +97,7 @@ class TestCheckAMRPermission:
         # Create a team and AMR
         team = generator.gen_team(name="snap-team")
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
             teams=[team],
             grant_permissions=[Permission.change_artefact],
@@ -107,7 +106,7 @@ class TestCheckAMRPermission:
         # Create an artefact
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -131,7 +130,7 @@ class TestCheckAMRPermission:
         # Create a team and AMR for snap on stable
         team = generator.gen_team(name="snap-team")
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
             teams=[team],
             grant_permissions=[Permission.change_artefact],
@@ -140,7 +139,7 @@ class TestCheckAMRPermission:
         # Create an artefact that does NOT match (different stage)
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="beta",
         )
 
@@ -164,7 +163,7 @@ class TestCheckAMRPermission:
         # Create a team and AMR that grants view_artefact but not change_artefact
         team = generator.gen_team(name="snap-team")
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
             teams=[team],
             grant_permissions=[Permission.view_artefact],
@@ -173,7 +172,7 @@ class TestCheckAMRPermission:
         # Create matching artefact
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -197,7 +196,7 @@ class TestCheckAMRPermission:
         # Create artefact
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -216,7 +215,7 @@ class TestCheckAMRPermission:
         # Create an artefact with no matching AMRs
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -247,7 +246,7 @@ class TestCheckAMRPermission:
         # Create a team and AMR that grants view_artefact but not change_artefact
         team = generator.gen_team(name="snap-team")
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
             teams=[team],
             grant_permissions=[Permission.view_artefact],
@@ -256,7 +255,7 @@ class TestCheckAMRPermission:
         # Create matching artefact
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
 
@@ -293,7 +292,7 @@ class TestCheckArtefactPermission:
         team = generator.gen_team(name="privileged-team", permissions=[Permission.change_artefact])
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
         user = generator.gen_user(name="frank", teams=[team])
@@ -312,14 +311,14 @@ class TestCheckArtefactPermission:
         even with no direct team permissions"""
         team = generator.gen_team(name="amr-team")
         generator.gen_artefact_matching_rule(
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
             teams=[team],
             grant_permissions=[Permission.change_artefact],
         )
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
         user = generator.gen_user(name="grace", teams=[team])

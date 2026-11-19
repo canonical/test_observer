@@ -29,7 +29,6 @@ from test_observer.controllers.applications.application_injection import (
 )
 from test_observer.data_access.models import Artefact, ArtefactMatchingRule, Environment, Team, TestExecution, User
 from test_observer.data_access.models_enums import (
-    FamilyName,
     TestResultStatus,
 )
 from test_observer.main import app
@@ -69,7 +68,7 @@ def post(test_client: TestClient):
 @pytest.fixture
 def get(test_client: TestClient):
     def get_helper(
-        family: FamilyName | None = None,
+        family: str | None = None,
         limit: int | None = None,
         environment: str | None = None,
         environment_architecture: str | None = None,
@@ -77,7 +76,7 @@ def get(test_client: TestClient):
     ) -> Response:
         params: dict[str, str | int] = {}
         if family is not None:
-            params["family"] = family.value
+            params["family"] = family
         if limit is not None:
             params["limit"] = limit
         if environment is not None:
@@ -425,7 +424,7 @@ def test_delete_non_matching_composite_keys(get: Get, post: Post, delete: Delete
 
 def test_get_with_family(get: Get, post: Post, test_execution: TestExecution, generator: DataGenerator):
     te1 = test_execution
-    a = generator.gen_artefact("beta", family=FamilyName.charm)
+    a = generator.gen_artefact("beta", family="charm")
     ab = generator.gen_artefact_build(a)
     e2 = generator.gen_environment("e2")
     te2 = generator.gen_test_execution(ab, e2)
@@ -433,9 +432,9 @@ def test_get_with_family(get: Get, post: Post, test_execution: TestExecution, ge
     post({"test_execution_ids": [te1.id]})
     post({"test_execution_ids": [te2.id]})
 
-    assert without_server_fields(get(family=FamilyName.snap).json()) == [test_execution_to_pending_rerun(te1)]
-    assert without_server_fields(get(family=FamilyName.charm).json()) == [test_execution_to_pending_rerun(te2)]
-    assert get(family=FamilyName.image).json() == []
+    assert without_server_fields(get(family="snap").json()) == [test_execution_to_pending_rerun(te1)]
+    assert without_server_fields(get(family="charm").json()) == [test_execution_to_pending_rerun(te2)]
+    assert get(family="image").json() == []
 
 
 def test_rerun_preserves_ci_and_relevant_links(get: Get, post: Post, generator: DataGenerator):
@@ -528,11 +527,11 @@ def test_get_with_environment_architecture_filter(get: Get, post: Post, generato
 
 def test_get_with_combined_filters(get: Get, post: Post, generator: DataGenerator):
     # Create snap artefact with arm64 build
-    snap_artefact = generator.gen_artefact("beta", family=FamilyName.snap)
+    snap_artefact = generator.gen_artefact("beta", family="snap")
     snap_build_arm64 = generator.gen_artefact_build(snap_artefact, architecture="arm64")
 
     # Create deb artefact with amd64 build
-    deb_artefact = generator.gen_artefact("proposed", family=FamilyName.deb)
+    deb_artefact = generator.gen_artefact("proposed", family="deb")
     deb_build_amd64 = generator.gen_artefact_build(deb_artefact, architecture="amd64")
 
     # Create environments
@@ -547,20 +546,20 @@ def test_get_with_combined_filters(get: Get, post: Post, generator: DataGenerato
     post({"test_execution_ids": [te1.id, te2.id, te3.id]})
 
     # Test combining family + build_architecture
-    result = get(family=FamilyName.snap, build_architecture="arm64").json()
+    result = get(family="snap", build_architecture="arm64").json()
     assert len(result) == 2
     assert result[0]["test_execution_id"] in [te1.id, te3.id]
     assert result[1]["test_execution_id"] in [te1.id, te3.id]
 
     # Test combining family + environment
-    assert without_server_fields(get(family=FamilyName.snap, environment="rpi4").json()) == [
+    assert without_server_fields(get(family="snap", environment="rpi4").json()) == [
         test_execution_to_pending_rerun(te1)
     ]
 
     # Test combining all filters
     assert without_server_fields(
         get(
-            family=FamilyName.snap,
+            family="snap",
             build_architecture="arm64",
             environment="rpi4",
             environment_architecture="arm64",
@@ -570,7 +569,7 @@ def test_get_with_combined_filters(get: Get, post: Post, generator: DataGenerato
     # Test filter combination with no matches
     assert (
         get(
-            family=FamilyName.deb,
+            family="deb",
             build_architecture="arm64",
         ).json()
         == []
@@ -675,7 +674,7 @@ def test_post_silent_with_test_results_filters(test_client: TestClient, get: Get
 
 def test_post_silent_with_multiple_test_results_filters(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test creating reruns with multiple filter criteria"""
-    a = generator.gen_artefact("beta", family=FamilyName.snap)
+    a = generator.gen_artefact("beta", family="snap")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te1 = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -1037,7 +1036,7 @@ def test_post_silent_with_empty_ids_does_nothing(test_client: TestClient, get: G
 
 def test_post_with_filters_matching_no_results(test_client: TestClient, get: Get, generator: DataGenerator):
     """Test that filters matching no test results does nothing"""
-    a = generator.gen_artefact("beta", family=FamilyName.snap)
+    a = generator.gen_artefact("beta", family="snap")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e, ci_link="http://ci1")
@@ -1203,7 +1202,7 @@ class TestRerunAMRPermissions:
         generator: DataGenerator,
         teams: list[Team],
         grant_permissions: list[Permission],
-        family: FamilyName = FamilyName.snap,
+        family: str = "snap",
         stage: str = "stable",
     ) -> ArtefactMatchingRule:
         return generator.gen_artefact_matching_rule(
@@ -1236,7 +1235,7 @@ class TestRerunAMRPermissions:
         # Create test execution with matching artefact
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
@@ -1267,7 +1266,7 @@ class TestRerunAMRPermissions:
         # Create matching artefact
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
@@ -1298,7 +1297,7 @@ class TestRerunAMRPermissions:
         # Create artefact that doesn't match (different stage)
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="beta",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
@@ -1327,7 +1326,7 @@ class TestRerunAMRPermissions:
         # Create test execution with matching artefact
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
@@ -1372,7 +1371,7 @@ class TestRerunAMRPermissions:
         for i in range(3):
             artefact = generator.gen_artefact(
                 name=f"test-snap-{i}",
-                family=FamilyName.snap,
+                family="snap",
                 stage="stable",
             )
             test_execution = self._create_test_execution_for_artefact(generator, artefact, environment)
@@ -1409,14 +1408,14 @@ class TestRerunAMRPermissions:
         environment = generator.gen_environment("test-env")
         snap_artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
         snap_te = self._create_test_execution_for_artefact(generator, snap_artefact, environment)
 
         deb_artefact = generator.gen_artefact(
             name="test-deb",
-            family=FamilyName.deb,
+            family="deb",
             stage="proposed",
         )
         deb_te = self._create_test_execution_for_artefact(generator, deb_artefact, environment)
@@ -1452,7 +1451,7 @@ class TestRerunAMRPermissions:
         # Create test execution with matching artefact and failed result
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
@@ -1494,7 +1493,7 @@ class TestRerunAMRPermissions:
         # Create test execution with unmatched artefact (deb) and failed result
         artefact = generator.gen_artefact(
             name="test-deb",
-            family=FamilyName.deb,
+            family="deb",
             stage="proposed",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
@@ -1531,7 +1530,7 @@ class TestRerunAMRPermissions:
         # Create test execution with any artefact
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
@@ -1561,7 +1560,7 @@ class TestRerunAMRPermissions:
         # Create test execution with any artefact
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
@@ -1621,7 +1620,7 @@ class TestRerunAMRPermissions:
         # Create test execution but it won't match our filter
         artefact = generator.gen_artefact(
             name="test-snap",
-            family=FamilyName.snap,
+            family="snap",
             stage="stable",
         )
         test_execution = self._create_test_execution_for_artefact(generator, artefact)
@@ -1822,7 +1821,7 @@ def test_post_silent_with_test_executions_filters_on_not_started_execution(
     test_client: TestClient, get: Get, generator: DataGenerator
 ):
     """Can create reruns for NOT_STARTED executions (no test results) via test_executions_filters"""
-    a = generator.gen_artefact("beta", family=FamilyName.snap)
+    a = generator.gen_artefact("beta", family="snap")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("test-env")
     te = generator.gen_test_execution(ab, e)
@@ -1850,8 +1849,8 @@ def test_post_silent_with_test_executions_filters_matches_by_family(
     test_client: TestClient, get: Get, generator: DataGenerator
 ):
     """test_executions_filters with families filter only matches matching artefacts"""
-    a_snap = generator.gen_artefact("beta", family=FamilyName.snap)
-    a_deb = generator.gen_artefact("beta", family=FamilyName.deb)
+    a_snap = generator.gen_artefact("beta", family="snap")
+    a_deb = generator.gen_artefact("beta", family="deb")
     ab_snap = generator.gen_artefact_build(a_snap)
     ab_deb = generator.gen_artefact_build(a_deb)
     e = generator.gen_environment("test-env")
@@ -1981,7 +1980,7 @@ def _get_details(test_client: TestClient, **params: Any) -> Response:  # noqa: A
 
 
 def test_details_groups_counts_by_priority_and_defaults_to_highest(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact("beta", family=FamilyName.charm)
+    a = generator.gen_artefact("beta", family="charm")
     ab = generator.gen_artefact_build(a)
     # Distinct environments so each rerun is its own (test_plan, build, environment) group.
     for i, priority in enumerate([5, 5, 0, -3]):
@@ -2003,7 +2002,7 @@ def test_details_groups_counts_by_priority_and_defaults_to_highest(test_client: 
 
 
 def test_details_selected_priority_returns_fields_and_paginates(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact("beta", family=FamilyName.charm)
+    a = generator.gen_artefact("beta", family="charm")
     ab = generator.gen_artefact_build(a)
     total = 55
     for i in range(total):
@@ -2037,8 +2036,8 @@ def test_details_selected_priority_returns_fields_and_paginates(test_client: Tes
 
 
 def test_details_filters_by_family_and_is_empty_when_none_exist(test_client: TestClient, generator: DataGenerator):
-    charm = generator.gen_artefact("beta", family=FamilyName.charm)
-    snap = generator.gen_artefact("beta", family=FamilyName.snap)
+    charm = generator.gen_artefact("beta", family="charm")
+    snap = generator.gen_artefact("beta", family="snap")
     e = generator.gen_environment("family-env")
     for artefact in (charm, snap):
         ab = generator.gen_artefact_build(artefact)
@@ -2057,7 +2056,7 @@ def test_details_filters_by_family_and_is_empty_when_none_exist(test_client: Tes
 
 
 def test_details_rejects_priority_with_no_reruns(test_client: TestClient, generator: DataGenerator):
-    a = generator.gen_artefact("beta", family=FamilyName.charm)
+    a = generator.gen_artefact("beta", family="charm")
     ab = generator.gen_artefact_build(a)
     e = generator.gen_environment("unavailable-priority-env")
     te = generator.gen_test_execution(ab, e)

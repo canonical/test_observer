@@ -17,7 +17,6 @@ from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
 from test_observer.data_access.models import IssueTestResultAttachmentRule
-from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -165,8 +164,8 @@ def test_issue_attach_no_filters(test_client: TestClient, generator: DataGenerat
 
 def test_issue_attach_with_filters_family(test_client: TestClient, generator: DataGenerator):
     # Create two artefacts with different families
-    artefact_snap = generator.gen_artefact(family=FamilyName.snap, name="snap1")
-    artefact_charm = generator.gen_artefact(family=FamilyName.charm, name="charm1")
+    artefact_snap = generator.gen_artefact(family="snap", name="snap1")
+    artefact_charm = generator.gen_artefact(family="charm", name="charm1")
     build_snap = generator.gen_artefact_build(artefact_snap)
     build_charm = generator.gen_artefact_build(artefact_charm)
     env = generator.gen_environment()

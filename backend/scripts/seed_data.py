@@ -59,7 +59,6 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
-    FamilyName,
     IssueStatus,
 )
 from test_observer.data_access.setup import SessionLocal
@@ -106,7 +105,7 @@ TEST_RESULT_ATTACHMENT_RULE_REQUESTS = [
 START_TEST_EXECUTION_REQUESTS = [
     # Previous version of core22 for testing previous run links
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="core22",
         version="20230501",
         revision=1,
@@ -119,7 +118,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="core22",
         version="20230515",
         revision=1,
@@ -132,7 +131,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="core22",
         version="20230531",
         revision=1,
@@ -146,7 +145,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="core22",
         version="20230531",
         revision=1,
@@ -159,7 +158,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="core22",
         version="20230531",
         revision=1,
@@ -172,7 +171,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="core22",
         version="20230531",
         revision=1,
@@ -185,7 +184,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="core22",
         version="20230531",
         revision=1,
@@ -198,7 +197,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="core22",
         version="20230531",
         revision=1,
@@ -211,7 +210,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="docker",
         version="20.10.24",
         revision=1,
@@ -224,7 +223,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-18-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="docker",
         version="20.10.24",
         revision=1,
@@ -237,7 +236,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-18-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="bluez",
         version="5.64-2",
         revision=1,
@@ -250,7 +249,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="core22",
         version="20230531",
         revision=1,
@@ -263,7 +262,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="checkbox22",
         version="2.6",
         revision=1,
@@ -276,7 +275,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartSnapTestExecutionRequest(
-        family=FamilyName.snap,
+        family="snap",
         name="snapd",
         version="2.59.4",
         revision=1,
@@ -289,7 +288,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::client-cert-iot-ubuntucore-22-automated",
     ),
     StartDebTestExecutionRequest(
-        family=FamilyName.deb,
+        family="deb",
         name="linux-raspi",
         version="5.15.0.73.70",
         series="jammy",
@@ -301,7 +300,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::sru",
     ),
     StartDebTestExecutionRequest(
-        family=FamilyName.deb,
+        family="deb",
         name="linux-raspi",
         version="5.15.0.73.71",
         series="jammy",
@@ -313,7 +312,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::sru",
     ),
     StartDebTestExecutionRequest(
-        family=FamilyName.deb,
+        family="deb",
         name="linux-raspi",
         version="5.15.0.73.71",
         series="jammy",
@@ -325,7 +324,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::sru",
     ),
     StartDebTestExecutionRequest(
-        family=FamilyName.deb,
+        family="deb",
         name="linux-raspi",
         version="5.15.0.73.71",
         series="jammy",
@@ -337,7 +336,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::sru",
     ),
     StartDebTestExecutionRequest(
-        family=FamilyName.deb,
+        family="deb",
         name="linux-raspi",
         version="5.15.0.73.71",
         series="jammy",
@@ -349,7 +348,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::sru-server",
     ),
     StartDebTestExecutionRequest(
-        family=FamilyName.deb,
+        family="deb",
         name="linux-raspi",
         version="5.15.0.73.71",
         series="jammy",
@@ -360,7 +359,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="com.canonical.certification::sru-server",
     ),
     StartCharmTestExecutionRequest(
-        family=FamilyName.charm,
+        family="charm",
         name="postgresql-k8s",
         version="123",
         revision=123,
@@ -414,7 +413,7 @@ START_TEST_EXECUTION_REQUESTS = [
         environment="rpi3",
     ),
     StartSolutionTestExecutionRequest(
-        family=FamilyName.solution,
+        family="solution",
         name="canonical-kubernetes",
         version="1.32.1",
         attributes={"track": "1.32", "source": "some-sha"},
@@ -425,7 +424,7 @@ START_TEST_EXECUTION_REQUESTS = [
         test_plan="solutions/cos/maas_physical",
     ),
     StartSolutionTestExecutionRequest(
-        family=FamilyName.solution,
+        family="solution",
         name="canonical-kubernetes",
         version="1.32.1",
         attributes={"track": "1.32", "source": "some-sha"},
@@ -942,7 +941,7 @@ def _add_issue_attachments(
 def _assign_environment_reviewers(session: Session) -> None:
     artefact = session.scalar(
         select(Artefact).where(
-            Artefact.family == FamilyName.snap,
+            Artefact.family == "snap",
             Artefact.name == "core22",
             Artefact.version == "20230531",
             Artefact.track == "22",
@@ -991,7 +990,7 @@ def _create_missing_expected_environment_executions() -> list[StartSnapTestExecu
 
     return [
         StartSnapTestExecutionRequest(
-            family=FamilyName.snap,
+            family="snap",
             name="snapd",
             version="2.72",
             revision=1,
@@ -1005,7 +1004,7 @@ def _create_missing_expected_environment_executions() -> list[StartSnapTestExecu
             test_plan="test-plan-missing-environments",
         ),
         StartSnapTestExecutionRequest(
-            family=FamilyName.snap,
+            family="snap",
             name="snapd",
             version="2.72",
             revision=1,
@@ -1018,7 +1017,7 @@ def _create_missing_expected_environment_executions() -> list[StartSnapTestExecu
             test_plan="test-plan-missing-environments",
         ),
         StartSnapTestExecutionRequest(
-            family=FamilyName.snap,
+            family="snap",
             name="snapd",
             version="2.72",
             revision=1,

@@ -35,6 +35,7 @@ from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
+from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.data_access.models import (
     Application,
     Artefact,
@@ -46,12 +47,12 @@ from test_observer.data_access.models import (
 )
 from test_observer.data_access.models_enums import (
     ArtefactStatus,
-    FamilyName,
     NotificationType,
 )
 from test_observer.data_access.repository import (
     get_artefact_identity,
     get_artefacts_by_family,
+    get_families,
     get_or_create,
     get_or_create_environments,
     populate_expected_environment_status,
@@ -90,6 +91,7 @@ def create_artefact(
 
     An existing artefact is returned unchanged, including its stage and status.
     """
+    ensure_families_exist(db, [request.family], ("body", "family"))
     fields = request.model_dump()
     identity = get_artefact_identity(fields)
     if not any(value.strip() for key, value in identity.items() if key != "family"):
@@ -109,8 +111,9 @@ def create_artefact(
     response_model=list[ArtefactResponse],
     dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
 )
-def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db)):
+def get_artefacts(family: str | None = None, db: Session = Depends(get_db)):
     """Get latest artefacts optionally by family"""
+    ensure_families_exist(db, [family] if family else None, ("query", "family"))
     artefacts = []
     order_by = (Artefact.name, Artefact.created_at)
 
@@ -122,10 +125,10 @@ def get_artefacts(family: FamilyName | None = None, db: Session = Depends(get_db
             order_by_columns=order_by,
         )
     else:
-        for family in FamilyName:
+        for db_family in get_families(db):
             artefacts += get_artefacts_by_family(
                 db,
-                family,
+                db_family.name,
                 load_environment_reviews=True,
                 order_by_columns=order_by,
             )
@@ -145,7 +148,7 @@ def search_artefacts(
         Query(description="Search term for artefact names"),
     ] = None,
     families: Annotated[
-        list[FamilyName] | None,
+        list[str] | None,
         Query(description="Filter by artefact families"),
     ] = None,
     limit: Annotated[
@@ -167,6 +170,7 @@ def search_artefacts(
 
     Returns a list of distinct artefact names that match the search query.
     """
+    ensure_families_exist(db, families, ("query", "families"))
     query = select(distinct(Artefact.name)).where(Artefact.archived.is_(False)).order_by(Artefact.name)
 
     if families and len(families) > 0:
@@ -200,7 +204,7 @@ def search_artefacts(
 )
 def get_artefact_history(
     name: Annotated[str, Query(description="Artefact name")],
-    family: Annotated[FamilyName, Query(description="Artefact family")],
+    family: Annotated[str, Query(description="Artefact family")],
     track: Annotated[str, Query(description="Artefact track")] = "latest",
     stage: Annotated[str | None, Query(description="Filter by stage")] = None,
     limit: Annotated[
@@ -220,6 +224,7 @@ def get_artefact_history(
 
     Returns a list of artefact versions along with their creation date.
     """
+    ensure_families_exist(db, [family], ("query", "family"))
     query = (
         select(Artefact)
         .where(Artefact.name == name)
@@ -464,7 +469,8 @@ def get_artefact_versions(
 
     # A solution's identity is (name, version) within its family, so its version history is
     # every artefact sharing that name; the family-specific columns are not part of its key.
-    if artefact.family != FamilyName.solution:
+    # TODO(raul): remove later in TO-416
+    if artefact.family != "solution":
         query = (
             query.where(Artefact.track == artefact.track)
             .where(Artefact.branch == artefact.branch)

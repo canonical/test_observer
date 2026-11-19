@@ -30,7 +30,6 @@ from test_observer.controllers.teams.models import (
     UserMinimalResponse,
 )
 from test_observer.data_access.models import ArtefactMatchingRule, Team, User
-from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 router: APIRouter = APIRouter(tags=["teams"])
@@ -152,7 +151,7 @@ def _team_to_response(team: Team) -> TeamResponse:
             ArtefactMatchingRuleInResponse(
                 id=rule.id,
                 name=rule.name if rule.name else None,
-                family=FamilyName(rule.family),
+                family=rule.family,
                 stage=rule.stage if rule.stage else None,
                 track=rule.track if rule.track else None,
                 branch=rule.branch if rule.branch else None,

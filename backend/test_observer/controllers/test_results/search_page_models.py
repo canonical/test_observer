@@ -18,7 +18,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from test_observer.data_access.models_enums import FamilyName, TestResultStatus
+from test_observer.data_access.models_enums import TestResultStatus
 
 
 class SearchPageTestResult(BaseModel):
@@ -44,7 +44,7 @@ class SearchPageArtefact(BaseModel):
     name: str
     version: str
     track: str
-    family: FamilyName
+    family: str
 
 
 class SearchPageArtefactBuild(BaseModel):
