@@ -33,5 +33,5 @@ def get_artefact_url(artefact: Artefact) -> str:
         >>> get_artefact_url(artefact)
         'http://localhost:30001/snaps/123'
     """
-    family_path = f"{artefact.family.value}s"  # snap -> snaps, deb -> debs, etc.
+    family_path = f"{artefact.family}s"  # snap -> snaps, deb -> debs, etc.
     return f"{FRONTEND_URL}/{family_path}/{artefact.id}"

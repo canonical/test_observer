@@ -49,7 +49,7 @@ def _rule_to_response(rule: ArtefactMatchingRule) -> ArtefactMatchingRuleRespons
     return ArtefactMatchingRuleResponse(
         id=rule.id,
         name=rule.name if rule.name else None,
-        family=rule.family,
+        family=FamilyName(rule.family),
         stage=rule.stage if rule.stage else None,
         track=rule.track if rule.track else None,
         branch=rule.branch if rule.branch else None,

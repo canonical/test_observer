@@ -32,6 +32,7 @@ from test_observer.data_access.models import (
     TestPlan,
     TestResult,
 )
+from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 from .search_page_models import (
@@ -157,7 +158,7 @@ def get_test_results_search_page(
                     name=result.test_execution.artefact_build.artefact.name,
                     version=result.test_execution.artefact_build.artefact.version,
                     track=result.test_execution.artefact_build.artefact.track,
-                    family=result.test_execution.artefact_build.artefact.family,
+                    family=FamilyName(result.test_execution.artefact_build.artefact.family),
                 ),
                 artefact_build=SearchPageArtefactBuild(
                     architecture=result.test_execution.artefact_build.architecture,
