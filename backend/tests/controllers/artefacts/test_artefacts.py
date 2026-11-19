@@ -14,7 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Callable
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from functools import partial
 from operator import itemgetter
 from typing import Any
@@ -2150,3 +2150,24 @@ def test_get_artefacts_returns_latest_per_stage_for_registered_family(
 
     assert response.status_code == 200
     _assert_get_artefacts_response(response.json(), [latest_beta, stable])
+
+
+def test_get_artefacts_for_registered_family_excludes_rows_sharing_latest_timestamp(
+    test_client: TestClient, generator: DataGenerator
+):
+    generator.gen_family("custom")
+    generator.gen_family("other")
+    created_at = datetime(2026, 1, 1)
+    expected = generator.gen_artefact(stage="beta", family="custom", name="tool", version="1", created_at=created_at)
+    generator.gen_artefact(stage="beta", family="other", name="tool", version="2", created_at=created_at)
+    generator.gen_artefact(
+        stage="beta", family="custom", name="tool", version="3", created_at=created_at, archived=True
+    )
+
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts", params={"family": "custom"}),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    _assert_get_artefacts_response(response.json(), [expected])

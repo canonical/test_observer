@@ -150,6 +150,8 @@ def get_artefacts_by_family(
                 query = session.query(Artefact).join(
                     subquery,
                     and_(
+                        Artefact.family == family,
+                        Artefact.archived.is_(False),
                         Artefact.stage == subquery.c.stage,
                         Artefact.name == subquery.c.name,
                         Artefact.created_at == subquery.c.max_created,
