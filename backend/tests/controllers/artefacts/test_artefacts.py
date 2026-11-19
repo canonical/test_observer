@@ -2133,3 +2133,20 @@ def test_create_and_list_artefact_of_registered_family(
         )
         assert listed.status_code == 200
         assert [a["id"] for a in listed.json() if a["family"] == "custom"] == [response.json()["id"]]
+
+
+def test_get_artefacts_returns_latest_per_stage_for_registered_family(
+    test_client: TestClient, generator: DataGenerator
+):
+    generator.gen_family("custom")
+    generator.gen_artefact(stage="beta", family="custom", name="tool", version="1")
+    latest_beta = generator.gen_artefact(stage="beta", family="custom", name="tool", version="2")
+    stable = generator.gen_artefact(stage="stable", family="custom", name="tool", version="1")
+
+    response = make_authenticated_request(
+        lambda: test_client.get("/v1/artefacts", params={"family": "custom"}),
+        Permission.view_artefact,
+    )
+
+    assert response.status_code == 200
+    _assert_get_artefacts_response(response.json(), [latest_beta, stable])
