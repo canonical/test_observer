@@ -22,19 +22,9 @@ export interface User {
   is_admin: boolean;
 }
 
-export interface Family {
-  name: string;
-  friendly_name: string;
-  api_name: string;
-  stages: string[];
-  empty_stage_label?: string;
-  columns: ColumnSpec[];
-  filters: FilterSpec[];
-}
-
-// A table column, described by data (from families.json) rather than code.
-// `field` names an Artefact property to read; `format` optionally names a
-// generic formatter (see artefactMetadata.ts). Neither is family-specific.
+// A table column, described by data rather than code. `field` names an
+// Artefact property to read; `format` optionally names a generic formatter
+// (see artefactMetadata.ts). Neither is family-specific.
 export interface ColumnSpec {
   label: string;
   key: string;
@@ -42,15 +32,6 @@ export interface ColumnSpec {
   format?: string;
   /** Starts out of view, still listed in the grid's "Choose columns" menu. */
   hidden?: boolean;
-}
-
-// A filter, described by data (from families.json). `field` names an Artefact
-// property to group by; `category` optionally names a generic bucketing
-// function (see artefactMetadata.ts). Neither is family-specific.
-export interface FilterSpec {
-  label: string;
-  field?: string;
-  category?: string;
 }
 
 export type ArtefactStatus = "APPROVED" | "MARKED_AS_FAILED" | "UNDECIDED";
@@ -111,12 +92,11 @@ export function formatDueDate(isoDate: string | null): string | null {
   return `${month} ${d.getDate()}`;
 }
 
-export function stageDisplayName(
-  stage: string,
-  emptyLabel = "No stage",
-): string {
-  if (stage === "") return emptyLabel;
-  return stage.charAt(0).toUpperCase() + stage.slice(1);
+export const EMPTY_STAGE_LABEL = "empty stage";
+
+export function stageDisplayName(stage: string): string {
+  const label = stage === "" ? EMPTY_STAGE_LABEL : stage;
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 export function userInitials(name: string): string {

@@ -19,6 +19,10 @@ export type ExecutionMetadata = Record<string, string[]>;
 
 export type FamilyName = string;
 
+export interface FamilyResponse {
+  name: FamilyName;
+}
+
 export type TestResultStatus = "PASSED" | "FAILED" | "SKIPPED";
 
 export interface TestResultSearchFilters {

@@ -87,65 +87,36 @@ void test("stage columns display arbitrary and empty stage values", () => {
     columnValue(artefactWithStage("custom-channel"), column),
     "custom-channel",
   );
-  assert.equal(columnValue(artefactWithStage(""), column), "No stage");
-  assert.equal(columnValue(artefactWithStage(""), column, "PPAs"), "PPAs");
+  assert.equal(columnValue(artefactWithStage(""), column), "empty stage");
   assert.equal(columnSortValue(artefactWithStage(""), column), "");
   assert.equal(
-    columnSortValue(artefactWithStage("No stage"), column),
-    "No stage",
+    columnSortValue(artefactWithStage("empty stage"), column),
+    "empty stage",
   );
 });
 
-void test("stage breadcrumb displays an unconfigured stage without an ordering", () => {
+void test("stage breadcrumb displays only the artefact's current stage", () => {
   if (!render || !StagesBreadcrumb) {
     throw new Error("Stage breadcrumb test modules were not loaded");
   }
 
   const body = render(StagesBreadcrumb, {
-    props: {
-      artefact: { stage: "custom-channel" },
-      family: { stages: ["edge", "beta", "stable"] },
-    },
+    props: { artefact: { stage: "custom-channel" } },
   }).body;
-  assert.match(body, /Custom-channel/);
-  assert.doesNotMatch(body, /edge|beta|candidate|stable/);
-  assert.match(body, /aria-current="step"/);
-  assert.doesNotMatch(body, /class="[^"]*\b(?:past|future)\b/);
-});
-
-void test("stage breadcrumb retains the configured order for known stages", () => {
-  if (!render || !StagesBreadcrumb) {
-    throw new Error("Stage breadcrumb test modules were not loaded");
-  }
-
-  const body = render(StagesBreadcrumb, {
-    props: {
-      artefact: { stage: "beta" },
-      family: { stages: ["edge", "beta", "stable"] },
-    },
-  }).body;
-  assert.match(body, /class="stage [^"]*\bpast"[^>]*>[\s\S]*?Edge/);
   assert.match(
     body,
-    /class="stage [^"]*\bcurrent"[^>]*aria-current="step"[^>]*>[\s\S]*?Beta/,
+    /class="stage current[^"]*"[^>]*aria-current="step"[^>]*>[\s\S]*?Custom-channel/,
   );
-  assert.match(body, /class="stage [^"]*\bfuture"[^>]*>[\s\S]*?Stable/);
+  assert.doesNotMatch(body, /separator/);
 });
 
-void test("stage breadcrumb uses configured and default empty-stage labels", () => {
+void test("stage breadcrumb labels an empty stage", () => {
   if (!render || !StagesBreadcrumb) {
     throw new Error("Stage breadcrumb test modules were not loaded");
   }
 
-  const props = { artefact: { stage: "" }, family: { stages: [""] } };
-  assert.match(render(StagesBreadcrumb, { props }).body, /No stage/);
-  assert.match(
-    render(StagesBreadcrumb, {
-      props: {
-        ...props,
-        family: { ...props.family, empty_stage_label: "PPAs" },
-      },
-    }).body,
-    /PPAs/,
-  );
+  const body = render(StagesBreadcrumb, {
+    props: { artefact: { stage: "" } },
+  }).body;
+  assert.match(body, /Empty stage/);
 });
