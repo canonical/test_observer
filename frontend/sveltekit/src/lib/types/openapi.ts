@@ -17,7 +17,7 @@ export type TestExecutionStatus =
 
 export type ExecutionMetadata = Record<string, string[]>;
 
-export type FamilyName = "snap" | "deb" | "charm" | "image" | "solution";
+export type FamilyName = string;
 
 export type TestResultStatus = "PASSED" | "FAILED" | "SKIPPED";
 
