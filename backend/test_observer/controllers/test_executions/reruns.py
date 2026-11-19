@@ -34,7 +34,7 @@ from test_observer.common.permissions import (
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
-from test_observer.controllers.families.validation import ensure_families_exist
+from test_observer.controllers.families.validation import ensure_families_exist, ensure_family_exists
 from test_observer.controllers.test_executions.execution_filters import (
     apply_te_joins,
     build_execution_filters,
@@ -338,7 +338,7 @@ def get_rerun_requests(
     build_architecture: str | None = None,
     db: Session = Depends(get_db),
 ):
-    ensure_families_exist(db, None if family is None else [family], ("query", "family"))
+    ensure_family_exists(db, family, ("query", "family"))
     stmt = (
         select(TestExecutionRerunRequest)
         .join(TestExecutionRerunRequest.artefact_build)
@@ -394,7 +394,7 @@ def get_rerun_details(
     offset: Annotated[int, Query(ge=0)] = 0,
     db: Session = Depends(get_db),
 ):
-    ensure_families_exist(db, [family], ("query", "family"))
+    ensure_family_exists(db, family, ("query", "family"))
     summary_rows = db.execute(
         select(TestExecutionRerunRequest.priority, func.count())
         .join(TestExecutionRerunRequest.artefact_build)

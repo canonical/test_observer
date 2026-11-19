@@ -614,7 +614,9 @@ def test_create_team_with_unknown_rule_family(test_client: TestClient, db_sessio
     )
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["input"] == "unregistered"
+    assert [(e["loc"], e["input"]) for e in response.json()["detail"]] == [
+        (["body", "artefact_matching_rules", 1, "family"], "unregistered")
+    ]
     assert db_session.scalar(select(Team).where(Team.name == "new-team")) is None
 
 

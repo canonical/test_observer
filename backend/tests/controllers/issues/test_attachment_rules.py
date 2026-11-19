@@ -459,4 +459,4 @@ def test_post_attachment_rule_unknown_family(
     )
 
     assert response.status_code == 422
-    assert [(e["loc"], e["input"]) for e in response.json()["detail"]] == [(["body", "families"], "unregistered")]
+    assert [(e["loc"], e["input"]) for e in response.json()["detail"]] == [(["body", "families", 1], "unregistered")]

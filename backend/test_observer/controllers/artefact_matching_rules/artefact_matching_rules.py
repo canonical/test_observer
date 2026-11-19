@@ -30,7 +30,7 @@ from test_observer.controllers.artefact_matching_rules.models import (
     ArtefactMatchingRuleResponse,
     TeamMinimal,
 )
-from test_observer.controllers.families.validation import ensure_families_exist
+from test_observer.controllers.families.validation import ensure_family_exists
 from test_observer.data_access.models import ArtefactMatchingRule, Team
 from test_observer.data_access.setup import get_db
 
@@ -74,7 +74,7 @@ def create_artefact_matching_rule(
     db: Session = Depends(get_db),
 ):
     """Create a new artefact matching rule with at least one team"""
-    ensure_families_exist(db, [request.family], ("body", "family"))
+    ensure_family_exists(db, request.family, ("body", "family"))
 
     # Validate that team_ids is not empty
     if not request.team_ids:
@@ -154,7 +154,7 @@ def get_artefact_matching_rules(
     family: str | None = None,
 ):
     """Get all artefact matching rules, optionally filtered by family"""
-    ensure_families_exist(db, None if family is None else [family], ("query", "family"))
+    ensure_family_exists(db, family, ("query", "family"))
     query = select(ArtefactMatchingRule).options(selectinload(ArtefactMatchingRule.teams))
 
     if family:
@@ -191,7 +191,7 @@ def update_artefact_matching_rule(
     """Update an artefact matching rule"""
     rule = _get_rule_or_raise_404(db, rule_id)
     if request.family is not None:
-        ensure_families_exist(db, [request.family], ("body", "family"))
+        ensure_family_exists(db, request.family, ("body", "family"))
 
     # Validate team_ids if provided
     teams = []

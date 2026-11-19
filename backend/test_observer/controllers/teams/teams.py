@@ -23,7 +23,7 @@ from test_observer.common.permissions import permission_checker
 from test_observer.controllers.artefact_matching_rules.models import (
     ArtefactMatchingRuleInResponse,
 )
-from test_observer.controllers.families.validation import ensure_families_exist
+from test_observer.controllers.families.validation import ensure_located_families_exist
 from test_observer.controllers.teams.models import (
     TeamCreate,
     TeamPatch,
@@ -133,7 +133,9 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
 
 
 def _ensure_rule_families_exist(db: Session, rules_data: list | None) -> None:
-    ensure_families_exist(db, [rule.family for rule in rules_data or []], ("body", "artefact_matching_rules", "family"))
+    ensure_located_families_exist(
+        db, [(("body", "artefact_matching_rules", i, "family"), rule.family) for i, rule in enumerate(rules_data or [])]
+    )
 
 
 def _team_to_response(team: Team) -> TeamResponse:
