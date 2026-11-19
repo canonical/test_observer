@@ -31,8 +31,10 @@ import { Window } from "happy-dom";
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters, source?: URLSearchParams) => URLSearchParams} serializeSearchFilters
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters) => URLSearchParams} searchFilterRequestParams
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters) => string[]} validateSearchFilters
+ * @property {(value: string) => string} encodeMetadataPart
  * @property {(document: unknown) => string[]} extractApiFamilyNames
  * @property {(fetcher: typeof fetch, apiRoot: string) => Promise<string[]>} fetchApiFamilyNames
+ * @property {(event: {url: URL; fetch: typeof fetch}) => Promise<{apiFamilyNames: string[]; familyNamesError: boolean}>} loadTestResultsPage
  * @property {(count: number, pageSize: number) => number} searchLastPage
  * @property {(currentPage: number, totalPages: number) => (number | "gap")[]} searchPageItems
  * @property {(source: URLSearchParams, page: number) => URLSearchParams} searchPageParams
@@ -209,19 +211,34 @@ function clickButton(target, selector) {
   /** @type {HTMLButtonElement} */ (/** @type {unknown} */ (button)).click();
 }
 
-function mountInDocument(
-  data = {
-    apiFamilyNames: ["snap", "deb", "charm", "image", "solution"],
-    familyNamesError: false,
-  },
-) {
+/** @param {unknown} target @param {"input" | "change"} type */
+function dispatchBrowserEvent(target, type) {
+  assert.ok(browserWindow);
+  const eventTarget = /** @type {{dispatchEvent: (event: Event) => void}} */ (
+    /** @type {unknown} */ (target)
+  );
+  eventTarget.dispatchEvent(
+    /** @type {Event} */ (
+      /** @type {unknown} */ (new browserWindow.Event(type, { bubbles: true }))
+    ),
+  );
+}
+
+/** @param {{artefactFamilies?: import("../src/lib/types/index.ts").Family[]; apiFamilyNames?: string[]; familyNamesError?: boolean}} [data] */
+function mountInDocument(data = {}) {
   assert.ok(harness);
   assert.ok(browserWindow);
   const target = browserWindow.document.createElement("div");
   browserWindow.document.body.append(target);
+  const pageData = {
+    artefactFamilies: [],
+    apiFamilyNames: ["snap", "deb", "charm", "image", "solution"],
+    familyNamesError: false,
+    ...data,
+  };
   const component = harness.mountPage(
     /** @type {HTMLElement} */ (/** @type {unknown} */ (target)),
-    { artefactFamilies: [], ...data },
+    pageData,
   );
   return { component, target };
 }
@@ -405,6 +422,14 @@ void test("invalid, duplicate, unsupported, and unsafe URL paging state sends no
     "?from_date=2026-02-02T00%3A00%3A00Z&until_date=2026-02-01T00%3A00%3A00Z",
     "?unsupported_filter=value",
     "?artefacts=",
+    "?artefact_is_archived=TRUE",
+    "?execution_is_latest=true&execution_is_latest=false",
+    "?issues=0",
+    "?issues=any&issues=42",
+    "?reviewer_ids=9007199254740992",
+    "?execution_metadata=not-json",
+    "?execution_metadata=",
+    "?assignee_ids=any",
   ];
   for (const query of invalidUrls) {
     harness.resetApi();
@@ -824,7 +849,7 @@ void test("filter URL parsing and canonical serialization use repeated exact val
     ],
   );
   const request = harness.searchFilterRequestParams(parsed.filters);
-  assert.deepEqual(request.getAll("families"), ["snap", "deb"]);
+  assert.deepEqual(request.getAll("families"), ["deb", "snap"]);
   assert.equal(request.get("page"), null);
   assert.equal(request.get("page_size"), null);
 });
@@ -852,6 +877,160 @@ void test("invalid filter values and unsupported URL keys fail closed", () => {
     harness.validateSearchFilters(harness.emptySearchFilters()),
     [],
   );
+});
+
+void test("advanced filter URL codecs preserve false, empty stage, IDs, and Base64 metadata", () => {
+  assert.ok(harness);
+  const category = "device:🌱, category";
+  const value = "arm64, revision: 1 — café";
+  const metadata = `${harness.encodeMetadataPart(category)}:${harness.encodeMetadataPart(value)}`;
+  const params = new URLSearchParams();
+  params.append("artefact_stages", "");
+  params.append("artefact_stages", "edge");
+  params.append("artefact_is_archived", "false");
+  params.append("rerun_is_requested", "true");
+  params.append("execution_is_latest", "false");
+  params.append("test_execution_statuses", "PASSED");
+  params.append("test_execution_statuses", "FAILED");
+  params.append("template_ids", "template,with punctuation");
+  params.append("issues", "11");
+  params.append("issues", "12");
+  params.append("reviewer_ids", "any");
+  params.append("execution_metadata", metadata);
+  const parsed = harness.parseSearchFilters(params);
+  assert.deepEqual(parsed.problems, []);
+  assert.deepEqual(parsed.filters.artefact_stages, ["", "edge"]);
+  assert.equal(parsed.filters.artefact_is_archived, false);
+  assert.equal(parsed.filters.rerun_is_requested, true);
+  assert.equal(parsed.filters.execution_is_latest, false);
+  assert.deepEqual(parsed.filters.test_execution_statuses, [
+    "PASSED",
+    "FAILED",
+  ]);
+  assert.deepEqual(parsed.filters.template_ids, ["template,with punctuation"]);
+  assert.deepEqual(parsed.filters.issues, [11, 12]);
+  assert.equal(parsed.filters.reviewer_ids, "any");
+  assert.deepEqual(parsed.filters.execution_metadata, [
+    { category, values: [value] },
+  ]);
+
+  const serialized = harness.serializeSearchFilters(
+    parsed.filters,
+    new URLSearchParams("page=9&page_size=25"),
+  );
+  assert.equal(serialized.get("page"), "1");
+  assert.equal(serialized.get("page_size"), "25");
+  assert.deepEqual(serialized.getAll("artefact_stages"), ["", "edge"]);
+  assert.equal(serialized.get("artefact_is_archived"), "false");
+  assert.deepEqual(serialized.getAll("issues"), ["11", "12"]);
+  assert.deepEqual(serialized.getAll("reviewer_ids"), ["any"]);
+  assert.deepEqual(serialized.getAll("execution_metadata"), [metadata]);
+});
+
+void test("advanced filters reject malformed booleans, ID sentinels, and metadata pairs", () => {
+  assert.ok(harness);
+  for (const query of [
+    "artefact_is_archived=TRUE",
+    "rerun_is_requested=1",
+    "execution_is_latest=yes",
+    "execution_is_latest=true&execution_is_latest=false",
+    "issues=any&issues=11",
+    "reviewer_ids=none&reviewer_ids=any",
+    "issues=0",
+    "reviewer_ids=-1",
+    "issues=9007199254740992",
+    "reviewer_ids=2147483648",
+    "execution_metadata=not-json",
+    "execution_metadata=YQ==",
+    "execution_metadata=:",
+    `execution_metadata=${harness.encodeMetadataPart("x")}:`,
+    `execution_metadata=${harness.encodeMetadataPart("x")}:${harness.encodeMetadataPart("🌱".repeat(201))}`,
+  ]) {
+    assert.ok(
+      harness.parseSearchFilters(new URLSearchParams(query)).problems.length >
+        0,
+      query,
+    );
+  }
+  assert.deepEqual(
+    harness.parseSearchFilters(new URLSearchParams("artefact_stages="))
+      .problems,
+    [],
+    "an explicitly empty stage is valid and distinct from omitted stage",
+  );
+  assert.deepEqual(
+    harness.parseSearchFilters(new URLSearchParams("artefact_stages=%20%20"))
+      .problems.length > 0,
+    true,
+  );
+});
+
+void test("an unfiltered Search page loads the family enum for draft validation", async () => {
+  assert.ok(harness);
+  /** @type {string[]} */
+  const requestedUrls = [];
+  const data = await harness.loadTestResultsPage({
+    url: new URL("http://localhost/test-results"),
+    fetch: (input) => {
+      assert.equal(typeof input, "string");
+      requestedUrls.push(/** @type {string} */ (input));
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            components: {
+              schemas: {
+                FamilyName: {
+                  type: "string",
+                  enum: ["snap", "future-family"],
+                },
+              },
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+    },
+  });
+  assert.deepEqual(requestedUrls, ["http://localhost:30000/openapi.json"]);
+  assert.deepEqual(data.apiFamilyNames, ["snap", "future-family"]);
+  assert.equal(data.familyNamesError, false);
+
+  harness.resetApi();
+  harness.resetSearchUrl();
+  harness.setHandler((path) => {
+    const params = new URL(path, "http://localhost/").searchParams;
+    return Promise.resolve(
+      makePage([], {
+        limit: Number(params.get("limit")),
+        offset: Number(params.get("offset")),
+        count: 0,
+      }),
+    );
+  });
+  const { component, target } = mountInDocument(data);
+  await settlePromises();
+
+  const familyInput = target.querySelector('[name="families"]');
+  assert.ok(familyInput);
+  const textarea = /** @type {HTMLTextAreaElement} */ (
+    /** @type {unknown} */ (familyInput)
+  );
+  textarea.value = "future-family";
+  dispatchBrowserEvent(textarea, "input");
+  clickButton(target, '.filter-form button[type="submit"]');
+  await settlePromises();
+
+  const searchRequests = harness.requests.filter(({ path }) =>
+    path.startsWith("test-results/search-page?"),
+  );
+  assert.equal(searchRequests.length, 2);
+  assert.deepEqual(
+    new URL(searchRequests[1].path, "http://localhost/").searchParams.getAll(
+      "families",
+    ),
+    ["future-family"],
+  );
+  await unmountFromDocument(component, target);
 });
 
 void test("family URL validation uses the API enum and permits future API values", async () => {
@@ -1007,7 +1186,7 @@ void test("filter drafts do not fetch until Search; apply, clear, page-size, and
   const appliedRequest = new URL(harness.requests[1].path, "http://localhost/");
   assert.deepEqual(appliedRequest.searchParams.getAll("artefacts"), ["new"]);
 
-  clickButton(target, '.filter-form button[type="button"]');
+  clickButton(target, ".clear-all-button");
   await settlePromises();
   assert.equal(harness.requests.length, 2, "Clear all only changes the draft");
   assert.equal(
@@ -1197,17 +1376,283 @@ void test("page-size changes preserve applied common filters", async () => {
   );
   await settlePromises();
 
-  assert.equal(harness.requests.length, 2);
+  const searchRequests = harness.requests.filter(({ path }) =>
+    path.startsWith("test-results/search-page?"),
+  );
+  assert.equal(searchRequests.length, 2);
   const url = new URL(harness.currentSearchUrl());
   assert.equal(url.searchParams.get("page"), "1");
   assert.equal(url.searchParams.get("page_size"), "100");
   assert.deepEqual(url.searchParams.getAll("families"), ["deb"]);
   assert.deepEqual(url.searchParams.getAll("artefacts"), ["kernel"]);
-  const request = new URL(harness.requests[1].path, "http://localhost/");
+  const request = new URL(searchRequests[1].path, "http://localhost/");
   assert.deepEqual(request.searchParams.getAll("families"), ["deb"]);
   assert.deepEqual(request.searchParams.getAll("artefacts"), ["kernel"]);
   assert.equal(request.searchParams.get("limit"), "100");
   assert.equal(request.searchParams.get("offset"), "0");
 
+  await unmountFromDocument(component, target);
+});
+
+void test("advanced controls apply canonical filters, empty stage, and page-size preservation", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl("http://localhost/test-results?page=4&page_size=25");
+  harness.setHandler((path) => {
+    if (!path.startsWith("test-results/search-page?"))
+      return Promise.resolve(null);
+    const params = new URL(path, "http://localhost/").searchParams;
+    return Promise.resolve(
+      makePage([], {
+        limit: Number(params.get("limit")),
+        offset: Number(params.get("offset")),
+        count: 100,
+      }),
+    );
+  });
+  const { component, target } = mountInDocument({
+    artefactFamilies: [
+      {
+        name: "snaps",
+        friendly_name: "Snap Testing",
+        api_name: "snap",
+        stages: ["edge", "beta", "candidate", "stable"],
+        columns: [],
+        filters: [],
+      },
+    ],
+  });
+  await settlePromises();
+  assert.equal(
+    harness.requests.filter(({ path }) =>
+      path.startsWith("test-results/search-page?"),
+    ).length,
+    1,
+  );
+
+  assert.ok(browserWindow);
+  const stage = target.querySelector('[name="artefact_stages"][value=""]');
+  assert.ok(stage);
+  const stageInput = /** @type {HTMLInputElement} */ (
+    /** @type {unknown} */ (stage)
+  );
+  stageInput.checked = true;
+  dispatchBrowserEvent(stageInput, "change");
+  await settlePromises();
+  const stageEntry = target.querySelector("#filter-stage-entry");
+  assert.ok(
+    stageEntry,
+    "exact stage entry remains available alongside configured choices",
+  );
+  /** @type {HTMLInputElement} */ (/** @type {unknown} */ (stageEntry)).value =
+    "custom-stage";
+  dispatchBrowserEvent(stageEntry, "input");
+  await settlePromises();
+  clickButton(target, '.advanced-control button[type="button"]');
+
+  const archived = target.querySelector('[name="artefact_is_archived"]');
+  assert.ok(archived);
+  const archivedSelect = /** @type {HTMLSelectElement} */ (
+    /** @type {unknown} */ (archived)
+  );
+  archivedSelect.value = "false";
+  dispatchBrowserEvent(archivedSelect, "change");
+
+  const executionStatus = target.querySelector(
+    '[name="test_execution_statuses"][value="PASSED"]',
+  );
+  assert.ok(executionStatus);
+  const statusInput = /** @type {HTMLInputElement} */ (
+    /** @type {unknown} */ (executionStatus)
+  );
+  statusInput.checked = true;
+  dispatchBrowserEvent(statusInput, "change");
+
+  for (const [name, value] of [
+    ["rerun_is_requested", "true"],
+    ["execution_is_latest", "false"],
+  ]) {
+    const select = target.querySelector(`[name="${name}"]`);
+    assert.ok(select);
+    const input = /** @type {HTMLSelectElement} */ (
+      /** @type {unknown} */ (select)
+    );
+    input.value = value;
+    dispatchBrowserEvent(input, "change");
+  }
+
+  const template = target.querySelector('[name="template_ids"]');
+  assert.ok(template);
+  const templateInput = /** @type {HTMLTextAreaElement} */ (
+    /** @type {unknown} */ (template)
+  );
+  templateInput.value = "template-42";
+  dispatchBrowserEvent(templateInput, "input");
+
+  const issueAny = target.querySelector('[name="issues-mode"][value="any"]');
+  assert.ok(issueAny);
+  /** @type {HTMLInputElement} */ (/** @type {unknown} */ (issueAny)).click();
+  const reviewerInput = target.querySelector(
+    '[data-suggestion-field="reviewer_ids"] input',
+  );
+  assert.ok(reviewerInput);
+  /** @type {HTMLInputElement} */ (
+    /** @type {unknown} */ (reviewerInput)
+  ).value = "42";
+  dispatchBrowserEvent(reviewerInput, "input");
+  await settlePromises();
+  clickButton(target, '[data-suggestion-field="reviewer_ids"] button');
+
+  for (const [name, value] of [
+    ["metadata-category", "os"],
+    ["metadata-value", "Ubuntu"],
+  ]) {
+    const input = target.querySelector(`[name="${name}"]`);
+    assert.ok(input);
+    /** @type {HTMLInputElement} */ (/** @type {unknown} */ (input)).value =
+      value;
+    dispatchBrowserEvent(input, "input");
+  }
+  await settlePromises();
+  clickButton(target, '.metadata-control button[type="button"]');
+  clickButton(target, '.filter-form button[type="submit"]');
+  await settlePromises();
+
+  const searchRequests = harness.requests.filter(({ path }) =>
+    path.startsWith("test-results/search-page?"),
+  );
+  assert.equal(searchRequests.length, 2);
+  const url = new URL(harness.currentSearchUrl());
+  assert.equal(url.searchParams.get("page"), "1");
+  assert.equal(url.searchParams.get("page_size"), "25");
+  assert.deepEqual(url.searchParams.getAll("artefact_stages"), [
+    "",
+    "custom-stage",
+  ]);
+  assert.equal(url.searchParams.get("artefact_is_archived"), "false");
+  assert.deepEqual(url.searchParams.getAll("test_execution_statuses"), [
+    "PASSED",
+  ]);
+  assert.equal(url.searchParams.get("rerun_is_requested"), "true");
+  assert.equal(url.searchParams.get("execution_is_latest"), "false");
+  assert.deepEqual(url.searchParams.getAll("template_ids"), ["template-42"]);
+  assert.deepEqual(url.searchParams.getAll("issues"), ["any"]);
+  assert.deepEqual(url.searchParams.getAll("reviewer_ids"), ["42"]);
+  const metadata = url.searchParams.get("execution_metadata");
+  assert.equal(
+    metadata,
+    `${harness.encodeMetadataPart("os")}:${harness.encodeMetadataPart("Ubuntu")}`,
+  );
+  const request = new URL(searchRequests[1].path, "http://localhost/");
+  assert.deepEqual(request.searchParams.getAll("artefact_stages"), [
+    "",
+    "custom-stage",
+  ]);
+  assert.equal(request.searchParams.get("artefact_is_archived"), "false");
+  assert.equal(request.searchParams.get("reviewer_ids"), "42");
+  assert.equal(target.querySelector('[role="alert"]'), null);
+  await unmountFromDocument(component, target);
+});
+
+void test("failed suggestions do not prevent exact filter editing and applying", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl();
+  harness.setHandler((path) => {
+    if (path.startsWith("test-results/search-page?")) {
+      return Promise.resolve(makePage([], { count: 0 }));
+    }
+    return Promise.reject(new Error("suggestion service unavailable"));
+  });
+  const { component, target } = mountInDocument();
+  await settlePromises();
+
+  assert.ok(browserWindow);
+  const suggestionInput = target.querySelector(
+    '[data-suggestion-field="artefacts"] input',
+  );
+  assert.ok(suggestionInput);
+  const query = /** @type {HTMLInputElement} */ (
+    /** @type {unknown} */ (suggestionInput)
+  );
+  query.value = "kernels";
+  dispatchBrowserEvent(query, "input");
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  await settlePromises();
+  assert.match(target.textContent, /Suggestions unavailable/);
+
+  const exact = target.querySelector('[name="artefacts"]');
+  assert.ok(exact);
+  const textarea = /** @type {HTMLTextAreaElement} */ (
+    /** @type {unknown} */ (exact)
+  );
+  textarea.value = "exact artefact name";
+  dispatchBrowserEvent(textarea, "input");
+  clickButton(target, '.filter-form button[type="submit"]');
+  await settlePromises();
+
+  assert.deepEqual(
+    new URL(harness.currentSearchUrl()).searchParams.getAll("artefacts"),
+    ["exact artefact name"],
+  );
+  const searchRequest = harness.requests
+    .filter(({ path }) => path.startsWith("test-results/search-page?"))
+    .at(-1);
+  assert.ok(searchRequest);
+  assert.deepEqual(
+    new URL(searchRequest.path, "http://localhost/").searchParams.getAll(
+      "artefacts",
+    ),
+    ["exact artefact name"],
+  );
+  await unmountFromDocument(component, target);
+});
+
+void test("editing another field preserves malformed advanced URL conditions until Clear all", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl(
+    "http://localhost/test-results?page=3&page_size=25&issues=any&issues=1&artefacts=old",
+  );
+  harness.setHandler(() => Promise.resolve(makePage([], { count: 0 })));
+  const { component, target } = mountInDocument();
+  await settlePromises();
+  const requests = harness.requests;
+  const searchRequests = () =>
+    requests.filter(({ path }) => path.startsWith("test-results/search-page?"));
+  assert.equal(searchRequests().length, 0);
+  assert.match(target.textContent, /any\/none must be the sole value/);
+
+  const otherFilter = target.querySelector('[name="test_plans"]');
+  assert.ok(otherFilter);
+  assert.ok(browserWindow);
+  const field = /** @type {HTMLTextAreaElement} */ (
+    /** @type {unknown} */ (otherFilter)
+  );
+  field.value = "new plan";
+  dispatchBrowserEvent(field, "input");
+  clickButton(target, '.filter-form button[type="submit"]');
+  await settlePromises();
+  assert.equal(
+    searchRequests().length,
+    0,
+    "an unrelated edit must not erase the invalid issue condition",
+  );
+  assert.match(harness.currentSearchUrl(), /issues=any&issues=1/);
+
+  clickButton(target, ".clear-all-button");
+  await settlePromises();
+  clickButton(target, '.filter-form button[type="submit"]');
+  await settlePromises();
+  assert.equal(
+    searchRequests().length,
+    1,
+    JSON.stringify(searchRequests().map(({ path }) => path)),
+  );
+  const cleared = new URL(harness.currentSearchUrl());
+  assert.equal(cleared.searchParams.has("issues"), false);
+  assert.equal(cleared.searchParams.has("artefacts"), false);
+  assert.deepEqual(cleared.searchParams.getAll("test_plans"), []);
+  assert.equal(cleared.searchParams.get("page_size"), "25");
   await unmountFromDocument(component, target);
 });

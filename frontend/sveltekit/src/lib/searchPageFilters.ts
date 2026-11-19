@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import type { TestExecutionStatus } from "$lib/types/openapi";
+
 export const SEARCH_FILTER_LIST_KEYS = [
   "families",
   "test_result_statuses",
@@ -10,9 +12,17 @@ export const SEARCH_FILTER_LIST_KEYS = [
   "environments",
   "test_cases",
   "test_plans",
+  "artefact_stages",
+  "test_execution_statuses",
+  "template_ids",
 ] as const;
 
 export type SearchFilterListKey = (typeof SEARCH_FILTER_LIST_KEYS)[number];
+export type SearchIdFilter = number[] | "any" | "none";
+export interface SearchMetadataCondition {
+  category: string;
+  values: string[];
+}
 
 export interface SearchFilters {
   families: string[];
@@ -23,6 +33,15 @@ export interface SearchFilters {
   environments: string[];
   test_cases: string[];
   test_plans: string[];
+  artefact_stages: string[];
+  test_execution_statuses: TestExecutionStatus[];
+  template_ids: string[];
+  artefact_is_archived: boolean | null;
+  rerun_is_requested: boolean | null;
+  execution_is_latest: boolean | null;
+  issues: SearchIdFilter;
+  reviewer_ids: SearchIdFilter;
+  execution_metadata: SearchMetadataCondition[];
   from_date: string | null;
   until_date: string | null;
 }
@@ -33,11 +52,28 @@ export interface ParsedSearchFilters {
 }
 
 const RESULT_STATUSES = new Set(["PASSED", "FAILED", "SKIPPED"]);
+const EXECUTION_STATUSES = new Set<TestExecutionStatus>([
+  "NOT_STARTED",
+  "NOT_TESTED",
+  "IN_PROGRESS",
+  "ENDED_PREMATURELY",
+  "FAILED",
+  "PASSED",
+]);
 const PAGINATION_KEYS = new Set(["page", "page_size"]);
 const DATE_KEYS = ["from_date", "until_date"] as const;
+const BOOLEAN_KEYS = [
+  "artefact_is_archived",
+  "rerun_is_requested",
+  "execution_is_latest",
+] as const;
+const ID_KEYS = ["issues", "reviewer_ids"] as const;
 const KNOWN_KEYS = new Set<string>([
   ...SEARCH_FILTER_LIST_KEYS,
   ...DATE_KEYS,
+  ...BOOLEAN_KEYS,
+  ...ID_KEYS,
+  "execution_metadata",
   ...PAGINATION_KEYS,
 ]);
 
@@ -51,25 +87,102 @@ export function emptySearchFilters(): SearchFilters {
     environments: [],
     test_cases: [],
     test_plans: [],
+    artefact_stages: [],
+    test_execution_statuses: [],
+    template_ids: [],
+    artefact_is_archived: null,
+    rerun_is_requested: null,
+    execution_is_latest: null,
+    issues: [],
+    reviewer_ids: [],
+    execution_metadata: [],
     from_date: null,
     until_date: null,
   };
 }
 
-/** Parse only the supported search condition keys; unknown keys fail closed. */
+/** Parse supported conditions and fail closed on every unknown or malformed key. */
 export function parseSearchFilters(
   params: Pick<URLSearchParams, "getAll" | "keys">,
   familyNames?: readonly string[],
 ): ParsedSearchFilters {
   const filters = emptySearchFilters();
+  const listFilters = filters as unknown as Record<
+    SearchFilterListKey,
+    string[]
+  >;
   const problems: string[] = [];
 
   for (const key of SEARCH_FILTER_LIST_KEYS) {
     const values = params.getAll(key);
-    if (values.some((value) => value.trim() === "")) {
+    if (
+      values.some(
+        (value) =>
+          value.trim() === "" && !(key === "artefact_stages" && value === ""),
+      )
+    ) {
       problems.push(`Invalid ${key}: values must not be empty.`);
     }
-    filters[key] = [...new Set(values)];
+    listFilters[key] = [...new Set(values)];
+  }
+
+  for (const key of BOOLEAN_KEYS) {
+    const values = params.getAll(key);
+    if (values.length > 1) {
+      problems.push(
+        `Invalid ${key}: provide at most one lowercase true or false value.`,
+      );
+      continue;
+    }
+    if (!values.length) continue;
+    if (values[0] !== "true" && values[0] !== "false") {
+      problems.push(`Invalid ${key}: expected lowercase true or false.`);
+      continue;
+    }
+    filters[key] = values[0] === "true";
+  }
+
+  for (const key of ID_KEYS) {
+    const values = params.getAll(key);
+    if (!values.length) continue;
+    if (values.length === 1 && (values[0] === "any" || values[0] === "none")) {
+      filters[key] = values[0];
+      continue;
+    }
+    if (values.some((value) => value === "any" || value === "none")) {
+      problems.push(`Invalid ${key}: any/none must be the sole value.`);
+      continue;
+    }
+    const ids: number[] = [];
+    let invalid = false;
+    for (const value of values) {
+      if (!/^[1-9]\d*$/.test(value)) {
+        invalid = true;
+        break;
+      }
+      const id = Number(value);
+      if (!Number.isSafeInteger(id) || id <= 0 || id > 2_147_483_647) {
+        invalid = true;
+        break;
+      }
+      ids.push(id);
+    }
+    if (invalid)
+      problems.push(
+        `Invalid ${key}: use positive supported integer IDs, or only any/none.`,
+      );
+    else filters[key] = [...new Set(ids)];
+  }
+
+  const metadataValues = params.getAll("execution_metadata");
+  if (metadataValues.length) {
+    try {
+      filters.execution_metadata = parseExecutionMetadata(metadataValues);
+    } catch (error) {
+      problems.push(
+        `Invalid execution_metadata: ${error instanceof Error ? error.message : "Invalid metadata pair."}`,
+      );
+    }
   }
 
   for (const key of DATE_KEYS) {
@@ -115,6 +228,13 @@ export function parseSearchFilters(
       );
     }
   }
+  for (const status of filters.test_execution_statuses) {
+    if (!EXECUTION_STATUSES.has(status)) {
+      problems.push(
+        `Invalid test_execution_statuses: unsupported execution status “${status}”.`,
+      );
+    }
+  }
 
   const unknown = [
     ...new Set([...params.keys()].filter((key) => !KNOWN_KEYS.has(key))),
@@ -132,17 +252,11 @@ export function validateSearchFilters(
   filters: SearchFilters,
   familyNames?: readonly string[],
 ): string[] {
-  const params = new URLSearchParams();
-  for (const key of SEARCH_FILTER_LIST_KEYS) {
-    for (const value of filters[key]) params.append(key, value);
-  }
-  for (const key of DATE_KEYS) {
-    if (filters[key] !== null) params.append(key, filters[key]);
-  }
+  const params = searchFilterRequestParams(filters);
   return parseSearchFilters(params, familyNames).problems;
 }
 
-/** Canonically serialize valid filter state as repeated list-valued keys. */
+/** Canonically serialize valid filter state. Lists remain repeated exact values. */
 export function serializeSearchFilters(
   filters: SearchFilters,
   source: Pick<URLSearchParams, "getAll"> = new URLSearchParams(),
@@ -159,16 +273,7 @@ export function serializeSearchFilters(
     params.set("page_size", pageSizes[0] ?? "50");
   }
   params.set("page", "1");
-
-  for (const key of SEARCH_FILTER_LIST_KEYS) {
-    for (const value of [...new Set(filters[key])].sort()) {
-      params.append(key, value);
-    }
-  }
-  for (const key of DATE_KEYS) {
-    const value = filters[key];
-    if (value !== null) params.set(key, value);
-  }
+  appendFilterParams(params, filters);
   return params;
 }
 
@@ -176,32 +281,56 @@ export function searchFilterRequestParams(
   filters: SearchFilters,
 ): URLSearchParams {
   const params = new URLSearchParams();
+  appendFilterParams(params, filters);
+  return params;
+}
+
+function appendFilterParams(
+  params: URLSearchParams,
+  filters: SearchFilters,
+): void {
   for (const key of SEARCH_FILTER_LIST_KEYS) {
-    for (const value of filters[key]) params.append(key, value);
+    const values = [...new Set(filters[key])].sort();
+    for (const value of values) params.append(key, value);
+  }
+  for (const key of BOOLEAN_KEYS) {
+    const value = filters[key];
+    if (value !== null) params.set(key, String(value));
+  }
+  for (const key of ID_KEYS) {
+    const value = filters[key];
+    if (Array.isArray(value)) {
+      for (const id of [...new Set(value)].sort((a, b) => a - b))
+        params.append(key, String(id));
+    } else {
+      params.set(key, value);
+    }
+  }
+  for (const pair of serializeExecutionMetadata(filters.execution_metadata)) {
+    params.append("execution_metadata", pair);
   }
   for (const key of DATE_KEYS) {
     const value = filters[key];
     if (value !== null) params.set(key, value);
   }
-  return params;
 }
 
 export function searchFiltersEqual(
   left: SearchFilters,
   right: SearchFilters,
 ): boolean {
-  return (
-    SEARCH_FILTER_LIST_KEYS.every((key) => {
-      const leftValues = new Set(left[key]);
-      const rightValues = new Set(right[key]);
-      return (
-        leftValues.size === rightValues.size &&
-        [...leftValues].every((value) => rightValues.has(value))
-      );
-    }) &&
-    left.from_date === right.from_date &&
-    left.until_date === right.until_date
-  );
+  const leftParams = searchFilterRequestParams(left);
+  const rightParams = searchFilterRequestParams(right);
+  const keys = [...KNOWN_KEYS]
+    .filter((key) => !PAGINATION_KEYS.has(key))
+    .sort();
+  return keys.every((key) => {
+    const a = leftParams.getAll(key).sort();
+    const b = rightParams.getAll(key).sort();
+    return (
+      a.length === b.length && a.every((value, index) => value === b[index])
+    );
+  });
 }
 
 export function searchFilterQueryKey(
@@ -228,7 +357,7 @@ export function splitSearchFilterText(text: string): string[] {
   ];
 }
 
-/** Escape a list so each value can be edited on one text-area line. */
+/** Escape list values for the existing one-value-per-line draft controls. */
 export function formatSearchFilterText(values: readonly string[]): string {
   return values
     .map((value) =>
@@ -248,7 +377,6 @@ function unescapeSearchFilterValue(value: string): string {
       result += character;
       continue;
     }
-
     const escaped = value[index + 1];
     if (escaped === "n") result += "\n";
     else if (escaped === "r") result += "\r";
@@ -257,6 +385,75 @@ function unescapeSearchFilterValue(value: string): string {
     index += 1;
   }
   return result;
+}
+
+export function encodeMetadataPart(value: string): string {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function decodeMetadataPart(value: string): string {
+  if (
+    !value ||
+    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(
+      value,
+    )
+  ) {
+    throw new Error(
+      "expected canonical padded Base64 UTF-8 category:value pairs.",
+    );
+  }
+  const binary = atob(value);
+  if (btoa(binary) !== value)
+    throw new Error("expected canonical padded Base64 encoding.");
+  const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+  return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(
+    bytes,
+  );
+}
+
+function validateMetadataPart(value: string): void {
+  const length = Array.from(value).length;
+  if (length < 1 || length > 200) {
+    throw new Error(
+      "metadata categories and values must contain 1–200 characters.",
+    );
+  }
+}
+
+function parseExecutionMetadata(values: string[]): SearchMetadataCondition[] {
+  const grouped = new Map<string, Set<string>>();
+  for (const pair of values) {
+    const parts = pair.split(":");
+    if (parts.length !== 2)
+      throw new Error("expected Base64 UTF-8 category:value pairs.");
+    const category = decodeMetadataPart(parts[0] ?? "");
+    const value = decodeMetadataPart(parts[1] ?? "");
+    validateMetadataPart(category);
+    validateMetadataPart(value);
+    const bucket = grouped.get(category) ?? new Set<string>();
+    bucket.add(value);
+    grouped.set(category, bucket);
+  }
+  return [...grouped].map(([category, items]) => ({
+    category,
+    values: [...items],
+  }));
+}
+
+function serializeExecutionMetadata(
+  conditions: SearchMetadataCondition[],
+): string[] {
+  return conditions
+    .flatMap(({ category, values }) =>
+      [...new Set(values)].map(
+        (value) =>
+          `${encodeMetadataPart(category)}:${encodeMetadataPart(value)}`,
+      ),
+    )
+    .sort();
 }
 
 function parseUtcTimestamp(value: string): number | null {

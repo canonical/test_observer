@@ -30,6 +30,8 @@
     type SvGridApi,
   } from "@svgrid/grid";
   import { silentApi } from "$lib/api/client";
+  import SearchSuggestionPicker from "$lib/components/SearchSuggestionPicker.svelte";
+  import SearchMetadataEditor from "$lib/components/SearchMetadataEditor.svelte";
   import { createTrackColumnWidthActions } from "$lib/components/dashboard/trackColumnWidthActions";
   import {
     AUTOSAVE_SLOT,
@@ -154,7 +156,20 @@
   let requestUrlState = $state<string | null>(null);
   let requestGeneration = 0;
 
-  type DraftKey = SearchFilterListKey | "from_date" | "until_date";
+  type DraftKey =
+    | "families"
+    | "test_result_statuses"
+    | "artefacts"
+    | "artefact_versions"
+    | "artefact_tracks"
+    | "environments"
+    | "test_cases"
+    | "test_plans"
+    | "template_ids"
+    | "from_date"
+    | "until_date";
+  type TextListKey = Extract<DraftKey, SearchFilterListKey>;
+
   function draftTextFor(filters: SearchFilters): Record<DraftKey, string> {
     return {
       families: formatSearchFilterText(filters.families),
@@ -167,12 +182,13 @@
       environments: formatSearchFilterText(filters.environments),
       test_cases: formatSearchFilterText(filters.test_cases),
       test_plans: formatSearchFilterText(filters.test_plans),
+      template_ids: formatSearchFilterText(filters.template_ids),
       from_date: filters.from_date ?? "",
       until_date: filters.until_date ?? "",
     };
   }
 
-  const filterFields: { key: SearchFilterListKey; label: string }[] = [
+  const filterFields: { key: TextListKey; label: string }[] = [
     { key: "families", label: "Family" },
     { key: "test_result_statuses", label: "Result status" },
     { key: "artefacts", label: "Artefact" },
@@ -181,7 +197,10 @@
     { key: "environments", label: "Environment" },
     { key: "test_cases", label: "Test case" },
     { key: "test_plans", label: "Test plan" },
+    { key: "template_ids", label: "Template ID" },
   ];
+  let draftAdvanced = $state<SearchFilters>(emptySearchFilters());
+  let stageEntryText = $state("");
   let draftValues = $state<Record<DraftKey, string>>(
     draftTextFor(emptySearchFilters()),
   );
@@ -198,16 +217,53 @@
   );
   const appliedFilters = $derived(filterState.filters);
   const draftFilters = $derived.by(() => {
-    const filters = emptySearchFilters();
+    const filters = { ...draftAdvanced };
     for (const { key } of filterFields) {
-      filters[key] = splitSearchFilterText(draftValues[key]);
+      filters[key] = splitSearchFilterText(
+        draftValues[key],
+      ) as SearchFilters[typeof key];
     }
     filters.from_date = draftValues.from_date.trim() || null;
     filters.until_date = draftValues.until_date.trim() || null;
     return filters;
   });
+  const stageOptions = $derived(
+    [
+      ...new Set([
+        "",
+        ...data.artefactFamilies.flatMap((family) => family.stages),
+        ...draftAdvanced.artefact_stages,
+      ]),
+    ].sort((left, right) => left.localeCompare(right)),
+  );
+  const executionStatuses = [
+    "NOT_STARTED",
+    "NOT_TESTED",
+    "IN_PROGRESS",
+    "ENDED_PREMATURELY",
+    "FAILED",
+    "PASSED",
+  ] as const;
+  const issueIds = $derived(
+    Array.isArray(draftAdvanced.issues) ? draftAdvanced.issues : [],
+  );
+  const reviewerIds = $derived(
+    Array.isArray(draftAdvanced.reviewer_ids) ? draftAdvanced.reviewer_ids : [],
+  );
   const draftProblems = $derived.by(() => {
-    const problems = validateSearchFilters(draftFilters);
+    const problems = validateSearchFilters(
+      draftFilters,
+      data.familyNamesError ? undefined : data.apiFamilyNames,
+    );
+    if (
+      !clearAllRequested &&
+      data.familyNamesError &&
+      draftFilters.families.some((value) => value.trim() !== "")
+    ) {
+      problems.push(
+        "Could not validate family values against the API schema. No request was sent.",
+      );
+    }
     if (clearAllRequested) return problems;
     for (const problem of filterState.problems) {
       if (problem.startsWith("Unsupported search parameter:")) continue;
@@ -345,6 +401,8 @@
     untrack(() => {
       draftFilterKey = key;
       draftValues = draftTextFor(parsed.filters);
+      draftAdvanced = parsed.filters;
+      stageEntryText = "";
       editedDraftKeys = [];
       clearAllRequested = false;
     });
@@ -477,16 +535,95 @@
     retryGeneration += 1;
   }
 
-  function editDraft(key: DraftKey) {
-    clearAllRequested = false;
+  function editDraft(
+    key:
+      | DraftKey
+      | "artefact_stages"
+      | "test_execution_statuses"
+      | "artefact_is_archived"
+      | "rerun_is_requested"
+      | "execution_is_latest"
+      | "issues"
+      | "reviewer_ids"
+      | "execution_metadata",
+  ) {
     if (!editedDraftKeys.includes(key))
       editedDraftKeys = [...editedDraftKeys, key];
   }
 
   function clearDrafts() {
-    draftValues = draftTextFor(emptySearchFilters());
+    const empty = emptySearchFilters();
+    draftValues = draftTextFor(empty);
+    draftAdvanced = empty;
+    stageEntryText = "";
     editedDraftKeys = [];
     clearAllRequested = true;
+  }
+
+  function addExactStage() {
+    if (stageEntryText.trim() === "") return;
+    toggleStage(stageEntryText, true);
+    stageEntryText = "";
+  }
+
+  function toggleStage(stage: string, checked: boolean) {
+    const values = draftAdvanced.artefact_stages;
+    draftAdvanced.artefact_stages = checked
+      ? [...new Set([...values, stage])]
+      : values.filter((value) => value !== stage);
+    editDraft("artefact_stages");
+  }
+
+  function toggleExecutionStatus(
+    status: (typeof executionStatuses)[number],
+    checked: boolean,
+  ) {
+    const values = draftAdvanced.test_execution_statuses;
+    draftAdvanced.test_execution_statuses = checked
+      ? [...new Set([...values, status])]
+      : values.filter((value) => value !== status);
+    editDraft("test_execution_statuses");
+  }
+
+  function setBooleanFilter(
+    key: "artefact_is_archived" | "rerun_is_requested" | "execution_is_latest",
+    value: string,
+  ) {
+    draftAdvanced[key] = value === "" ? null : value === "true";
+    editDraft(key);
+  }
+
+  function setIdMode(
+    key: "issues" | "reviewer_ids",
+    mode: "ids" | "any" | "none",
+  ) {
+    if (mode === "ids") draftAdvanced[key] = [];
+    else draftAdvanced[key] = mode;
+    editDraft(key);
+  }
+
+  function addIds(key: "issues" | "reviewer_ids", values: string[]) {
+    const existing = Array.isArray(draftAdvanced[key])
+      ? draftAdvanced[key]
+      : [];
+    draftAdvanced[key] = [...new Set([...existing, ...values.map(Number)])];
+    editDraft(key);
+  }
+
+  function removeId(key: "issues" | "reviewer_ids", id: number) {
+    const existing = Array.isArray(draftAdvanced[key])
+      ? draftAdvanced[key]
+      : [];
+    draftAdvanced[key] = existing.filter((value) => value !== id);
+    editDraft(key);
+  }
+
+  function addSuggestedValues(key: TextListKey, values: string[]) {
+    const current = splitSearchFilterText(draftValues[key]);
+    draftValues[key] = formatSearchFilterText([
+      ...new Set([...current, ...values]),
+    ]);
+    editDraft(key);
   }
 
   function submitSearch(event: SubmitEvent) {
@@ -532,8 +669,8 @@
   >
     <div class="filter-grid">
       {#each filterFields as field (field.key)}
-        <label class="filter-control" for="filter-{field.key}">
-          {field.label}
+        <div class="filter-control">
+          <label for="filter-{field.key}">{field.label}</label>
           <textarea
             id="filter-{field.key}"
             name={field.key}
@@ -547,8 +684,243 @@
             \n and \r for line breaks within a value, and \\ for a literal
             backslash.</span
           >
-        </label>
+          {#if field.key === "artefacts" || field.key === "environments" || field.key === "test_cases" || field.key === "test_plans"}
+            <SearchSuggestionPicker
+              field={field.key}
+              families={draftFilters.families}
+              onselect={(values) => addSuggestedValues(field.key, values)}
+            />
+          {/if}
+        </div>
       {/each}
+      <fieldset class="filter-control advanced-control">
+        <legend>Artefact stage</legend>
+        <div class="choice-list">
+          {#each stageOptions as stage (stage)}
+            <label>
+              <input
+                type="checkbox"
+                name="artefact_stages"
+                value={stage}
+                checked={draftAdvanced.artefact_stages.includes(stage)}
+                onchange={(event) =>
+                  toggleStage(stage, event.currentTarget.checked)}
+              />
+              {stage === "" ? "(none)" : stage}
+              {#if stage !== "" && !data.artefactFamilies.some( (family) => family.stages.includes(stage) )}<span
+                  >(not configured)</span
+                >{/if}
+            </label>
+          {/each}
+        </div>
+        <span>
+          (none) is a real empty-stage condition, not an omitted filter. Add an
+          exact stage even when it is not in the configured choices.
+        </span>
+        <label for="filter-stage-entry">Exact stage</label>
+        <input
+          id="filter-stage-entry"
+          autocomplete="off"
+          bind:value={stageEntryText}
+        />
+        <button
+          type="button"
+          onclick={addExactStage}
+          disabled={!stageEntryText.trim()}>Add exact stage</button
+        >
+      </fieldset>
+      <fieldset class="filter-control advanced-control">
+        <legend>Execution status</legend>
+        <div class="choice-list">
+          {#each executionStatuses as status (status)}
+            <label>
+              <input
+                type="checkbox"
+                name="test_execution_statuses"
+                value={status}
+                checked={draftAdvanced.test_execution_statuses.includes(status)}
+                onchange={(event) =>
+                  toggleExecutionStatus(status, event.currentTarget.checked)}
+              />
+              {status.replaceAll("_", " ")}
+            </label>
+          {/each}
+          {#each draftAdvanced.test_execution_statuses.filter((status) => !executionStatuses.includes(status as (typeof executionStatuses)[number])) as status (status)}
+            <label>
+              <input
+                type="checkbox"
+                checked
+                onchange={(event) =>
+                  toggleExecutionStatus(
+                    status as (typeof executionStatuses)[number],
+                    event.currentTarget.checked,
+                  )}
+              />
+              Unsupported: {status}
+            </label>
+          {/each}
+        </div>
+        <span>Selected execution statuses are ORed.</span>
+      </fieldset>
+      <label class="filter-control" for="filter-artefact-is-archived">
+        Artefact archived
+        <select
+          id="filter-artefact-is-archived"
+          name="artefact_is_archived"
+          value={draftAdvanced.artefact_is_archived === null
+            ? ""
+            : String(draftAdvanced.artefact_is_archived)}
+          onchange={(event) =>
+            setBooleanFilter("artefact_is_archived", event.currentTarget.value)}
+        >
+          <option value="">Any</option><option value="true">Yes</option><option
+            value="false">No</option
+          >
+        </select>
+        <span>Three-state filter; No sends the explicit value false.</span>
+      </label>
+      <label class="filter-control" for="filter-rerun-is-requested">
+        Rerun requested
+        <select
+          id="filter-rerun-is-requested"
+          name="rerun_is_requested"
+          value={draftAdvanced.rerun_is_requested === null
+            ? ""
+            : String(draftAdvanced.rerun_is_requested)}
+          onchange={(event) =>
+            setBooleanFilter("rerun_is_requested", event.currentTarget.value)}
+        >
+          <option value="">Any</option><option value="true">Yes</option><option
+            value="false">No</option
+          >
+        </select>
+        <span>Uses the existing plan/build/environment rerun group.</span>
+      </label>
+      <label class="filter-control" for="filter-execution-is-latest">
+        Execution version
+        <select
+          id="filter-execution-is-latest"
+          name="execution_is_latest"
+          value={draftAdvanced.execution_is_latest === null
+            ? ""
+            : String(draftAdvanced.execution_is_latest)}
+          onchange={(event) =>
+            setBooleanFilter("execution_is_latest", event.currentTarget.value)}
+        >
+          <option value="">Any</option><option value="true">Latest only</option
+          ><option value="false">Older only</option>
+        </select>
+        <span
+          >Latest is determined by higher execution ID within its existing
+          group.</span
+        >
+      </label>
+      <fieldset class="filter-control advanced-control">
+        <legend>Issues</legend>
+        <div class="choice-list">
+          <label
+            ><input
+              type="radio"
+              name="issues-mode"
+              value="ids"
+              checked={Array.isArray(draftAdvanced.issues)}
+              onchange={() => setIdMode("issues", "ids")}
+            /> Specific IDs</label
+          >
+          <label
+            ><input
+              type="radio"
+              name="issues-mode"
+              value="any"
+              checked={draftAdvanced.issues === "any"}
+              onchange={() => setIdMode("issues", "any")}
+            /> Has any issue</label
+          >
+          <label
+            ><input
+              type="radio"
+              name="issues-mode"
+              value="none"
+              checked={draftAdvanced.issues === "none"}
+              onchange={() => setIdMode("issues", "none")}
+            /> Has no issue</label
+          >
+        </div>
+        {#if Array.isArray(draftAdvanced.issues)}
+          <SearchSuggestionPicker
+            field="issues"
+            onselect={(values) => addIds("issues", values)}
+          />
+          <ul class="selected-ids" aria-label="Selected issue IDs">
+            {#each issueIds as id (id)}<li>
+                Issue #{id}
+                <button
+                  type="button"
+                  aria-label="Remove issue {id}"
+                  onclick={() => removeId("issues", id)}>Remove</button
+                >
+              </li>{/each}
+          </ul>
+        {/if}
+        <span>Specific issue IDs are ORed; any/none must be used alone.</span>
+      </fieldset>
+      <fieldset class="filter-control advanced-control">
+        <legend>Reviewers</legend>
+        <div class="choice-list">
+          <label
+            ><input
+              type="radio"
+              name="reviewer_ids-mode"
+              value="ids"
+              checked={Array.isArray(draftAdvanced.reviewer_ids)}
+              onchange={() => setIdMode("reviewer_ids", "ids")}
+            /> Specific IDs</label
+          >
+          <label
+            ><input
+              type="radio"
+              name="reviewer_ids-mode"
+              value="any"
+              checked={draftAdvanced.reviewer_ids === "any"}
+              onchange={() => setIdMode("reviewer_ids", "any")}
+            /> Has any reviewer</label
+          >
+          <label
+            ><input
+              type="radio"
+              name="reviewer_ids-mode"
+              value="none"
+              checked={draftAdvanced.reviewer_ids === "none"}
+              onchange={() => setIdMode("reviewer_ids", "none")}
+            /> Has no reviewer</label
+          >
+        </div>
+        {#if Array.isArray(draftAdvanced.reviewer_ids)}
+          <SearchSuggestionPicker
+            field="reviewer_ids"
+            onselect={(values) => addIds("reviewer_ids", values)}
+          />
+          <ul class="selected-ids" aria-label="Selected reviewer IDs">
+            {#each reviewerIds as id (id)}<li>
+                Reviewer #{id}
+                <button
+                  type="button"
+                  aria-label="Remove reviewer {id}"
+                  onclick={() => removeId("reviewer_ids", id)}>Remove</button
+                >
+              </li>{/each}
+          </ul>
+        {/if}
+        <span>Specific reviewer IDs are ORed; any/none must be used alone.</span
+        >
+      </fieldset>
+      <div class="filter-control metadata-control">
+        <span>Execution metadata</span>
+        <SearchMetadataEditor
+          bind:value={draftAdvanced.execution_metadata}
+          onedit={() => editDraft("execution_metadata")}
+        />
+      </div>
       <label class="filter-control" for="filter-from-date">
         Created from (UTC)
         <input
@@ -583,8 +955,10 @@
         disabled={!canApplySearch}>Search</button
       >
       {#if canClearDrafts()}
-        <button class="pager-button" type="button" onclick={clearDrafts}
-          >Clear all</button
+        <button
+          class="pager-button clear-all-button"
+          type="button"
+          onclick={clearDrafts}>Clear all</button
         >
       {/if}
     </div>
@@ -801,7 +1175,8 @@
   }
 
   .filter-control input,
-  .filter-control textarea {
+  .filter-control textarea,
+  .filter-control select {
     box-sizing: border-box;
     width: 100%;
     min-height: 2rem;
@@ -813,10 +1188,37 @@
     font: inherit;
   }
 
-  .filter-control span,
+  .filter-control > span,
   .draft-notice {
     color: var(--lp-color-text-muted, #666);
     font-size: 0.8125rem;
+  }
+
+  .advanced-control {
+    box-sizing: border-box;
+    min-width: 0;
+    margin: 0;
+    padding: 0.5rem;
+    border: 1px solid var(--lp-color-border-default, #ccc);
+    border-radius: 0.25rem;
+  }
+
+  .choice-list label,
+  .selected-ids li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.3rem 0;
+  }
+
+  .choice-list input[type="checkbox"],
+  .choice-list input[type="radio"] {
+    width: auto;
+    min-height: auto;
+  }
+
+  .metadata-control > span {
+    font-weight: 500;
   }
 
   .filter-actions {
