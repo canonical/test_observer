@@ -145,7 +145,16 @@ def get_artefacts_by_family(
                 )
 
             case _:
-                query = session.query(Artefact).filter(Artefact.family == family, Artefact.archived.is_(False))
+                subquery = base_query.subquery()
+
+                query = session.query(Artefact).join(
+                    subquery,
+                    and_(
+                        Artefact.stage == subquery.c.stage,
+                        Artefact.name == subquery.c.name,
+                        Artefact.created_at == subquery.c.max_created,
+                    ),
+                )
 
     if load_environment_reviews:
         query = query.options(selectinload(Artefact.builds).selectinload(ArtefactBuild.environment_reviews))
