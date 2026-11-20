@@ -3,12 +3,16 @@
 
 import { error, redirect } from "@sveltejs/kit";
 import { resolve } from "$app/paths";
+import { familyRouteName, findFamilyByRouteName } from "$lib/families";
 import { parseArtefactId } from "$lib/utils/artefact-filters";
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ parent, params }) => {
   const { artefactFamilies } = await parent();
-  const family = artefactFamilies.find((f) => f.name === params.family);
+  if (artefactFamilies === null) {
+    error(503, "Unable to load artefact families");
+  }
+  const family = findFamilyByRouteName(artefactFamilies, params.family);
 
   if (!family) {
     error(404, `Unknown family: ${params.family}`);
@@ -16,7 +20,7 @@ export const load: PageLoad = async ({ parent, params }) => {
 
   const id = parseArtefactId(params.artefactId);
   if (id === null) {
-    redirect(307, resolve(family.name));
+    redirect(307, resolve(familyRouteName(family)));
   }
 
   return { family, artefactId: id };

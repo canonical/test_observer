@@ -12,14 +12,7 @@ export function mountLayout(target) {
     target,
     props: {
       data: {
-        artefactFamilies: ["alpha", "beta"].map((name) => ({
-          name,
-          api_name: name,
-          friendly_name: name,
-          stages: [],
-          columns: [],
-          filters: [],
-        })),
+        artefactFamilies: [{ name: "alpha" }, { name: "beta" }],
       },
       children: createRawSnippet(() => ({
         render: () => '<button id="page-action">Page action</button>',
@@ -45,3 +38,6 @@ export function showError(message) {
 }
 
 export { unmount as unmountLayout, flushSync };
+export { load as loadLayout } from "../src/routes/+layout";
+export { load as loadFamily } from "../src/routes/[family]/+page";
+export { load as loadArtefact } from "../src/routes/[family]/[artefactId]/+page";

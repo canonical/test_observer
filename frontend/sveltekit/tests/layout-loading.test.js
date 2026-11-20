@@ -52,7 +52,7 @@ before(async () => {
     );
   const bundle = buildResult[0]?.output.find((item) => item.type === "chunk");
   assert.ok(bundle, "layout test bundle should be generated");
-  browserWindow = new Window({ url: "http://localhost/alpha" });
+  browserWindow = new Window({ url: "http://localhost/alphas" });
   for (const name of [
     "window",
     "document",
@@ -119,7 +119,7 @@ void test("navigation makes only the page inert and keeps status and shell contr
     assert.equal(page.hasAttribute("inert"), false);
     assert.equal(target.querySelector(".loading-overlay"), null);
 
-    setDestination("/beta");
+    setDestination("/betas");
     assert.equal(main.getAttribute("aria-busy"), "true");
     assert.equal(page.hasAttribute("inert"), true);
     assert.equal(action.closest("[inert]"), page);
@@ -133,7 +133,7 @@ void test("navigation makes only the page inert and keeps status and shell contr
 
     // The layout leaves ordinary href handling to SvelteKit rather than adding
     // a navigation lock or click interception while another request is pending.
-    const link = sidebar.querySelector('a[href="/alpha"]');
+    const link = sidebar.querySelector('a[href="/alphas"]');
     assert.ok(link);
     const click = new browserWindow.MouseEvent("click", {
       bubbles: true,
@@ -192,7 +192,7 @@ void test("navigation makes only the page inert and keeps status and shell contr
     assert.equal(target.querySelector("#page-action"), action);
 
     // A later navigation can start and clear normally after success or failure.
-    setDestination("/alpha");
+    setDestination("/alphas");
     assert.ok(target.querySelector(".loading-overlay"));
     setDestination(null);
     assert.equal(page.hasAttribute("inert"), false);
@@ -203,3 +203,81 @@ void test("navigation makes only the page inert and keeps status and shell contr
     target.remove();
   }
 });
+
+for (const [description, familyResponse, status] of /** @type {const} */ ([
+  ["a network failure", () => Promise.reject(new TypeError("Offline")), 503],
+  ["a non-401 HTTP failure", () => new Response(null, { status: 403 }), 503],
+  ["invalid JSON", () => new Response("not JSON"), 503],
+  ["a non-array response", () => Response.json({}), 503],
+  ["an anonymous response", () => new Response(null, { status: 401 }), 404],
+  ["an empty list", () => Response.json([]), 404],
+  [
+    "an unknown family in a populated list",
+    () => Response.json([{ name: "beta" }]),
+    404,
+  ],
+])) {
+  void test(`both family routes handle ${description}`, async ({ mock }) => {
+    assert.ok(harness);
+    const { loadLayout, loadFamily, loadArtefact } = harness;
+    mock.method(console, "error", () => undefined);
+
+    /** @type {string[]} */
+    const requestedPaths = [];
+    /** @type {typeof globalThis.fetch} */
+    const fetch = (input) => {
+      const path = new URL(input instanceof Request ? input.url : input)
+        .pathname;
+      requestedPaths.push(path);
+      if (path === "/v1/families") return Promise.resolve(familyResponse());
+      assert.equal(path, "/v1/users/me");
+      return Promise.resolve(new Response(null, { status: 401 }));
+    };
+
+    const data = await loadLayout(
+      /** @type {Parameters<typeof loadLayout>[0]} */ ({ fetch }),
+    );
+    if (description === "an anonymous response") {
+      assert.deepEqual(data.artefactFamilies, []);
+    }
+
+    const shared = {
+      fetch,
+      parent: () => Promise.resolve(data),
+    };
+    const familyEvent = { ...shared, params: { family: "alphas" } };
+    const artefactEvent = {
+      ...shared,
+      params: { family: "alphas", artefactId: "1" },
+    };
+    const expectedError = {
+      status,
+      body: {
+        status,
+        message:
+          status === 503
+            ? "Unable to load artefact families"
+            : "Unknown family: alphas",
+      },
+    };
+    await assert.rejects(
+      () =>
+        Promise.resolve(
+          loadFamily(
+            /** @type {Parameters<typeof loadFamily>[0]} */ (familyEvent),
+          ),
+        ),
+      expectedError,
+    );
+    await assert.rejects(
+      () =>
+        Promise.resolve(
+          loadArtefact(
+            /** @type {Parameters<typeof loadArtefact>[0]} */ (artefactEvent),
+          ),
+        ),
+      expectedError,
+    );
+    assert.deepEqual(requestedPaths.sort(), ["/v1/families", "/v1/users/me"]);
+  });
+}

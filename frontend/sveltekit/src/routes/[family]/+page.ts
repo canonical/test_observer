@@ -15,20 +15,24 @@
 
 import { error } from "@sveltejs/kit";
 import { getApiRoot } from "$lib/config";
+import { findFamilyByRouteName } from "$lib/families";
 import { userStore } from "$lib/stores/user.svelte";
 import type { Artefact } from "$lib/types";
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ parent, params, fetch }) => {
   const { artefactFamilies } = await parent();
-  const family = artefactFamilies.find((f) => f.name === params.family);
+  if (artefactFamilies === null) {
+    error(503, "Unable to load artefact families");
+  }
+  const family = findFamilyByRouteName(artefactFamilies, params.family);
 
   if (!family) {
     error(404, `Unknown family: ${params.family}`);
   }
 
   const res = await fetch(
-    `${getApiRoot()}/v1/artefacts?family=${family.api_name}`,
+    `${getApiRoot()}/v1/artefacts?family=${encodeURIComponent(family.name)}`,
     {
       credentials: "include",
       headers: { "X-CSRF-Token": "1" },

@@ -233,7 +233,7 @@ function dispatchBrowserEvent(target, type) {
   );
 }
 
-/** @param {{artefactFamilies?: import("../src/lib/types/index.ts").Family[]; apiFamilyNames?: string[]; familyNamesError?: boolean}} [data] */
+/** @param {{artefactFamilies?: import("../src/lib/types/openapi.ts").FamilyResponse[] | null; apiFamilyNames?: string[]; familyNamesError?: boolean}} [data] */
 function mountInDocument(data = {}) {
   assert.ok(harness);
   assert.ok(browserWindow);
@@ -835,7 +835,7 @@ void test("filter drawer keeps results visible and requires explicit Search to a
   assert.ok(harness);
   harness.resetApi();
   harness.resetSearchUrl(
-    "http://localhost/test-results?page=2&page_size=25&families=snap",
+    "http://localhost/test-results?page=2&page_size=25&families=snap&artefact_stages=edge",
   );
   harness.setHandler((path) => {
     const params = new URL(path, "http://localhost/").searchParams;
@@ -846,16 +846,7 @@ void test("filter drawer keeps results visible and requires explicit Search to a
     );
   });
   const { component, target } = mountInDocument({
-    artefactFamilies: [
-      {
-        name: "snaps",
-        friendly_name: "Snap Testing",
-        api_name: "snap",
-        stages: ["edge", "stable"],
-        columns: [],
-        filters: [],
-      },
-    ],
+    artefactFamilies: [{ name: "snap" }],
   });
   await settlePromises();
   assert.equal(harness.requests.length, 1);
@@ -912,6 +903,19 @@ void test("filter drawer keeps results visible and requires explicit Search to a
   ]) {
     assert.ok(dialog.querySelector(selector), `drawer contains ${selector}`);
   }
+  assert.equal(
+    /** @type {HTMLInputElement} */ (
+      /** @type {unknown} */ (
+        dialog.querySelector('[name="artefact_stages"][value="edge"]')
+      )
+    ).checked,
+    true,
+  );
+  assert.equal(
+    dialog.querySelector('[name="artefact_stages"][value="stable"]'),
+    null,
+  );
+  assert.doesNotMatch(dialog.textContent, /not configured/);
 
   clickButton(target, '[aria-label="Close filters"]');
   await settlePromises();
@@ -964,6 +968,7 @@ void test("filter drawer keeps results visible and requires explicit Search to a
   assert.equal(appliedUrl.searchParams.get("page"), "1");
   assert.equal(appliedUrl.searchParams.get("page_size"), "25");
   assert.equal(appliedUrl.searchParams.get("families"), "snap");
+  assert.deepEqual(appliedUrl.searchParams.getAll("artefact_stages"), ["edge"]);
   assert.deepEqual(appliedUrl.searchParams.getAll("artefacts"), ["draft-only"]);
   assert.equal(toggle.getAttribute("aria-expanded"), "false");
   assert.equal(
@@ -1549,16 +1554,7 @@ void test("advanced controls apply canonical filters, empty stage, and page-size
     );
   });
   const { component, target } = mountInDocument({
-    artefactFamilies: [
-      {
-        name: "snaps",
-        friendly_name: "Snap Testing",
-        api_name: "snap",
-        stages: ["edge", "beta", "candidate", "stable"],
-        columns: [],
-        filters: [],
-      },
-    ],
+    artefactFamilies: null,
   });
   await settlePromises();
   assert.equal(
@@ -1582,7 +1578,7 @@ void test("advanced controls apply canonical filters, empty stage, and page-size
   const stageEntry = target.querySelector("#filter-stage-entry");
   assert.ok(
     stageEntry,
-    "exact stage entry remains available alongside configured choices",
+    "exact stage entry remains available without family configuration",
   );
   /** @type {HTMLInputElement} */ (/** @type {unknown} */ (stageEntry)).value =
     "custom-stage";
