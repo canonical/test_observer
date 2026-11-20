@@ -18,7 +18,6 @@ import 'package:test/test.dart';
 import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/artefact_build.dart';
 import 'package:testcase_dashboard/models/environment_review.dart';
-import 'package:testcase_dashboard/models/family_name.dart';
 import 'package:testcase_dashboard/providers/api.dart';
 import 'package:testcase_dashboard/providers/enriched_test_executions.dart';
 import 'package:testcase_dashboard/providers/family_artefacts.dart';
@@ -34,7 +33,7 @@ void main() {
     final container = createContainer(
       overrides: [apiProvider.overrideWith((ref) => ApiRepositoryMock())],
     );
-    const family = FamilyName.snap;
+    const family = 'snap';
 
     // Wait on artefacts to load because pageFiltersProvider uses .value
     await container.read(familyArtefactsProvider(family).future);
@@ -84,7 +83,7 @@ void main() {
 
 class ApiRepositoryMock extends Mock implements ApiRepository {
   @override
-  Future<Map<int, Artefact>> getFamilyArtefacts(FamilyName family) async {
+  Future<Map<int, Artefact>> getFamilyArtefacts(String family) async {
     return {dummyArtefact.id: dummyArtefact};
   }
 

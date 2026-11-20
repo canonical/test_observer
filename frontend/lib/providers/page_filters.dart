@@ -36,9 +36,10 @@ class PageFilters extends _$PageFilters {
     final queryParams = pageUri.queryParametersAll;
     if (AppRoutes.isDashboardPage(pageUri)) {
       final family = AppRoutes.familyFromUri(pageUri);
-      final artefacts = ref.watch(familyArtefactsProvider(family)).value ?? {};
+      final artefacts =
+          ref.watch(familyArtefactsProvider(family.name)).value ?? {};
       return _createFiltersState(
-        getArtefactFiltersFor(family),
+        getArtefactFiltersFor(family.name),
         queryParams,
         artefacts.values.toList(),
         isDashboard: true,

@@ -24,7 +24,7 @@ import '../models/detailed_test_results.dart';
 import '../models/environment_issue.dart';
 import '../models/environment_review.dart';
 import '../models/execution_metadata.dart';
-import '../models/family_name.dart';
+import '../models/family.dart';
 import '../models/issue.dart';
 import '../models/rerun_details.dart';
 import '../models/test_event.dart';
@@ -39,9 +39,15 @@ class ApiRepository {
 
   const ApiRepository({required this.dio});
 
-  Future<Map<int, Artefact>> getFamilyArtefacts(FamilyName family) async {
-    final response = await dio
-        .get('/v1/artefacts', queryParameters: {'family': family.name});
+  Future<List<Family>> getFamilies() async {
+    final response = await dio.get('/v1/families');
+    final List familiesJson = response.data;
+    return familiesJson.map((json) => Family.fromJson(json)).toList();
+  }
+
+  Future<Map<int, Artefact>> getFamilyArtefacts(String family) async {
+    final response =
+        await dio.get('/v1/artefacts', queryParameters: {'family': family});
     final artefacts = {
       for (final json in response.data)
         json['id'] as int: Artefact.fromJson(json),
@@ -194,13 +200,13 @@ class ApiRepository {
   }
 
   Future<RerunDetailsResponse> getRerunDetails({
-    required FamilyName family,
+    required String family,
     int? priority,
     int limit = 50,
     int offset = 0,
   }) async {
     final queryParams = <String, dynamic>{
-      'family': family.name,
+      'family': family,
       'limit': limit,
       'offset': offset,
     };
@@ -213,7 +219,7 @@ class ApiRepository {
     return RerunDetailsResponse.fromJson(response.data);
   }
 
-  Future<({FamilyName family, int artefactId, int testExecutionId})?>
+  Future<({String family, int artefactId, int testExecutionId})?>
       getLatestTestExecutionForTestPlan(String testPlanName) async {
     final response = await dio.get(
       '/v1/test-executions',
@@ -228,10 +234,7 @@ class ApiRepository {
     final te = executions.first as Map<String, dynamic>;
     final artefact = te['artefact'] as Map<String, dynamic>;
     return (
-      family: FamilyName.values.firstWhere(
-        (f) => f.name == artefact['family'],
-        orElse: () => FamilyName.values.first,
-      ),
+      family: artefact['family'] as String,
       artefactId: artefact['id'] as int,
       testExecutionId: te['id'] as int,
     );

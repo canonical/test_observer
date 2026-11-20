@@ -26,6 +26,7 @@ import '../../models/test_result.dart';
 import '../../models/test_results_filters.dart';
 import '../../models/user.dart';
 import '../../providers/execution_metadata.dart';
+import '../../providers/families.dart';
 import '../../providers/issues.dart';
 import '../../providers/test_results_artefacts.dart';
 import '../../providers/test_results_environments.dart';
@@ -237,11 +238,14 @@ class _TestResultsFiltersViewState
 
   @override
   Widget build(BuildContext context) {
-    final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
+    final families = ref.watch(familiesProvider).value ?? [];
+    final familyNames = families.map((family) => family.name).toSet();
+    final allFamilyOptions = families.map((family) => family.name).toList();
     final allTestResultStatusesOptions =
         TestResultStatus.values.map((s) => s.name).toList();
     final allArtefactStageOptions = <String>{
-      for (final family in FamilyName.values) ...familyStages(family),
+      for (final family in FamilyName.values)
+        if (familyNames.contains(family.name)) ...familyStages(family),
       ..._selectedFilters.artefactStages,
     }.toList();
     final executionMetadata = ref.watch(executionMetadataProvider).value ??

@@ -18,7 +18,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../models/family_name.dart';
 import '../../providers/filtered_family_artefacts.dart';
 import '../../routing.dart';
 import '../spacing.dart';
@@ -44,7 +43,7 @@ class StageColumn extends ConsumerWidget {
       children: [
         Text(
           stage.isEmpty
-              ? (family == FamilyName.deb ? 'PPAs' : 'No stage')
+              ? (family.name == 'deb' ? 'PPAs' : 'No stage')
               : stage.capitalize(),
           style: Theme.of(context).textTheme.headlineSmall,
         ),
