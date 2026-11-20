@@ -70,9 +70,11 @@ void main() {
     expect(find.text('alpha'), findsOneWidget);
 
     pending = Completer<List<Family>>();
-    widgetRef.invalidate(familiesProvider);
+    expect(widgetRef.refresh(familiesProvider).isLoading, isTrue);
     await tester.pump();
     expect(find.text('Loading families...'), findsOneWidget);
+    expect(find.text('Could not load families'), findsNothing);
+    expect(find.text('alpha'), findsOneWidget);
     pending.complete([const Family(name: 'alpha'), const Family(name: 'beta')]);
     await tester.pumpAndSettle();
     expect(find.text('Loading families...'), findsNothing);
@@ -82,8 +84,9 @@ void main() {
 
     // A successful empty response is distinct from loading or failure.
     pending = Completer<List<Family>>();
-    widgetRef.invalidate(familiesProvider);
+    expect(widgetRef.refresh(familiesProvider).isLoading, isTrue);
     await tester.pump();
+    expect(find.text('Loading families...'), findsOneWidget);
     pending.complete([]);
     await tester.pumpAndSettle();
     expect(find.text('No families available'), findsOneWidget);

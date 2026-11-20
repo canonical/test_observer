@@ -85,11 +85,12 @@ class IssuesFilters extends _$IssuesFilters {
     final validSelectedProjects =
         selectedProjects.intersection(possibleProjects);
 
-    final families = ref.watch(familiesProvider).asData?.value;
+    final familiesState = ref.watch(familiesProvider);
+    final families = familiesState.asData?.value;
     final possibleFamilies =
         families?.map((family) => family.name).toSet() ?? <String>{};
     final selectedFamilies = (params[familyParam] ?? []).toSet();
-    final validSelectedFamilies = families == null
+    final validSelectedFamilies = familiesState.isLoading || families == null
         ? selectedFamilies
         : selectedFamilies.intersection(possibleFamilies);
 

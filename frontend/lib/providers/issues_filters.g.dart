@@ -6,7 +6,7 @@ part of 'issues_filters.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$issuesFiltersHash() => r'2339a6ffdc371c76b8fbe7140d1606190fafa4bc';
+String _$issuesFiltersHash() => r'644d623697fb8660511e5fd2c2d87cea1f5c47a3';
 
 /// Copied from Dart SDK
 class _SystemHash {
