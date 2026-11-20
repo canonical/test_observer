@@ -4182,7 +4182,7 @@
           "test-results"
         ],
         "summary": "Get Test Results Search Page",
-        "description": "Return a bounded page of compact test-result data, newest result first.\n\n``count`` is exact and independent of the requested page. It is null when\n``include_count`` is false.",
+        "description": "Return a bounded, server-filtered page of compact results, newest first.\n\nRepeated list values are exact-match ORs; distinct filters are ANDed.\n``count`` is exact and independent of the requested page. It is null when\n``include_count`` is false. Unsupported query keys and invalid date ranges\nare rejected instead of being silently ignored.",
         "operationId": "get_test_results_search_page_v1_test_results_search_page_get",
         "parameters": [
           {
@@ -4223,6 +4223,212 @@
               "title": "Include Count"
             },
             "description": "Include the exact total count; null is returned when false"
+          },
+          {
+            "name": "families",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact artefact family values; repeat for OR",
+              "title": "Families"
+            },
+            "description": "Exact artefact family values; repeat for OR"
+          },
+          {
+            "name": "test_result_statuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestResultStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact result status values; repeat for OR",
+              "title": "Test Result Statuses"
+            },
+            "description": "Exact result status values; repeat for OR"
+          },
+          {
+            "name": "artefacts",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact artefact names; repeat for OR",
+              "title": "Artefacts"
+            },
+            "description": "Exact artefact names; repeat for OR"
+          },
+          {
+            "name": "artefact_versions",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact artefact versions; repeat for OR",
+              "title": "Artefact Versions"
+            },
+            "description": "Exact artefact versions; repeat for OR"
+          },
+          {
+            "name": "artefact_tracks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact artefact tracks; repeat for OR",
+              "title": "Artefact Tracks"
+            },
+            "description": "Exact artefact tracks; repeat for OR"
+          },
+          {
+            "name": "environments",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact environment names; repeat for OR",
+              "title": "Environments"
+            },
+            "description": "Exact environment names; repeat for OR"
+          },
+          {
+            "name": "test_cases",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact test case names; repeat for OR",
+              "title": "Test Cases"
+            },
+            "description": "Exact test case names; repeat for OR"
+          },
+          {
+            "name": "test_plans",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact test plan names; repeat for OR",
+              "title": "Test Plans"
+            },
+            "description": "Exact test plan names; repeat for OR"
+          },
+          {
+            "name": "from_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive UTC lower bound on result created_at",
+              "title": "From Date"
+            },
+            "description": "Inclusive UTC lower bound on result created_at"
+          },
+          {
+            "name": "until_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Inclusive UTC upper bound on result created_at",
+              "title": "Until Date"
+            },
+            "description": "Inclusive UTC upper bound on result created_at"
           }
         ],
         "responses": {

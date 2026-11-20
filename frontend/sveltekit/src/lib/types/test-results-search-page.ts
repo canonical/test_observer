@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: Apache-2.0
 
+import type { FamilyName } from "./openapi";
+
 /** Compact row data returned only by /v1/test-results/search-page. */
 export type SearchPageTestResultStatus = "PASSED" | "FAILED" | "SKIPPED";
 
@@ -27,7 +29,7 @@ export interface SearchPageArtefact {
   name: string;
   version: string;
   track: string;
-  family: "snap" | "deb" | "charm" | "image" | "solution";
+  family: FamilyName;
 }
 
 export interface SearchPageArtefactBuild {

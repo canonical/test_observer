@@ -14,9 +14,10 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Security
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Security
 from sqlalchemy import desc, func, select
 from sqlalchemy.orm import Session, joinedload, load_only, raiseload
 
@@ -32,8 +33,10 @@ from test_observer.data_access.models import (
     TestPlan,
     TestResult,
 )
+from test_observer.data_access.models_enums import TestResultStatus
 from test_observer.data_access.setup import get_db
 
+from .filter_test_results import filter_test_results
 from .search_page_models import (
     SearchPageArtefact,
     SearchPageArtefactBuild,
@@ -43,6 +46,7 @@ from .search_page_models import (
     TestResultSearchPage,
     TestResultSearchPageRow,
 )
+from .shared_models import TestResultSearchFilters
 
 router = APIRouter(tags=["test-results"])
 
@@ -53,6 +57,7 @@ router = APIRouter(tags=["test-results"])
     dependencies=[Security(permission_checker, scopes=[Permission.view_test])],
 )
 def get_test_results_search_page(
+    request: Request,
     limit: Annotated[
         int,
         Query(ge=1, le=MAX_RESULT_PAGE_LIMIT, description="Maximum number of results to return"),
@@ -62,19 +67,99 @@ def get_test_results_search_page(
         bool,
         Query(description="Include the exact total count; null is returned when false"),
     ] = True,
+    families: Annotated[list[str] | None, Query(description="Exact artefact family values; repeat for OR")] = None,
+    test_result_statuses: Annotated[
+        list[TestResultStatus] | None,
+        Query(description="Exact result status values; repeat for OR"),
+    ] = None,
+    artefacts: Annotated[list[str] | None, Query(description="Exact artefact names; repeat for OR")] = None,
+    artefact_versions: Annotated[list[str] | None, Query(description="Exact artefact versions; repeat for OR")] = None,
+    artefact_tracks: Annotated[list[str] | None, Query(description="Exact artefact tracks; repeat for OR")] = None,
+    environments: Annotated[list[str] | None, Query(description="Exact environment names; repeat for OR")] = None,
+    test_cases: Annotated[list[str] | None, Query(description="Exact test case names; repeat for OR")] = None,
+    test_plans: Annotated[list[str] | None, Query(description="Exact test plan names; repeat for OR")] = None,
+    from_date: Annotated[datetime | None, Query(description="Inclusive UTC lower bound on result created_at")] = None,
+    until_date: Annotated[datetime | None, Query(description="Inclusive UTC upper bound on result created_at")] = None,
     db: Session = Depends(get_db),
 ) -> TestResultSearchPage:
-    """Return a bounded page of compact test-result data, newest result first.
+    """Return a bounded, server-filtered page of compact results, newest first.
 
+    Repeated list values are exact-match ORs; distinct filters are ANDed.
     ``count`` is exact and independent of the requested page. It is null when
-    ``include_count`` is false.
+    ``include_count`` is false. Unsupported query keys and invalid date ranges
+    are rejected instead of being silently ignored.
     """
+    supported_keys = {
+        "limit",
+        "offset",
+        "include_count",
+        "families",
+        "test_result_statuses",
+        "artefacts",
+        "artefact_versions",
+        "artefact_tracks",
+        "environments",
+        "test_cases",
+        "test_plans",
+        "from_date",
+        "until_date",
+    }
+    unknown_keys = sorted(set(request.query_params.keys()) - supported_keys)
+    if unknown_keys:
+        raise HTTPException(status_code=422, detail=f"Unsupported query parameter(s): {', '.join(unknown_keys)}")
+    for key in ("limit", "offset", "include_count", "from_date", "until_date"):
+        if len(request.query_params.getlist(key)) > 1:
+            raise HTTPException(status_code=422, detail=f"Provide at most one {key} value")
+
+    def as_utc(value: datetime | None, name: str) -> datetime | None:
+        if value is None:
+            return None
+        if value.utcoffset() is None:
+            raise HTTPException(status_code=422, detail=f"{name} must include a UTC offset")
+        return value.astimezone(UTC)
+
+    from_utc = as_utc(from_date, "from_date")
+    until_utc = as_utc(until_date, "until_date")
+    if from_utc is not None and until_utc is not None and from_utc > until_utc:
+        raise HTTPException(status_code=422, detail="from_date must not be after until_date")
+
+    list_values = {
+        "artefacts": artefacts,
+        "artefact_versions": artefact_versions,
+        "artefact_tracks": artefact_tracks,
+        "environments": environments,
+        "test_cases": test_cases,
+        "test_plans": test_plans,
+    }
+    if any(value.strip() == "" for values in list_values.values() for value in (values or [])):
+        raise HTTPException(status_code=422, detail="Filter values must not be empty")
+
+    filters = TestResultSearchFilters(
+        families=families or [],
+        test_result_statuses=test_result_statuses or [],
+        artefacts=artefacts or [],
+        artefact_versions=artefact_versions or [],
+        artefact_tracks=artefact_tracks or [],
+        environments=environments or [],
+        test_cases=test_cases or [],
+        test_plans=test_plans or [],
+        from_date=from_utc,
+        until_date=until_utc,
+    )
+
     count = None
+    count_query = filter_test_results(
+        select(func.count()).select_from(TestResult),
+        filters.model_copy(update={"offset": None, "limit": None}),
+    )
     if include_count:
-        count = db.execute(select(func.count()).select_from(TestResult)).scalar_one()
+        count = db.execute(count_query).scalar_one()
 
     stmt = (
-        select(TestResult)
+        filter_test_results(
+            select(TestResult),
+            filters.model_copy(update={"offset": offset, "limit": limit}),
+        )
         .options(
             load_only(
                 TestResult.id,
@@ -127,8 +212,6 @@ def get_test_results_search_page(
             raiseload("*"),
         )
         .order_by(desc(TestResult.created_at), desc(TestResult.id))
-        .offset(offset)
-        .limit(limit)
     )
     results = db.execute(stmt).scalars().all()
 
