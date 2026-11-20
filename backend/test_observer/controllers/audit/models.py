@@ -25,6 +25,11 @@ class AuditAuthorResponse(BaseModel):
     automation_name: str | None
 
 
+class ApprovalAuthorResponse(BaseModel):
+    kind: Literal["user", "application", "automation"] | None
+    name: str | None
+
+
 class AuditListItemResponse(BaseModel):
     id: int
     created_at: datetime

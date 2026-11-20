@@ -12,6 +12,7 @@
   import type { ArtefactPageStore } from "$lib/stores/artefact-page.svelte";
   import StagesBreadcrumb from "./StagesBreadcrumb.svelte";
   import ArtefactSignoffButton from "./ArtefactSignoffButton.svelte";
+  import ApprovalAuthor from "./ApprovalAuthor.svelte";
   import ReviewersAvatars from "$lib/components/dashboard/ReviewersAvatars.svelte";
 
   interface Props {
@@ -60,6 +61,7 @@
       canChangeStatus={store.canChangeArtefact}
       onstatuschange={handleStatusChange}
     />
+    <ApprovalAuthor status={artefact.status} author={store.approvalAuthor} />
     <ReviewersAvatars
       reviewers={artefact.reviewers}
       allEnvironmentReviewsCount={artefact.all_environment_reviews_count}

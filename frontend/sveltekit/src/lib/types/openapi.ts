@@ -158,6 +158,11 @@ export interface ReviewerResponse {
   launchpad_handle?: string | null;
 }
 
+export interface ApprovalAuthorResponse {
+  kind: "user" | "application" | "automation" | null;
+  name: string | null;
+}
+
 export interface ArtefactBuildMinimalResponse {
   id: number;
   architecture: string;

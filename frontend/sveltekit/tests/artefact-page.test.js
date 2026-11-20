@@ -43,6 +43,8 @@ let EnvironmentExpandable;
 /** @type {import("svelte").Component<any> | undefined} */
 let ArtefactSignoffButton;
 /** @type {import("svelte").Component<any> | undefined} */
+let ApprovalAuthor;
+/** @type {import("svelte").Component<any> | undefined} */
 let TestPlanExpandable;
 /** @type {typeof import("../tests/comment-editor-entry").mountCommentEditor | undefined} */
 let mountCommentEditor;
@@ -93,6 +95,9 @@ before(async () => {
   ));
   ({ default: ArtefactSignoffButton } = await vite.ssrLoadModule(
     "/src/lib/components/artefact/ArtefactSignoffButton.svelte",
+  ));
+  ({ default: ApprovalAuthor } = await vite.ssrLoadModule(
+    "/src/lib/components/artefact/ApprovalAuthor.svelte",
   ));
   ({ default: TestPlanExpandable } = await vite.ssrLoadModule(
     "/src/lib/components/artefact/TestPlanExpandable.svelte",
@@ -815,6 +820,109 @@ async function initializeStore() {
   await store.init(1);
   return store;
 }
+
+void test("approval author display distinguishes actors and unavailable history", () => {
+  if (!render || !ApprovalAuthor) throw new Error("Component was not loaded");
+  const renderComponent = render;
+  const component = ApprovalAuthor;
+  /**
+   * @param {import("../src/lib/types").ArtefactStatus} status
+   * @param {import("../src/lib/types/openapi").ApprovalAuthorResponse | null | undefined} author
+   */
+  const body = (status, author) =>
+    renderComponent(component, { props: { status, author } }).body;
+  assert.match(
+    body("APPROVED", { kind: "user", name: "Alice" }),
+    /Approved by Alice/,
+  );
+  assert.match(
+    body("APPROVED", { kind: "application", name: "CI" }),
+    /Approved by CI \(application\)/,
+  );
+  assert.match(body("APPROVED", null), /Approval author unavailable/);
+  assert.match(body("APPROVED", undefined), /Loading approval author/);
+  assert.doesNotMatch(
+    body("UNDECIDED", { kind: "user", name: "Alice" }),
+    /Alice/,
+  );
+});
+
+void test("approval author refreshes after status changes and ignores stale pages", async () => {
+  if (!ArtefactPageStore) throw new Error("Store module was not loaded");
+  const pending = deferred();
+  const pendingPage = deferred();
+  const originalFetch = globalThis.fetch;
+  let approvalRequests = 0;
+  globalThis.fetch = (url, options = {}) => {
+    const requestUrl =
+      typeof url === "string"
+        ? url
+        : url instanceof Request
+          ? url.url
+          : url.toString();
+    const path = new URL(requestUrl).pathname;
+    if (path.endsWith("/audit/artefacts/1/approval")) {
+      approvalRequests++;
+      if (approvalRequests === 1) return pending.promise;
+      if (approvalRequests === 3) return pendingPage.promise;
+      return Promise.resolve(jsonResponse({ kind: "user", name: "Bob" }));
+    }
+    if (path.endsWith("/artefacts/1") && options.method === "PATCH") {
+      return Promise.resolve(jsonResponse({ id: 1, status: "APPROVED" }));
+    }
+    if (path.endsWith("/artefacts/1")) {
+      return Promise.resolve(jsonResponse({ id: 1, status: "APPROVED" }));
+    }
+    if (path.endsWith("/artefacts/2")) {
+      return Promise.resolve(jsonResponse({ id: 2, status: "UNDECIDED" }));
+    }
+    return Promise.resolve(jsonResponse([]));
+  };
+  try {
+    const store = new ArtefactPageStore();
+    await store.init(1);
+    await store.updateArtefactStatus(1, "APPROVED");
+    assert.equal(store.approvalAuthor?.name, "Bob");
+    pending.resolve(jsonResponse({ kind: "user", name: "Alice" }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(store.approvalAuthor.name, "Bob");
+    await store.init(1);
+    await store.init(2);
+    pendingPage.resolve(jsonResponse({ kind: "user", name: "Alice" }));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(store.approvalAuthor, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+void test("approval author lookup failure leaves the artefact visible", async () => {
+  if (!ArtefactPageStore) throw new Error("Store module was not loaded");
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (url) => {
+    const requestUrl =
+      typeof url === "string"
+        ? url
+        : url instanceof Request
+          ? url.url
+          : url.toString();
+    const path = new URL(requestUrl).pathname;
+    if (path.endsWith("/approval"))
+      return Promise.resolve(new Response("", { status: 503 }));
+    if (path.endsWith("/artefacts/1"))
+      return Promise.resolve(jsonResponse({ id: 1, status: "APPROVED" }));
+    return Promise.resolve(jsonResponse([]));
+  };
+  try {
+    const store = new ArtefactPageStore();
+    await store.init(1);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(store.artefact?.id, 1);
+    assert.equal(store.approvalAuthor, null);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 
 /**
  * @param {{
