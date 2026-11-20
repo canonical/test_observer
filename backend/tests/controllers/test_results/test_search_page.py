@@ -257,6 +257,66 @@ def test_search_page_response_is_compact_and_does_not_select_detail_fields(
     assert "comment" not in page_statement
 
 
+def test_search_page_details_endpoint_requires_permission_and_valid_ids(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    result = _create_test_result(generator)
+    endpoint = f"{SEARCH_PAGE_ENDPOINT}/{result.id}"
+
+    assert test_client.get(endpoint).status_code == 403
+    with override_permissions():
+        assert test_client.get(endpoint).status_code == 403
+    with override_permissions(Permission.view_test):
+        assert test_client.get(endpoint).status_code == 200
+        assert test_client.get(f"{SEARCH_PAGE_ENDPOINT}/0").status_code == 422
+        assert test_client.get(f"{SEARCH_PAGE_ENDPOINT}/999999999").status_code == 404
+
+
+def test_search_page_details_are_lazy_and_return_only_modal_data(
+    test_client: TestClient,
+    db_session: Session,
+    generator: DataGenerator,
+):
+    result, issue_id, _reviewer_id, _unique = _create_advanced_search_result(generator)
+    io_log = "<script>globalThis.pwned = true</script>\n" + "x" * 100_000
+    result.io_log = io_log
+    db_session.flush()
+
+    with override_permissions(Permission.view_test):
+        table_response = test_client.get(SEARCH_PAGE_ENDPOINT)
+        details_response = test_client.get(f"{SEARCH_PAGE_ENDPOINT}/{result.id}")
+
+    assert table_response.status_code == 200
+    table_body = table_response.json()
+    row = next(row for row in table_body["test_results"] if row["test_result"]["id"] == result.id)
+    assert set(row["test_result"]) == {"id", "created_at", "name", "category", "status"}
+    assert "io_log" not in table_response.text
+    assert "comment" not in table_response.text
+    assert io_log not in table_response.text
+
+    assert details_response.status_code == 200
+    body = details_response.json()
+    assert set(body) == {"test_result", "test_execution", "artefact", "artefact_build"}
+    assert set(body["test_result"]) == {
+        "id",
+        "name",
+        "category",
+        "template_id",
+        "status",
+        "io_log",
+        "issues",
+    }
+    assert body["test_result"]["io_log"] == io_log
+    assert body["test_execution"]["execution_metadata"] == {
+        "device:🌱": ["arm64, revision: 1"],
+    }
+    issue = body["test_result"]["issues"][0]["issue"]
+    assert issue["id"] == issue_id
+    assert set(issue) == {"id", "source", "project", "key", "title", "status", "url"}
+    assert "attachment_rule" not in body["test_result"]["issues"][0]
+
+
 def test_search_page_count_is_zero_for_empty_result_set(test_client: TestClient):
     with override_permissions(Permission.view_test):
         response = test_client.get(SEARCH_PAGE_ENDPOINT)
@@ -811,3 +871,18 @@ def test_search_page_openapi_documents_all_advanced_query_parameters(test_client
     assert advanced <= parameters.keys()
     assert "empty stage" in parameters["artefact_stages"]["description"]
     assert "Base64 UTF-8" in parameters["execution_metadata"]["description"]
+
+
+def test_search_page_openapi_documents_lazy_details_endpoint(test_client: TestClient):
+    response = test_client.get("/openapi.json")
+    assert response.status_code == 200
+    openapi = response.json()
+    path = f"{SEARCH_PAGE_ENDPOINT}/{{test_result_id}}"
+    operation = openapi["paths"][path]["get"]
+    path_parameter = next(parameter for parameter in operation["parameters"] if parameter["in"] == "path")
+    assert path_parameter["name"] == "test_result_id"
+    assert path_parameter["schema"]["exclusiveMinimum"] == 0
+    assert (
+        operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+        == "#/components/schemas/SearchPageDetailsResponse"
+    )

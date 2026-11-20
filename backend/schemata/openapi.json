@@ -4636,6 +4636,53 @@
         ]
       }
     },
+    "/v1/test-results/search-page/{test_result_id}": {
+      "get": {
+        "tags": [
+          "test-results"
+        ],
+        "summary": "Get Search Page Result Details",
+        "description": "Load the Search Details payload on demand for one result.",
+        "operationId": "get_search_page_result_details_v1_test_results_search_page__test_result_id__get",
+        "parameters": [
+          {
+            "name": "test_result_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "title": "Test Result Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchPageDetailsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "x-permissions": [
+          "view_test"
+        ]
+      }
+    },
     "/v1/execution-metadata": {
       "get": {
         "tags": [
@@ -9497,6 +9544,212 @@
           "architecture"
         ],
         "title": "SearchPageArtefactBuild"
+      },
+      "SearchPageDetailsArtefact": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "family": {
+            "$ref": "#/components/schemas/FamilyName"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "version",
+          "track",
+          "family"
+        ],
+        "title": "SearchPageDetailsArtefact"
+      },
+      "SearchPageDetailsArtefactBuild": {
+        "properties": {
+          "architecture": {
+            "type": "string",
+            "title": "Architecture"
+          }
+        },
+        "type": "object",
+        "required": [
+          "architecture"
+        ],
+        "title": "SearchPageDetailsArtefactBuild"
+      },
+      "SearchPageDetailsIssue": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "source": {
+            "$ref": "#/components/schemas/IssueSource"
+          },
+          "project": {
+            "type": "string",
+            "title": "Project"
+          },
+          "key": {
+            "type": "string",
+            "title": "Key"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "status": {
+            "$ref": "#/components/schemas/IssueStatus"
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2083,
+            "minLength": 1,
+            "format": "uri",
+            "title": "Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "source",
+          "project",
+          "key",
+          "title",
+          "status",
+          "url"
+        ],
+        "title": "SearchPageDetailsIssue"
+      },
+      "SearchPageDetailsIssueAttachment": {
+        "properties": {
+          "issue": {
+            "$ref": "#/components/schemas/SearchPageDetailsIssue"
+          }
+        },
+        "type": "object",
+        "required": [
+          "issue"
+        ],
+        "title": "SearchPageDetailsIssueAttachment"
+      },
+      "SearchPageDetailsResponse": {
+        "properties": {
+          "test_result": {
+            "$ref": "#/components/schemas/SearchPageDetailsTestResult"
+          },
+          "test_execution": {
+            "$ref": "#/components/schemas/SearchPageDetailsTestExecution"
+          },
+          "artefact": {
+            "$ref": "#/components/schemas/SearchPageDetailsArtefact"
+          },
+          "artefact_build": {
+            "$ref": "#/components/schemas/SearchPageDetailsArtefactBuild"
+          }
+        },
+        "type": "object",
+        "required": [
+          "test_result",
+          "test_execution",
+          "artefact",
+          "artefact_build"
+        ],
+        "title": "SearchPageDetailsResponse"
+      },
+      "SearchPageDetailsTestExecution": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TestExecutionStatus"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/SearchPageEnvironment"
+          },
+          "test_plan": {
+            "type": "string",
+            "title": "Test Plan"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "execution_metadata": {
+            "$ref": "#/components/schemas/ExecutionMetadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "environment",
+          "test_plan",
+          "created_at",
+          "execution_metadata"
+        ],
+        "title": "SearchPageDetailsTestExecution"
+      },
+      "SearchPageDetailsTestResult": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "template_id": {
+            "type": "string",
+            "title": "Template Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TestResultStatus"
+          },
+          "io_log": {
+            "type": "string",
+            "title": "Io Log"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/SearchPageDetailsIssueAttachment"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "category",
+          "template_id",
+          "status",
+          "io_log",
+          "issues"
+        ],
+        "title": "SearchPageDetailsTestResult"
       },
       "SearchPageEnvironment": {
         "properties": {
