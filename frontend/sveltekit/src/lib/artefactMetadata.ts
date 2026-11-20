@@ -41,10 +41,10 @@ export const ARTEFACT_COLUMNS: ColumnSpec[] = [
   { label: "Reviews", key: "reviewsRemaining", format: "reviewsRemaining" },
   { label: "Status", key: "status", field: "status", format: "status" },
   { label: "Reviewers", key: "reviewers", format: "reviewers" },
-  { label: "Bug link", key: "bugLink", field: "bug_link" },
-  { label: "Jira issue", key: "jiraIssue", field: "jira_issue" },
-  { label: "Comment", key: "comment", field: "comment" },
-  { label: "Archived", key: "archived", field: "archived" },
+  { label: "Bug link", key: "bugLink", field: "bug_link", hidden: true },
+  { label: "Jira issue", key: "jiraIssue", field: "jira_issue", hidden: true },
+  { label: "Comment", key: "comment", field: "comment", hidden: true },
+  { label: "Archived", key: "archived", field: "archived", hidden: true },
 ];
 
 function fieldValue(a: Artefact, field?: string): string {

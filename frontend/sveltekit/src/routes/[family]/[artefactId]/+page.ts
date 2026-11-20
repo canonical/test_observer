@@ -9,6 +9,9 @@ import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ parent, params }) => {
   const { artefactFamilies } = await parent();
+  if (artefactFamilies === null) {
+    error(503, "Unable to load artefact families");
+  }
   const family = findFamilyByRouteName(artefactFamilies, params.family);
 
   if (!family) {
