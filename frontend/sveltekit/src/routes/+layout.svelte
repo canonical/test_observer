@@ -82,7 +82,7 @@
       <SideNavigation.ExpandToggle {...toggleProps} onclick={() => (expanded = !expanded)} />
     {/snippet}
 
-    {#each data.artefactFamilies as family (family.name)}
+    {#each data.artefactFamilies ?? [] as family (family.name)}
       <SideNavigation.NavigationItem href={resolve(familyRouteName(family))} selected={pathname.startsWith(resolve(familyRouteName(family)))}>
         {familyNavLabel(family)}
       </SideNavigation.NavigationItem>
