@@ -14,6 +14,7 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import base64
 from datetime import UTC, datetime
 from uuid import uuid4
 
@@ -25,8 +26,8 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.config import MAX_RESULT_PAGE_LIMIT
 from test_observer.common.enums import Permission
-from test_observer.data_access.models import Environment, TestCase, TestResult
-from test_observer.data_access.models_enums import FamilyName, TestResultStatus
+from test_observer.data_access.models import Environment, IssueTestResultAttachment, TestCase, TestResult
+from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus, TestResultStatus
 from tests.conftest import override_permissions
 from tests.data_generator import DataGenerator
 
@@ -527,3 +528,286 @@ def test_search_page_filtered_count_matches_offsets_and_stable_order(
     assert [len(page["test_results"]) for page in pages] == [2, 2, 1]
     returned_ids = [row["test_result"]["id"] for page in pages for row in page["test_results"]]
     assert returned_ids == sorted((result.id for result in results), reverse=True)
+
+
+def _encoded_metadata_part(value: str) -> str:
+    return base64.b64encode(value.encode("utf-8")).decode("ascii")
+
+
+def _create_advanced_search_result(generator: DataGenerator) -> tuple[TestResult, int, int, str]:
+    unique = uuid4().hex
+    user = generator.gen_user()
+    artefact = generator.gen_artefact(
+        name=f"advanced-search-artefact-{unique}",
+        stage="",
+        archived=True,
+        reviewers=[user],
+    )
+    build = generator.gen_artefact_build(artefact, architecture="amd64")
+    environment = generator.gen_environment(name=f"advanced-search-env-{unique}")
+    plan = f"advanced-search-plan-{unique}"
+    test_case = generator.gen_test_case(name=f"advanced-search-case-{unique}", template_id=f"template-{unique}")
+    execution = generator.gen_test_execution(
+        build,
+        environment,
+        test_plan=plan,
+        status=TestExecutionStatus.PASSED,
+        execution_metadata={"device:🌱": ["arm64, revision: 1"]},
+    )
+    result = generator.gen_test_result(test_case, execution)
+    issue = generator.gen_issue(key=f"advanced-{unique}")
+    generator.db_session.add(IssueTestResultAttachment(issue=issue, test_result=result))
+    generator.gen_rerun_request(execution)
+    newer_execution = generator.gen_test_execution(
+        build,
+        environment,
+        test_plan=plan,
+        status=TestExecutionStatus.FAILED,
+    )
+    generator.gen_test_result(test_case, newer_execution)
+    generator.db_session.flush()
+    return result, issue.id, user.id, unique
+
+
+def test_search_page_supports_all_advanced_filters_and_empty_stage(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    result, issue_id, reviewer_id, unique = _create_advanced_search_result(generator)
+    metadata = f"{_encoded_metadata_part('device:🌱')}:{_encoded_metadata_part('arm64, revision: 1')}"
+    params = [
+        ("artefact_stages", ""),
+        ("artefact_is_archived", "true"),
+        ("test_execution_statuses", "PASSED"),
+        ("rerun_is_requested", "true"),
+        ("execution_is_latest", "false"),
+        ("template_ids", f"template-{unique}"),
+        ("issues", str(issue_id)),
+        ("reviewer_ids", str(reviewer_id)),
+        ("execution_metadata", metadata),
+    ]
+
+    with override_permissions(Permission.view_test):
+        response = test_client.get(SEARCH_PAGE_ENDPOINT, params=params)
+        without_empty_stage = test_client.get(
+            SEARCH_PAGE_ENDPOINT,
+            params=[(key, value) for key, value in params if key != "artefact_stages"],
+        )
+
+    assert response.status_code == 200
+    assert response.json()["count"] == 1
+    assert [row["test_result"]["id"] for row in response.json()["test_results"]] == [result.id]
+    assert without_empty_stage.status_code == 200
+    assert without_empty_stage.json()["count"] == 1
+
+
+def test_search_page_empty_stage_is_distinct_from_omitted_filter(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    empty_stage = _create_advanced_search_result(generator)[0]
+    nonempty_stage = _create_search_result(generator, name=f"stage-not-empty-{uuid4().hex}")
+
+    with override_permissions(Permission.view_test):
+        omitted = test_client.get(SEARCH_PAGE_ENDPOINT)
+        explicit_empty = test_client.get(SEARCH_PAGE_ENDPOINT, params=[("artefact_stages", "")])
+
+    assert omitted.status_code == explicit_empty.status_code == 200
+    assert omitted.json()["count"] == 3
+    assert explicit_empty.json()["count"] == 2
+    assert empty_stage.id in {row["test_result"]["id"] for row in explicit_empty.json()["test_results"]}
+    assert nonempty_stage.id not in {row["test_result"]["id"] for row in explicit_empty.json()["test_results"]}
+
+
+def test_search_page_id_filters_support_positive_any_none_and_exclusive_sentinels(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    target, issue_id, reviewer_id, _ = _create_advanced_search_result(generator)
+    no_attachment = _create_search_result(generator, name=f"no-issue-{uuid4().hex}")
+    no_reviewer = _create_search_result(generator, name=f"no-reviewer-{uuid4().hex}")
+
+    with override_permissions(Permission.view_test):
+        issue_positive = test_client.get(SEARCH_PAGE_ENDPOINT, params={"issues": str(issue_id)})
+        issue_any = test_client.get(SEARCH_PAGE_ENDPOINT, params={"issues": "any"})
+        issue_none = test_client.get(SEARCH_PAGE_ENDPOINT, params={"issues": "none"})
+        reviewer_positive = test_client.get(SEARCH_PAGE_ENDPOINT, params={"reviewer_ids": str(reviewer_id)})
+        reviewer_any = test_client.get(SEARCH_PAGE_ENDPOINT, params={"reviewer_ids": "any"})
+        reviewer_none = test_client.get(SEARCH_PAGE_ENDPOINT, params={"reviewer_ids": "none"})
+        alias = test_client.get(SEARCH_PAGE_ENDPOINT, params={"assignee_ids": str(reviewer_id)})
+
+    assert issue_positive.json()["count"] == 1
+    assert [row["test_result"]["id"] for row in issue_positive.json()["test_results"]] == [target.id]
+    assert issue_any.json()["count"] == 1
+    assert issue_none.json()["count"] == 3
+    assert reviewer_positive.json()["count"] == 2
+    assert reviewer_any.json()["count"] == 2
+    assert reviewer_none.json()["count"] == 2
+    assert no_attachment.id in {row["test_result"]["id"] for row in issue_none.json()["test_results"]}
+    assert no_reviewer.id in {row["test_result"]["id"] for row in reviewer_none.json()["test_results"]}
+    assert alias.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        [("issues", "0")],
+        [("issues", "-1")],
+        [("issues", "9007199254740992")],
+        [("reviewer_ids", "2147483648")],
+        [("issues", "any"), ("issues", "1")],
+        [("issues", "any"), ("issues", "none")],
+        [("reviewer_ids", "none"), ("reviewer_ids", "2")],
+    ],
+)
+def test_search_page_rejects_malformed_id_filter_values(
+    test_client: TestClient,
+    params: list[tuple[str, str]],
+):
+    with override_permissions(Permission.view_test):
+        response = test_client.get(SEARCH_PAGE_ENDPOINT, params=params)
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        [("artefact_is_archived", "TRUE")],
+        [("rerun_is_requested", "1")],
+        [("execution_is_latest", "yes")],
+        [("artefact_is_archived", "true"), ("artefact_is_archived", "false")],
+    ],
+)
+def test_search_page_rejects_noncanonical_or_duplicate_boolean_filters(
+    test_client: TestClient,
+    params: list[tuple[str, str]],
+):
+    with override_permissions(Permission.view_test):
+        response = test_client.get(SEARCH_PAGE_ENDPOINT, params=params)
+    assert response.status_code == 422
+
+
+def test_search_page_boolean_false_values_are_applied(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    _create_search_result(generator, name=f"unarchived-{uuid4().hex}")
+    _create_advanced_search_result(generator)
+    with override_permissions(Permission.view_test):
+        response = test_client.get(
+            SEARCH_PAGE_ENDPOINT,
+            params={"artefact_is_archived": "false", "rerun_is_requested": "false"},
+        )
+    assert response.status_code == 200
+    assert response.json()["count"] == 1
+
+
+def test_search_page_execution_metadata_values_are_or_within_category_and_and_across_categories(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    matched_ids: set[int] = set()
+    for device, os_name in (("arm64", "ubuntu"), ("x86_64", "ubuntu")):
+        artefact = generator.gen_artefact(name=f"metadata-{uuid4().hex}")
+        build = generator.gen_artefact_build(artefact)
+        environment = generator.gen_environment(name=f"metadata-env-{uuid4().hex}")
+        execution = generator.gen_test_execution(
+            build,
+            environment,
+            execution_metadata={"device": [device], "os": [os_name]},
+        )
+        case = generator.gen_test_case(name=f"metadata-case-{uuid4().hex}")
+        matched_ids.add(generator.gen_test_result(case, execution).id)
+    artefact = generator.gen_artefact(name=f"metadata-excluded-{uuid4().hex}")
+    build = generator.gen_artefact_build(artefact)
+    environment = generator.gen_environment(name=f"metadata-env-{uuid4().hex}")
+    execution = generator.gen_test_execution(
+        build,
+        environment,
+        execution_metadata={"device": ["arm64"], "os": ["debian"]},
+    )
+    generator.gen_test_result(generator.gen_test_case(name=f"metadata-case-{uuid4().hex}"), execution)
+
+    pairs = [
+        f"{_encoded_metadata_part('device')}:{_encoded_metadata_part('arm64')}",
+        f"{_encoded_metadata_part('device')}:{_encoded_metadata_part('x86_64')}",
+        f"{_encoded_metadata_part('os')}:{_encoded_metadata_part('ubuntu')}",
+    ]
+    with override_permissions(Permission.view_test):
+        response = test_client.get(SEARCH_PAGE_ENDPOINT, params=[("execution_metadata", item) for item in pairs])
+    assert response.status_code == 200
+    assert response.json()["count"] == 2
+    assert {row["test_result"]["id"] for row in response.json()["test_results"]} == matched_ids
+
+
+@pytest.mark.parametrize(
+    "pair",
+    [
+        "not-base64",
+        "e30=",
+        ":",
+        f"{_encoded_metadata_part('')}:eA==",
+        f"{_encoded_metadata_part('category')}:",
+        f"{_encoded_metadata_part('category')}:{_encoded_metadata_part('é' * 201)}",
+        "//46:eA==",  # valid Base64 bytes, but not UTF-8
+    ],
+)
+def test_search_page_rejects_malformed_metadata_pairs(test_client: TestClient, pair: str):
+    with override_permissions(Permission.view_test):
+        response = test_client.get(SEARCH_PAGE_ENDPOINT, params={"execution_metadata": pair})
+    assert response.status_code == 422
+
+
+def test_search_page_advanced_filtered_count_offsets_and_order_are_stable(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    timestamp = datetime(2026, 4, 1, 12, 0, tzinfo=UTC)
+    results = []
+    for index in range(5):
+        environment = generator.gen_environment(name=f"advanced-page-env-{uuid4().hex}")
+        artefact = generator.gen_artefact(name=f"advanced-page-{index}-{uuid4().hex}", stage="candidate")
+        build = generator.gen_artefact_build(artefact)
+        execution = generator.gen_test_execution(build, environment, status=TestExecutionStatus.PASSED)
+        result = generator.gen_test_result(generator.gen_test_case(name=f"advanced-page-case-{uuid4().hex}"), execution)
+        result.created_at = timestamp
+        results.append(result)
+    environment = generator.gen_environment(name=f"advanced-page-env-{uuid4().hex}")
+    artefact = generator.gen_artefact(name=f"advanced-page-excluded-{uuid4().hex}", stage="stable")
+    build = generator.gen_artefact_build(artefact)
+    execution = generator.gen_test_execution(build, environment, status=TestExecutionStatus.PASSED)
+    generator.gen_test_result(generator.gen_test_case(name=f"advanced-page-case-{uuid4().hex}"), execution)
+    generator.db_session.flush()
+
+    params = [("artefact_stages", "candidate"), ("test_execution_statuses", "PASSED"), ("limit", "2")]
+    with override_permissions(Permission.view_test):
+        pages = [
+            test_client.get(SEARCH_PAGE_ENDPOINT, params=[*params, ("offset", str(offset))]) for offset in (0, 2, 4)
+        ]
+    assert all(page.status_code == 200 for page in pages)
+    bodies = [page.json() for page in pages]
+    assert [body["count"] for body in bodies] == [5, 5, 5]
+    ids = [row["test_result"]["id"] for body in bodies for row in body["test_results"]]
+    assert ids == sorted((result.id for result in results), reverse=True)
+    assert [len(body["test_results"]) for body in bodies] == [2, 2, 1]
+
+
+def test_search_page_openapi_documents_all_advanced_query_parameters(test_client: TestClient):
+    response = test_client.get("/openapi.json")
+    assert response.status_code == 200
+    operation = response.json()["paths"][SEARCH_PAGE_ENDPOINT]["get"]
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    advanced = {
+        "artefact_stages",
+        "artefact_is_archived",
+        "test_execution_statuses",
+        "rerun_is_requested",
+        "execution_is_latest",
+        "template_ids",
+        "issues",
+        "reviewer_ids",
+        "execution_metadata",
+    }
+    assert advanced <= parameters.keys()
+    assert "empty stage" in parameters["artefact_stages"]["description"]
+    assert "Base64 UTF-8" in parameters["execution_metadata"]["description"]

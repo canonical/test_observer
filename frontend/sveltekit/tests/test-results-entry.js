@@ -44,8 +44,10 @@ export {
   searchFiltersEqual,
   serializeSearchFilters,
   validateSearchFilters,
+  encodeMetadataPart,
 } from "../src/lib/searchPageFilters.ts";
 export {
   extractApiFamilyNames,
   fetchApiFamilyNames,
 } from "../src/lib/apiFamilyNames.ts";
+export { load as loadTestResultsPage } from "../src/routes/test-results/+page.ts";
