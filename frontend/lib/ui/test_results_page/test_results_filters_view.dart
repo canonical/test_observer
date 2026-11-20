@@ -289,7 +289,8 @@ class _TestResultsFiltersViewState
                   loading: () => const Text('Loading families...'),
                   error: (error, stackTrace) => Text(
                     'Could not load families',
-                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error),
                   ),
                 ),
               ],
