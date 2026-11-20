@@ -64,7 +64,9 @@ void main() {
 
     pending.completeError(StateError('unavailable'));
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
     expect(find.text('Could not load families'), findsOneWidget);
+    expect(find.text('No families available'), findsNothing);
     expect(find.text('alpha'), findsOneWidget);
 
     pending = Completer<List<Family>>();

@@ -239,7 +239,7 @@ class _TestResultsFiltersViewState
   @override
   Widget build(BuildContext context) {
     final familiesState = ref.watch(familiesProvider);
-    final families = familiesState.value ?? [];
+    final families = familiesState.valueOrNull ?? [];
     final familyNames = families.map((family) => family.name).toSet();
     final allFamilyOptions = families.map((family) => family.name).toList();
     final allTestResultStatusesOptions =
