@@ -4182,7 +4182,7 @@
           "test-results"
         ],
         "summary": "Get Test Results Search Page",
-        "description": "Return a bounded, server-filtered page of compact results, newest first.\n\nRepeated list values are exact-match ORs; distinct filters are ANDed.\n``count`` is exact and independent of the requested page. It is null when\n``include_count`` is false. Unsupported query keys and invalid date ranges\nare rejected instead of being silently ignored.",
+        "description": "Return a bounded, server-filtered page of compact results, newest first.\n\nRepeated list values are exact-match ORs; distinct filters are ANDed. An explicit empty\n``artefact_stages=`` matches an empty stage. Issue and reviewer filters accept positive IDs\nor a sole ``any``/``none`` sentinel. Execution metadata uses repeated Base64 UTF-8\n``category:value`` pairs, ORed within each category and ANDed across categories. Optional\nbooleans use canonical lowercase ``true``/``false``. ``count`` is exact and independent of\nthe requested page. It is null when ``include_count`` is false. Unsupported query keys and\ninvalid date ranges are rejected instead of being silently ignored.",
         "operationId": "get_test_results_search_page_v1_test_results_search_page_get",
         "parameters": [
           {
@@ -4309,6 +4309,27 @@
             "description": "Exact artefact versions; repeat for OR"
           },
           {
+            "name": "artefact_stages",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact artefact stages; repeat for OR; an empty value matches an empty stage",
+              "title": "Artefact Stages"
+            },
+            "description": "Exact artefact stages; repeat for OR; an empty value matches an empty stage"
+          },
+          {
             "name": "artefact_tracks",
             "in": "query",
             "required": false,
@@ -4328,6 +4349,24 @@
               "title": "Artefact Tracks"
             },
             "description": "Exact artefact tracks; repeat for OR"
+          },
+          {
+            "name": "artefact_is_archived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether the artefact is archived; use lowercase true or false",
+              "title": "Artefact Is Archived"
+            },
+            "description": "Filter by whether the artefact is archived; use lowercase true or false"
           },
           {
             "name": "environments",
@@ -4391,6 +4430,147 @@
               "title": "Test Plans"
             },
             "description": "Exact test plan names; repeat for OR"
+          },
+          {
+            "name": "test_execution_statuses",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TestExecutionStatus"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact execution status values; repeat for OR",
+              "title": "Test Execution Statuses"
+            },
+            "description": "Exact execution status values; repeat for OR"
+          },
+          {
+            "name": "rerun_is_requested",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by whether a rerun is requested for the execution group",
+              "title": "Rerun Is Requested"
+            },
+            "description": "Filter by whether a rerun is requested for the execution group"
+          },
+          {
+            "name": "execution_is_latest",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter using the existing execution-group latest-ID semantics",
+              "title": "Execution Is Latest"
+            },
+            "description": "Filter using the existing execution-group latest-ID semantics"
+          },
+          {
+            "name": "template_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact test case template IDs; repeat for OR",
+              "title": "Template Ids"
+            },
+            "description": "Exact test case template IDs; repeat for OR"
+          },
+          {
+            "name": "issues",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Positive issue IDs (repeat for OR), or a sole any/none attachment sentinel",
+              "title": "Issues"
+            },
+            "description": "Positive issue IDs (repeat for OR), or a sole any/none attachment sentinel"
+          },
+          {
+            "name": "reviewer_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Positive reviewer IDs (repeat for OR), or a sole any/none sentinel",
+              "title": "Reviewer Ids"
+            },
+            "description": "Positive reviewer IDs (repeat for OR), or a sole any/none sentinel"
+          },
+          {
+            "name": "execution_metadata",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Base64 UTF-8 category:value pairs; repeat for OR within a category",
+              "title": "Execution Metadata"
+            },
+            "description": "Base64 UTF-8 category:value pairs; repeat for OR within a category"
           },
           {
             "name": "from_date",

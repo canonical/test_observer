@@ -18,10 +18,11 @@
 
 <script lang="ts">
   import type { PageProps } from "./$types";
-  import { onDestroy, untrack } from "svelte";
+  import { onDestroy, tick, untrack } from "svelte";
   import { page } from "$app/state";
   import { SvelteURL } from "svelte/reactivity";
   import { goto } from "$app/navigation";
+  import { SidePanel } from "@canonical/svelte-ds-app-launchpad";
   import {
     SvGrid,
     attachAutoSavedView,
@@ -30,6 +31,8 @@
     type SvGridApi,
   } from "@svgrid/grid";
   import { silentApi } from "$lib/api/client";
+  import SearchSuggestionPicker from "$lib/components/SearchSuggestionPicker.svelte";
+  import SearchMetadataEditor from "$lib/components/SearchMetadataEditor.svelte";
   import { createTrackColumnWidthActions } from "$lib/components/dashboard/trackColumnWidthActions";
   import {
     AUTOSAVE_SLOT,
@@ -154,7 +157,20 @@
   let requestUrlState = $state<string | null>(null);
   let requestGeneration = 0;
 
-  type DraftKey = SearchFilterListKey | "from_date" | "until_date";
+  type DraftKey =
+    | "families"
+    | "test_result_statuses"
+    | "artefacts"
+    | "artefact_versions"
+    | "artefact_tracks"
+    | "environments"
+    | "test_cases"
+    | "test_plans"
+    | "template_ids"
+    | "from_date"
+    | "until_date";
+  type TextListKey = Extract<DraftKey, SearchFilterListKey>;
+
   function draftTextFor(filters: SearchFilters): Record<DraftKey, string> {
     return {
       families: formatSearchFilterText(filters.families),
@@ -167,12 +183,13 @@
       environments: formatSearchFilterText(filters.environments),
       test_cases: formatSearchFilterText(filters.test_cases),
       test_plans: formatSearchFilterText(filters.test_plans),
+      template_ids: formatSearchFilterText(filters.template_ids),
       from_date: filters.from_date ?? "",
       until_date: filters.until_date ?? "",
     };
   }
 
-  const filterFields: { key: SearchFilterListKey; label: string }[] = [
+  const filterFields: { key: TextListKey; label: string }[] = [
     { key: "families", label: "Family" },
     { key: "test_result_statuses", label: "Result status" },
     { key: "artefacts", label: "Artefact" },
@@ -181,13 +198,28 @@
     { key: "environments", label: "Environment" },
     { key: "test_cases", label: "Test case" },
     { key: "test_plans", label: "Test plan" },
+    { key: "template_ids", label: "Template ID" },
   ];
+  const commonFilterFields = filterFields.filter(
+    ({ key }) => key !== "template_ids",
+  );
+  const advancedTextFields = filterFields.filter(
+    ({ key }) => key === "template_ids",
+  );
+  let draftAdvanced = $state<SearchFilters>(emptySearchFilters());
+  let stageEntryText = $state("");
   let draftValues = $state<Record<DraftKey, string>>(
     draftTextFor(emptySearchFilters()),
   );
   let draftFilterKey = $state<string | null>(null);
   let editedDraftKeys = $state<string[]>([]);
   let clearAllRequested = $state(false);
+  let filterDrawerOpen = $state(false);
+  let filterDrawerTrigger: HTMLButtonElement | null = null;
+  let filterDrawerBody: HTMLDivElement | null = null;
+  let filterDrawerFocusGeneration = 0;
+  const filterDrawerId = "test-result-filter-drawer";
+  const filterDrawerTitleId = "test-result-filter-title";
 
   const pageState = $derived(parseSearchPageState(page.url.searchParams));
   const filterState = $derived(
@@ -198,16 +230,53 @@
   );
   const appliedFilters = $derived(filterState.filters);
   const draftFilters = $derived.by(() => {
-    const filters = emptySearchFilters();
+    const filters = { ...draftAdvanced };
     for (const { key } of filterFields) {
-      filters[key] = splitSearchFilterText(draftValues[key]);
+      filters[key] = splitSearchFilterText(
+        draftValues[key],
+      ) as SearchFilters[typeof key];
     }
     filters.from_date = draftValues.from_date.trim() || null;
     filters.until_date = draftValues.until_date.trim() || null;
     return filters;
   });
+  const stageOptions = $derived(
+    [
+      ...new Set([
+        "",
+        ...data.artefactFamilies.flatMap((family) => family.stages),
+        ...draftAdvanced.artefact_stages,
+      ]),
+    ].sort((left, right) => left.localeCompare(right)),
+  );
+  const executionStatuses = [
+    "NOT_STARTED",
+    "NOT_TESTED",
+    "IN_PROGRESS",
+    "ENDED_PREMATURELY",
+    "FAILED",
+    "PASSED",
+  ] as const;
+  const issueIds = $derived(
+    Array.isArray(draftAdvanced.issues) ? draftAdvanced.issues : [],
+  );
+  const reviewerIds = $derived(
+    Array.isArray(draftAdvanced.reviewer_ids) ? draftAdvanced.reviewer_ids : [],
+  );
   const draftProblems = $derived.by(() => {
-    const problems = validateSearchFilters(draftFilters);
+    const problems = validateSearchFilters(
+      draftFilters,
+      data.familyNamesError ? undefined : data.apiFamilyNames,
+    );
+    if (
+      !clearAllRequested &&
+      data.familyNamesError &&
+      draftFilters.families.some((value) => value.trim() !== "")
+    ) {
+      problems.push(
+        "Could not validate family values against the API family list. No request was sent.",
+      );
+    }
     if (clearAllRequested) return problems;
     for (const problem of filterState.problems) {
       if (problem.startsWith("Unsupported search parameter:")) continue;
@@ -345,6 +414,8 @@
     untrack(() => {
       draftFilterKey = key;
       draftValues = draftTextFor(parsed.filters);
+      draftAdvanced = parsed.filters;
+      stageEntryText = "";
       editedDraftKeys = [];
       clearAllRequested = false;
     });
@@ -477,19 +548,130 @@
     retryGeneration += 1;
   }
 
-  function editDraft(key: DraftKey) {
-    clearAllRequested = false;
+  function editDraft(
+    key:
+      | DraftKey
+      | "artefact_stages"
+      | "test_execution_statuses"
+      | "artefact_is_archived"
+      | "rerun_is_requested"
+      | "execution_is_latest"
+      | "issues"
+      | "reviewer_ids"
+      | "execution_metadata",
+  ) {
     if (!editedDraftKeys.includes(key))
       editedDraftKeys = [...editedDraftKeys, key];
   }
 
   function clearDrafts() {
-    draftValues = draftTextFor(emptySearchFilters());
+    const empty = emptySearchFilters();
+    draftValues = draftTextFor(empty);
+    draftAdvanced = empty;
+    stageEntryText = "";
     editedDraftKeys = [];
     clearAllRequested = true;
   }
 
-  function submitSearch(event: SubmitEvent) {
+  function addExactStage() {
+    if (stageEntryText.trim() === "") return;
+    toggleStage(stageEntryText, true);
+    stageEntryText = "";
+  }
+
+  function toggleStage(stage: string, checked: boolean) {
+    const values = draftAdvanced.artefact_stages;
+    draftAdvanced.artefact_stages = checked
+      ? [...new Set([...values, stage])]
+      : values.filter((value) => value !== stage);
+    editDraft("artefact_stages");
+  }
+
+  function toggleExecutionStatus(
+    status: (typeof executionStatuses)[number],
+    checked: boolean,
+  ) {
+    const values = draftAdvanced.test_execution_statuses;
+    draftAdvanced.test_execution_statuses = checked
+      ? [...new Set([...values, status])]
+      : values.filter((value) => value !== status);
+    editDraft("test_execution_statuses");
+  }
+
+  function setBooleanFilter(
+    key: "artefact_is_archived" | "rerun_is_requested" | "execution_is_latest",
+    value: string,
+  ) {
+    draftAdvanced[key] = value === "" ? null : value === "true";
+    editDraft(key);
+  }
+
+  function setIdMode(
+    key: "issues" | "reviewer_ids",
+    mode: "ids" | "any" | "none",
+  ) {
+    if (mode === "ids") draftAdvanced[key] = [];
+    else draftAdvanced[key] = mode;
+    editDraft(key);
+  }
+
+  function addIds(key: "issues" | "reviewer_ids", values: string[]) {
+    const existing = Array.isArray(draftAdvanced[key])
+      ? draftAdvanced[key]
+      : [];
+    draftAdvanced[key] = [...new Set([...existing, ...values.map(Number)])];
+    editDraft(key);
+  }
+
+  function removeId(key: "issues" | "reviewer_ids", id: number) {
+    const existing = Array.isArray(draftAdvanced[key])
+      ? draftAdvanced[key]
+      : [];
+    draftAdvanced[key] = existing.filter((value) => value !== id);
+    editDraft(key);
+  }
+
+  function addSuggestedValues(key: TextListKey, values: string[]) {
+    const current = splitSearchFilterText(draftValues[key]);
+    draftValues[key] = formatSearchFilterText([
+      ...new Set([...current, ...values]),
+    ]);
+    editDraft(key);
+  }
+
+  async function openFilterDrawer(event: MouseEvent) {
+    filterDrawerTrigger = event.currentTarget as HTMLButtonElement;
+    ++filterDrawerFocusGeneration;
+    filterDrawerOpen = true;
+    await tick();
+    if (!filterDrawerOpen) return;
+    filterDrawerBody
+      ?.querySelector<HTMLElement>("input, textarea, select, button")
+      ?.focus({ preventScroll: true });
+  }
+
+  function restoreFilterDrawerFocus() {
+    filterDrawerOpen = false;
+    const generation = ++filterDrawerFocusGeneration;
+    void tick().then(() => {
+      if (generation !== filterDrawerFocusGeneration || filterDrawerOpen)
+        return;
+      const trigger = filterDrawerTrigger?.isConnected
+        ? filterDrawerTrigger
+        : document.querySelector<HTMLButtonElement>(
+            `button[aria-controls="${filterDrawerId}"]`,
+          );
+      trigger?.focus({ preventScroll: true });
+    });
+  }
+
+  function handleFilterDrawerKeydown(event: KeyboardEvent) {
+    if (event.key !== "Escape" || !filterDrawerOpen) return;
+    event.preventDefault();
+    restoreFilterDrawerFocus();
+  }
+
+  async function submitSearch(event: SubmitEvent) {
     event.preventDefault();
     if (!canApplySearch) return;
     const target = new SvelteURL(page.url.href);
@@ -500,11 +682,15 @@
     navigationError = false;
     if (target.href === page.url.href) {
       retryGeneration += 1;
+      restoreFilterDrawerFocus();
       return;
     }
-    void goto(target).catch(() => {
+    try {
+      await goto(target);
+    } catch {
       navigationError = true;
-    });
+    }
+    restoreFilterDrawerFocus();
   }
 
   function canClearDrafts() {
@@ -520,82 +706,428 @@
 
 <section
   class="results-page"
+  class:filters-open={filterDrawerOpen}
   aria-labelledby="page-title"
   aria-busy={isLoading}
 >
   <h1 id="page-title" class="page-title">Search Results (WIP)</h1>
 
-  <form
-    class="filter-form"
-    aria-label="Test result search filters"
-    onsubmit={submitSearch}
+  <div class="filter-toolbar" role="group" aria-label="Test result filters">
+    <button
+      class="pager-button filters-toggle"
+      type="button"
+      aria-haspopup="dialog"
+      aria-controls={filterDrawerId}
+      aria-expanded={filterDrawerOpen}
+      onclick={openFilterDrawer}>Filters</button
+    >
+  </div>
+
+  <SidePanel
+    id={filterDrawerId}
+    class="search-filter-panel"
+    aria-labelledby={filterDrawerTitleId}
+    bind:open={filterDrawerOpen}
+    onclose={restoreFilterDrawerFocus}
+    onkeydown={handleFilterDrawerKeydown}
   >
-    <div class="filter-grid">
-      {#each filterFields as field (field.key)}
-        <label class="filter-control" for="filter-{field.key}">
-          {field.label}
-          <textarea
-            id="filter-{field.key}"
-            name={field.key}
-            autocomplete="off"
-            rows="2"
-            placeholder="Enter exact value(s), one per line"
-            bind:value={draftValues[field.key]}
-            oninput={() => editDraft(field.key)}></textarea>
-          <span
-            >Enter one exact value per line; values in this field are ORed. Use
-            \n and \r for line breaks within a value, and \\ for a literal
-            backslash.</span
-          >
-        </label>
-      {/each}
-      <label class="filter-control" for="filter-from-date">
-        Created from (UTC)
-        <input
-          id="filter-from-date"
-          name="from_date"
-          type="text"
-          autocomplete="off"
-          placeholder="2026-01-02T03:04:05Z"
-          bind:value={draftValues.from_date}
-          oninput={() => editDraft("from_date")}
-        />
-        <span>Inclusive ISO-8601 timestamp lower bound.</span>
-      </label>
-      <label class="filter-control" for="filter-until-date">
-        Created to (UTC)
-        <input
-          id="filter-until-date"
-          name="until_date"
-          type="text"
-          autocomplete="off"
-          placeholder="2026-01-02T03:04:05Z"
-          bind:value={draftValues.until_date}
-          oninput={() => editDraft("until_date")}
-        />
-        <span>Inclusive ISO-8601 timestamp upper bound.</span>
-      </label>
-    </div>
-    <div class="filter-actions">
-      <button
-        class="pager-button search-button"
-        type="submit"
-        disabled={!canApplySearch}>Search</button
-      >
-      {#if canClearDrafts()}
-        <button class="pager-button" type="button" onclick={clearDrafts}
-          >Clear all</button
+    {#snippet children(commandfor, close)}
+      <SidePanel.Content>
+        <form
+          class="filter-form"
+          aria-label="Test result search filters"
+          onsubmit={submitSearch}
         >
-      {/if}
-    </div>
-  </form>
+          <SidePanel.Content.Header>
+            <h2 id={filterDrawerTitleId}>Test result filters</h2>
+            <SidePanel.Content.Header.CloseButton
+              {commandfor}
+              command="close"
+              aria-label="Close filters"
+              onclick={restoreFilterDrawerFocus}
+            />
+          </SidePanel.Content.Header>
+          <div class="filter-panel-body" bind:this={filterDrawerBody}>
+            <p class="filter-guidance">
+              Draft changes apply only when you choose Search. Values within a
+              field are ORed; separate fields are combined. For multiline
+              values, use <code>\n</code> and <code>\r</code> for line breaks
+              and
+              <code>\\</code> for a literal backslash.
+            </p>
+            {#if draftProblems.length > 0}
+              <div
+                class="state-message error-message filter-draft-errors"
+                role="alert"
+              >
+                <h2>Invalid filter draft</h2>
+                <ul>
+                  {#each draftProblems as problem (problem)}<li>
+                      {problem}
+                    </li>{/each}
+                </ul>
+                <p>
+                  No request was sent. Correct the filter values before
+                  searching.
+                </p>
+              </div>
+            {/if}
+            <section
+              class="filter-section"
+              aria-labelledby="common-filters-title"
+            >
+              <h3 id="common-filters-title">Common filters</h3>
+              <div class="filter-grid">
+                {#each commonFilterFields as field (field.key)}
+                  <div class="filter-control">
+                    <label for="filter-{field.key}">{field.label}</label>
+                    <textarea
+                      id="filter-{field.key}"
+                      name={field.key}
+                      autocomplete="off"
+                      rows="2"
+                      placeholder="Exact value(s), one per line"
+                      bind:value={draftValues[field.key]}
+                      oninput={() => editDraft(field.key)}></textarea>
+                    {#if field.key === "artefacts" || field.key === "environments" || field.key === "test_cases" || field.key === "test_plans"}
+                      <SearchSuggestionPicker
+                        field={field.key}
+                        families={draftFilters.families}
+                        onselect={(values) =>
+                          addSuggestedValues(field.key, values)}
+                      />
+                    {/if}
+                  </div>
+                {/each}
+                <label class="filter-control" for="filter-from-date">
+                  Created from (UTC)
+                  <input
+                    id="filter-from-date"
+                    name="from_date"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="2026-01-02T03:04:05Z"
+                    bind:value={draftValues.from_date}
+                    oninput={() => editDraft("from_date")}
+                  />
+                </label>
+                <label class="filter-control" for="filter-until-date">
+                  Created to (UTC)
+                  <input
+                    id="filter-until-date"
+                    name="until_date"
+                    type="text"
+                    autocomplete="off"
+                    placeholder="2026-01-02T03:04:05Z"
+                    bind:value={draftValues.until_date}
+                    oninput={() => editDraft("until_date")}
+                  />
+                </label>
+              </div>
+              <p class="section-note">
+                Created date bounds are inclusive ISO-8601 timestamps.
+              </p>
+            </section>
+
+            <section
+              class="filter-section"
+              aria-labelledby="advanced-filters-title"
+            >
+              <h3 id="advanced-filters-title">Advanced filters</h3>
+              <div class="filter-grid">
+                {#each advancedTextFields as field (field.key)}
+                  <div class="filter-control">
+                    <label for="filter-{field.key}">{field.label}</label>
+                    <textarea
+                      id="filter-{field.key}"
+                      name={field.key}
+                      autocomplete="off"
+                      rows="2"
+                      placeholder="Exact value(s), one per line"
+                      bind:value={draftValues[field.key]}
+                      oninput={() => editDraft(field.key)}></textarea>
+                  </div>
+                {/each}
+                <fieldset class="filter-control advanced-control wide-control">
+                  <legend>Artefact stage</legend>
+                  <div class="choice-list">
+                    {#each stageOptions as stage (stage)}
+                      <label>
+                        <input
+                          type="checkbox"
+                          name="artefact_stages"
+                          value={stage}
+                          checked={draftAdvanced.artefact_stages.includes(
+                            stage,
+                          )}
+                          onchange={(event) =>
+                            toggleStage(stage, event.currentTarget.checked)}
+                        />
+                        {stage === "" ? "(none)" : stage}
+                        {#if stage !== "" && !data.artefactFamilies.some( (family) => family.stages.includes(stage) )}
+                          <span>(not configured)</span>
+                        {/if}
+                      </label>
+                    {/each}
+                  </div>
+                  <p class="section-note">
+                    (none) matches an explicitly empty stage. Add an exact stage
+                    to include values not in the configured choices.
+                  </p>
+                  <label for="filter-stage-entry">Exact stage</label>
+                  <div class="inline-entry">
+                    <input
+                      id="filter-stage-entry"
+                      autocomplete="off"
+                      bind:value={stageEntryText}
+                    />
+                    <button
+                      type="button"
+                      class="pager-button"
+                      onclick={addExactStage}
+                      disabled={!stageEntryText.trim()}>Add</button
+                    >
+                  </div>
+                </fieldset>
+                <fieldset class="filter-control advanced-control">
+                  <legend>Execution status</legend>
+                  <div class="choice-list">
+                    {#each executionStatuses as status (status)}
+                      <label>
+                        <input
+                          type="checkbox"
+                          name="test_execution_statuses"
+                          value={status}
+                          checked={draftAdvanced.test_execution_statuses.includes(
+                            status,
+                          )}
+                          onchange={(event) =>
+                            toggleExecutionStatus(
+                              status,
+                              event.currentTarget.checked,
+                            )}
+                        />
+                        {status.replaceAll("_", " ")}
+                      </label>
+                    {/each}
+                    {#each draftAdvanced.test_execution_statuses.filter((status) => !executionStatuses.includes(status as (typeof executionStatuses)[number])) as status (status)}
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked
+                          onchange={(event) =>
+                            toggleExecutionStatus(
+                              status as (typeof executionStatuses)[number],
+                              event.currentTarget.checked,
+                            )}
+                        />
+                        Unsupported: {status}
+                      </label>
+                    {/each}
+                  </div>
+                </fieldset>
+                <label class="filter-control" for="filter-artefact-is-archived">
+                  Artefact archived
+                  <select
+                    id="filter-artefact-is-archived"
+                    name="artefact_is_archived"
+                    value={draftAdvanced.artefact_is_archived === null
+                      ? ""
+                      : String(draftAdvanced.artefact_is_archived)}
+                    onchange={(event) =>
+                      setBooleanFilter(
+                        "artefact_is_archived",
+                        event.currentTarget.value,
+                      )}
+                  >
+                    <option value="">Any</option><option value="true"
+                      >Yes</option
+                    ><option value="false">No</option>
+                  </select>
+                </label>
+                <label class="filter-control" for="filter-rerun-is-requested">
+                  Rerun requested
+                  <select
+                    id="filter-rerun-is-requested"
+                    name="rerun_is_requested"
+                    value={draftAdvanced.rerun_is_requested === null
+                      ? ""
+                      : String(draftAdvanced.rerun_is_requested)}
+                    onchange={(event) =>
+                      setBooleanFilter(
+                        "rerun_is_requested",
+                        event.currentTarget.value,
+                      )}
+                  >
+                    <option value="">Any</option><option value="true"
+                      >Yes</option
+                    ><option value="false">No</option>
+                  </select>
+                </label>
+                <label class="filter-control" for="filter-execution-is-latest">
+                  Execution version
+                  <select
+                    id="filter-execution-is-latest"
+                    name="execution_is_latest"
+                    value={draftAdvanced.execution_is_latest === null
+                      ? ""
+                      : String(draftAdvanced.execution_is_latest)}
+                    onchange={(event) =>
+                      setBooleanFilter(
+                        "execution_is_latest",
+                        event.currentTarget.value,
+                      )}
+                  >
+                    <option value="">Any</option><option value="true"
+                      >Latest only</option
+                    ><option value="false">Older only</option>
+                  </select>
+                </label>
+                <fieldset class="filter-control advanced-control">
+                  <legend>Issues</legend>
+                  <div class="choice-list">
+                    <label
+                      ><input
+                        type="radio"
+                        name="issues-mode"
+                        value="ids"
+                        checked={Array.isArray(draftAdvanced.issues)}
+                        onchange={() => setIdMode("issues", "ids")}
+                      /> Specific IDs</label
+                    >
+                    <label
+                      ><input
+                        type="radio"
+                        name="issues-mode"
+                        value="any"
+                        checked={draftAdvanced.issues === "any"}
+                        onchange={() => setIdMode("issues", "any")}
+                      /> Has any issue</label
+                    >
+                    <label
+                      ><input
+                        type="radio"
+                        name="issues-mode"
+                        value="none"
+                        checked={draftAdvanced.issues === "none"}
+                        onchange={() => setIdMode("issues", "none")}
+                      /> Has no issue</label
+                    >
+                  </div>
+                  {#if Array.isArray(draftAdvanced.issues)}
+                    <SearchSuggestionPicker
+                      field="issues"
+                      onselect={(values) => addIds("issues", values)}
+                    />
+                    <ul class="selected-ids" aria-label="Selected issue IDs">
+                      {#each issueIds as id (id)}<li>
+                          Issue #{id}
+                          <button
+                            type="button"
+                            aria-label="Remove issue {id}"
+                            onclick={() => removeId("issues", id)}
+                            >Remove</button
+                          >
+                        </li>{/each}
+                    </ul>
+                  {/if}
+                </fieldset>
+                <fieldset class="filter-control advanced-control">
+                  <legend>Reviewers</legend>
+                  <div class="choice-list">
+                    <label
+                      ><input
+                        type="radio"
+                        name="reviewer_ids-mode"
+                        value="ids"
+                        checked={Array.isArray(draftAdvanced.reviewer_ids)}
+                        onchange={() => setIdMode("reviewer_ids", "ids")}
+                      /> Specific IDs</label
+                    >
+                    <label
+                      ><input
+                        type="radio"
+                        name="reviewer_ids-mode"
+                        value="any"
+                        checked={draftAdvanced.reviewer_ids === "any"}
+                        onchange={() => setIdMode("reviewer_ids", "any")}
+                      /> Has any reviewer</label
+                    >
+                    <label
+                      ><input
+                        type="radio"
+                        name="reviewer_ids-mode"
+                        value="none"
+                        checked={draftAdvanced.reviewer_ids === "none"}
+                        onchange={() => setIdMode("reviewer_ids", "none")}
+                      /> Has no reviewer</label
+                    >
+                  </div>
+                  {#if Array.isArray(draftAdvanced.reviewer_ids)}
+                    <SearchSuggestionPicker
+                      field="reviewer_ids"
+                      onselect={(values) => addIds("reviewer_ids", values)}
+                    />
+                    <ul class="selected-ids" aria-label="Selected reviewer IDs">
+                      {#each reviewerIds as id (id)}<li>
+                          Reviewer #{id}
+                          <button
+                            type="button"
+                            aria-label="Remove reviewer {id}"
+                            onclick={() => removeId("reviewer_ids", id)}
+                            >Remove</button
+                          >
+                        </li>{/each}
+                    </ul>
+                  {/if}
+                </fieldset>
+                <div class="filter-control metadata-control wide-control">
+                  <span class="control-label">Execution metadata</span>
+                  <SearchMetadataEditor
+                    bind:value={draftAdvanced.execution_metadata}
+                    onedit={() => editDraft("execution_metadata")}
+                  />
+                </div>
+              </div>
+              <p class="section-note">
+                Specific Issue and Reviewer IDs are ORed; use any/none instead
+                when filtering for presence or absence.
+              </p>
+            </section>
+          </div>
+          <SidePanel.Content.Footer>
+            <button
+              class="pager-button drawer-close-button"
+              type="button"
+              onclick={() => {
+                close();
+                restoreFilterDrawerFocus();
+              }}>Close</button
+            >
+            {#if canClearDrafts()}
+              <button
+                class="pager-button clear-all-button"
+                type="button"
+                onclick={clearDrafts}>Clear all</button
+              >
+            {/if}
+            <button
+              class="pager-button search-button"
+              type="submit"
+              disabled={!canApplySearch}>Search</button
+            >
+          </SidePanel.Content.Footer>
+        </form>
+      </SidePanel.Content>
+    {/snippet}
+  </SidePanel>
 
   {#if unapplied}
     <p class="draft-notice" role="status">
       Changes not applied. Search to update results.
     </p>
   {/if}
-  {#if draftProblems.length > 0}
+  {#if draftProblems.length > 0 && !filterDrawerOpen}
     <div class="state-message error-message" role="alert">
       <h2>Invalid filter draft</h2>
       <ul>
@@ -763,6 +1295,7 @@
 
 <style>
   .results-page {
+    --search-filter-drawer-width: min(34rem, 44vw);
     display: flex;
     flex-direction: column;
     min-width: 0;
@@ -778,17 +1311,92 @@
     margin: 0 0 0.75rem;
   }
 
-  .filter-form {
+  .filter-toolbar {
     display: flex;
     flex: 0 0 auto;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .filters-toggle {
+    color: var(--lp-color-text-default, #222);
+  }
+
+  :global(.search-filter-panel) {
+    --dimension-width-modal: var(--search-filter-drawer-width);
+    width: min(100vw, var(--dimension-width-modal));
+    max-width: min(34rem, 100vw);
+    height: 100vh;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    background: var(--lp-color-background-default, #fff);
+  }
+
+  :global(.search-filter-panel .ds.dialog-content) {
+    height: 100%;
+    min-height: 0;
+    gap: 0;
+    padding: 0;
+  }
+
+  .filter-form {
+    display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
+    min-height: 0;
+  }
+
+  :global(.search-filter-panel .ds.dialog-content-header) {
+    flex: 0 0 auto;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--lp-color-border-default, #ccc);
+  }
+
+  :global(.search-filter-panel .ds.dialog-content-header h2) {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 500;
+  }
+
+  .filter-panel-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 0.75rem 1.25rem 1rem;
+  }
+
+  .filter-guidance,
+  .section-note {
+    margin: 0.25rem 0 0.75rem;
+    color: var(--lp-color-text-muted, #666);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  .filter-guidance code {
+    color: var(--lp-color-text-default, #222);
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  }
+
+  .filter-section {
+    min-width: 0;
+    margin: 0 0 1rem;
+    padding: 0 0 0.875rem;
+    border-bottom: 1px solid var(--lp-color-border-default, #ccc);
+  }
+
+  .filter-section h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+    font-weight: 500;
   }
 
   .filter-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.75rem;
   }
 
@@ -800,8 +1408,9 @@
     font-size: 0.875rem;
   }
 
-  .filter-control input,
-  .filter-control textarea {
+  .filter-control input:not([type="checkbox"]):not([type="radio"]),
+  .filter-control textarea,
+  .filter-control select {
     box-sizing: border-box;
     width: 100%;
     min-height: 2rem;
@@ -813,31 +1422,87 @@
     font: inherit;
   }
 
-  .filter-control span,
-  .draft-notice {
-    color: var(--lp-color-text-muted, #666);
-    font-size: 0.8125rem;
+  .filter-control textarea {
+    resize: vertical;
   }
 
-  .filter-actions {
+  .advanced-control {
+    box-sizing: border-box;
+    min-width: 0;
+    margin: 0;
+    padding: 0.625rem;
+    border: 1px solid var(--lp-color-border-default, #ccc);
+    border-radius: 0.25rem;
+  }
+
+  .wide-control {
+    grid-column: 1 / -1;
+  }
+
+  .choice-list label,
+  .selected-ids li {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0.3rem 0;
+  }
+
+  .choice-list input[type="checkbox"],
+  .choice-list input[type="radio"] {
+    width: auto;
+    min-height: auto;
+    accent-color: var(--lp-color-brand-default, #06c);
+  }
+
+  .inline-entry {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .inline-entry input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .metadata-control .control-label {
+    font-weight: 500;
+  }
+
+  :global(.search-filter-panel .ds.dialog-content-footer) {
+    flex: 0 0 auto;
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--lp-color-border-default, #ccc);
+    background: var(--lp-color-background-default, #fff);
   }
 
   .search-button {
+    border-color: var(--lp-color-brand-default, #06c);
     background: var(--lp-color-brand-default, #06c);
     color: var(--lp-color-text-inverted, #fff);
   }
 
   .filter-control input:focus-visible,
-  .filter-control textarea:focus-visible {
+  .filter-control textarea:focus-visible,
+  .filter-control select:focus-visible,
+  .filter-form button:focus-visible {
     outline: 2px solid var(--lp-color-brand-default, #06c);
     outline-offset: 1px;
   }
 
   .draft-notice {
     margin: 0 0 0.5rem;
+    color: var(--lp-color-text-muted, #666);
+    font-size: 0.8125rem;
+  }
+
+  .results-page.filters-open .grid-region,
+  .results-page.filters-open .pager {
+    margin-right: var(--search-filter-drawer-width);
+  }
+
+  .filter-draft-errors {
+    margin: 0 0 1rem;
   }
 
   .grid-region {
@@ -865,10 +1530,11 @@
 
   .retry-button,
   .pager-button {
-    border: 1px solid currentColor;
+    box-sizing: border-box;
+    border: 1px solid var(--lp-color-border-default, #ccc);
     border-radius: 0.25rem;
-    background: transparent;
-    color: inherit;
+    background: var(--lp-color-background-default, #fff);
+    color: var(--lp-color-text-default, #222);
     cursor: pointer;
     font: inherit;
     min-height: 2rem;
@@ -988,6 +1654,29 @@
 
     .pager-controls {
       gap: 0.25rem;
+    }
+
+    .results-page {
+      --search-filter-drawer-width: 100vw;
+    }
+
+    .results-page.filters-open .grid-region,
+    .results-page.filters-open .pager {
+      margin-right: 0;
+    }
+
+    :global(.search-filter-panel) {
+      --dimension-width-modal: 100vw;
+      width: 100vw;
+      max-width: 100vw;
+    }
+
+    .filter-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .wide-control {
+      grid-column: auto;
     }
   }
 </style>

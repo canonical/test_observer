@@ -24,9 +24,13 @@ export type TestResultStatus = "PASSED" | "FAILED" | "SKIPPED";
 export interface TestResultSearchFilters {
   families?: FamilyName[];
   artefacts?: string[];
+  artefact_versions?: string[];
+  artefact_stages?: string[];
+  artefact_tracks?: string[];
   artefact_is_archived?: boolean | null;
   environments?: string[];
   test_cases?: string[];
+  test_plans?: string[];
   template_ids?: string[];
   execution_metadata?: ExecutionMetadata;
   issues?: number[] | "any" | "none";

@@ -5,12 +5,7 @@ import type { PageLoad } from "./$types";
 import { getApiRoot } from "$lib/config";
 import { fetchApiFamilyNames } from "$lib/apiFamilyNames";
 
-export const load: PageLoad = async ({ url, fetch }) => {
-  const familyValues = url.searchParams.getAll("families");
-  if (!familyValues.some((value) => value.trim() !== "")) {
-    return { apiFamilyNames: [], familyNamesError: false };
-  }
-
+export const load: PageLoad = async ({ fetch }) => {
   try {
     const apiFamilyNames = await fetchApiFamilyNames(fetch, getApiRoot());
     return { apiFamilyNames, familyNamesError: false };
