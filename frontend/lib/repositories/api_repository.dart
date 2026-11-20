@@ -41,8 +41,10 @@ class ApiRepository {
 
   Future<List<Family>> getFamilies() async {
     final response = await dio.get('/v1/families');
-    final List familiesJson = response.data;
-    return familiesJson.map((json) => Family.fromJson(json)).toList();
+    final List<dynamic> familiesJson = response.data as List<dynamic>;
+    return familiesJson
+        .map((json) => Family.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Map<int, Artefact>> getFamilyArtefacts(String family) async {

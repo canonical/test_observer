@@ -46,6 +46,53 @@ void main() {
     verify(() => dio.get('/v1/families')).called(1);
   });
 
+  test('API repository rejects a non-list family response', () async {
+    final dio = DioMock();
+    when(() => dio.get('/v1/families')).thenAnswer(
+      (_) async => Response(
+        requestOptions: RequestOptions(path: '/v1/families'),
+        data: {'families': []},
+      ),
+    );
+
+    await expectLater(
+      ApiRepository(dio: dio).getFamilies(),
+      throwsA(isA<TypeError>()),
+    );
+  });
+
+  test('API repository rejects a family item that is not a map', () async {
+    final dio = DioMock();
+    when(() => dio.get('/v1/families')).thenAnswer(
+      (_) async => Response(
+        requestOptions: RequestOptions(path: '/v1/families'),
+        data: ['snap'],
+      ),
+    );
+
+    await expectLater(
+      ApiRepository(dio: dio).getFamilies(),
+      throwsA(isA<TypeError>()),
+    );
+  });
+
+  test('API repository rejects a family item with non-string keys', () async {
+    final dio = DioMock();
+    when(() => dio.get('/v1/families')).thenAnswer(
+      (_) async => Response(
+        requestOptions: RequestOptions(path: '/v1/families'),
+        data: [
+          {1: 'snap'},
+        ],
+      ),
+    );
+
+    await expectLater(
+      ApiRepository(dio: dio).getFamilies(),
+      throwsA(isA<TypeError>()),
+    );
+  });
+
   test('families provider delegates to the API repository', () async {
     final api = ApiRepositoryMock();
     final container = createContainer(
