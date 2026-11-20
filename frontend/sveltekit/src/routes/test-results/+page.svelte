@@ -242,11 +242,7 @@
   });
   const stageOptions = $derived(
     [
-      ...new Set([
-        "",
-        ...data.artefactFamilies.flatMap((family) => family.stages),
-        ...draftAdvanced.artefact_stages,
-      ]),
+      ...new Set(["", ...draftAdvanced.artefact_stages]),
     ].sort((left, right) => left.localeCompare(right)),
   );
   const executionStatuses = [
@@ -864,15 +860,12 @@
                             toggleStage(stage, event.currentTarget.checked)}
                         />
                         {stage === "" ? "(none)" : stage}
-                        {#if stage !== "" && !data.artefactFamilies.some( (family) => family.stages.includes(stage) )}
-                          <span>(not configured)</span>
-                        {/if}
                       </label>
                     {/each}
                   </div>
                   <p class="section-note">
-                    (none) matches an explicitly empty stage. Add an exact stage
-                    to include values not in the configured choices.
+                    (none) matches an explicitly empty stage. Add exact stages
+                    to filter by their values.
                   </p>
                   <label for="filter-stage-entry">Exact stage</label>
                   <div class="inline-entry">
