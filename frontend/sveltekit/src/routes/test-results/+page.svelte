@@ -22,9 +22,11 @@
   import { page } from "$app/state";
   import { SvelteURL } from "svelte/reactivity";
   import { goto } from "$app/navigation";
+  import { resolve } from "$app/paths";
   import { SidePanel } from "@canonical/svelte-ds-app-launchpad";
   import {
     SvGrid,
+    renderComponent,
     attachAutoSavedView,
     createNamedViews,
     type GridColumns,
@@ -33,6 +35,7 @@
   import { silentApi } from "$lib/api/client";
   import SearchSuggestionPicker from "$lib/components/SearchSuggestionPicker.svelte";
   import SearchMetadataEditor from "$lib/components/SearchMetadataEditor.svelte";
+  import SearchRunLink from "$lib/components/search/SearchRunLink.svelte";
   import { createTrackColumnWidthActions } from "$lib/components/dashboard/trackColumnWidthActions";
   import {
     AUTOSAVE_SLOT,
@@ -68,6 +71,7 @@
     searchPageSizeParams,
     searchTotalPages,
   } from "$lib/searchPagination";
+  import { searchRunPath } from "$lib/searchRunPath";
 
   type TestResultGridRow = Record<string, unknown> & {
     id: number;
@@ -81,9 +85,11 @@
     version: string;
     environmentBuildArchitecture: string;
     testPlan: string;
+    runHref: string | null;
   };
 
   let { data }: PageProps = $props();
+  const searchBasePath = resolve("").replace(/\/$/, "");
 
   let gridApi: SvGridApi<never, TestResultGridRow> | null = null;
   let detachAutosave: (() => void) | null = null;
@@ -145,6 +151,7 @@
       version: row.artefact.version,
       environmentBuildArchitecture: `${row.test_execution.environment.name} / ${row.artefact_build.architecture}`,
       testPlan: row.test_execution.test_plan,
+      runHref: searchRunPath(row, data.artefactFamilies, searchBasePath),
     }));
   }
 
@@ -404,6 +411,17 @@
       id: "testPlan",
       header: "Test Plan",
       field: "testPlan",
+    },
+    {
+      id: "run",
+      header: "Run",
+      sortable: false,
+      filterable: false,
+      cell: ({ row }) =>
+        renderComponent(SearchRunLink, {
+          href: row.original.runHref,
+          name: row.original.testCase,
+        }),
     },
   ];
 
