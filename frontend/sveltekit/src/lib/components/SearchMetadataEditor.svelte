@@ -186,12 +186,30 @@
   label {
     font-size: 0.8125rem;
   }
-  input {
+  input,
+  button {
     box-sizing: border-box;
-    width: 100%;
     min-height: 2rem;
-    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--lp-color-border-default, #ccc);
+    border-radius: 0.25rem;
+    color: var(--lp-color-text-default, #222);
+    background: var(--lp-color-background-default, #fff);
     font: inherit;
+  }
+  input {
+    width: 100%;
+    padding: 0.25rem 0.5rem;
+    appearance: none;
+  }
+  button {
+    appearance: none;
+    cursor: pointer;
+    padding: 0.25rem 0.625rem;
+  }
+  button:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--lp-color-brand-default, #06c);
+    outline-offset: 1px;
   }
   ul {
     padding-left: 1.25rem;

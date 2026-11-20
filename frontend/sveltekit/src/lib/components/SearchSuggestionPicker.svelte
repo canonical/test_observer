@@ -49,11 +49,9 @@
       ? "Suggestions unavailable. You can still add an exact value or ID."
       : status === "loading"
         ? "Loading suggestions…"
-        : query.trim().length < 2
-          ? "Type at least two characters for suggestions; exact entry is always available."
-          : status === "ready" && suggestions.length === 0
-            ? "No suggestions found; exact entry is still available."
-            : "Choose a suggestion or add an exact value.",
+        : status === "ready" && query.trim().length >= 2 && suggestions.length === 0
+          ? "No suggestions found; exact entry is still available."
+          : null,
   );
 
   $effect(() => {
@@ -211,7 +209,9 @@
       if (event.key === "Enter") event.preventDefault();
     }}
   />
-  <p class="hint" role="status">{helper}</p>
+  {#if helper}
+    <p class="hint" role="status">{helper}</p>
+  {/if}
   {#if status === "error"}
     <button type="button" onclick={() => retry++}>Retry suggestions</button>
   {/if}
@@ -239,17 +239,40 @@
 <style>
   .suggestion-picker {
     display: grid;
+    min-width: 0;
     gap: 0.25rem;
   }
   label {
     font-size: 0.8125rem;
   }
-  input {
+  input,
+  button {
     box-sizing: border-box;
-    width: 100%;
     min-height: 2rem;
-    padding: 0.25rem 0.5rem;
+    border: 1px solid var(--lp-color-border-default, #ccc);
+    border-radius: 0.25rem;
+    color: var(--lp-color-text-default, #222);
+    background: var(--lp-color-background-default, #fff);
     font: inherit;
+  }
+  input {
+    width: 100%;
+    padding: 0.25rem 0.5rem;
+    appearance: none;
+  }
+  button {
+    appearance: none;
+    cursor: pointer;
+    padding: 0.25rem 0.625rem;
+  }
+  button:disabled {
+    cursor: default;
+    opacity: 0.55;
+  }
+  input:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--lp-color-brand-default, #06c);
+    outline-offset: 1px;
   }
   ul {
     max-height: 10rem;

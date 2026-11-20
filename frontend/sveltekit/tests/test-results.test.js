@@ -108,6 +108,7 @@ before(async () => {
     "Element",
     "HTMLElement",
     "HTMLMediaElement",
+    "HTMLDialogElement",
     "Event",
     "MouseEvent",
     "ResizeObserver",
@@ -207,6 +208,15 @@ async function settlePromises() {
 /** @param {{querySelector: (selector: string) => unknown}} target @param {string} selector */
 function clickButton(target, selector) {
   const button = target.querySelector(selector);
+  assert.ok(button);
+  /** @type {HTMLButtonElement} */ (/** @type {unknown} */ (button)).click();
+}
+
+/** @param {{querySelector: (selector: string) => unknown}} target */
+function openFilterDrawer(target) {
+  const button = target.querySelector(
+    'button[aria-controls="test-result-filter-drawer"]',
+  );
   assert.ok(button);
   /** @type {HTMLButtonElement} */ (/** @type {unknown} */ (button)).click();
 }
@@ -822,6 +832,149 @@ void test("session-only resize controls remain and no width persistence is intro
   assert.doesNotMatch(source, /localStorage|sessionStorage/);
 });
 
+void test("filter drawer keeps results visible and requires explicit Search to apply drafts", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.resetSearchUrl(
+    "http://localhost/test-results?page=2&page_size=25&families=snap",
+  );
+  harness.setHandler((path) => {
+    const params = new URL(path, "http://localhost/").searchParams;
+    const limit = Number(params.get("limit"));
+    const offset = Number(params.get("offset"));
+    return Promise.resolve(
+      makePage(makeRows(75, limit, offset), { limit, offset, count: 75 }),
+    );
+  });
+  const { component, target } = mountInDocument({
+    artefactFamilies: [
+      {
+        name: "snaps",
+        friendly_name: "Snap Testing",
+        api_name: "snap",
+        stages: ["edge", "stable"],
+        columns: [],
+        filters: [],
+      },
+    ],
+  });
+  await settlePromises();
+  assert.equal(harness.requests.length, 1);
+
+  const toggle = target.querySelector(
+    'button[aria-controls="test-result-filter-drawer"]',
+  );
+  assert.ok(toggle);
+  openFilterDrawer(target);
+  await settlePromises();
+  const dialog = target.querySelector("dialog#test-result-filter-drawer");
+  assert.ok(dialog);
+  assert.equal(dialog.hasAttribute("open"), true);
+  assert.equal(
+    dialog.getAttribute("aria-labelledby"),
+    "test-result-filter-title",
+  );
+  assert.equal(toggle.getAttribute("aria-haspopup"), "dialog");
+  assert.equal(toggle.getAttribute("aria-expanded"), "true");
+  assert.equal(dialog.contains(target.ownerDocument.activeElement), true);
+
+  const visibleRows = target.querySelectorAll("tbody tr.sv-grid-row");
+  assert.ok(visibleRows.length > 0);
+  assert.ok(visibleRows.length <= 25);
+  assert.equal(target.querySelector(".grid-wrapper")?.closest("dialog"), null);
+  assert.match(
+    target.querySelector(".range")?.textContent ?? "",
+    /of 75 results/,
+  );
+  assert.ok(target.querySelector('nav[aria-label="Test result pages"]'));
+
+  for (const selector of [
+    '[name="families"]',
+    '[name="test_result_statuses"]',
+    '[name="artefacts"]',
+    '[name="artefact_versions"]',
+    '[name="artefact_tracks"]',
+    '[name="environments"]',
+    '[name="test_cases"]',
+    '[name="test_plans"]',
+    '[name="from_date"]',
+    '[name="until_date"]',
+    '[name="template_ids"]',
+    '[name="artefact_stages"][value=""]',
+    '[name="artefact_stages"][value="edge"]',
+    '[name="test_execution_statuses"]',
+    '[name="artefact_is_archived"]',
+    '[name="rerun_is_requested"]',
+    '[name="execution_is_latest"]',
+    '[name="issues-mode"]',
+    '[name="reviewer_ids-mode"]',
+    '[name="metadata-category"]',
+    '[name="metadata-value"]',
+  ]) {
+    assert.ok(dialog.querySelector(selector), `drawer contains ${selector}`);
+  }
+
+  clickButton(target, '[aria-label="Close filters"]');
+  await settlePromises();
+  assert.equal(toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(target.ownerDocument.activeElement, toggle);
+
+  openFilterDrawer(target);
+  await settlePromises();
+  const artefactInput = target.querySelector('[name="artefacts"]');
+  assert.ok(artefactInput);
+  const input = /** @type {HTMLTextAreaElement} */ (
+    /** @type {unknown} */ (artefactInput)
+  );
+  input.value = "draft-only";
+  dispatchBrowserEvent(input, "input");
+  await settlePromises();
+  assert.equal(harness.requests.length, 1, "draft edits do not fetch");
+  assert.equal(
+    new URL(harness.currentSearchUrl()).searchParams.has("artefacts"),
+    false,
+  );
+  assert.match(target.textContent, /Changes not applied/);
+
+  assert.ok(browserWindow);
+  dialog.dispatchEvent(
+    new browserWindow.KeyboardEvent("keydown", {
+      key: "Escape",
+      bubbles: true,
+    }),
+  );
+  await settlePromises();
+  assert.equal(dialog.hasAttribute("open"), false);
+  assert.equal(toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(target.ownerDocument.activeElement, toggle);
+  assert.equal(harness.requests.length, 1, "Escape closes without applying");
+
+  openFilterDrawer(target);
+  await settlePromises();
+  assert.equal(
+    /** @type {HTMLTextAreaElement} */ (
+      /** @type {unknown} */ (target.querySelector('[name="artefacts"]'))
+    ).value,
+    "draft-only",
+    "closing preserves the unsubmitted draft",
+  );
+  clickButton(target, '.filter-form button[type="submit"]');
+  await settlePromises();
+  assert.equal(harness.requests.length, 2);
+  const appliedUrl = new URL(harness.currentSearchUrl());
+  assert.equal(appliedUrl.searchParams.get("page"), "1");
+  assert.equal(appliedUrl.searchParams.get("page_size"), "25");
+  assert.equal(appliedUrl.searchParams.get("families"), "snap");
+  assert.deepEqual(appliedUrl.searchParams.getAll("artefacts"), ["draft-only"]);
+  assert.equal(toggle.getAttribute("aria-expanded"), "false");
+  assert.equal(
+    target.ownerDocument.activeElement,
+    toggle,
+    "applying Search restores focus after navigation completes",
+  );
+  await unmountFromDocument(component, target);
+});
+
 void test("filter URL parsing and canonical serialization use repeated exact values", () => {
   assert.ok(harness);
   const parsed = harness.parseSearchFilters(
@@ -1010,6 +1163,8 @@ void test("an unfiltered Search page loads the family enum for draft validation"
   const { component, target } = mountInDocument(data);
   await settlePromises();
 
+  openFilterDrawer(target);
+  await settlePromises();
   const familyInput = target.querySelector('[name="families"]');
   assert.ok(familyInput);
   const textarea = /** @type {HTMLTextAreaElement} */ (
@@ -1153,6 +1308,8 @@ void test("filter drafts do not fetch until Search; apply, clear, page-size, and
   assert.deepEqual(firstRequest.searchParams.getAll("families"), ["snap"]);
   assert.deepEqual(firstRequest.searchParams.getAll("artefacts"), ["old"]);
 
+  openFilterDrawer(target);
+  await settlePromises();
   const artefactInput = target.querySelector('[name="artefacts"]');
   assert.ok(artefactInput);
   assert.ok(browserWindow);
@@ -1249,6 +1406,8 @@ void test("reordering equivalent list filters does not show unapplied changes", 
   await settlePromises();
   assert.equal(harness.requests.length, 1);
 
+  openFilterDrawer(target);
+  await settlePromises();
   const familiesField = target.querySelector('[name="families"]');
   assert.ok(familiesField);
   assert.ok(browserWindow);
@@ -1289,6 +1448,8 @@ void test("filter drafts preserve exact values with commas, whitespace, and line
   await settlePromises();
   assert.equal(harness.requests.length, 1);
 
+  openFilterDrawer(target);
+  await settlePromises();
   const testCaseInput = target.querySelector('[name="test_cases"]');
   assert.ok(testCaseInput);
   assert.ok(browserWindow);
@@ -1430,6 +1591,8 @@ void test("advanced controls apply canonical filters, empty stage, and page-size
     1,
   );
 
+  openFilterDrawer(target);
+  await settlePromises();
   assert.ok(browserWindow);
   const stage = target.querySelector('[name="artefact_stages"][value=""]');
   assert.ok(stage);
@@ -1567,6 +1730,8 @@ void test("failed suggestions do not prevent exact filter editing and applying",
   const { component, target } = mountInDocument();
   await settlePromises();
 
+  openFilterDrawer(target);
+  await settlePromises();
   assert.ok(browserWindow);
   const suggestionInput = target.querySelector(
     '[data-suggestion-field="artefacts"] input',
@@ -1623,6 +1788,12 @@ void test("editing another field preserves malformed advanced URL conditions unt
   assert.equal(searchRequests().length, 0);
   assert.match(target.textContent, /any\/none must be the sole value/);
 
+  openFilterDrawer(target);
+  await settlePromises();
+  assert.match(
+    target.querySelector("dialog [role=alert]")?.textContent ?? "",
+    /any\/none must be the sole value/,
+  );
   const otherFilter = target.querySelector('[name="test_plans"]');
   assert.ok(otherFilter);
   assert.ok(browserWindow);
