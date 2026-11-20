@@ -7,7 +7,7 @@ import { requests, resetApi, setHandler } from "./test-results-api.js";
 
 /**
  * @param {import("svelte").MountOptions["target"]} target
- * @param {import("svelte").ComponentProps<typeof Page>["data"]} data
+ * @param {import("../src/routes/test-results/$types").PageData} data
  */
 export function mountPage(target, data) {
   const component = mount(Page, { target, props: { data, params: {} } });
