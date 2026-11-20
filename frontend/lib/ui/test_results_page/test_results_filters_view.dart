@@ -238,7 +238,8 @@ class _TestResultsFiltersViewState
 
   @override
   Widget build(BuildContext context) {
-    final families = ref.watch(familiesProvider).value ?? [];
+    final familiesState = ref.watch(familiesProvider);
+    final families = familiesState.value ?? [];
     final familyNames = families.map((family) => family.name).toSet();
     final allFamilyOptions = families.map((family) => family.name).toList();
     final allTestResultStatusesOptions =
@@ -258,23 +259,40 @@ class _TestResultsFiltersViewState
       children: [
         if (_isFilterEnabled(FilterType.families))
           _box(
-            MultiSelectCombobox<String>(
-              title: 'Family',
-              allOptions: allFamilyOptions,
-              showAllOptionsWithoutSearch: true,
-              itemToString: (family) => family,
-              initialSelected: _selectedFilters.families.toSet(),
-              onChanged: (val, isSelected) {
-                setState(() {
-                  _selectedFilters = _selectedFilters.copyWith(
-                    families: [
-                      ..._selectedFilters.families.where((f) => f != val),
-                      if (isSelected) val,
-                    ],
-                  );
-                  _notifyChanged(_selectedFilters);
-                });
-              },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                MultiSelectCombobox<String>(
+                  title: 'Family',
+                  allOptions: allFamilyOptions,
+                  showAllOptionsWithoutSearch: true,
+                  itemToString: (family) => family,
+                  initialSelected: _selectedFilters.families.toSet(),
+                  onChanged: (val, isSelected) {
+                    setState(() {
+                      _selectedFilters = _selectedFilters.copyWith(
+                        families: [
+                          ..._selectedFilters.families.where((f) => f != val),
+                          if (isSelected) val,
+                        ],
+                      );
+                      _notifyChanged(_selectedFilters);
+                    });
+                  },
+                ),
+                familiesState.when(
+                  skipLoadingOnRefresh: false,
+                  skipLoadingOnReload: false,
+                  data: (families) => families.isEmpty
+                      ? const Text('No families available')
+                      : const SizedBox.shrink(),
+                  loading: () => const Text('Loading families...'),
+                  error: (error, stackTrace) => Text(
+                    'Could not load families',
+                    style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ),
+              ],
             ),
           ),
         if (_isFilterEnabled(FilterType.testResultStatuses))
