@@ -53,7 +53,7 @@ class Dashboard extends ConsumerWidget {
           ),
           Expanded(
             child: BlockingProviderPreloader(
-              provider: familyArtefactsProvider(family),
+              provider: familyArtefactsProvider(family.name),
               builder: (context, __) {
                 final pageUri = AppRoutes.uriFromContext(context);
                 final filters = ref.watch(pageFiltersProvider(pageUri));

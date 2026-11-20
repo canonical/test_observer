@@ -26,6 +26,7 @@ import '../../models/test_result.dart';
 import '../../models/test_results_filters.dart';
 import '../../models/user.dart';
 import '../../providers/execution_metadata.dart';
+import '../../providers/families.dart';
 import '../../providers/issues.dart';
 import '../../providers/test_results_artefacts.dart';
 import '../../providers/test_results_environments.dart';
@@ -237,11 +238,15 @@ class _TestResultsFiltersViewState
 
   @override
   Widget build(BuildContext context) {
-    final allFamilyOptions = FamilyName.values.map((f) => f.name).toList();
+    final familiesState = ref.watch(familiesProvider);
+    final families = familiesState.valueOrNull ?? [];
+    final familyNames = families.map((family) => family.name).toSet();
+    final allFamilyOptions = families.map((family) => family.name).toList();
     final allTestResultStatusesOptions =
         TestResultStatus.values.map((s) => s.name).toList();
     final allArtefactStageOptions = <String>{
-      for (final family in FamilyName.values) ...familyStages(family),
+      for (final family in FamilyName.values)
+        if (familyNames.contains(family.name)) ...familyStages(family),
       ..._selectedFilters.artefactStages,
     }.toList();
     final executionMetadata = ref.watch(executionMetadataProvider).value ??
@@ -254,23 +259,41 @@ class _TestResultsFiltersViewState
       children: [
         if (_isFilterEnabled(FilterType.families))
           _box(
-            MultiSelectCombobox<String>(
-              title: 'Family',
-              allOptions: allFamilyOptions,
-              showAllOptionsWithoutSearch: true,
-              itemToString: (family) => family,
-              initialSelected: _selectedFilters.families.toSet(),
-              onChanged: (val, isSelected) {
-                setState(() {
-                  _selectedFilters = _selectedFilters.copyWith(
-                    families: [
-                      ..._selectedFilters.families.where((f) => f != val),
-                      if (isSelected) val,
-                    ],
-                  );
-                  _notifyChanged(_selectedFilters);
-                });
-              },
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                MultiSelectCombobox<String>(
+                  title: 'Family',
+                  allOptions: allFamilyOptions,
+                  showAllOptionsWithoutSearch: true,
+                  itemToString: (family) => family,
+                  initialSelected: _selectedFilters.families.toSet(),
+                  onChanged: (val, isSelected) {
+                    setState(() {
+                      _selectedFilters = _selectedFilters.copyWith(
+                        families: [
+                          ..._selectedFilters.families.where((f) => f != val),
+                          if (isSelected) val,
+                        ],
+                      );
+                      _notifyChanged(_selectedFilters);
+                    });
+                  },
+                ),
+                familiesState.when(
+                  skipLoadingOnRefresh: false,
+                  skipLoadingOnReload: false,
+                  data: (families) => families.isEmpty
+                      ? const Text('No families available')
+                      : const SizedBox.shrink(),
+                  loading: () => const Text('Loading families...'),
+                  error: (error, stackTrace) => Text(
+                    'Could not load families',
+                    style:
+                        TextStyle(color: Theme.of(context).colorScheme.error),
+                  ),
+                ),
+              ],
             ),
           ),
         if (_isFilterEnabled(FilterType.testResultStatuses))

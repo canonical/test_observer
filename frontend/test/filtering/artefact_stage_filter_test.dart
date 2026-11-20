@@ -9,18 +9,26 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:testcase_dashboard/filtering/artefact_filters.dart';
-import 'package:testcase_dashboard/models/family_name.dart';
 
 import '../dummy_data.dart';
 
 void main() {
+  test('unknown families receive common artefact filters', () {
+    expect(
+      getArtefactFiltersFor('custom-family')
+          .map((filter) => filter.name)
+          .toList(),
+      ['Reviewer', 'Status', 'Due date'],
+    );
+  });
+
   test('legacy pocket links match empty stages, not unrelated filters', () {
     final params = <String, List<String>>{
       'Pocket': ['empty'],
       'Series': ['empty'],
     };
-    final pocket = getArtefactFiltersFor(FamilyName.deb)
-        .firstWhere((f) => f.name == 'Pocket');
+    final pocket =
+        getArtefactFiltersFor('deb').firstWhere((f) => f.name == 'Pocket');
     final empty = dummyArtefact.copyWith(stage: '');
     final literal = dummyArtefact.copyWith(id: 2, stage: 'empty');
     expect(

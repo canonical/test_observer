@@ -20,7 +20,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../models/artefact.dart';
 import '../../models/artefact_build.dart';
-import '../../models/family_name.dart';
 import '../../providers/api.dart';
 import '../../providers/artefact.dart' hide Artefact;
 import '../../providers/artefact_builds.dart';
@@ -130,13 +129,8 @@ class _StartManualTestingDialogState
   Map<String, dynamic> _buildFamilySpecificFields(Artefact artefact) {
     final fields = <String, dynamic>{};
 
-    final family = FamilyName.values.firstWhere(
-      (f) => f.name == artefact.family,
-      orElse: () => FamilyName.snap,
-    );
-
-    switch (family) {
-      case FamilyName.snap:
+    switch (artefact.family) {
+      case 'snap':
         final artefactBuildsAsync =
             ref.read(artefactBuildsProvider(widget.artefactId));
         final revision = artefactBuildsAsync.value?.first.revision;
@@ -149,7 +143,7 @@ class _StartManualTestingDialogState
         fields['execution_stage'] = artefact.stage;
         break;
 
-      case FamilyName.deb:
+      case 'deb':
         fields['series'] = artefact.series;
         fields['repo'] = artefact.repo;
         if (artefact.source.isNotEmpty) {
@@ -158,7 +152,7 @@ class _StartManualTestingDialogState
         fields['execution_stage'] = artefact.stage;
         break;
 
-      case FamilyName.charm:
+      case 'charm':
         final artefactBuildsAsync =
             ref.read(artefactBuildsProvider(widget.artefactId));
         final revision = artefactBuildsAsync.value?.first.revision;
@@ -170,7 +164,7 @@ class _StartManualTestingDialogState
         fields['execution_stage'] = artefact.stage;
         break;
 
-      case FamilyName.image:
+      case 'image':
         fields['os'] = artefact.os;
         fields['release'] = artefact.release;
         fields['sha256'] = artefact.sha256;
@@ -179,10 +173,12 @@ class _StartManualTestingDialogState
         fields['execution_stage'] = artefact.stage;
         break;
 
-      case FamilyName.solution:
+      case 'solution':
         fields['track'] = artefact.track;
         fields['source'] = artefact.source;
         fields['execution_stage'] = artefact.stage;
+        break;
+      default:
         break;
     }
 

@@ -20,7 +20,6 @@ import 'package:integration_test/integration_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:testcase_dashboard/app.dart';
 import 'package:testcase_dashboard/models/artefact.dart';
-import 'package:testcase_dashboard/models/family_name.dart';
 import 'package:testcase_dashboard/providers/api.dart';
 import 'package:testcase_dashboard/repositories/api_repository.dart';
 import 'package:testcase_dashboard/ui/page_filters/page_search_bar.dart';
@@ -53,5 +52,5 @@ void main() {
 
 class ApiRepositoryMock extends Mock implements ApiRepository {
   @override
-  Future<Map<int, Artefact>> getFamilyArtefacts(FamilyName family) async => {};
+  Future<Map<int, Artefact>> getFamilyArtefacts(String family) async => {};
 }

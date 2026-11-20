@@ -20,7 +20,6 @@ import 'package:testcase_dashboard/app.dart';
 import 'package:testcase_dashboard/models/artefact.dart';
 import 'package:testcase_dashboard/models/artefact_build.dart';
 import 'package:testcase_dashboard/models/environment.dart';
-import 'package:testcase_dashboard/models/family_name.dart';
 import 'package:testcase_dashboard/models/test_execution.dart';
 import 'package:testcase_dashboard/models/test_result.dart';
 import 'package:testcase_dashboard/providers/api.dart';
@@ -53,7 +52,7 @@ abstract class AppRecorder extends WidgetRecorder {
 
 class ApiRepositoryMock extends Mock implements ApiRepository {
   @override
-  Future<Map<int, Artefact>> getFamilyArtefacts(FamilyName family) async {
+  Future<Map<int, Artefact>> getFamilyArtefacts(String family) async {
     const dummyArtefact = Artefact(
       id: 1,
       name: 'artefact',

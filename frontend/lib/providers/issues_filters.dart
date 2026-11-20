@@ -17,7 +17,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../models/issue.dart';
-import '../models/family_name.dart';
+import 'families.dart';
 import 'issues.dart';
 
 part 'issues_filters.freezed.dart';
@@ -32,8 +32,8 @@ abstract class IssuesFiltersState with _$IssuesFiltersState {
     @Default({}) Set<IssueSource> selectedSources,
     @Default({}) Set<String> selectedProjects,
     @Default({}) Set<IssueStatus> selectedStatuses,
-    @Default({}) Set<FamilyName> possibleFamilies,
-    @Default({}) Set<FamilyName> selectedFamilies,
+    @Default({}) Set<String> possibleFamilies,
+    @Default({}) Set<String> selectedFamilies,
   }) = _IssuesFiltersState;
 }
 
@@ -85,12 +85,14 @@ class IssuesFilters extends _$IssuesFilters {
     final validSelectedProjects =
         selectedProjects.intersection(possibleProjects);
 
-    final possibleFamilies = FamilyName.values.toSet();
-    final selectedFamilies = FamilyName.values
-        .where((v) => (params[familyParam] ?? []).contains(v.name))
-        .toSet();
-    final validSelectedFamilies =
-        selectedFamilies.intersection(possibleFamilies);
+    final familiesState = ref.watch(familiesProvider);
+    final families = familiesState.asData?.value;
+    final possibleFamilies =
+        families?.map((family) => family.name).toSet() ?? <String>{};
+    final selectedFamilies = (params[familyParam] ?? []).toSet();
+    final validSelectedFamilies = familiesState.isLoading || families == null
+        ? selectedFamilies
+        : selectedFamilies.intersection(possibleFamilies);
 
     return IssuesFiltersState(
       possibleSources: possibleSources,
