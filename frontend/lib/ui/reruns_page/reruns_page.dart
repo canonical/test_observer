@@ -18,9 +18,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:yaru/yaru.dart';
 
-import '../../models/family_name.dart';
+import '../../models/family.dart' as model;
 import '../../models/rerun_details.dart';
 import '../../providers/api.dart';
+import '../../providers/families.dart';
 import '../../providers/rerun_details.dart';
 import '../../routing.dart';
 import '../spacing.dart';
@@ -29,87 +30,100 @@ import 'rerun_priority_chart.dart';
 class RerunsPage extends ConsumerWidget {
   const RerunsPage({super.key});
 
-  // Default product shown before the user picks one.
-  static const _defaultFamily = FamilyName.charm;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final uri = AppRoutes.uriFromContext(context);
-    final family = _familyFromUri(uri);
-    final priority = _intParam(uri, 'priority');
-    final page = _intParam(uri, 'page') ?? 1;
-
-    final detailsAsync = ref.watch(
-      rerunDetailsProvider(family: family, priority: priority, page: page),
-    );
-
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.only(
-          left: Spacing.pageHorizontalPadding,
-          right: Spacing.pageHorizontalPadding,
-          top: Spacing.level5,
-          bottom: Spacing.level5,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          spacing: Spacing.level4,
-          children: [
-            Row(
-              children: [
-                Text(
-                  'Reruns',
-                  style: Theme.of(context).textTheme.headlineLarge,
-                ),
-                const SizedBox(width: Spacing.level5),
-                _FamilyDropdown(
-                  family: family,
-                  onChanged: (newFamily) => _goWith(
-                    context,
-                    uri,
-                    family: newFamily,
-                    priority: null,
-                    page: 1,
-                  ),
-                ),
-              ],
-            ),
-            detailsAsync.when(
-              loading: () => const Padding(
-                padding: EdgeInsets.all(Spacing.level6),
-                child: Center(child: YaruCircularProgressIndicator()),
+    return ref.watch(familiesProvider).when(
+          loading: () => const Center(child: YaruCircularProgressIndicator()),
+          error: (error, _) => _ErrorView(error: error),
+          data: (families) {
+            if (families.isEmpty) {
+              return const Center(child: Text('No families are available.'));
+            }
+            final family = _familyFromUri(uri, families);
+            final priority = _intParam(uri, 'priority');
+            final page = _intParam(uri, 'page') ?? 1;
+            final detailsAsync = ref.watch(
+              rerunDetailsProvider(
+                family: family,
+                priority: priority,
+                page: page,
               ),
-              error: (error, _) => _ErrorView(error: error),
-              data: (data) => _RerunsContent(
-                data: data,
-                onSelectPriority: (p) => _goWith(
-                  context,
-                  uri,
-                  family: family,
-                  priority: p,
-                  page: 1,
+            );
+
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  left: Spacing.pageHorizontalPadding,
+                  right: Spacing.pageHorizontalPadding,
+                  top: Spacing.level5,
+                  bottom: Spacing.level5,
                 ),
-                onPageChanged: (p) => _goWith(
-                  context,
-                  uri,
-                  family: family,
-                  priority: data.selectedPriority,
-                  page: p,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  spacing: Spacing.level4,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Reruns',
+                          style: Theme.of(context).textTheme.headlineLarge,
+                        ),
+                        const SizedBox(width: Spacing.level5),
+                        _FamilyDropdown(
+                          families: families,
+                          family: family,
+                          onChanged: (newFamily) => _goWith(
+                            context,
+                            uri,
+                            family: newFamily,
+                            priority: null,
+                            page: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                    detailsAsync.when(
+                      loading: () => const Padding(
+                        padding: EdgeInsets.all(Spacing.level6),
+                        child: Center(child: YaruCircularProgressIndicator()),
+                      ),
+                      error: (error, _) => _ErrorView(error: error),
+                      data: (data) => _RerunsContent(
+                        data: data,
+                        onSelectPriority: (p) => _goWith(
+                          context,
+                          uri,
+                          family: family,
+                          priority: p,
+                          page: 1,
+                        ),
+                        onPageChanged: (p) => _goWith(
+                          context,
+                          uri,
+                          family: family,
+                          priority: data.selectedPriority,
+                          page: p,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
+            );
+          },
+        );
   }
 
-  static FamilyName _familyFromUri(Uri uri) {
+  static String _familyFromUri(Uri uri, List<model.Family> families) {
     final raw = uri.queryParameters['family'];
-    return FamilyName.values.firstWhere(
-      (f) => f.name == raw,
-      orElse: () => _defaultFamily,
-    );
+    if (families.any((family) => family.name == raw)) return raw!;
+    return families
+        .firstWhere(
+          (family) => family.name == 'charm',
+          orElse: () => families.first,
+        )
+        .name;
   }
 
   static int? _intParam(Uri uri, String key) {
@@ -120,12 +134,12 @@ class RerunsPage extends ConsumerWidget {
   void _goWith(
     BuildContext context,
     Uri uri, {
-    required FamilyName family,
+    required String family,
     required int? priority,
     required int page,
   }) {
     final params = <String, String>{
-      'family': family.name,
+      'family': family,
       if (priority != null) 'priority': priority.toString(),
       if (page > 1) 'page': page.toString(),
     };
@@ -134,27 +148,31 @@ class RerunsPage extends ConsumerWidget {
 }
 
 class _FamilyDropdown extends StatelessWidget {
-  const _FamilyDropdown({required this.family, required this.onChanged});
+  const _FamilyDropdown({
+    required this.families,
+    required this.family,
+    required this.onChanged,
+  });
 
-  final FamilyName family;
-  final void Function(FamilyName family) onChanged;
+  final List<model.Family> families;
+  final String family;
+  final void Function(String family) onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButton<FamilyName>(
+    return DropdownButton<String>(
       value: family,
       onChanged: (value) {
         if (value != null) onChanged(value);
       },
       items: [
-        for (final f in FamilyName.values)
-          DropdownMenuItem(value: f, child: Text(_familyLabel(f))),
+        for (final f in families)
+          DropdownMenuItem(value: f.name, child: Text(_familyLabel(f.name))),
       ],
     );
   }
 
-  static String _familyLabel(FamilyName family) {
-    final name = family.name;
+  static String _familyLabel(String name) {
     return name.isEmpty ? name : name[0].toUpperCase() + name.substring(1);
   }
 }
@@ -295,13 +313,20 @@ class _RerunsTable extends ConsumerWidget {
         );
         return;
       }
-      router.go(
-        getArtefactPagePathForFamily(
-          result.family,
-          result.artefactId,
-          testExecutionId: result.testExecutionId,
-        ),
+      final path = getArtefactPagePathForFamilyString(
+        result.family,
+        result.artefactId,
+        testExecutionId: result.testExecutionId,
       );
+      if (path == null) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text('This family is not supported by Flutter routing.'),
+          ),
+        );
+        return;
+      }
+      router.go(path);
     } catch (e) {
       debugPrint('Failed to open test execution: $e');
       if (!context.mounted) return;

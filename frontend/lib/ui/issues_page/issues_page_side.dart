@@ -119,14 +119,14 @@ class IssuesPageSide extends ConsumerWidget {
         options: filtersState.possibleFamilies
             .map(
               (family) => (
-                name: family.name,
+                name: family,
                 isSelected: filtersState.selectedFamilies.contains(family),
               ),
             )
             .toList(),
         onChanged: (option, isSelected) {
           final newFamilies = Set<String>.from(
-            filtersState.selectedFamilies.map((f) => f.name),
+            filtersState.selectedFamilies,
           );
           isSelected ? newFamilies.add(option) : newFamilies.remove(option);
           setQueryParam(IssuesFilters.familyParam, newFamilies.toList());

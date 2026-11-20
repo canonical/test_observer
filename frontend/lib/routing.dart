@@ -295,7 +295,7 @@ String getArtefactPagePathForFamily(
   int? testExecutionId,
   int? testResultId,
 }) {
-  String path = '/$artefactId';
+  var path = '/$artefactId';
 
   switch (family) {
     case FamilyName.deb:
@@ -328,6 +328,25 @@ String getArtefactPagePathForFamily(
   }
 
   return path;
+}
+
+String? getArtefactPagePathForFamilyString(
+  String family,
+  int artefactId, {
+  int? testExecutionId,
+  int? testResultId,
+}) {
+  final familyName = FamilyName.values
+      .where((familyName) => familyName.name == family)
+      .firstOrNull;
+  if (familyName == null) return null;
+
+  return getArtefactPagePathForFamily(
+    familyName,
+    artefactId,
+    testExecutionId: testExecutionId,
+    testResultId: testResultId,
+  );
 }
 
 String getArtefactPagePath(

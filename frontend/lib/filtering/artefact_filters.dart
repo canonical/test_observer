@@ -14,7 +14,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 import '../models/artefact.dart';
-import '../models/family_name.dart';
 import 'filter.dart';
 
 const stageFilterFormat = 'stage_filter_format';
@@ -32,28 +31,27 @@ Set<String> selectedArtefactFilterOptions(
   return options;
 }
 
-List<Filter<Artefact>> getArtefactFiltersFor(FamilyName family) =>
-    switch (family) {
-      FamilyName.snap => [
+List<Filter<Artefact>> getArtefactFiltersFor(String family) => switch (family) {
+      'snap' => [
           _artefactReviewerFilter,
           _artefactStatusFilter,
           _artefactDueDateFilter,
           _artefactRiskFilter,
         ],
-      FamilyName.deb => [
+      'deb' => [
           _artefactReviewerFilter,
           _artefactStatusFilter,
           _artefactDueDateFilter,
           _artefactSeriesFilter,
           _artefactPocketFilter,
         ],
-      FamilyName.charm => [
+      'charm' => [
           _artefactReviewerFilter,
           _artefactStatusFilter,
           _artefactDueDateFilter,
           _artefactRiskFilter,
         ],
-      FamilyName.image => [
+      'image' => [
           _artefactOSFilter,
           _artefactReleaseFilter,
           _artefactOwnerFilter,
@@ -61,7 +59,12 @@ List<Filter<Artefact>> getArtefactFiltersFor(FamilyName family) =>
           _artefactStatusFilter,
           _artefactDueDateFilter,
         ],
-      FamilyName.solution => [
+      'solution' => [
+          _artefactReviewerFilter,
+          _artefactStatusFilter,
+          _artefactDueDateFilter,
+        ],
+      _ => [
           _artefactReviewerFilter,
           _artefactStatusFilter,
           _artefactDueDateFilter,
