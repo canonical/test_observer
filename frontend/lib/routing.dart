@@ -336,9 +336,13 @@ String? getArtefactPagePathForFamilyString(
   int? testExecutionId,
   int? testResultId,
 }) {
-  final familyName = FamilyName.values
-      .where((familyName) => familyName.name == family)
-      .firstOrNull;
+  FamilyName? familyName;
+  for (final candidate in FamilyName.values) {
+    if (candidate.name == family) {
+      familyName = candidate;
+      break;
+    }
+  }
   if (familyName == null) return null;
 
   return getArtefactPagePathForFamily(
