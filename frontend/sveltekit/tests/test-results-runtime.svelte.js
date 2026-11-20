@@ -8,6 +8,11 @@ let index = 0;
 
 export const page = $state({ url: entries[0] });
 
+export function testResolve(path = "") {
+  const base = "/custom/base";
+  return path ? `${base}/${path}` : `${base}/`;
+}
+
 /**
  * @param {string | URL} target
  * @param {{ replace?: boolean }} [options]
