@@ -90,6 +90,19 @@ SPDX-FileCopyrightText = "2023 Canonical Ltd."
 SPDX-License-Identifier = "GPL-3.0-only"
 
 [[annotations]]
+path = [
+    "frontend/lib/models/family.freezed.dart",
+    "frontend/lib/models/family.g.dart",
+    "frontend/lib/providers/families.g.dart",
+    "frontend/lib/providers/family_artefacts.g.dart",
+    "frontend/lib/providers/issues_filters.freezed.dart",
+    "frontend/lib/providers/issues_filters.g.dart",
+    "frontend/lib/providers/rerun_details.g.dart"
+]
+SPDX-FileCopyrightText = "2026 Canonical Ltd."
+SPDX-License-Identifier = "GPL-3.0-only"
+
+[[annotations]]
 path = "renovate.json"
 SPDX-FileCopyrightText = "2024 Canonical Ltd."
 SPDX-License-Identifier = "GPL-3.0-only"
