@@ -35,7 +35,8 @@
   import { silentApi } from "$lib/api/client";
   import SearchSuggestionPicker from "$lib/components/SearchSuggestionPicker.svelte";
   import SearchMetadataEditor from "$lib/components/SearchMetadataEditor.svelte";
-  import SearchRunLink from "$lib/components/search/SearchRunLink.svelte";
+  import SearchGridActions from "$lib/components/search/SearchGridActions.svelte";
+  import SearchResultDetails from "$lib/components/search/SearchResultDetails.svelte";
   import { createTrackColumnWidthActions } from "$lib/components/dashboard/trackColumnWidthActions";
   import {
     AUTOSAVE_SLOT,
@@ -46,6 +47,7 @@
     TestResultSearchPageResponse,
     TestResultSearchPageRow,
   } from "$lib/types/test-results-search-page";
+  import type { SearchPageDetailsResponse } from "$lib/types/test-results-search-page-details";
   import {
     emptySearchFilters,
     formatSearchFilterText,
@@ -163,6 +165,20 @@
   // The URL tag guards against painting a prior response during client navigation.
   let requestUrlState = $state<string | null>(null);
   let requestGeneration = 0;
+  let live = true;
+  let detailsGeneration = 0;
+  let detailsRequest: AbortController | null = null;
+  let detailsResult = $state<SearchPageDetailsResponse | null>(null);
+  let detailsLoading = $state(false);
+  let detailsError = $state<string | null>(null);
+  interface DetailsSelection {
+    resultId: number;
+    key: string;
+    trigger: HTMLButtonElement;
+  }
+  let selectedDetails = $state<DetailsSelection | null>(null);
+  let invalidatedDetails = $state<DetailsSelection | null>(null);
+  let tableRegion = $state<HTMLElement | null>(null);
 
   type DraftKey =
     | "families"
@@ -413,14 +429,14 @@
       field: "testPlan",
     },
     {
-      id: "run",
-      header: "Run",
+      id: "actions",
+      header: "Actions",
       sortable: false,
       filterable: false,
       cell: ({ row }) =>
-        renderComponent(SearchRunLink, {
-          href: row.original.runHref,
-          name: row.original.testCase,
+        renderComponent(SearchGridActions, {
+          row: row.original,
+          ondetails: showDetails,
         }),
     },
   ];
@@ -437,6 +453,14 @@
       editedDraftKeys = [];
       clearAllRequested = false;
     });
+  });
+
+  $effect.pre(() => {
+    const selection = selectedDetails;
+    if (selection && selection.key !== page.url.href) {
+      invalidatedDetails = selection;
+      discardDetails();
+    }
   });
 
   $effect(() => {
@@ -523,7 +547,9 @@
   });
 
   onDestroy(() => {
+    live = false;
     requestGeneration += 1;
+    discardDetails();
     clearGridPersistence();
   });
 
@@ -564,6 +590,86 @@
 
   function retry() {
     retryGeneration += 1;
+  }
+
+  function discardDetails() {
+    detailsGeneration += 1;
+    detailsRequest?.abort();
+    detailsRequest = null;
+    selectedDetails = null;
+    detailsResult = null;
+    detailsLoading = false;
+    detailsError = null;
+  }
+
+  async function loadDetails(resultId: number, trigger: HTMLButtonElement) {
+    detailsRequest?.abort();
+    const generation = ++detailsGeneration;
+    const key = page.url.href;
+    const request = new AbortController();
+    detailsRequest = request;
+    selectedDetails = { resultId, key, trigger };
+    detailsResult = null;
+    detailsError = null;
+    detailsLoading = true;
+    try {
+      const details = await silentApi<SearchPageDetailsResponse>(
+        `test-results/search-page/${resultId}`,
+        { signal: request.signal },
+      );
+      if (!details) throw new Error("The details endpoint returned no result.");
+      if (details.test_result.id !== resultId)
+        throw new Error("The details endpoint returned a different result.");
+      if (
+        !live ||
+        generation !== detailsGeneration ||
+        selectedDetails?.resultId !== resultId ||
+        selectedDetails.key !== page.url.href ||
+        !hasLoadedResult(resultId)
+      )
+        return;
+      detailsResult = details;
+    } catch {
+      if (!live || request.signal.aborted || generation !== detailsGeneration)
+        return;
+      detailsError =
+        "Could not load result details. Check your connection and try again.";
+    } finally {
+      if (generation === detailsGeneration) {
+        detailsLoading = false;
+        detailsRequest = null;
+      }
+    }
+  }
+
+  function showDetails(resultId: number, trigger: HTMLButtonElement) {
+    if (!live || isLoading || !hasLoadedResult(resultId)) return;
+    trigger.focus({ preventScroll: true });
+    invalidatedDetails = null;
+    void loadDetails(resultId, trigger);
+  }
+
+  function hasLoadedResult(resultId: number): boolean {
+    return (
+      currentResponse?.test_results.some(
+        (row) => row.test_result.id === resultId,
+      ) ?? false
+    );
+  }
+
+  function closeDetails() {
+    const previous = selectedDetails ?? invalidatedDetails;
+    invalidatedDetails = null;
+    if (selectedDetails) discardDetails();
+    if (!previous || !live) return;
+    const sameDataset = previous.key === page.url.href;
+    const target =
+      sameDataset &&
+      previous.trigger.isConnected &&
+      previous.trigger.dataset.testResultId === String(previous.resultId)
+        ? previous.trigger
+        : tableRegion;
+    if (target?.isConnected) target.focus({ preventScroll: true });
   }
 
   function editDraft(
@@ -727,6 +833,8 @@
   class:filters-open={filterDrawerOpen}
   aria-labelledby="page-title"
   aria-busy={isLoading}
+  tabindex="-1"
+  bind:this={tableRegion}
 >
   <h1 id="page-title" class="page-title">Search Results (WIP)</h1>
 
@@ -1310,6 +1418,19 @@
     </p>
   {/if}
 </section>
+
+<SearchResultDetails
+  result={detailsResult}
+  active={selectedDetails !== null}
+  loading={detailsLoading}
+  error={detailsError}
+  families={data.artefactFamilies}
+  onclose={closeDetails}
+  onretry={() => {
+    if (selectedDetails)
+      void loadDetails(selectedDetails.resultId, selectedDetails.trigger);
+  }}
+/>
 
 <style>
   .results-page {

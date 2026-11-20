@@ -13,6 +13,7 @@ import { Window } from "happy-dom";
 /** @typedef {(path: string, options: RequestOptions) => Promise<unknown>} ApiHandler */
 /** @typedef {import("../src/lib/types/test-results-search-page").TestResultSearchPageRow} SearchPageRow */
 /** @typedef {import("../src/lib/types/test-results-search-page").TestResultSearchPageResponse} SearchPage */
+/** @typedef {import("../src/lib/types/test-results-search-page-details").SearchPageDetailsResponse} SearchPageDetails */
 /**
  * @typedef {object} TestResultsHarness
  * @property {() => void} flushSync
@@ -173,6 +174,37 @@ function makeRow(id, name) {
       name: `artefact-${id}`,
       version: `1.${id}`,
       track: `stable-${id}`,
+      family: "snap",
+    },
+    artefact_build: { architecture: `amd64-${id}` },
+  };
+}
+
+/** @param {number} id @param {string} name @returns {SearchPageDetails} */
+function makeDetails(id, name) {
+  return {
+    test_result: {
+      id,
+      name,
+      category: `category-${id}`,
+      template_id: `template-${id}`,
+      status: "PASSED",
+      io_log: "",
+      issues: [],
+    },
+    test_execution: {
+      id: id + 100,
+      status: "PASSED",
+      environment: { name: `lab-${id}` },
+      test_plan: `smoke-${id}`,
+      created_at: "2026-01-02T03:04:05Z",
+      execution_metadata: { hardware: [`amd64-${id}`] },
+    },
+    artefact: {
+      id: id + 200,
+      name: `artefact-${id}`,
+      version: `1.${id}`,
+      track: "stable",
       family: "snap",
     },
     artefact_build: { architecture: `amd64-${id}` },
@@ -348,7 +380,7 @@ void test("loads the first server page and preserves server row order", async ()
     "Version",
     "Environment / Build Architecture",
     "Test Plan",
-    "Run",
+    "Actions",
   ]);
   assert.equal(
     target.querySelectorAll(".sv-grid-resize-handle[role=separator]").length,
@@ -356,7 +388,7 @@ void test("loads the first server page and preserves server row order", async ()
   );
   assert.equal(target.querySelectorAll('[aria-label^="Filter "]').length, 0);
   assert.equal(target.querySelectorAll('[role="checkbox"]').length, 0);
-  assert.equal(resultRows[0].querySelectorAll("button").length, 0);
+  assert.equal(resultRows[0].querySelectorAll("button").length, 1);
 
   const pager = target.querySelector('nav[aria-label="Test result pages"]');
   assert.ok(pager);
@@ -456,6 +488,184 @@ void test("Run path uses API family mapping, encoded route names, and both IDs",
     ),
     null,
   );
+});
+
+void test("Details fetches on demand and renders complete text without breaking Run", async () => {
+  assert.ok(harness);
+  assert.ok(browserWindow);
+  const row = makeRow(5, "details-case");
+  const details = makeDetails(5, "details-case");
+  const log =
+    "<script>globalThis.pwned = true</script>\n" + "x".repeat(100_000);
+  details.test_result.io_log = log;
+  details.test_result.issues = [
+    {
+      issue: {
+        id: 700,
+        source: "github",
+        project: "org/project",
+        key: "ISSUE-700",
+        title: "Search detail issue",
+        status: "open",
+        url: "https://github.com/org/project/issues/700",
+      },
+    },
+  ];
+  harness.resetApi();
+  harness.resetSearchUrl();
+  harness.setHandler((path) =>
+    path === "test-results/search-page/5"
+      ? Promise.resolve(details)
+      : Promise.resolve(makePage([row])),
+  );
+  const { component, target } = mountInDocument({
+    artefactFamilies: [
+      {
+        name: "configured-route",
+        friendly_name: "Configured family",
+        api_name: "snap",
+        stages: [],
+        columns: [],
+        filters: [],
+      },
+    ],
+  });
+  await settlePromises();
+
+  assert.equal(
+    harness.requests.length,
+    1,
+    "table loading does not fetch Details",
+  );
+  assert.equal(
+    target.querySelector("dialog.search-result-details[open]"),
+    null,
+  );
+  const trigger = /** @type {HTMLButtonElement | null} */ (
+    target.querySelector('button[aria-label="View details for details-case"]')
+  );
+  assert.ok(trigger);
+  assert.equal(trigger.getAttribute("aria-haspopup"), "dialog");
+  trigger.click();
+  await settlePromises();
+
+  assert.equal(harness.requests.length, 2);
+  assert.equal(harness.requests[1]?.path, "test-results/search-page/5");
+  assert.equal(harness.requests[1]?.options.signal?.aborted, false);
+  const dialog = /** @type {HTMLDialogElement | null} */ (
+    target.querySelector("dialog.search-result-details[open]")
+  );
+  assert.ok(dialog, target.innerHTML);
+  assert.match(dialog.textContent, /template-5/);
+  assert.match(dialog.textContent, /Search detail issue/);
+  assert.equal(dialog.querySelector("script"), null);
+  assert.equal(dialog.querySelector("pre")?.textContent, log);
+  assert.equal(
+    target
+      .querySelector('a[aria-label="View Run for details-case"]')
+      ?.getAttribute("href"),
+    "/custom/base/configured-route/205?testExecutionId=105&testResultId=5",
+  );
+
+  const close = [...dialog.querySelectorAll("button")].find(
+    (button) => button.textContent.trim() === "Close",
+  );
+  assert.ok(close);
+  close.click();
+  await settlePromises();
+  assert.equal(dialog.open, false);
+  assert.equal(browserWindow.document.activeElement, trigger);
+  assert.equal(harness.requests.length, 2, "closing does not fetch or search");
+
+  await unmountFromDocument(component, target);
+});
+
+void test("Details errors can be retried without an eager table request", async () => {
+  assert.ok(harness);
+  const details = makeDetails(8, "retry-case");
+  let detailAttempts = 0;
+  harness.resetApi();
+  harness.resetSearchUrl();
+  harness.setHandler((path) => {
+    if (path === "test-results/search-page/8") {
+      detailAttempts += 1;
+      return detailAttempts === 1
+        ? Promise.reject(new Error("temporary details failure"))
+        : Promise.resolve(details);
+    }
+    return Promise.resolve(makePage([makeRow(8, "retry-case")]));
+  });
+  const { component, target } = mountInDocument();
+  await settlePromises();
+  assert.equal(harness.requests.length, 1);
+
+  clickButton(target, 'button[aria-label="View details for retry-case"]');
+  await settlePromises();
+  let dialog = target.querySelector("dialog.search-result-details[open]");
+  assert.ok(dialog);
+  assert.match(dialog.textContent, /Could not load result details/);
+  const retry = [...dialog.querySelectorAll("button")].find(
+    (button) => button.textContent.trim() === "Retry",
+  );
+  assert.ok(retry);
+  retry.click();
+  await settlePromises();
+
+  dialog = target.querySelector("dialog.search-result-details[open]");
+  assert.ok(dialog);
+  assert.match(dialog.textContent, /category-8/);
+  assert.equal(detailAttempts, 2);
+  assert.equal(harness.requests.length, 3);
+
+  await unmountFromDocument(component, target);
+});
+
+void test("late Details responses are ignored after Search navigation", async () => {
+  assert.ok(harness);
+  assert.ok(browserWindow);
+  const lateDetails = deferred();
+  harness.resetApi();
+  harness.resetSearchUrl("http://localhost/test-results?page=1&page_size=50");
+  harness.setHandler((path) => {
+    if (path === "test-results/search-page/5") return lateDetails.promise;
+    const offset = Number(
+      new URL(path, "http://localhost/").searchParams.get("offset"),
+    );
+    return Promise.resolve(
+      makePage([makeRow(offset === 0 ? 5 : 2, `page-${offset}`)], {
+        limit: 50,
+        offset,
+        count: 51,
+      }),
+    );
+  });
+  const { component, target } = mountInDocument();
+  await settlePromises();
+  clickButton(target, 'button[aria-label="View details for page-0"]');
+  await settlePromises();
+  const detailRequest = harness.requests.find(
+    ({ path }) => path === "test-results/search-page/5",
+  );
+  assert.ok(detailRequest);
+
+  harness.resetSearchUrl("http://localhost/test-results?page=2&page_size=50");
+  await settlePromises();
+  assert.equal(detailRequest.options.signal?.aborted, true);
+  assert.equal(
+    target.querySelector("dialog.search-result-details[open]"),
+    null,
+  );
+  assert.equal(
+    browserWindow.document.activeElement,
+    target.querySelector(".results-page"),
+  );
+
+  lateDetails.resolve(makeDetails(5, "stale-details"));
+  await settlePromises();
+  assert.doesNotMatch(target.textContent, /stale-details/);
+  assert.match(target.textContent, /page-50/);
+
+  await unmountFromDocument(component, target);
 });
 
 void test("requests an applied page URL with only server paging parameters", async () => {
