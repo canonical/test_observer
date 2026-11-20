@@ -17,16 +17,18 @@ from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import update
+from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
 from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
+from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuildEnvironmentReview,
     Base,
 )
+from test_observer.data_access.models_enums import ArtefactStatus
 from tests.conftest import override_permissions
 from tests.data_generator import DataGenerator
 
@@ -58,6 +60,57 @@ def _permission_for_source(source: Artefact | ArtefactBuildEnvironmentReview) ->
     if isinstance(source, Artefact):
         return Permission.view_artefact
     return Permission.view_environment_review
+
+
+def test_approval_author_tracks_status_transitions_not_later_edits(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact()
+    alice = generator.gen_user(name="Alice", email="alice@example.com")
+    bob = generator.gen_user(name="Bob", email="bob@example.com")
+    endpoint = f"/v1/audit/artefacts/{artefact.id}/approval"
+
+    assert test_client.get(endpoint).status_code == 403
+    with override_permissions(Permission.view_artefact):
+        assert test_client.get(endpoint).json() == {"kind": None, "name": None}
+
+        set_audit_context(generator.db_session, user_id=alice.id)
+        artefact.status = ArtefactStatus.APPROVED
+        generator.db_session.flush()
+        set_audit_context(generator.db_session, user_id=bob.id)
+        artefact.comment = "unrelated edit"
+        generator.db_session.flush()
+        assert test_client.get(endpoint).json() == {"kind": "user", "name": "Alice"}
+
+        artefact.status = ArtefactStatus.UNDECIDED
+        generator.db_session.flush()
+        assert test_client.get(endpoint).json() == {"kind": None, "name": None}
+        artefact.status = ArtefactStatus.APPROVED
+        generator.db_session.flush()
+        assert test_client.get(endpoint).json() == {"kind": "user", "name": "Bob"}
+
+
+def test_approval_author_handles_missing_history_and_automation(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(status=ArtefactStatus.APPROVED)
+    endpoint = f"/v1/audit/artefacts/{artefact.id}/approval"
+    with override_permissions(Permission.view_artefact):
+        assert test_client.get(endpoint).json() == {"kind": "automation", "name": "tests"}
+
+        audit_table = Base.metadata.tables["artefact_audit"]
+        generator.db_session.execute(delete(audit_table).where(audit_table.c.id == artefact.id))
+        artefact.comment = "first audited change to a previously approved artefact"
+        generator.db_session.flush()
+        assert test_client.get(endpoint).json() == {"kind": None, "name": None}
+
+
+def test_approval_author_identifies_application(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact()
+    application = generator.gen_application(name="Release bot")
+    set_audit_context(generator.db_session, application_id=application.id)
+    artefact.status = ArtefactStatus.APPROVED
+    generator.db_session.flush()
+
+    with override_permissions(Permission.view_artefact):
+        response = test_client.get(f"/v1/audit/artefacts/{artefact.id}/approval")
+    assert response.json() == {"kind": "application", "name": "Release bot"}
 
 
 def test_list_audit_history(

@@ -7,6 +7,7 @@ import { userStore } from "$lib/stores/user.svelte";
 import type { Artefact, ArtefactStatus } from "$lib/types";
 import type {
   ArtefactBuildResponse,
+  ApprovalAuthorResponse,
   ArtefactBuildEnvironmentReviewResponse,
   ArtefactBuildEnvironmentReviewDecision,
   ArtefactVersionResponse,
@@ -24,6 +25,7 @@ import type {
 
 export class ArtefactPageStore {
   artefact = $state<Artefact | null>(null);
+  approvalAuthor = $state<ApprovalAuthorResponse | null | undefined>(undefined);
   builds = $state<ArtefactBuildResponse[]>([]);
   reviews = $state<ArtefactBuildEnvironmentReviewResponse[]>([]);
   reviewsAvailable = $state(true);
@@ -60,6 +62,7 @@ export class ArtefactPageStore {
 
   // Monotonic counter guarding against a stale init() overwriting newer data.
   private _initGeneration = 0;
+  private _approvalGeneration = 0;
   // Identity of the resource requested by the current init(), including while
   // that request is still loading.
   private _activeArtefactId: number | null = null;
@@ -172,6 +175,8 @@ export class ArtefactPageStore {
     this.loading = true;
     this.accessError = null;
     this.artefact = null;
+    this.approvalAuthor = undefined;
+    this._approvalGeneration++;
     this.builds = [];
     this.reviews = [];
     this.reviewsAvailable = true;
@@ -194,6 +199,9 @@ export class ArtefactPageStore {
         return;
       }
       this.artefact = artefact;
+      if (artefact?.status === "APPROVED") {
+        void this.loadApprovalAuthor(artefactId);
+      }
 
       const [builds, reviews, versions, envIssues, testIssues] =
         await Promise.all([
@@ -268,6 +276,19 @@ export class ArtefactPageStore {
     }
   }
 
+  private async loadApprovalAuthor(artefactId: number) {
+    const generation = ++this._approvalGeneration;
+    this.approvalAuthor = undefined;
+    try {
+      const author = await silentApi<ApprovalAuthorResponse>(
+        `/audit/artefacts/${artefactId}/approval`,
+      );
+      if (generation === this._approvalGeneration) this.approvalAuthor = author;
+    } catch {
+      if (generation === this._approvalGeneration) this.approvalAuthor = null;
+    }
+  }
+
   getTestResults(executionId: number): TestResult[] | "loading" | undefined {
     return this._testResults[executionId];
   }
@@ -323,6 +344,11 @@ export class ArtefactPageStore {
     });
     if (updated && this.isCurrentMutation(`artefact:${artefactId}`, mutation)) {
       this.artefact = updated;
+      this._approvalGeneration++;
+      this.approvalAuthor = undefined;
+      if (updated.status === "APPROVED") {
+        await this.loadApprovalAuthor(artefactId);
+      }
     }
   }
 
