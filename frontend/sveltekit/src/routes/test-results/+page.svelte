@@ -274,7 +274,7 @@
       draftFilters.families.some((value) => value.trim() !== "")
     ) {
       problems.push(
-        "Could not validate family values against the API schema. No request was sent.",
+        "Could not validate family values against the API family list. No request was sent.",
       );
     }
     if (clearAllRequested) return problems;
@@ -315,7 +315,7 @@
         .getAll("families")
         .some((value) => value.trim() !== "")
       ? [
-          "Could not validate family values against the API schema. No request was sent.",
+          "Could not validate family values against the API family list. No request was sent.",
         ]
       : [],
   );

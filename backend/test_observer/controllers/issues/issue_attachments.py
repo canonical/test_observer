@@ -25,6 +25,7 @@ from test_observer.common.permissions import permission_checker
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
+from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.controllers.test_results.filter_test_results import (
     filter_test_results,
 )
@@ -71,6 +72,9 @@ def modify_issue_attachments(
     request: IssueAttachmentRequest,
     detach: bool = False,
 ) -> Issue:
+    if request.test_results_filters is not None:
+        ensure_families_exist(db, request.test_results_filters.families, ("body", "test_results_filters", "families"))
+
     # Retrieve the issue
     issue = db.get(Issue, issue_id)
     if issue is None:

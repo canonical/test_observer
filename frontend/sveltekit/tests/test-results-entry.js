@@ -7,7 +7,7 @@ import { requests, resetApi, setHandler } from "./test-results-api.js";
 
 /**
  * @param {import("svelte").MountOptions["target"]} target
- * @param {{artefactFamilies: import("../src/lib/types/index.ts").Family[]; apiFamilyNames: string[]; familyNamesError: boolean}} data
+ * @param {import("../src/routes/test-results/$types").PageData} data
  */
 export function mountPage(target, data) {
   const component = mount(Page, { target, props: { data, params: {} } });
@@ -46,8 +46,5 @@ export {
   validateSearchFilters,
   encodeMetadataPart,
 } from "../src/lib/searchPageFilters.ts";
-export {
-  extractApiFamilyNames,
-  fetchApiFamilyNames,
-} from "../src/lib/apiFamilyNames.ts";
+export { fetchApiFamilyNames } from "../src/lib/apiFamilyNames.ts";
 export { load as loadTestResultsPage } from "../src/routes/test-results/+page.ts";

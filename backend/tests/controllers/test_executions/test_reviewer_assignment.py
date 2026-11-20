@@ -27,9 +27,6 @@ from sqlalchemy.orm import Session
 from test_observer.common.enums import Permission
 from test_observer.controllers.test_executions.start_test import ENVIRONMENTS_PER_REVIEWER
 from test_observer.data_access.models import TestExecution
-from test_observer.data_access.models_enums import (
-    FamilyName,
-)
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -57,7 +54,7 @@ class TestReviewerAssignmentWithMatchingRules:
             pytest.param(
                 {
                     "teams": [{"name": "snap-team", "users": ["SnapUser"]}],
-                    "rules": [{"family": FamilyName.snap, "team": "snap-team"}],
+                    "rules": [{"family": "snap", "team": "snap-team"}],
                 },
                 {
                     "family": "snap",
@@ -73,7 +70,7 @@ class TestReviewerAssignmentWithMatchingRules:
             pytest.param(
                 {
                     "teams": [{"name": "beta-team", "users": ["BetaUser"]}],
-                    "rules": [{"family": FamilyName.snap, "stage": "beta", "team": "beta-team"}],
+                    "rules": [{"family": "snap", "stage": "beta", "team": "beta-team"}],
                 },
                 {
                     "family": "snap",
@@ -89,7 +86,7 @@ class TestReviewerAssignmentWithMatchingRules:
             pytest.param(
                 {
                     "teams": [{"name": "deb-team", "users": ["DebUser"]}],
-                    "rules": [{"family": FamilyName.deb, "stage": "proposed", "team": "deb-team"}],
+                    "rules": [{"family": "deb", "stage": "proposed", "team": "deb-team"}],
                 },
                 {
                     "family": "deb",
@@ -104,7 +101,7 @@ class TestReviewerAssignmentWithMatchingRules:
             pytest.param(
                 {
                     "teams": [{"name": "charm-team", "users": ["CharmUser"]}],
-                    "rules": [{"family": FamilyName.charm, "stage": "beta", "team": "charm-team"}],
+                    "rules": [{"family": "charm", "stage": "beta", "team": "charm-team"}],
                 },
                 {
                     "family": "charm",
@@ -123,8 +120,8 @@ class TestReviewerAssignmentWithMatchingRules:
                         {"name": "beta-team", "users": ["BetaUser"]},
                     ],
                     "rules": [
-                        {"family": FamilyName.charm, "team": "charm-team"},
-                        {"family": FamilyName.charm, "stage": "beta", "team": "beta-team"},
+                        {"family": "charm", "team": "charm-team"},
+                        {"family": "charm", "stage": "beta", "team": "beta-team"},
                     ],
                 },
                 {
@@ -209,11 +206,11 @@ def test_reviewer_count_uses_latest_builds_not_all_builds(
     team = generator.gen_team(name="snap-team")
     for i in range(3):
         generator.gen_user(name=f"User{i}", email=f"user{i}@test.com", teams=[team])
-    generator.gen_artefact_matching_rule(family=FamilyName.snap, teams=[team])
+    generator.gen_artefact_matching_rule(family="snap", teams=[team])
 
     # AND an artefact with old builds whose total test executions exceed ENVIRONMENTS_PER_REVIEWER
     artefact = generator.gen_artefact(
-        family=FamilyName.snap,
+        family="snap",
         name="core22",
         version="v1",
         track="22",

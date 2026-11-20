@@ -36,7 +36,7 @@ from test_observer.data_access.models import (
     TestResult,
     User,
 )
-from test_observer.data_access.models_enums import FamilyName, IssueSource, IssueStatus
+from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from test_observer.data_access.repository import get_or_create
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
@@ -77,7 +77,7 @@ def get_issues(
         ),
     ] = None,
     families: Annotated[
-        list[FamilyName] | None,
+        list[str] | None,
         Query(description="Filter by artefact family (e.g., snap, deb, charm, image)"),
     ] = None,
     limit: Annotated[

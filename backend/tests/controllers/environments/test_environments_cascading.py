@@ -18,7 +18,6 @@ import uuid
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -32,14 +31,14 @@ def test_environments_filter_by_family(test_client: TestClient, generator: DataG
     deb_env = generator.gen_environment(name=f"deb_env_{unique_marker}")
 
     # Create snap artefact and test execution on snap_env
-    snap_artefact = generator.gen_artefact(family=FamilyName.snap)
+    snap_artefact = generator.gen_artefact(family="snap")
     snap_build = generator.gen_artefact_build(snap_artefact)
     test_case = generator.gen_test_case()
     snap_execution = generator.gen_test_execution(snap_build, snap_env)
     generator.gen_test_result(test_case, snap_execution)
 
     # Create deb artefact and test execution on deb_env
-    deb_artefact = generator.gen_artefact(family=FamilyName.deb)
+    deb_artefact = generator.gen_artefact(family="deb")
     deb_build = generator.gen_artefact_build(deb_artefact)
     deb_execution = generator.gen_test_execution(deb_build, deb_env)
     generator.gen_test_result(test_case, deb_execution)

@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
 from test_observer.controllers.issues.shared_models import MinimalIssueResponse
-from test_observer.data_access.models_enums import FamilyName, IssueSource, IssueStatus
+from test_observer.data_access.models_enums import IssueSource, IssueStatus
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -517,8 +517,8 @@ def test_get_issues_pagination_metadata(test_client: TestClient, generator: Data
 
 
 def test_get_all_filter_by_family(test_client: TestClient, generator: DataGenerator):
-    snap_artefact = generator.gen_artefact(family=FamilyName.snap)
-    deb_artefact = generator.gen_artefact(family=FamilyName.deb)
+    snap_artefact = generator.gen_artefact(family="snap")
+    deb_artefact = generator.gen_artefact(family="deb")
 
     snap_issue = generator.gen_issue(key="SNAP-FAM-1")
     deb_issue = generator.gen_issue(key="DEB-FAM-1")

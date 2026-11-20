@@ -32,7 +32,6 @@ from test_observer.controllers.execution_metadata.models import ExecutionMetadat
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
-    FamilyName,
     TestExecutionStatus,
 )
 
@@ -70,7 +69,7 @@ class ArtefactCreate(BaseModel):
     must be nonblank; fields outside that identity cannot satisfy this requirement.
     """
 
-    family: FamilyName
+    family: str
     name: str = Field(min_length=1, max_length=200)
     version: str = Field(min_length=1)
     stage: str = Field(max_length=100)

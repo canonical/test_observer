@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import TestExecutionStatus
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -132,8 +132,8 @@ class TestSearchTestExecutions:
         assert tr2.id not in tr_ids
 
     def test_filter_by_family_with_no_result(self, test_client: TestClient, generator: DataGenerator):
-        snap_artefact = generator.gen_artefact(family=FamilyName.snap, name=_uid("snap"))
-        deb_artefact = generator.gen_artefact(family=FamilyName.deb, name=_uid("deb"))
+        snap_artefact = generator.gen_artefact(family="snap", name=_uid("snap"))
+        deb_artefact = generator.gen_artefact(family="deb", name=_uid("deb"))
         env = generator.gen_environment()
 
         snap_build = generator.gen_artefact_build(snap_artefact)
@@ -454,12 +454,14 @@ class TestSearchTestExecutions:
         assert len(data["test_executions"]) == 1
         assert data["count"] == 1
 
-    def test_invalid_family_returns_422(self, test_client: TestClient):
+    def test_unknown_family_returns_no_matches(self, test_client: TestClient):
         response = make_authenticated_request(
             lambda: test_client.get("/v1/test-executions?families=not_a_family"),
             Permission.view_test,
         )
-        assert response.status_code == 422
+        assert response.status_code == 200
+        assert response.json()["count"] == 0
+        assert response.json()["test_executions"] == []
 
     def test_no_results_for_nonexistent_artefact(self, test_client: TestClient):
         response = make_authenticated_request(

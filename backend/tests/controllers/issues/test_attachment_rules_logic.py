@@ -24,7 +24,6 @@ from test_observer.data_access.models import (
     IssueTestResultAttachmentRule,
     IssueTestResultAttachmentRuleExecutionMetadata,
 )
-from test_observer.data_access.models_enums import FamilyName
 from tests.data_generator import DataGenerator
 
 params_query_matching_test_result_attachment_rules: list[dict] = [
@@ -47,9 +46,9 @@ params_query_matching_test_result_attachment_rules: list[dict] = [
     {
         "label": "match_family",
         "attachment_rules": [
-            (True, {"families": [FamilyName.snap]}),
-            (True, {"families": [FamilyName.snap, FamilyName.charm]}),
-            (False, {"families": [FamilyName.charm]}),
+            (True, {"families": ["snap"]}),
+            (True, {"families": ["snap", "charm"]}),
+            (False, {"families": ["charm"]}),
         ],
     },
     {
@@ -157,28 +156,28 @@ params_query_matching_test_result_attachment_rules: list[dict] = [
             (
                 True,
                 {
-                    "families": [FamilyName.snap],
+                    "families": ["snap"],
                     "execution_metadata": [("category1", "value1")],
                 },
             ),
             (
                 False,
                 {
-                    "families": [FamilyName.charm],
+                    "families": ["charm"],
                     "execution_metadata": [("category3", "value1")],
                 },
             ),
             (
                 False,
                 {
-                    "families": [FamilyName.snap],
+                    "families": ["snap"],
                     "execution_metadata": [("category3", "value1")],
                 },
             ),
             (
                 False,
                 {
-                    "families": [FamilyName.charm],
+                    "families": ["charm"],
                     "execution_metadata": [("category1", "value1")],
                 },
             ),
@@ -265,9 +264,9 @@ def test_apply_test_result_attachment_rules(
 
     attachment_rules = [
         IssueTestResultAttachmentRule(issue=issue_1, template_ids=["some-template"]),
-        IssueTestResultAttachmentRule(issue=issue_2, families=[FamilyName.charm]),
-        IssueTestResultAttachmentRule(issue=issue_3, families=[FamilyName.snap]),
-        IssueTestResultAttachmentRule(issue=issue_1, families=[FamilyName.snap]),
+        IssueTestResultAttachmentRule(issue=issue_2, families=["charm"]),
+        IssueTestResultAttachmentRule(issue=issue_3, families=["snap"]),
+        IssueTestResultAttachmentRule(issue=issue_1, families=["snap"]),
     ]
     for attachment_rule in attachment_rules:
         db_session.add(attachment_rule)

@@ -30,8 +30,8 @@ from test_observer.controllers.artefact_matching_rules.models import (
     ArtefactMatchingRuleResponse,
     TeamMinimal,
 )
+from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.data_access.models import ArtefactMatchingRule, Team
-from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 router: APIRouter = APIRouter(tags=["artefact-matching-rules"])
@@ -49,7 +49,7 @@ def _rule_to_response(rule: ArtefactMatchingRule) -> ArtefactMatchingRuleRespons
     return ArtefactMatchingRuleResponse(
         id=rule.id,
         name=rule.name if rule.name else None,
-        family=FamilyName(rule.family),
+        family=rule.family,
         stage=rule.stage if rule.stage else None,
         track=rule.track if rule.track else None,
         branch=rule.branch if rule.branch else None,
@@ -74,6 +74,8 @@ def create_artefact_matching_rule(
     db: Session = Depends(get_db),
 ):
     """Create a new artefact matching rule with at least one team"""
+    ensure_families_exist(db, request.family, ("body", "family"))
+
     # Validate that team_ids is not empty
     if not request.team_ids:
         raise HTTPException(
@@ -149,12 +151,12 @@ def create_artefact_matching_rule(
 )
 def get_artefact_matching_rules(
     db: Session = Depends(get_db),
-    family: FamilyName | None = None,
+    family: str | None = None,
 ):
     """Get all artefact matching rules, optionally filtered by family"""
     query = select(ArtefactMatchingRule).options(selectinload(ArtefactMatchingRule.teams))
 
-    if family:
+    if family is not None:
         query = query.where(ArtefactMatchingRule.family == family)
 
     rules = db.scalars(query).all()
@@ -187,6 +189,8 @@ def update_artefact_matching_rule(
 ):
     """Update an artefact matching rule"""
     rule = _get_rule_or_raise_404(db, rule_id)
+    if request.family is not None:
+        ensure_families_exist(db, request.family, ("body", "family"))
 
     # Validate team_ids if provided
     teams = []

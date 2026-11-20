@@ -26,7 +26,6 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.orm.attributes import set_committed_value
 
 from .models import Artefact, ArtefactBuild, DataModel, Environment, Family, TestExecution, TestExecutionRelevantLink
-from .models_enums import FamilyName
 
 
 def get_families(session: Session) -> list[Family]:
@@ -41,7 +40,7 @@ def create_family(session: Session, name: str) -> Family:
 
 def get_artefacts_by_family(
     session: Session,
-    family: FamilyName,
+    family: str,
     load_environment_reviews: bool = False,
     load_builds: bool = False,
     order_by_columns: Iterable[Any] | None = None,
@@ -56,7 +55,8 @@ def get_artefacts_by_family(
     :order_by_columns: optional columns to order the results by
     :return: list of Artefacts
     """
-    if family == FamilyName.charm:
+    # TODO(raul): remove later in TO-416
+    if family == "charm":
         # For charm family, only filter by archived status
         query = session.query(Artefact).filter(Artefact.family == family, Artefact.archived.is_(False))
     else:
@@ -71,7 +71,7 @@ def get_artefacts_by_family(
         )
 
         match family:
-            case FamilyName.snap:
+            case "snap":
                 subquery = (
                     base_query.add_columns(Artefact.track, Artefact.branch)
                     .group_by(Artefact.track, Artefact.branch)
@@ -89,7 +89,7 @@ def get_artefacts_by_family(
                     ),
                 )
 
-            case FamilyName.deb:
+            case "deb":
                 subquery = (
                     base_query.add_columns(Artefact.repo, Artefact.series, Artefact.source)
                     .group_by(Artefact.repo, Artefact.series, Artefact.source)
@@ -108,7 +108,7 @@ def get_artefacts_by_family(
                     ),
                 )
 
-            case FamilyName.image:
+            case "image":
                 subquery = (
                     base_query.add_columns(Artefact.os, Artefact.release)
                     .group_by(Artefact.os, Artefact.release)
@@ -126,7 +126,7 @@ def get_artefacts_by_family(
                     ),
                 )
 
-            case FamilyName.solution:
+            case "solution":
                 subquery = (
                     base_query.add_columns(Artefact.source, Artefact.track)
                     .group_by(Artefact.source, Artefact.track)
@@ -141,6 +141,20 @@ def get_artefacts_by_family(
                         Artefact.created_at == subquery.c.max_created,
                         Artefact.source == subquery.c.source,
                         Artefact.track == subquery.c.track,
+                    ),
+                )
+
+            case _:
+                subquery = base_query.subquery()
+
+                query = session.query(Artefact).join(
+                    subquery,
+                    and_(
+                        Artefact.family == family,
+                        Artefact.archived.is_(False),
+                        Artefact.stage == subquery.c.stage,
+                        Artefact.name == subquery.c.name,
+                        Artefact.created_at == subquery.c.max_created,
                     ),
                 )
 
@@ -284,14 +298,15 @@ def get_or_create(
 
 def get_artefact_identity(fields: dict[str, Any]) -> dict[str, Any]:
     """Return lookup fields without metadata outside the existing unique keys."""
-    family = FamilyName(fields["family"])
+    family = fields["family"]
     identity = {"name": fields["name"], "version": fields["version"], "family": family}
+    # TODO(raul): remove later in TO-416
     match family:
-        case FamilyName.snap | FamilyName.charm:
+        case "snap" | "charm":
             identity |= {"track": fields["track"], "branch": fields["branch"]}
-        case FamilyName.deb:
+        case "deb":
             identity |= {"series": fields["series"], "repo": fields["repo"], "source": fields["source"]}
-        case FamilyName.image:
+        case "image":
             identity = {"family": family, "sha256": fields["sha256"]}
     return identity
 

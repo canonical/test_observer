@@ -34,6 +34,7 @@ from test_observer.common.permissions import (
 from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
+from test_observer.controllers.families.validation import ensure_families_exist
 from test_observer.controllers.test_executions.execution_filters import (
     apply_te_joins,
     build_execution_filters,
@@ -52,7 +53,6 @@ from test_observer.data_access.models import (
     TestResult,
     User,
 )
-from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.repository import get_or_create, populate_expected_environment_status
 from test_observer.data_access.setup import get_db
 from test_observer.users.user_injection import get_current_user
@@ -78,12 +78,19 @@ class _TestExecutionNotFound(ValueError): ...
 # ==============================================================================
 
 
-def _build_rerun_conditions(request: RerunRequest | DeleteReruns) -> list:
+def _build_rerun_conditions(db: Session, request: RerunRequest | DeleteReruns) -> list:
     """Return SQLAlchemy WHERE conditions identifying the affected TestExecutions.
 
     Raises HTTPException(422) if test_results_filters or test_executions_filters is provided but empty.
     Returns an empty list if neither criterion is provided (caller should no-op).
     """
+    if request.test_results_filters is not None:
+        ensure_families_exist(db, request.test_results_filters.families, ("body", "test_results_filters", "families"))
+    if request.test_executions_filters is not None:
+        ensure_families_exist(
+            db, request.test_executions_filters.families, ("body", "test_executions_filters", "families")
+        )
+
     conditions = []
 
     if request.test_execution_ids:
@@ -226,7 +233,7 @@ def _validate_amr_permissions(
     if user is None:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
-    conditions = _build_rerun_conditions(request)
+    conditions = _build_rerun_conditions(db, request)
     if not conditions:
         return
 
@@ -276,7 +283,7 @@ def create_rerun_requests(
     _validate_amr_permissions(db, user, app, request, Permission.change_rerun)
 
     if silent:
-        conditions = _build_rerun_conditions(request)
+        conditions = _build_rerun_conditions(db, request)
         if conditions:
             _create_reruns(db, conditions, request.priority)
             db.commit()
@@ -318,7 +325,7 @@ def create_rerun_requests(
     dependencies=[Security(permission_checker, scopes=[Permission.view_rerun])],
 )
 def get_rerun_requests(
-    family: FamilyName | None = None,
+    family: str | None = None,
     # This is a work queue without an offset, so leaving out `limit` still
     # returns every pending rerun: capping the default would hide queued
     # reruns from callers that cannot page. An explicit `limit` is capped.
@@ -380,7 +387,7 @@ def get_rerun_requests(
     dependencies=[Security(permission_checker, scopes=[Permission.view_rerun])],
 )
 def get_rerun_details(
-    family: FamilyName,
+    family: str,
     priority: Annotated[int | None, Query(ge=RERUN_PRIORITY_MIN, le=RERUN_PRIORITY_MAX)] = None,
     limit: Annotated[int, Query(ge=1, le=50)] = 50,
     offset: Annotated[int, Query(ge=0)] = 0,
@@ -482,7 +489,7 @@ def delete_rerun_requests(
 ):
     _validate_amr_permissions(db, user, app, request, Permission.change_rerun)
 
-    conditions = _build_rerun_conditions(request)
+    conditions = _build_rerun_conditions(db, request)
     if conditions:
         _delete_reruns(db, conditions)
         db.commit()

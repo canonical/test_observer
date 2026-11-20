@@ -28,7 +28,6 @@ from test_observer.data_access.models import (
     Environment,
     TestExecution,
 )
-from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 from . import reported_issues
@@ -49,7 +48,7 @@ def get_environments(
         Query(description="Search term for environment names"),
     ] = None,
     families: Annotated[
-        list[FamilyName] | None,
+        list[str] | None,
         Query(description="Filter by artefact families"),
     ] = None,
     limit: Annotated[

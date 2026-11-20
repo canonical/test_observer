@@ -24,11 +24,9 @@ Create Date: 2023-05-26 11:52:18.703471+00:00
 import sqlalchemy as sa
 from alembic import op
 
-from test_observer.data_access.models_enums import FamilyName
-
 initial_families_and_stages = {
-    FamilyName.snap: ["edge", "beta", "candidate", "stable"],
-    FamilyName.deb: ["proposed", "updates"],
+    "snap": ["edge", "beta", "candidate", "stable"],
+    "deb": ["proposed", "updates"],
 }
 
 # revision identifiers, used by Alembic.
@@ -61,7 +59,7 @@ def upgrade() -> None:
         (inserted_family,) = conn.execute(
             sa.insert(family_table)
             .values(
-                name=family.value,
+                name=family,
                 created_at=sa.func.now(),
                 updated_at=sa.func.now(),
             )

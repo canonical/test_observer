@@ -23,6 +23,7 @@ from test_observer.common.permissions import permission_checker
 from test_observer.controllers.artefact_matching_rules.models import (
     ArtefactMatchingRuleInResponse,
 )
+from test_observer.controllers.families.validation import ensure_located_families_exist
 from test_observer.controllers.teams.models import (
     TeamCreate,
     TeamPatch,
@@ -30,7 +31,6 @@ from test_observer.controllers.teams.models import (
     UserMinimalResponse,
 )
 from test_observer.data_access.models import ArtefactMatchingRule, Team, User
-from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 router: APIRouter = APIRouter(tags=["teams"])
@@ -132,6 +132,12 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
             db.delete(rule)
 
 
+def _ensure_rule_families_exist(db: Session, rules_data: list | None) -> None:
+    ensure_located_families_exist(
+        db, [(("body", "artefact_matching_rules", i, "family"), rule.family) for i, rule in enumerate(rules_data or [])]
+    )
+
+
 def _team_to_response(team: Team) -> TeamResponse:
     """Convert Team model to TeamResponse"""
     return TeamResponse(
@@ -152,7 +158,7 @@ def _team_to_response(team: Team) -> TeamResponse:
             ArtefactMatchingRuleInResponse(
                 id=rule.id,
                 name=rule.name if rule.name else None,
-                family=FamilyName(rule.family),
+                family=rule.family,
                 stage=rule.stage if rule.stage else None,
                 track=rule.track if rule.track else None,
                 branch=rule.branch if rule.branch else None,
@@ -179,6 +185,7 @@ def create_team(
     db: Session = Depends(get_db),
 ):
     """Create a new team"""
+    _ensure_rule_families_exist(db, request.artefact_matching_rules)
     team = Team(
         name=request.name,
         permissions=[p.value for p in request.permissions],
@@ -237,6 +244,7 @@ def update_team(
     db: Session = Depends(get_db),
 ):
     team = _get_team_or_raise_404(db, team_id)
+    _ensure_rule_families_exist(db, request.artefact_matching_rules)
 
     if request.permissions is not None:
         team.permissions = request.permissions

@@ -18,7 +18,6 @@ import uuid
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -32,8 +31,8 @@ def test_artefacts_filter_by_family(test_client: TestClient, generator: DataGene
     unique_marker = uuid.uuid4().hex[:8]
 
     # Create snap and deb artefacts
-    snap_artefact = generator.gen_artefact(family=FamilyName.snap, name=f"snap_artefact_{unique_marker}")
-    deb_artefact = generator.gen_artefact(family=FamilyName.deb, name=f"deb_artefact_{unique_marker}")
+    snap_artefact = generator.gen_artefact(family="snap", name=f"snap_artefact_{unique_marker}")
+    deb_artefact = generator.gen_artefact(family="deb", name=f"deb_artefact_{unique_marker}")
 
     # Search for only snap family
     response = make_authenticated_request(
@@ -53,9 +52,9 @@ def test_artefacts_filter_by_multiple_families(test_client: TestClient, generato
     """Test that artefacts can be filtered by multiple families"""
     unique_marker = uuid.uuid4().hex[:8]
 
-    snap_artefact = generator.gen_artefact(family=FamilyName.snap, name=f"snap_{unique_marker}")
-    deb_artefact = generator.gen_artefact(family=FamilyName.deb, name=f"deb_{unique_marker}")
-    charm_artefact = generator.gen_artefact(family=FamilyName.charm, name=f"charm_{unique_marker}")
+    snap_artefact = generator.gen_artefact(family="snap", name=f"snap_{unique_marker}")
+    deb_artefact = generator.gen_artefact(family="deb", name=f"deb_{unique_marker}")
+    charm_artefact = generator.gen_artefact(family="charm", name=f"charm_{unique_marker}")
 
     # Search for snap and deb families
     response = make_authenticated_request(

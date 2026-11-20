@@ -27,7 +27,7 @@ from sqlalchemy.orm import Session
 from test_observer.common.config import MAX_RESULT_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.data_access.models import Environment, IssueTestResultAttachment, TestCase, TestResult
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus, TestResultStatus
+from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from tests.conftest import override_permissions
 from tests.data_generator import DataGenerator
 
@@ -48,7 +48,7 @@ def _create_search_result(
     generator: DataGenerator,
     *,
     name: str,
-    family: FamilyName = FamilyName.snap,
+    family: str = "snap",
     version: str = "1.2.3",
     track: str = "stable",
     environment_name: str = "search-env",
@@ -400,6 +400,7 @@ def test_search_page_combines_repeated_values_with_or_and_fields_with_and(
     test_client: TestClient,
     generator: DataGenerator,
 ):
+    family = generator.gen_family(name="search-custom-family")
     matched_ids = {
         _create_search_result(
             generator,
@@ -409,8 +410,8 @@ def test_search_page_combines_repeated_values_with_or_and_fields_with_and(
         ).id,
         _create_search_result(
             generator,
-            name="search-combined-deb-fail",
-            family=FamilyName.deb,
+            name="search-combined-custom-fail",
+            family=family.name,
             environment_name="search-combined-env",
             status=TestResultStatus.FAILED,
         ).id,
@@ -423,8 +424,10 @@ def test_search_page_combines_repeated_values_with_or_and_fields_with_and(
     )
 
     params = [
+        ("families", "unknown-family"),
         ("families", "snap"),
-        ("families", "deb"),
+        ("families", family.name),
+        ("families", ""),
         ("test_result_statuses", "PASSED"),
         ("test_result_statuses", "FAILED"),
         ("environments", "search-combined-env"),
@@ -432,6 +435,9 @@ def test_search_page_combines_repeated_values_with_or_and_fields_with_and(
     with override_permissions(Permission.view_test):
         response = test_client.get(SEARCH_PAGE_ENDPOINT, params=params)
         different_field = test_client.get(SEARCH_PAGE_ENDPOINT, params=[*params, ("test_plans", "wrong-plan")])
+        unknown_families = test_client.get(
+            SEARCH_PAGE_ENDPOINT, params=[("families", "unknown-family"), ("families", "")]
+        )
 
     assert response.status_code == 200
     body = response.json()
@@ -439,6 +445,9 @@ def test_search_page_combines_repeated_values_with_or_and_fields_with_and(
     assert {row["test_result"]["id"] for row in body["test_results"]} == matched_ids
     assert different_field.status_code == 200
     assert different_field.json()["count"] == 0
+    assert unknown_families.status_code == 200
+    assert unknown_families.json()["count"] == 0
+    assert unknown_families.json()["test_results"] == []
 
 
 def test_search_page_date_bounds_are_inclusive_utc_timestamps(
@@ -476,7 +485,6 @@ def test_search_page_date_bounds_are_inclusive_utc_timestamps(
 @pytest.mark.parametrize(
     "params",
     [
-        {"families": "unknown-family"},
         {"test_result_statuses": "UNKNOWN"},
         {"artefacts": ""},
         {"artefacts": "   "},
@@ -534,7 +542,9 @@ def _encoded_metadata_part(value: str) -> str:
     return base64.b64encode(value.encode("utf-8")).decode("ascii")
 
 
-def _create_advanced_search_result(generator: DataGenerator) -> tuple[TestResult, int, int, str]:
+def _create_advanced_search_result(
+    generator: DataGenerator, *, family: str = "snap"
+) -> tuple[TestResult, int, int, str]:
     unique = uuid4().hex
     user = generator.gen_user()
     artefact = generator.gen_artefact(
@@ -542,6 +552,7 @@ def _create_advanced_search_result(generator: DataGenerator) -> tuple[TestResult
         stage="",
         archived=True,
         reviewers=[user],
+        family=family,
     )
     build = generator.gen_artefact_build(artefact, architecture="amd64")
     environment = generator.gen_environment(name=f"advanced-search-env-{unique}")
@@ -599,6 +610,28 @@ def test_search_page_supports_all_advanced_filters_and_empty_stage(
     assert [row["test_result"]["id"] for row in response.json()["test_results"]] == [result.id]
     assert without_empty_stage.status_code == 200
     assert without_empty_stage.json()["count"] == 1
+
+
+def test_search_page_combines_custom_family_with_advanced_filters(
+    test_client: TestClient,
+    generator: DataGenerator,
+):
+    family = generator.gen_family(name="advanced-custom-family")
+    result, issue_id, _, _ = _create_advanced_search_result(generator, family=family.name)
+
+    with override_permissions(Permission.view_test):
+        response = test_client.get(
+            SEARCH_PAGE_ENDPOINT,
+            params={"families": family.name, "issues": str(issue_id), "execution_is_latest": "false"},
+        )
+        excluded = test_client.get(
+            SEARCH_PAGE_ENDPOINT,
+            params={"families": family.name, "issues": str(issue_id), "execution_is_latest": "true"},
+        )
+
+    assert response.status_code == excluded.status_code == 200
+    assert [row["test_result"]["id"] for row in response.json()["test_results"]] == [result.id]
+    assert excluded.json()["count"] == 0
 
 
 def test_search_page_empty_stage_is_distinct_from_omitted_filter(

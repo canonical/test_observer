@@ -21,7 +21,6 @@ from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import requires_authentication
-from test_observer.data_access.models_enums import FamilyName
 from test_observer.main import app
 from tests.conftest import authenticate_user, make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -481,8 +480,8 @@ def test_get_user(test_client: TestClient, generator: DataGenerator):
 
 
 def test_set_user_as_reviewer(test_client: TestClient, generator: DataGenerator, db_session: Session):
-    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
+    snap_rule = generator.gen_artefact_matching_rule(family="snap")
+    deb_rule = generator.gen_artefact_matching_rule(family="deb")
 
     team = generator.gen_team(artefact_matching_rules=[snap_rule, deb_rule])
     user = generator.gen_user(teams=[team])

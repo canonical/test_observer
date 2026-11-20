@@ -27,6 +27,7 @@ from test_observer.data_access.models import (
     ArtefactBuildEnvironmentReview,
     ArtefactMatchingRule,
     Environment,
+    Family,
     Issue,
     Notification,
     Team,
@@ -44,7 +45,6 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
-    FamilyName,
     IssueSource,
     IssueStatus,
     NotificationType,
@@ -76,9 +76,14 @@ class DataGenerator:
         self._add_object(team)
         return team
 
+    def gen_family(self, name: str = "custom") -> Family:
+        family = Family(name=name)
+        self._add_object(family)
+        return family
+
     def gen_artefact_matching_rule(
         self,
-        family: FamilyName,
+        family: str,
         stage: str = "",
         track: str = "",
         branch: str = "",
@@ -134,7 +139,7 @@ class DataGenerator:
     def gen_artefact(
         self,
         stage: str = "beta",
-        family: FamilyName = FamilyName.snap,
+        family: str = "snap",
         name: str = "core",
         version: str = "1.1.1",
         track: str = "",
@@ -152,16 +157,14 @@ class DataGenerator:
         attributes: dict[str, Any] | None = None,
         expected_environments: list[Environment] | None = None,
     ) -> Artefact:
-        family = FamilyName(family)
-
         match family:
-            case FamilyName.snap:
+            case "snap":
                 track = track or "latest"
                 store = store or "ubuntu"
-            case FamilyName.deb:
+            case "deb":
                 series = series or "jammy"
                 repo = repo or "main"
-            case FamilyName.charm:
+            case "charm":
                 track = track or "latest"
 
         created_at = created_at or datetime.utcnow()
@@ -210,7 +213,7 @@ class DataGenerator:
         image = Artefact(
             name=name,
             stage=stage,
-            family=FamilyName.image,
+            family="image",
             version=version,
             os=os,
             release=release,
@@ -233,7 +236,7 @@ class DataGenerator:
         revision: int | None = None,
     ) -> ArtefactBuild:
         match artefact.family:
-            case FamilyName.snap | FamilyName.charm:
+            case "snap" | "charm":
                 revision = revision or 1
 
         build = ArtefactBuild(

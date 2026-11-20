@@ -16,7 +16,7 @@ import { Window } from "happy-dom";
 /**
  * @typedef {object} TestResultsHarness
  * @property {() => void} flushSync
- * @property {(target: HTMLElement, data: {artefactFamilies: unknown[]; apiFamilyNames: string[]; familyNamesError: boolean}) => object} mountPage
+ * @property {typeof import("./test-results-entry.js").mountPage} mountPage
  * @property {TestRequest[]} requests
  * @property {() => void} resetApi
  * @property {(handler: ApiHandler) => void} setHandler
@@ -32,7 +32,6 @@ import { Window } from "happy-dom";
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters) => URLSearchParams} searchFilterRequestParams
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters) => string[]} validateSearchFilters
  * @property {(value: string) => string} encodeMetadataPart
- * @property {(document: unknown) => string[]} extractApiFamilyNames
  * @property {(fetcher: typeof fetch, apiRoot: string) => Promise<string[]>} fetchApiFamilyNames
  * @property {(event: {url: URL; fetch: typeof fetch}) => Promise<{apiFamilyNames: string[]; familyNamesError: boolean}>} loadTestResultsPage
  * @property {(count: number, pageSize: number) => number} searchLastPage
@@ -1118,7 +1117,7 @@ void test("advanced filters reject malformed booleans, ID sentinels, and metadat
   );
 });
 
-void test("an unfiltered Search page loads the family enum for draft validation", async () => {
+void test("an unfiltered Search page loads families for draft validation", async () => {
   assert.ok(harness);
   /** @type {string[]} */
   const requestedUrls = [];
@@ -1129,22 +1128,13 @@ void test("an unfiltered Search page loads the family enum for draft validation"
       requestedUrls.push(/** @type {string} */ (input));
       return Promise.resolve(
         new Response(
-          JSON.stringify({
-            components: {
-              schemas: {
-                FamilyName: {
-                  type: "string",
-                  enum: ["snap", "future-family"],
-                },
-              },
-            },
-          }),
+          JSON.stringify([{ name: "snap" }, { name: "future-family" }]),
           { status: 200 },
         ),
       );
     },
   });
-  assert.deepEqual(requestedUrls, ["http://localhost:30000/openapi.json"]);
+  assert.deepEqual(requestedUrls, ["http://localhost:30000/v1/families"]);
   assert.deepEqual(data.apiFamilyNames, ["snap", "future-family"]);
   assert.equal(data.familyNamesError, false);
 
@@ -1188,28 +1178,22 @@ void test("an unfiltered Search page loads the family enum for draft validation"
   await unmountFromDocument(component, target);
 });
 
-void test("family URL validation uses the API enum and permits future API values", async () => {
+void test("family URL validation permits custom families from the API", async () => {
   assert.ok(harness);
-  const apiFamilyNames = harness.extractApiFamilyNames({
-    components: {
-      schemas: {
-        FamilyName: { type: "string", enum: ["snap", "future-family"] },
-      },
-    },
-  });
-  assert.deepEqual(apiFamilyNames, ["snap", "future-family"]);
 
   harness.resetApi();
   harness.resetSearchUrl(
-    "http://localhost/test-results?families=future-family",
+    "http://localhost/test-results?families=future-family&execution_is_latest=false&issues=42",
   );
   harness.setHandler((path) => {
     const params = new URL(path, "http://localhost/").searchParams;
     assert.deepEqual(params.getAll("families"), ["future-family"]);
+    assert.equal(params.get("execution_is_latest"), "false");
+    assert.deepEqual(params.getAll("issues"), ["42"]);
     return Promise.resolve(makePage([], { count: 0 }));
   });
   const { component, target } = mountInDocument({
-    apiFamilyNames,
+    apiFamilyNames: ["snap", "future-family"],
     familyNamesError: false,
   });
   await settlePromises();
@@ -1225,7 +1209,7 @@ void test("family URL validation uses the API enum and permits future API values
   await unmountFromDocument(component, target);
 });
 
-void test("family schema is fetched from the API OpenAPI document", async () => {
+void test("family names are fetched from the families API", async () => {
   assert.ok(harness);
   /** @type {{url: string; credentials: RequestCredentials | undefined; csrf: string | null}[]} */
   const requests = [];
@@ -1240,30 +1224,23 @@ void test("family schema is fetched from the API OpenAPI document", async () => 
       csrf: new Headers(init.headers).get("X-CSRF-Token"),
     });
     return Promise.resolve(
-      new Response(
-        JSON.stringify({
-          components: {
-            schemas: {
-              FamilyName: { type: "string", enum: ["future-family"] },
-            },
-          },
-        }),
-        { status: 200 },
-      ),
+      new Response(JSON.stringify([{ name: "future-family" }]), {
+        status: 200,
+      }),
     );
   }, "https://api.example");
 
   assert.deepEqual(familyNames, ["future-family"]);
   assert.deepEqual(requests, [
     {
-      url: "https://api.example/openapi.json",
+      url: "https://api.example/v1/families",
       credentials: "include",
       csrf: "1",
     },
   ]);
 });
 
-void test("family URLs fail closed when the API schema cannot be loaded", async () => {
+void test("family URLs fail closed when the API family list cannot be loaded", async () => {
   assert.ok(harness);
   harness.resetApi();
   harness.resetSearchUrl(
@@ -1278,7 +1255,7 @@ void test("family URLs fail closed when the API schema cannot be loaded", async 
   assert.equal(harness.requests.length, 0);
   assert.match(
     target.querySelector('[role="alert"]')?.textContent ?? "",
-    /API schema/,
+    /API family list/,
   );
   assert.match(
     target.querySelector('[role="alert"]')?.textContent ?? "",
