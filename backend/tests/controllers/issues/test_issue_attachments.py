@@ -180,12 +180,31 @@ def test_issue_attach_with_filters_family(test_client: TestClient, generator: Da
     resp = auth_post_bulk(
         test_client,
         attach_endpoint.format(id=issue.id),
-        {"test_results_filters": {"families": ["snap"]}},
+        {"test_results_filters": {"families": ["snap", "unknown"]}},
     )
     assert resp.status_code == 200
     attached_ids = {a.test_result.id for a in issue.test_result_attachments}
     assert tr_snap.id in attached_ids
     assert tr_charm.id not in attached_ids
+
+
+def test_issue_attach_with_unknown_family_filter_matches_no_results(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(family="snap", name="snap-unknown-family-filter")
+    build = generator.gen_artefact_build(artefact)
+    env = generator.gen_environment()
+    tc = generator.gen_test_case()
+    test_result = generator.gen_test_result(tc, generator.gen_test_execution(build, env))
+    issue = generator.gen_issue()
+
+    resp = auth_post_bulk(
+        test_client,
+        attach_endpoint.format(id=issue.id),
+        {"test_results_filters": {"families": ["unknown"]}},
+    )
+
+    assert resp.status_code == 200
+    attached_ids = {attachment.test_result.id for attachment in issue.test_result_attachments}
+    assert test_result.id not in attached_ids
 
 
 def test_issue_detach_with_filters_environment(test_client: TestClient, generator: DataGenerator):
