@@ -27,7 +27,7 @@ import { Window } from "happy-dom";
  * @property {() => void} searchHistoryForward
  * @property {(params: URLSearchParams) => {page: number; pageSize: number; problems: string[]}} parseSearchPageState
  * @property {(params: URLSearchParams, familyNames?: string[]) => {filters: import("../src/lib/searchPageFilters.ts").SearchFilters; problems: string[]}} parseSearchFilters
- * @property {(row: SearchPageRow, families: {name: string; api_name: string}[], basePath: string) => string | null} searchRunPath
+ * @property {(row: SearchPageRow, families: import("../src/lib/types/openapi.ts").FamilyResponse[] | null, basePath: string) => string | null} searchRunPath
  * @property {() => import("../src/lib/searchPageFilters.ts").SearchFilters} emptySearchFilters
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters, source?: URLSearchParams) => URLSearchParams} serializeSearchFilters
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters) => URLSearchParams} searchFilterRequestParams
@@ -387,6 +387,7 @@ void test("loads the first server page and preserves server row order", async ()
 void test("Run links use configured family routes and the deployment base", async () => {
   assert.ok(harness);
   const mapped = makeRow(5, "routed-case");
+  mapped.artefact.family = "custom family";
   const unmapped = makeRow(2, "unmapped-case");
   unmapped.artefact.family = "deb";
   harness.resetApi();
@@ -394,16 +395,7 @@ void test("Run links use configured family routes and the deployment base", asyn
   harness.setHandler(() => Promise.resolve(makePage([mapped, unmapped])));
 
   const { component, target } = mountInDocument({
-    artefactFamilies: [
-      {
-        name: "configured-route",
-        friendly_name: "Configured family",
-        api_name: "snap",
-        stages: [],
-        columns: [],
-        filters: [],
-      },
-    ],
+    artefactFamilies: [{ name: "custom family" }],
   });
   await settlePromises();
 
@@ -411,7 +403,7 @@ void test("Run links use configured family routes and the deployment base", asyn
   assert.ok(link);
   assert.equal(
     link.getAttribute("href"),
-    "/custom/base/configured-route/205?testExecutionId=105&testResultId=5",
+    "/custom/base/family/custom%20family/205?testExecutionId=105&testResultId=5",
   );
   assert.match(target.textContent, /Run unavailable/);
   const unmappedRow = [...target.querySelectorAll("tbody tr")].find((row) =>
@@ -428,33 +420,23 @@ void test("Run links use configured family routes and the deployment base", asyn
   await unmountFromDocument(component, target);
 });
 
-void test("Run path uses API family mapping, encoded route names, and both IDs", () => {
+void test("Run path uses API family names, encoded route names, and both IDs", () => {
   assert.ok(harness);
   const row = makeRow(5, "case");
+  row.artefact.family = "custom route";
   assert.equal(
-    harness.searchRunPath(
-      row,
-      [{ name: "configured route", api_name: "snap" }],
-      "/custom/base/",
-    ),
-    "/custom/base/configured%20route/205?testExecutionId=105&testResultId=5",
+    harness.searchRunPath(row, [{ name: "custom route" }], "/custom/base/"),
+    "/custom/base/family/custom%20route/205?testExecutionId=105&testResultId=5",
   );
   assert.equal(
-    harness.searchRunPath(
-      row,
-      [{ name: "configured-route", api_name: "snap" }],
-      "/",
-    ),
-    "/configured-route/205?testExecutionId=105&testResultId=5",
+    harness.searchRunPath(row, [{ name: "custom route" }], "/"),
+    "/family/custom%20route/205?testExecutionId=105&testResultId=5",
   );
   assert.equal(
-    harness.searchRunPath(
-      row,
-      [{ name: "configured-route", api_name: "another-family" }],
-      "",
-    ),
+    harness.searchRunPath(row, [{ name: "another-family" }], ""),
     null,
   );
+  assert.equal(harness.searchRunPath(row, null, ""), null);
 });
 
 void test("requests an applied page URL with only server paging parameters", async () => {
