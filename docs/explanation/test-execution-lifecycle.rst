@@ -115,7 +115,7 @@ A **rerun request** asks for the combination of a test plan, an artefact build a
 Test Observer **does not run tests**, and it does not run reruns either. Creating a rerun request only records that a rerun is wanted; it adds the request to a queue that Test Observer exposes via ``GET /v1/test-executions/reruns``. An **external test scheduler** (the same CI/CD pipeline, Jenkins, or other automation that submits results) is expected to poll this queue, run the requested combinations of test plan, artefact build and environment, and submit fresh results.
 
 Exact artefact filtering
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``test_executions_filters`` body accepted by rerun creation and deletion supports
 ``artefact_ids``. IDs match exact artefacts, including their track and branch identity,
