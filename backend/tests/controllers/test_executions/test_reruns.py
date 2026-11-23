@@ -1921,14 +1921,17 @@ def test_delete_with_test_executions_filters(test_client: TestClient, post: Post
 
 @pytest.mark.parametrize("method", ["POST", "DELETE"])
 @pytest.mark.parametrize("selected_indices", [(0,), (0, 1), ()])
+@pytest.mark.parametrize("filter_name", ["test_executions_filters", "test_results_filters"])
 def test_reruns_filter_by_exact_artefact_ids(
     test_client: TestClient,
     get: Get,
     generator: DataGenerator,
     method: str,
     selected_indices: tuple[int, ...],
+    filter_name: str,
 ):
     environment = generator.gen_environment()
+    test_case = generator.gen_test_case()
     artefacts = [
         generator.gen_artefact(track="1"),
         generator.gen_artefact(track="1", branch="testing"),
@@ -1938,8 +1941,10 @@ def test_reruns_filter_by_exact_artefact_ids(
     for artefact in artefacts:
         for architecture in ["amd64", "arm64"]:
             build = generator.gen_artefact_build(artefact, architecture=architecture)
-            generator.gen_test_execution(build, environment)
+            previous_execution = generator.gen_test_execution(build, environment)
             execution = generator.gen_test_execution(build, environment)
+            generator.gen_test_result(test_case, previous_execution)
+            generator.gen_test_result(test_case, execution)
             if method == "DELETE":
                 generator.gen_rerun_request(execution)
             executions.append(execution)
@@ -1950,7 +1955,7 @@ def test_reruns_filter_by_exact_artefact_ids(
             method,
             reruns_url,
             params={"silent": True} if method == "POST" else {},
-            json={"test_executions_filters": {"artefact_ids": sorted(selected_ids) or [99999999]}},
+            json={filter_name: {"artefact_ids": sorted(selected_ids) or [99999999]}},
         ),
         Permission.change_rerun,
         Permission.change_rerun_bulk,
@@ -1966,13 +1971,14 @@ def test_reruns_filter_by_exact_artefact_ids(
 
 
 @pytest.mark.parametrize("method", ["POST", "DELETE"])
-def test_empty_artefact_ids_filter_is_rejected(test_client: TestClient, method: str):
+@pytest.mark.parametrize("filter_name", ["test_executions_filters", "test_results_filters"])
+def test_empty_artefact_ids_filter_is_rejected(test_client: TestClient, method: str, filter_name: str):
     response = make_authenticated_request(
         lambda: test_client.request(
             method,
             reruns_url,
             params={"silent": True} if method == "POST" else {},
-            json={"test_executions_filters": {"artefact_ids": []}},
+            json={filter_name: {"artefact_ids": []}},
         ),
         Permission.change_rerun,
         Permission.change_rerun_bulk,
@@ -1982,12 +1988,15 @@ def test_empty_artefact_ids_filter_is_rejected(test_client: TestClient, method: 
     assert "At least one filter must be provided" in response.json()["detail"]
 
 
-def test_artefact_ids_filter_requires_bulk_permission(test_client: TestClient, test_execution: TestExecution):
+@pytest.mark.parametrize("filter_name", ["test_executions_filters", "test_results_filters"])
+def test_artefact_ids_filter_requires_bulk_permission(
+    test_client: TestClient, test_execution: TestExecution, filter_name: str
+):
     response = make_authenticated_request(
         lambda: test_client.request(
             "DELETE",
             reruns_url,
-            json={"test_executions_filters": {"artefact_ids": [test_execution.artefact_build.artefact_id]}},
+            json={filter_name: {"artefact_ids": [test_execution.artefact_build.artefact_id]}},
         ),
         Permission.change_rerun,
     )

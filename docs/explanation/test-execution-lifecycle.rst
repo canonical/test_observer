@@ -132,8 +132,13 @@ Send this body to ``DELETE /v1/test-executions/reruns``. Filtered operations req
 filters are combined with AND. Unknown IDs match nothing. An empty ID list alone
 is rejected with HTTP 422 rather than matching every artefact.
 
-Execution search also accepts repeated ``artefact_ids`` query parameters on
-``GET /v1/test-executions``.
+The same selector is supported in ``test_results_filters`` for reruns and issue
+attachment operations. Result filters only match executions with test results;
+use execution filters to include executions without results.
+
+Searches also accept repeated ``artefact_ids`` query parameters on
+``GET /v1/test-executions``, ``GET /v1/test-results`` and
+``GET /v1/test-results/search-page``.
 
 Priority
 ~~~~~~~~

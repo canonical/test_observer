@@ -74,6 +74,7 @@ def get_test_results_search_page(
     families: Annotated[
         list[FamilyName] | None, Query(description="Exact artefact family values; repeat for OR")
     ] = None,
+    artefact_ids: Annotated[list[int] | None, Query(description="Exact artefact IDs; repeat for OR")] = None,
     test_result_statuses: Annotated[
         list[TestResultStatus] | None,
         Query(description="Exact result status values; repeat for OR"),
@@ -136,6 +137,7 @@ def get_test_results_search_page(
         "offset",
         "include_count",
         "families",
+        "artefact_ids",
         "test_result_statuses",
         "artefacts",
         "artefact_versions",
@@ -269,6 +271,7 @@ def get_test_results_search_page(
 
     filters = TestResultSearchFilters(
         families=families or [],
+        artefact_ids=artefact_ids or [],
         test_result_statuses=test_result_statuses or [],
         artefacts=artefacts or [],
         artefact_versions=artefact_versions or [],

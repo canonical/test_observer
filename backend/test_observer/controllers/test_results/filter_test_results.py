@@ -69,6 +69,10 @@ def build_query_filters_and_joins(
         query_filters.append(Artefact.family.in_(filters.families))
         joins_needed.update(["test_execution", "artefact_build", "artefact"])
 
+    if len(filters.artefact_ids) > 0:
+        query_filters.append(ArtefactBuild.artefact_id.in_(filters.artefact_ids))
+        joins_needed.update(["test_execution", "artefact_build"])
+
     if len(filters.artefacts) > 0:
         query_filters.append(Artefact.name.in_(filters.artefacts))
         joins_needed.update(["test_execution", "artefact_build", "artefact"])
