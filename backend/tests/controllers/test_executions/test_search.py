@@ -16,6 +16,7 @@
 import uuid
 from datetime import UTC, datetime
 
+import pytest
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
@@ -275,6 +276,32 @@ class TestSearchTestExecutions:
         te_ids = {item["id"] for item in response.json()["test_executions"]}
         assert te_a.id in te_ids
         assert te_b.id not in te_ids
+
+    @pytest.mark.parametrize("multiple", [False, True])
+    def test_filter_by_artefact_ids(self, test_client: TestClient, generator: DataGenerator, multiple: bool):
+        artefacts = [
+            generator.gen_artefact(track="1"),
+            generator.gen_artefact(track="1", branch="testing"),
+            generator.gen_artefact(track="2"),
+        ]
+        environment = generator.gen_environment()
+        executions = [
+            generator.gen_test_execution(generator.gen_artefact_build(artefact), environment) for artefact in artefacts
+        ]
+        selected = executions[:2] if multiple else executions[:1]
+
+        response = make_authenticated_request(
+            lambda: test_client.get(
+                "/v1/test-executions",
+                params={"artefact_ids": [execution.artefact_build.artefact_id for execution in selected]},
+            ),
+            Permission.view_test,
+        )
+
+        assert response.status_code == 200
+        assert {execution["id"] for execution in response.json()["test_executions"]} == {
+            execution.id for execution in selected
+        }
 
     def test_filter_by_artefact_version(self, test_client: TestClient, generator: DataGenerator):
         artefact_a = generator.gen_artefact(name=_uid("artefact"), version="1.0")

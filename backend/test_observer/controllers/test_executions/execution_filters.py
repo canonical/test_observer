@@ -75,6 +75,10 @@ def build_execution_filters(
         query_filters.append(Artefact.family.in_(filters.families))
         joins_needed.update(["artefact_build", "artefact"])
 
+    if filters.artefact_ids:
+        query_filters.append(ArtefactBuild.artefact_id.in_(filters.artefact_ids))
+        joins_needed.add("artefact_build")
+
     if filters.artefacts:
         query_filters.append(Artefact.name.in_(filters.artefacts))
         joins_needed.update(["artefact_build", "artefact"])
