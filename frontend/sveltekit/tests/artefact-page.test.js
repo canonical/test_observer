@@ -112,7 +112,7 @@ before(async () => {
               },
               load(id) {
                 if (id === "\0test:$app/state") {
-                  return 'export const page = { url: new URL("http://localhost/snaps/1") };';
+                  return 'export const page = { url: new URL("http://localhost/family/snap/1") };';
                 }
                 if (id === "\0test:$app/paths") {
                   return 'export const base = ""; export const resolve = (path) => path;';
@@ -759,22 +759,22 @@ void test("artefact store rejects data whose family differs from the route", asy
   }
 });
 
-void test("artefact detail route maps its plural family name to the API family", async () => {
+void test("artefact detail route resolves its exact family name", async () => {
   if (!vite) throw new Error("Vite server was not started");
   const routePath = new URL(
-    "../src/routes/[family]/[artefactId]/+page.svelte",
+    "../src/routes/family/[family]/[artefactId]/+page.svelte",
     import.meta.url,
   );
-  const [{ findFamilyByRouteName }, routeSource] = await Promise.all([
+  const [{ findFamilyByName }, routeSource] = await Promise.all([
     /** @type {Promise<typeof import("../src/lib/families")>} */ (
       vite.ssrLoadModule("/src/lib/families.ts")
     ),
     readFile(routePath, "utf8"),
   ]);
   const families = [{ name: "deb" }, { name: "snap" }];
-  const routeFamily = findFamilyByRouteName(families, "snaps");
+  const routeFamily = findFamilyByName(families, "snap");
   assert.deepEqual(routeFamily, { name: "snap" });
-  assert.equal(findFamilyByRouteName(families, "snap"), undefined);
+  assert.equal(findFamilyByName(families, "snaps"), undefined);
   assert.match(routeSource, /store\.init\(artefactId, family\.name\)/);
 
   const originalFetch = globalThis.fetch;
@@ -1757,7 +1757,7 @@ void test("artefact mutation capabilities fail closed without a matching-rule si
 
   const routeSource = await readFile(
     new URL(
-      "../src/routes/[family]/[artefactId]/+page.svelte",
+      "../src/routes/family/[family]/[artefactId]/+page.svelte",
       import.meta.url,
     ),
     "utf8",
@@ -1788,10 +1788,7 @@ void test("version navigation resolves a base-independent artefact route", async
     "utf8",
   );
 
-  assert.match(
-    source,
-    /goto\(resolve\(`\$\{familyRouteName\(family\)\}\/\$\{id\}`\)\)/,
-  );
+  assert.match(source, /goto\(resolve\(familyDetailRoute\(family, id\)\)\)/);
   assert.doesNotMatch(source, /\$\{base\}/);
 });
 

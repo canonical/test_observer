@@ -34,7 +34,7 @@
   import ErrorPopup from '$lib/components/ErrorPopup.svelte';
   import { getApiRoot } from '$lib/config';
   import { userStore } from '$lib/stores/user.svelte';
-  import { familyNavLabel, familyRouteName } from '$lib/families';
+  import { familyDashboardRoute, familyNavLabel } from '$lib/families';
   import { notificationsStore } from '$lib/stores/notifications.svelte';
   import { themeStore } from '$lib/stores/theme.svelte';
   import '../app.css';
@@ -83,7 +83,10 @@
     {/snippet}
 
     {#each data.artefactFamilies ?? [] as family (family.name)}
-      <SideNavigation.NavigationItem href={resolve(familyRouteName(family))} selected={pathname.startsWith(resolve(familyRouteName(family)))}>
+      <SideNavigation.NavigationItem
+        href={resolve(familyDashboardRoute(family))}
+        selected={pathname === resolve(familyDashboardRoute(family)) || pathname.startsWith(`${resolve(familyDashboardRoute(family))}/`)}
+      >
         {familyNavLabel(family)}
       </SideNavigation.NavigationItem>
     {/each}

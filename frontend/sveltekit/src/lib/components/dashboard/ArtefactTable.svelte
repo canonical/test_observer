@@ -18,7 +18,7 @@
   } from '@svgrid/grid';
   import type { Artefact, ColumnSpec } from '$lib/types';
   import type { FamilyResponse } from '$lib/types/openapi';
-  import { familyRouteName } from '$lib/families';
+  import { familyDetailRoute, familyRouteName } from '$lib/families';
   import {
     ARTEFACT_COLUMNS,
     columnValue,
@@ -74,7 +74,7 @@
     routerReady = true;
   });
 
-  // The route component is reused across /snaps, /debs and friends, so without
+  // The route component is reused across family dashboards, so without
   // this the header would keep offering to clear the previous family's filters
   // until the incoming grid reports its own state.
   $effect.pre(() => {
@@ -290,13 +290,13 @@
   }
 
   function openArtefact(id: string | number) {
-    void goto(resolve(`${familyRouteName(family)}/${id}`));
+    void goto(resolve(familyDetailRoute(family, id)));
   }
 </script>
 
 <!-- Keyed on the family so switching dashboards mounts a fresh grid: SvGrid
      keeps filter state internally, and the route component is reused across
-     /snaps, /debs and friends, so without this the filters would follow you. -->
+     family dashboards, so without this the filters would follow you. -->
 {#key family.name}
   <!-- selectionMode="none" because clicking a row opens the artefact, so cell
        and row selection would only fight with navigation. -->

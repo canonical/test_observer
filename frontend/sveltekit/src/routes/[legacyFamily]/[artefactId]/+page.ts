@@ -3,25 +3,27 @@
 
 import { error, redirect } from "@sveltejs/kit";
 import { resolve } from "$app/paths";
-import { familyRouteName, findFamilyByRouteName } from "$lib/families";
+import {
+  findFamilyByLegacyRouteName,
+  familyRedirectTarget,
+} from "$lib/families";
 import { parseArtefactId } from "$lib/utils/artefact-filters";
 import type { PageLoad } from "./$types";
 
-export const load: PageLoad = async ({ parent, params }) => {
+export const load: PageLoad = async ({ parent, params, url }) => {
   const { artefactFamilies } = await parent();
   if (artefactFamilies === null) {
     error(503, "Unable to load artefact families");
   }
-  const family = findFamilyByRouteName(artefactFamilies, params.family);
+  const family = findFamilyByLegacyRouteName(
+    artefactFamilies,
+    params.legacyFamily,
+  );
 
   if (!family) {
-    error(404, `Unknown family: ${params.family}`);
+    error(404, `Unknown family: ${params.legacyFamily}`);
   }
 
   const id = parseArtefactId(params.artefactId);
-  if (id === null) {
-    redirect(307, resolve(familyRouteName(family)));
-  }
-
-  return { family, artefactId: id };
+  redirect(307, familyRedirectTarget(family, id, url.search, resolve));
 };

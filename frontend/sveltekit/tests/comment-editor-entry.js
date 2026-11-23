@@ -3,7 +3,7 @@
 
 import { mount, unmount } from "svelte";
 import ArtefactInfoSection from "../src/lib/components/artefact/ArtefactInfoSection.svelte";
-import ArtefactPage from "../src/routes/[family]/[artefactId]/+page.svelte";
+import ArtefactPage from "../src/routes/family/[family]/[artefactId]/+page.svelte";
 
 /**
  * @param {import("svelte").MountOptions["target"]} target

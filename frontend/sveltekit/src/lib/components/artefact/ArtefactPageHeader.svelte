@@ -8,7 +8,11 @@
   import { goto } from "$app/navigation";
   import type { Artefact } from "$lib/types";
   import type { FamilyResponse } from "$lib/types/openapi";
-  import { familyRouteName, familyTitle } from "$lib/families";
+  import {
+    familyDashboardRoute,
+    familyDetailRoute,
+    familyTitle,
+  } from "$lib/families";
   import { formatDueDate } from "$lib/types";
   import type { ArtefactVersion } from "$lib/types/artefact-page";
   import type { ArtefactPageStore } from "$lib/stores/artefact-page.svelte";
@@ -28,7 +32,7 @@
   const dueDate = $derived(formatDueDate(artefact.due_date));
 
   const breadcrumbSegments = $derived([
-    { label: familyTitle(family), href: resolve(familyRouteName(family)) },
+    { label: familyTitle(family), href: resolve(familyDashboardRoute(family)) },
     { label: artefact.name },
   ]);
 
@@ -37,7 +41,7 @@
 
   function handleVersionChange(e: Event) {
     const id = (e.target as HTMLSelectElement).value;
-    if (id) goto(resolve(`${familyRouteName(family)}/${id}`));
+    if (id) goto(resolve(familyDetailRoute(family, id)));
   }
 
   async function handleStatusChange(

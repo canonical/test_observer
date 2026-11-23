@@ -39,5 +39,5 @@ export function showError(message) {
 
 export { unmount as unmountLayout, flushSync };
 export { load as loadLayout } from "../src/routes/+layout";
-export { load as loadFamily } from "../src/routes/[family]/+page";
-export { load as loadArtefact } from "../src/routes/[family]/[artefactId]/+page";
+export { load as loadFamily } from "../src/routes/family/[family]/+page";
+export { load as loadArtefact } from "../src/routes/family/[family]/[artefactId]/+page";
