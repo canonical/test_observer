@@ -54,6 +54,19 @@ const getFamilies = async (
     if (!Array.isArray(families)) {
       throw new Error("Expected an array of families");
     }
+    if (
+      !families.every(
+        (family) =>
+          typeof family === "object" &&
+          family !== null &&
+          !Array.isArray(family) &&
+          typeof (family as { name?: unknown }).name === "string",
+      )
+    ) {
+      throw new Error(
+        "Expected each family to be an object with a string name",
+      );
+    }
     return families as FamilyResponse[];
   } catch (error) {
     console.error("Error fetching families:", error);

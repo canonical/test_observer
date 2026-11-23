@@ -209,6 +209,18 @@ for (const [description, familyResponse, status] of /** @type {const} */ ([
   ["a non-401 HTTP failure", () => new Response(null, { status: 403 }), 503],
   ["invalid JSON", () => new Response("not JSON"), 503],
   ["a non-array response", () => Response.json({}), 503],
+  ["a malformed family entry without a name", () => Response.json([{}]), 503],
+  [
+    "a malformed family entry with a non-string name",
+    () => Response.json([{ name: 1 }]),
+    503,
+  ],
+  [
+    "a malformed later family entry after a valid one",
+    () => Response.json([{ name: "snap" }, { name: 1 }]),
+    503,
+  ],
+  ["a malformed non-object family entry", () => Response.json([null]), 503],
   ["an anonymous response", () => new Response(null, { status: 401 }), 404],
   ["an empty list", () => Response.json([]), 404],
   [
@@ -220,7 +232,15 @@ for (const [description, familyResponse, status] of /** @type {const} */ ([
   void test(`both family routes handle ${description}`, async ({ mock }) => {
     assert.ok(harness);
     const { loadLayout, loadFamily, loadArtefact } = harness;
-    mock.method(console, "error", () => undefined);
+    /** @type {unknown[][]} */
+    const errors = [];
+    mock.method(
+      console,
+      "error",
+      /** @type {(...args: unknown[]) => number} */ (
+        (...args) => errors.push(args)
+      ),
+    );
 
     /** @type {string[]} */
     const requestedPaths = [];
@@ -237,6 +257,18 @@ for (const [description, familyResponse, status] of /** @type {const} */ ([
     const data = await loadLayout(
       /** @type {Parameters<typeof loadLayout>[0]} */ ({ fetch }),
     );
+    if (description.startsWith("a malformed family entry")) {
+      assert.equal(data.artefactFamilies, null);
+      assert.ok(
+        errors.some(
+          ([message, error]) =>
+            message === "Error fetching families:" &&
+            error instanceof Error &&
+            error.message ===
+              "Expected each family to be an object with a string name",
+        ),
+      );
+    }
     if (description === "an anonymous response") {
       assert.deepEqual(data.artefactFamilies, []);
     }
@@ -281,3 +313,21 @@ for (const [description, familyResponse, status] of /** @type {const} */ ([
     assert.deepEqual(requestedPaths.sort(), ["/v1/families", "/v1/users/me"]);
   });
 }
+
+void test("layout load preserves a valid family response", async () => {
+  assert.ok(harness);
+  const families = [{ name: "snap" }, { name: "custom-family" }];
+  /** @type {typeof globalThis.fetch} */
+  const fetch = (input) => {
+    const path = new URL(input instanceof Request ? input.url : input).pathname;
+    if (path === "/v1/families")
+      return Promise.resolve(Response.json(families));
+    assert.equal(path, "/v1/users/me");
+    return Promise.resolve(new Response(null, { status: 401 }));
+  };
+
+  const data = await harness.loadLayout(
+    /** @type {Parameters<typeof harness.loadLayout>[0]} */ ({ fetch }),
+  );
+  assert.deepEqual(data.artefactFamilies, families);
+});
