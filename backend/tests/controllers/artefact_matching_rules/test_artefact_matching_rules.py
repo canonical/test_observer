@@ -223,7 +223,7 @@ def test_matching_rule_unrelated_database_error_is_not_conflict(
     team = generator.gen_team(name="test-team")
     rule = generator.gen_artefact_matching_rule(family="snap", teams=[team])
     url = "/v1/artefact-matching-rules"
-    payload = {"name": "x" * 201}
+    payload: dict[str, object] = {"name": "x" * 201}
     if method == "post":
         payload |= {"family": "snap", "team_ids": [team.id]}
     else:
