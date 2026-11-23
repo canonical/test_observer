@@ -330,6 +330,7 @@ String getArtefactPagePathForFamily(
   return path;
 }
 
+// TODO(raul): remove family-specific logic later in TO-416.
 String? getArtefactPagePathForFamilyString(
   String family,
   int artefactId, {

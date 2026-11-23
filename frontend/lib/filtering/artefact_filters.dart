@@ -31,6 +31,7 @@ Set<String> selectedArtefactFilterOptions(
   return options;
 }
 
+// TODO(raul): remove family-specific logic later in TO-416.
 List<Filter<Artefact>> getArtefactFiltersFor(String family) => switch (family) {
       'snap' => [
           _artefactReviewerFilter,

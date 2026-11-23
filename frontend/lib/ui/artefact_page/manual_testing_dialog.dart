@@ -129,6 +129,7 @@ class _StartManualTestingDialogState
   Map<String, dynamic> _buildFamilySpecificFields(Artefact artefact) {
     final fields = <String, dynamic>{};
 
+    // TODO(raul): remove family-specific logic later in TO-416.
     switch (artefact.family) {
       case 'snap':
         final artefactBuildsAsync =

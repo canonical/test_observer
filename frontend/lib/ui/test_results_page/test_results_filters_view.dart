@@ -244,6 +244,7 @@ class _TestResultsFiltersViewState
     final allFamilyOptions = families.map((family) => family.name).toList();
     final allTestResultStatusesOptions =
         TestResultStatus.values.map((s) => s.name).toList();
+    // TODO(raul): remove family-specific logic later in TO-416.
     final allArtefactStageOptions = <String>{
       for (final family in FamilyName.values)
         if (familyNames.contains(family.name)) ...familyStages(family),
