@@ -240,6 +240,10 @@ def search_test_executions(
         list[FamilyName] | None,
         Query(description="Filter by artefact families (e.g., charm,snap)"),
     ] = None,
+    artefact_ids: Annotated[
+        list[int] | None,
+        Query(description="Filter by exact artefact IDs"),
+    ] = None,
     artefacts: Annotated[
         list[str] | None,
         Query(description="Filter by artefact names"),
@@ -342,6 +346,7 @@ def search_test_executions(
 
     filters = TestExecutionSearchFilters(
         families=families or [],
+        artefact_ids=artefact_ids or [],
         artefacts=artefacts or [],
         artefact_versions=artefact_versions or [],
         artefact_stages=artefact_stages or [],

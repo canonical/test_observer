@@ -1919,6 +1919,82 @@ def test_delete_with_test_executions_filters(test_client: TestClient, post: Post
     assert reruns[0]["test_execution_id"] == te2.id
 
 
+@pytest.mark.parametrize("method", ["POST", "DELETE"])
+@pytest.mark.parametrize("selected_indices", [(0,), (0, 1), ()])
+def test_reruns_filter_by_exact_artefact_ids(
+    test_client: TestClient,
+    get: Get,
+    generator: DataGenerator,
+    method: str,
+    selected_indices: tuple[int, ...],
+):
+    environment = generator.gen_environment()
+    artefacts = [
+        generator.gen_artefact(track="1"),
+        generator.gen_artefact(track="1", branch="testing"),
+        generator.gen_artefact(track="2"),
+    ]
+    executions = []
+    for artefact in artefacts:
+        for architecture in ["amd64", "arm64"]:
+            build = generator.gen_artefact_build(artefact, architecture=architecture)
+            generator.gen_test_execution(build, environment)
+            execution = generator.gen_test_execution(build, environment)
+            if method == "DELETE":
+                generator.gen_rerun_request(execution)
+            executions.append(execution)
+    selected_ids = {artefacts[index].id for index in selected_indices}
+
+    response = make_authenticated_request(
+        lambda: test_client.request(
+            method,
+            reruns_url,
+            params={"silent": True} if method == "POST" else {},
+            json={"test_executions_filters": {"artefact_ids": sorted(selected_ids) or [99999999]}},
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 200
+    matching_builds = {
+        execution.artefact_build_id for execution in executions if execution.artefact_build.artefact_id in selected_ids
+    }
+    all_builds = {execution.artefact_build_id for execution in executions}
+    expected_builds = matching_builds if method == "POST" else all_builds - matching_builds
+    assert {rerun["artefact_build"]["id"] for rerun in get().json()} == expected_builds
+
+
+@pytest.mark.parametrize("method", ["POST", "DELETE"])
+def test_empty_artefact_ids_filter_is_rejected(test_client: TestClient, method: str):
+    response = make_authenticated_request(
+        lambda: test_client.request(
+            method,
+            reruns_url,
+            params={"silent": True} if method == "POST" else {},
+            json={"test_executions_filters": {"artefact_ids": []}},
+        ),
+        Permission.change_rerun,
+        Permission.change_rerun_bulk,
+    )
+
+    assert response.status_code == 422
+    assert "At least one filter must be provided" in response.json()["detail"]
+
+
+def test_artefact_ids_filter_requires_bulk_permission(test_client: TestClient, test_execution: TestExecution):
+    response = make_authenticated_request(
+        lambda: test_client.request(
+            "DELETE",
+            reruns_url,
+            json={"test_executions_filters": {"artefact_ids": [test_execution.artefact_build.artefact_id]}},
+        ),
+        Permission.change_rerun,
+    )
+
+    assert response.status_code == 403
+
+
 def test_bulk_permission_required_for_test_executions_filters(test_client: TestClient, generator: DataGenerator):
     """change_rerun_bulk is required when using test_executions_filters"""
     a = generator.gen_artefact("beta")
