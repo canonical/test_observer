@@ -37,6 +37,7 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     Environment,
+    Family,
     Notification,
     TestExecution,
 )
@@ -44,6 +45,8 @@ from test_observer.data_access.models_enums import (
     NotificationType,
     TestExecutionStatus,
 )
+from test_observer.data_access.setup import get_db
+from test_observer.main import app
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -130,6 +133,23 @@ solution_test_request = {
     "ci_link": "http://localhost",
     "test_plan": "fips test plan",
 }
+
+
+def test_start_test_missing_registered_family(execute: Execute, db_session: Session):
+    with Session(bind=db_session.connection(), join_transaction_mode="create_savepoint") as request_session:
+        request_session.execute(delete(Family).where(Family.name == "snap"))
+        app.dependency_overrides[get_db] = lambda: request_session
+        try:
+            response = execute(snap_test_request)
+            assert request_session.is_active
+        finally:
+            app.dependency_overrides[get_db] = lambda: db_session
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == [
+        {"type": "unknown_family", "loc": ["body", "family"], "msg": "Family snap doesn't exist", "input": "snap"}
+    ]
+    assert db_session.scalar(select(Artefact).where(Artefact.name == snap_test_request["name"])) is None
 
 
 @pytest.mark.parametrize(

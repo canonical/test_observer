@@ -211,6 +211,23 @@ def test_create_artefact_validates_input(
     assert db_session.query(Artefact).count() == 0
 
 
+def test_create_artefact_unknown_family_details(test_client: TestClient, artefact_request: dict[str, Any]):
+    response = make_authenticated_request(
+        lambda: test_client.post("/v1/artefacts", json=artefact_request | {"family": "unregistered"}),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == [
+        {
+            "type": "unknown_family",
+            "loc": ["body", "family"],
+            "msg": "Family unregistered doesn't exist",
+            "input": "unregistered",
+        }
+    ]
+
+
 @pytest.mark.parametrize("fields", [{}, {"sha256": ""}, {"sha256": " \t"}])
 def test_create_artefact_rejects_empty_identity(
     test_client: TestClient, db_session: Session, artefact_request: dict[str, Any], fields: dict

@@ -13,15 +13,31 @@
 # SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
+from contextlib import contextmanager
 
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy import select
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
+from test_observer.data_access.errors import is_constraint_violation
 from test_observer.data_access.models import Family
 
 Loc = tuple[str | int, ...]
+
+
+@contextmanager
+def map_family_fk_violation(db: Session, constraint: str, family: str, loc: Loc) -> Iterator[None]:
+    try:
+        yield
+    except DBAPIError as error:
+        db.rollback()
+        if is_constraint_violation(error, "23503", constraint):
+            raise RequestValidationError(
+                [{"type": "unknown_family", "loc": loc, "msg": f"Family {family} doesn't exist", "input": family}]
+            ) from error
+        raise
 
 
 def ensure_located_families_exist(db: Session, located: Iterable[tuple[Loc, str]]) -> None:

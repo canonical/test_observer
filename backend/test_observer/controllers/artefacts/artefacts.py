@@ -35,7 +35,7 @@ from test_observer.controllers.applications.application_injection import (
     get_current_application,
 )
 from test_observer.controllers.artefacts.artefact_retriever import ArtefactRetriever
-from test_observer.controllers.families.validation import ensure_families_exist
+from test_observer.controllers.families.validation import map_family_fk_violation
 from test_observer.data_access.models import (
     Application,
     Artefact,
@@ -91,18 +91,18 @@ def create_artefact(
 
     An existing artefact is returned unchanged, including its stage and status.
     """
-    ensure_families_exist(db, request.family, ("body", "family"))
     fields = request.model_dump()
     identity = get_artefact_identity(fields)
     if not any(value.strip() for key, value in identity.items() if key != "family"):
         raise HTTPException(status_code=422, detail="Artefact identity must not be empty.")
-    artefact = get_or_create(
-        db,
-        Artefact,
-        filter_kwargs=identity,
-        creation_kwargs={key: value for key, value in fields.items() if key not in identity},
-    )
-    db.commit()
+    with map_family_fk_violation(db, "artefact_family_fkey", request.family, ("body", "family")):
+        artefact = get_or_create(
+            db,
+            Artefact,
+            filter_kwargs=identity,
+            creation_kwargs={key: value for key, value in fields.items() if key not in identity},
+        )
+        db.commit()
     return artefact
 
 

@@ -21,10 +21,11 @@ from typing import Any
 from pydantic import HttpUrl
 from sqlalchemy import and_, func, select, tuple_
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, NoResultFound
 from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy.orm.attributes import set_committed_value
 
+from .errors import postgres_error_details
 from .models import Artefact, ArtefactBuild, DataModel, Environment, Family, TestExecution, TestExecutionRelevantLink
 
 
@@ -281,17 +282,24 @@ def get_or_create(
     # but it might have been created by another process before we try to add it.
     # Thus, we still need to catch the IntegrityError
     # and query for the instance in that case, but this should be much rarer
+    insert_started = False
     try:
         # Attempt to add and commit the new instance
         # Use a nested transaction to avoid rolling back the entire session
         with db.begin_nested():
             db.add(instance)
+            insert_started = True
             # Ensure the INSERT is executed immediately
             # to catch IntegrityError here if it occurs
             db.flush()
-    except IntegrityError:
+    except DBAPIError as error:
+        if not insert_started or postgres_error_details(error)[0] != "23505":
+            raise
         # Query and return the existing instance
-        instance = db.query(model).filter_by(**filter_kwargs).one()
+        try:
+            instance = db.query(model).filter_by(**filter_kwargs).one()
+        except NoResultFound:
+            raise error from None
 
     return instance
 

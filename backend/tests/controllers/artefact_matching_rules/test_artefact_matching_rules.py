@@ -20,8 +20,11 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import DBAPIError
+from sqlalchemy.orm import Session
 
 from test_observer.common.enums import Permission
+from test_observer.data_access.setup import get_db
+from test_observer.main import app
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -177,6 +180,60 @@ def test_create_artefact_matching_rule_invalid_family(test_client: TestClient, g
     )
 
     assert response.status_code == 422
+    assert response.json()["detail"] == [
+        {"type": "unknown_family", "loc": ["body", "family"], "msg": "Family invalid doesn't exist", "input": "invalid"}
+    ]
+
+
+def test_update_artefact_matching_rule_unknown_family_rolls_back(
+    test_client: TestClient, generator: DataGenerator, db_session: Session
+):
+    team = generator.gen_team(name="test-team")
+    other_team = generator.gen_team(name="other-team")
+    rule = generator.gen_artefact_matching_rule(family="snap", teams=[team])
+    rule_id, team_id, other_team_id = rule.id, team.id, other_team.id
+
+    with Session(bind=db_session.connection(), join_transaction_mode="create_savepoint") as request_session:
+        app.dependency_overrides[get_db] = lambda: request_session
+        try:
+            response = make_authenticated_request(
+                lambda: test_client.patch(
+                    f"/v1/artefact-matching-rules/{rule_id}",
+                    json={"family": "invalid", "team_ids": [other_team_id], "track": "changed"},
+                ),
+                Permission.change_team,
+            )
+            assert request_session.is_active
+        finally:
+            app.dependency_overrides[get_db] = lambda: db_session
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "family"]
+    assert response.json()["detail"][0]["input"] == "invalid"
+    db_session.expire_all()
+    assert rule.family == "snap"
+    assert rule.track == ""
+    assert [t.id for t in rule.teams] == [team_id]
+
+
+@pytest.mark.parametrize("method", ["post", "patch"])
+def test_matching_rule_unrelated_database_error_is_not_conflict(
+    test_client: TestClient, generator: DataGenerator, method: str
+):
+    team = generator.gen_team(name="test-team")
+    rule = generator.gen_artefact_matching_rule(family="snap", teams=[team])
+    url = "/v1/artefact-matching-rules"
+    payload = {"name": "x" * 201}
+    if method == "post":
+        payload |= {"family": "snap", "team_ids": [team.id]}
+    else:
+        url += f"/{rule.id}"
+
+    with pytest.raises(DBAPIError, match="value too long"):
+        make_authenticated_request(
+            lambda: getattr(test_client, method)(url, json=payload),
+            Permission.change_team,
+        )
 
 
 def test_get_artefact_matching_rules(test_client: TestClient, generator: DataGenerator):
