@@ -14,7 +14,8 @@
     createNamedViews,
     renderComponent,
     type GridColumns,
-    type SvGridApi
+    type SvGridApi,
+    type SvGridViewState
   } from '@svgrid/grid';
   import type { Artefact, ColumnSpec } from '$lib/types';
   import type { FamilyResponse } from '$lib/types/openapi';
@@ -146,7 +147,19 @@
     const hidden = [...hiddenByDefault, ...hiddenColumns].filter(
       (id) => !shownColumns.includes(id)
     );
-    handle.setState({ ...filters, hiddenColumns: [...new Set(hidden)] });
+    const state = { ...filters, hiddenColumns: [...new Set(hidden)] };
+    handle.setState(state);
+    restoreShownColumns(handle, state);
+  }
+
+  function restoreShownColumns(handle: SvGridApi<never, Artefact>, state: Partial<SvGridViewState>) {
+    // SvGrid's setState always re-hides declared-hidden columns, even when a
+    // saved state explicitly leaves them visible. Restore those overrides.
+    if (state.hiddenColumns) {
+      for (const id of hiddenByDefault) {
+        if (!state.hiddenColumns.includes(id)) handle.setColumnVisible(id, true);
+      }
+    }
   }
 
   let detachAutosave: (() => void) | null = null;
@@ -191,7 +204,14 @@
     // `getState()` includes fitted effective widths, so wrap the API with the
     // widths reported by user resize gestures before giving it to autosave.
     resizeWidthPersistence = createUserResizeViewHost(ready);
-    const viewHost = resizeWidthPersistence.host;
+    const widthHost = resizeWidthPersistence.host;
+    const viewHost = {
+      ...widthHost,
+      setState(state: Partial<SvGridViewState>) {
+        widthHost.setState(state);
+        restoreShownColumns(ready, state);
+      }
+    };
     const views = createNamedViews(viewHost, { storage: familyViewStorage(familyRouteName(family)) });
     // Layout first, then the link: a shared view's filters should land on top of
     // the column widths and ordering this tab was already using.
