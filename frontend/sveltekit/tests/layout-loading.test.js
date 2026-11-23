@@ -98,6 +98,36 @@ after(async () => {
   await browserWindow.happyDOM.abort();
 });
 
+void test("root load reports not found instead of redirecting", () => {
+  assert.ok(harness);
+  const { loadRoot } = harness;
+  assert.throws(() => loadRoot(/** @type {never} */ ({})), {
+    status: 404,
+    body: { status: 404, message: "Not found" },
+  });
+});
+
+void test("layout retains family navigation when displaying an error", async () => {
+  assert.ok(harness);
+  const target = browserWindow.document.createElement("div");
+  browserWindow.document.body.append(target);
+  // @ts-expect-error Happy DOM's element types differ from the DOM lib types.
+  const component = harness.mountLayout(target, "<h1>404</h1>");
+  try {
+    assert.equal(target.querySelector("main h1")?.textContent, "404");
+    const sidebar = target.querySelector(".side-navigation");
+    assert.ok(sidebar);
+    const alpha = sidebar.querySelector('a[href="/family/alpha"]');
+    const beta = sidebar.querySelector('a[href="/family/beta"]');
+    assert.ok(alpha && beta);
+    assert.equal(alpha.closest("[inert]"), null);
+    assert.equal(beta.closest("[inert]"), null);
+  } finally {
+    await harness.unmountLayout(component);
+    target.remove();
+  }
+});
+
 void test("navigation makes only the page inert and keeps status and shell controls available", async () => {
   assert.ok(harness);
   const { mountLayout, setDestination, unmountLayout, flushSync, showError } =
