@@ -839,6 +839,10 @@ void test("approval author display distinguishes actors and unavailable history"
     body("APPROVED", { kind: "application", name: "CI" }),
     /Approved by CI \(application\)/,
   );
+  assert.match(
+    body("APPROVED", { kind: "automation", name: "Bot" }),
+    /Approved by Bot \(automation\)/,
+  );
   assert.match(body("APPROVED", null), /Approval author unavailable/);
   assert.match(body("APPROVED", undefined), /Loading approval author/);
   assert.doesNotMatch(
