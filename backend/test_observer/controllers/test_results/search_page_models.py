@@ -16,9 +16,16 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, HttpUrl
 
-from test_observer.data_access.models_enums import FamilyName, TestResultStatus
+from test_observer.controllers.execution_metadata.models import ExecutionMetadata
+from test_observer.data_access.models_enums import (
+    FamilyName,
+    IssueSource,
+    IssueStatus,
+    TestExecutionStatus,
+    TestResultStatus,
+)
 
 
 class SearchPageTestResult(BaseModel):
@@ -63,3 +70,55 @@ class TestResultSearchPage(BaseModel):
     limit: int
     offset: int
     test_results: list[TestResultSearchPageRow]
+
+
+class SearchPageDetailsIssue(BaseModel):
+    id: int
+    source: IssueSource
+    project: str
+    key: str
+    title: str
+    status: IssueStatus
+    url: HttpUrl
+
+
+class SearchPageDetailsIssueAttachment(BaseModel):
+    issue: SearchPageDetailsIssue
+
+
+class SearchPageDetailsTestResult(BaseModel):
+    id: int
+    name: str
+    category: str
+    template_id: str
+    status: TestResultStatus
+    io_log: str
+    issues: list[SearchPageDetailsIssueAttachment]
+
+
+class SearchPageDetailsTestExecution(BaseModel):
+    id: int
+    status: TestExecutionStatus
+    environment: SearchPageEnvironment
+    test_plan: str
+    created_at: datetime
+    execution_metadata: ExecutionMetadata
+
+
+class SearchPageDetailsArtefact(BaseModel):
+    id: int
+    name: str
+    version: str
+    track: str
+    family: FamilyName
+
+
+class SearchPageDetailsArtefactBuild(BaseModel):
+    architecture: str
+
+
+class SearchPageDetailsResponse(BaseModel):
+    test_result: SearchPageDetailsTestResult
+    test_execution: SearchPageDetailsTestExecution
+    artefact: SearchPageDetailsArtefact
+    artefact_build: SearchPageDetailsArtefactBuild

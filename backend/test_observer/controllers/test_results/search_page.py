@@ -19,9 +19,10 @@ import binascii
 from datetime import UTC, datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Security
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Security
+from pydantic import HttpUrl
 from sqlalchemy import desc, func, select
-from sqlalchemy.orm import Session, joinedload, load_only, raiseload
+from sqlalchemy.orm import Session, joinedload, load_only, raiseload, selectinload
 
 from test_observer.common.config import MAX_RESULT_PAGE_LIMIT
 from test_observer.common.constants import QueryValue
@@ -32,8 +33,11 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     Environment,
+    Issue,
+    IssueTestResultAttachment,
     TestCase,
     TestExecution,
+    TestExecutionMetadata,
     TestPlan,
     TestResult,
 )
@@ -44,6 +48,13 @@ from .filter_test_results import filter_test_results
 from .search_page_models import (
     SearchPageArtefact,
     SearchPageArtefactBuild,
+    SearchPageDetailsArtefact,
+    SearchPageDetailsArtefactBuild,
+    SearchPageDetailsIssue,
+    SearchPageDetailsIssueAttachment,
+    SearchPageDetailsResponse,
+    SearchPageDetailsTestExecution,
+    SearchPageDetailsTestResult,
     SearchPageEnvironment,
     SearchPageTestExecution,
     SearchPageTestResult,
@@ -170,6 +181,7 @@ def get_test_results_search_page(
         "from_date",
         "until_date",
     )
+
     for key in scalar_keys:
         if len(request.query_params.getlist(key)) > 1:
             raise HTTPException(status_code=422, detail=f"Provide at most one {key} value")
@@ -393,4 +405,143 @@ def get_test_results_search_page(
             )
             for result in results
         ],
+    )
+
+
+@router.get(
+    "/search-page/{test_result_id}",
+    response_model=SearchPageDetailsResponse,
+    dependencies=[Security(permission_checker, scopes=[Permission.view_test])],
+)
+def get_search_page_result_details(
+    test_result_id: Annotated[int, Path(gt=0)],
+    db: Session = Depends(get_db),
+) -> SearchPageDetailsResponse:
+    """Load the Search Details payload on demand for one result."""
+    execution_loader = selectinload(TestResult.test_execution).load_only(
+        TestExecution.id,
+        TestExecution.status,
+        TestExecution.created_at,
+        TestExecution.environment_id,
+        TestExecution.test_plan_id,
+        TestExecution.artefact_build_id,
+        raiseload=True,
+    )
+    artefact_build_loader = execution_loader.selectinload(TestExecution.artefact_build).load_only(
+        ArtefactBuild.id,
+        ArtefactBuild.architecture,
+        ArtefactBuild.artefact_id,
+        raiseload=True,
+    )
+    artefact_loader = artefact_build_loader.selectinload(ArtefactBuild.artefact).load_only(
+        Artefact.id,
+        Artefact.name,
+        Artefact.version,
+        Artefact.track,
+        Artefact.family,
+        raiseload=True,
+    )
+    result = db.execute(
+        select(TestResult)
+        .where(TestResult.id == test_result_id)
+        .options(
+            load_only(
+                TestResult.id,
+                TestResult.status,
+                TestResult.io_log,
+                TestResult.test_case_id,
+                TestResult.test_execution_id,
+                raiseload=True,
+            ),
+            selectinload(TestResult.test_case).load_only(
+                TestCase.id,
+                TestCase.name,
+                TestCase.category,
+                TestCase.template_id,
+                raiseload=True,
+            ),
+            selectinload(TestResult.issue_attachments)
+            .load_only(
+                IssueTestResultAttachment.id,
+                IssueTestResultAttachment.test_result_id,
+                IssueTestResultAttachment.issue_id,
+                raiseload=True,
+            )
+            .selectinload(IssueTestResultAttachment.issue)
+            .load_only(
+                Issue.id,
+                Issue.source,
+                Issue.project,
+                Issue.key,
+                Issue.title,
+                Issue.status,
+                raiseload=True,
+            ),
+            execution_loader,
+            execution_loader.selectinload(TestExecution.environment).load_only(
+                Environment.id,
+                Environment.name,
+                raiseload=True,
+            ),
+            execution_loader.selectinload(TestExecution.test_plan).load_only(
+                TestPlan.id,
+                TestPlan.name,
+                raiseload=True,
+            ),
+            execution_loader.selectinload(TestExecution.execution_metadata).load_only(
+                TestExecutionMetadata.id,
+                TestExecutionMetadata.category,
+                TestExecutionMetadata.value,
+                raiseload=True,
+            ),
+            artefact_build_loader,
+            artefact_loader,
+            raiseload("*"),
+        )
+    ).scalar_one_or_none()
+    if result is None:
+        raise HTTPException(status_code=404, detail="Test result not found")
+
+    execution = result.test_execution
+    artefact_build = execution.artefact_build
+    artefact = artefact_build.artefact
+    return SearchPageDetailsResponse(
+        test_result=SearchPageDetailsTestResult(
+            id=result.id,
+            name=result.test_case.name,
+            category=result.test_case.category,
+            template_id=result.test_case.template_id,
+            status=result.status,
+            io_log=result.io_log,
+            issues=[
+                SearchPageDetailsIssueAttachment(
+                    issue=SearchPageDetailsIssue(
+                        id=attachment.issue.id,
+                        source=attachment.issue.source,
+                        project=attachment.issue.project,
+                        key=attachment.issue.key,
+                        title=attachment.issue.title,
+                        status=attachment.issue.status,
+                        url=HttpUrl(attachment.issue.url),
+                    )
+                )
+                for attachment in result.issue_attachments
+            ],
+        ),
+        test_execution=SearchPageDetailsTestExecution(
+            id=execution.id,
+            status=execution.status,
+            environment=SearchPageEnvironment(name=execution.environment.name),
+            test_plan=execution.test_plan.name,
+            created_at=execution.created_at,
+            execution_metadata=ExecutionMetadata.from_rows(execution.execution_metadata),
+        ),
+        artefact=SearchPageDetailsArtefact(
+            id=artefact.id,
+            name=artefact.name,
+            version=artefact.version,
+            track=artefact.track,
+            family=FamilyName(artefact.family),
+        ),
+        artefact_build=SearchPageDetailsArtefactBuild(architecture=artefact_build.architecture),
     )
