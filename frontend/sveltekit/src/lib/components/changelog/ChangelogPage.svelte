@@ -11,7 +11,7 @@
   import { userStore } from "$lib/stores/user.svelte";
   import type { Family } from "$lib/types";
   import type { AuditHistoryResponse } from "$lib/types/openapi";
-  import { pageOffset } from "$lib/utils/changelog";
+  import { changelogPath, pageOffset } from "$lib/utils/changelog";
   import ChangelogTable from "./ChangelogTable.svelte";
 
   interface Props {
@@ -27,6 +27,9 @@
   let retry = $state(0);
   const offset = $derived(pageOffset(page.url.searchParams.get("page")));
   const back = $derived(resolve(`${family.name}/${artefactId}`));
+  const detailBase = $derived(
+    resolve(changelogPath(family.name, artefactId, reviewId)),
+  );
   const loginUrl = $derived(
     `${getApiRoot()}/v1/auth/saml/login?return_to=${encodeURIComponent(page.url.href)}`,
   );
@@ -99,6 +102,12 @@
     <p role="alert">Could not load the changelog.</p>
     <button onclick={() => retry++}>Retry</button>
   {:else if history}
-    <ChangelogTable {history} url={page.url.href} />
+    <ChangelogTable
+      {history}
+      url={page.url.href}
+      {detailBase}
+      {artefactId}
+      {reviewId}
+    />
   {/if}
 </section>

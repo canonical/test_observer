@@ -4,13 +4,22 @@
 -->
 <script lang="ts">
   import type { AuditHistoryResponse } from "$lib/types/openapi";
-  import { operationLabel, pageHref, PAGE_SIZE } from "$lib/utils/changelog";
+  import { getApiRoot } from "$lib/config";
+  import {
+    auditJsonUrl,
+    operationLabel,
+    pageHref,
+    PAGE_SIZE,
+  } from "$lib/utils/changelog";
 
   interface Props {
     history: AuditHistoryResponse;
     url: string;
+    detailBase: string;
+    artefactId: number;
+    reviewId?: number;
   }
-  let { history, url }: Props = $props();
+  let { history, url, detailBase, artefactId, reviewId }: Props = $props();
   const currentPage = $derived(Math.floor(history.offset / PAGE_SIZE) + 1);
 </script>
 
@@ -22,7 +31,11 @@
   {:else}
     <div class="table-container">
       <table>
-        <thead><tr><th>Date</th><th>Operation</th><th>Author</th></tr></thead>
+        <thead
+          ><tr
+            ><th>Date</th><th>Operation</th><th>Author</th><th>Actions</th></tr
+          ></thead
+        >
         <tbody>
           {#each history.entries as entry (entry.id)}
             <tr>
@@ -39,6 +52,21 @@
                   ? ` (${entry.author.kind})`
                   : ""}</td
               >
+              <td>
+                <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+                <a href={`${detailBase}/${entry.id}`}>Detail</a>
+                <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+                <a
+                  href={auditJsonUrl(
+                    getApiRoot(),
+                    artefactId,
+                    reviewId,
+                    entry.id,
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer">JSON</a
+                >
+              </td>
             </tr>
           {/each}
         </tbody>

@@ -149,3 +149,143 @@ void test("loading, authorization, error and retry states stay distinct", async 
   await harness.unmount(error);
   target.remove();
 });
+
+void test("detail shows auth, missing and retry states and renders a snapshot", async () => {
+  const target = browserWindow.document.createElement("div");
+  browserWindow.document.body.append(target);
+  let mode = "login";
+  globalThis.fetch = async (input) => {
+    await Promise.resolve();
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+    if (url.endsWith("/users/me")) {
+      if (mode === "login") return new Response(null, { status: 401 });
+      return Response.json({ id: 1, is_admin: false, teams: [] });
+    }
+    if (mode === "login" || mode === "forbidden")
+      return new Response(null, { status: 403 });
+    if (mode === "error") return new Response(null, { status: 500 });
+    if (url.endsWith("/environment-reviews")) return Response.json([{ id: 8 }]);
+    if (url.includes("/audit/")) {
+      if (mode === "missing") return new Response(null, { status: 404 });
+      return Response.json({
+        id: 12,
+        operation: "U",
+        created_at: "2026-01-01T00:00:00Z",
+        author: { name: "Alice", kind: "user" },
+        data: {
+          empty: "",
+          nothing: null,
+          enabled: false,
+          count: 0,
+          nested: { list: [1, null] },
+        },
+      });
+    }
+    return Response.json({ family: "generic" });
+  };
+  /** @param {string} text */
+  const waitFor = async (text) => {
+    for (let i = 0; i < 50 && !target.textContent.includes(text); i++) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      harness.flushSync();
+    }
+    assert.ok(target.textContent.includes(text), target.textContent);
+  };
+  for (const [current, expected] of [
+    ["login", "logged in"],
+    ["forbidden", "permission"],
+    ["missing", "not found"],
+  ]) {
+    mode = current;
+    // @ts-expect-error Happy DOM's element differs from the DOM lib type.
+    const component = harness.mountDetail(target, 8);
+    await waitFor(expected);
+    await harness.unmount(component);
+  }
+  mode = "error";
+  // @ts-expect-error Happy DOM's element differs from the DOM lib type.
+  const component = harness.mountDetail(target, 8);
+  harness.flushSync();
+  assert.match(target.textContent, /Loading changelog detail/);
+  await waitFor("Could not load");
+  mode = "success";
+  target.querySelector("button")?.click();
+  await waitFor("Alice (user)");
+  assert.equal(
+    target.querySelector("a")?.getAttribute("href"),
+    "/base/items/3/environments/8/changelog",
+  );
+  const json = target.querySelector('a[target="_blank"]');
+  assert.equal(
+    json?.getAttribute("href"),
+    "http://localhost:30000/v1/audit/environment-reviews/8/12",
+  );
+  assert.equal(json.getAttribute("rel"), "noopener noreferrer");
+  const rows = [...target.querySelectorAll("tbody tr")].map((row) =>
+    [...row.querySelectorAll("td")].map((cell) => cell.textContent),
+  );
+  assert.deepEqual(rows, [
+    ["empty", ""],
+    ["nothing", "null"],
+    ["enabled", "false"],
+    ["count", "0"],
+    ["nested", '{"list":[1,null]}'],
+  ]);
+  await harness.unmount(component);
+  target.remove();
+});
+
+void test("detail ignores a response for a previous audit ID", async () => {
+  const target = browserWindow.document.createElement("div");
+  browserWindow.document.body.append(target);
+  /** @type {((value: Response) => void) | undefined} */
+  let resolveOld;
+  const makeEntry = (/** @type {number} */ id) =>
+    Response.json({
+      id,
+      operation: "U",
+      created_at: "2026-01-01T00:00:00Z",
+      author: { name: "Alice", kind: "user" },
+      data: { marker: `entry-${id}` },
+    });
+  globalThis.fetch = (input) => {
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url;
+    if (url.endsWith("/audit/artefacts/3/12"))
+      return new Promise((resolve) => {
+        resolveOld = resolve;
+      });
+    if (url.endsWith("/audit/artefacts/3/13"))
+      return Promise.resolve(makeEntry(13));
+    return Promise.resolve(Response.json({ family: "generic" }));
+  };
+  // @ts-expect-error Happy DOM's element differs from the DOM lib type.
+  const { component, setAuditId } = harness.mountReactiveDetail(target);
+  harness.flushSync();
+  for (let i = 0; i < 50 && !resolveOld; i++)
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.ok(resolveOld);
+  setAuditId(13);
+  harness.flushSync();
+  for (let i = 0; i < 50 && !target.textContent.includes("entry-13"); i++) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    harness.flushSync();
+  }
+  assert.match(target.textContent, /entry-13/);
+  resolveOld(makeEntry(12));
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  harness.flushSync();
+  assert.match(target.textContent, /entry-13/);
+  assert.doesNotMatch(target.textContent, /entry-12/);
+  await harness.unmount(component);
+  target.remove();
+});
