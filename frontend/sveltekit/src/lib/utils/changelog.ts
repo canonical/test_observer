@@ -9,15 +9,6 @@ export function auditPath(id: number, review: number | undefined): string {
     : `environment-reviews/${review}`;
 }
 
-export function auditJsonUrl(
-  root: string,
-  id: number,
-  review: number | undefined,
-  auditId: number,
-): string {
-  return `${root}/v1/audit/${auditPath(id, review)}/${auditId}`;
-}
-
 export function changelogPath(
   family: string,
   id: number,

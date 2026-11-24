@@ -4,13 +4,8 @@
 -->
 <script lang="ts">
   import type { AuditHistoryResponse } from "$lib/types/openapi";
-  import { getApiRoot } from "$lib/config";
-  import {
-    auditJsonUrl,
-    operationLabel,
-    pageHref,
-    PAGE_SIZE,
-  } from "$lib/utils/changelog";
+  import { operationLabel, pageHref, PAGE_SIZE } from "$lib/utils/changelog";
+  import AuditJsonButton from "./AuditJsonButton.svelte";
 
   interface Props {
     history: AuditHistoryResponse;
@@ -55,17 +50,7 @@
               <td>
                 <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
                 <a href={`${detailBase}/${entry.id}`}>Detail</a>
-                <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-                <a
-                  href={auditJsonUrl(
-                    getApiRoot(),
-                    artefactId,
-                    reviewId,
-                    entry.id,
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer">JSON</a
-                >
+                <AuditJsonButton {artefactId} {reviewId} auditId={entry.id} />
               </td>
             </tr>
           {/each}

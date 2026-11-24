@@ -6,8 +6,8 @@ import ChangelogPage from "../src/lib/components/changelog/ChangelogPage.svelte"
 import ChangelogDetailPage from "../src/lib/components/changelog/ChangelogDetailPage.svelte";
 
 export { flushSync, unmount };
-/** @param {Element} target */
-export function mountPage(target) {
+/** @param {Element} target @param {number | undefined} reviewId */
+export function mountPage(target, reviewId) {
   return mount(ChangelogPage, {
     target,
     props: {
@@ -20,6 +20,7 @@ export function mountPage(target) {
         filters: [],
       },
       artefactId: 3,
+      reviewId,
     },
   });
 }

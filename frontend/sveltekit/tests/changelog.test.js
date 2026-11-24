@@ -99,11 +99,7 @@ void test("table renders entries, empty pages and pagination", () => {
   assert.match(html, /Alice \(user\)/);
   assert.match(html, /href="\/base\/changelog"/);
   assert.match(html, /href="\/wip\/items\/3\/changelog\/1"/);
-  assert.match(
-    html,
-    /href="http:\/\/localhost:30000\/v1\/audit\/artefacts\/3\/1"/,
-  );
-  assert.match(html, /target="_blank" rel="noopener noreferrer"/);
+  assert.match(html, /<button[^>]*>JSON<\/button>/);
   const review = render(Table, {
     props: {
       ...props,
@@ -112,10 +108,7 @@ void test("table renders entries, empty pages and pagination", () => {
     },
   }).body;
   assert.match(review, /href="\/wip\/items\/3\/environments\/8\/changelog\/1"/);
-  assert.match(
-    review,
-    /href="http:\/\/localhost:30000\/v1\/audit\/environment-reviews\/8\/1"/,
-  );
+  assert.match(review, /<button[^>]*>JSON<\/button>/);
   assert.doesNotMatch(html, />Next</);
   const empty = render(Table, {
     props: { ...props, history: { ...history, count: 0, entries: [] } },

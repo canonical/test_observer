@@ -12,11 +12,11 @@
   import type { Family } from "$lib/types";
   import type { AuditDetailResponse } from "$lib/types/openapi";
   import {
-    auditJsonUrl,
     changelogPath,
     operationLabel,
     snapshotValue,
   } from "$lib/utils/changelog";
+  import AuditJsonButton from "./AuditJsonButton.svelte";
 
   interface Props {
     family: Family;
@@ -32,9 +32,6 @@
   let retry = $state(0);
   const back = $derived(
     resolve(changelogPath(family.name, artefactId, reviewId)),
-  );
-  const jsonUrl = $derived(
-    auditJsonUrl(getApiRoot(), artefactId, reviewId, auditId),
   );
   const loginUrl = $derived(
     `${getApiRoot()}/v1/auth/saml/login?return_to=${encodeURIComponent(page.url.href)}`,
@@ -117,8 +114,7 @@
         ? ` (${entry.author.kind})`
         : ""}
     </p>
-    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
-    <a href={jsonUrl} target="_blank" rel="noopener noreferrer">JSON</a>
+    <AuditJsonButton {artefactId} {reviewId} {auditId} />
     <div class="table-container">
       <table>
         <thead><tr><th>Field</th><th>Value</th></tr></thead>
