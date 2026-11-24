@@ -300,13 +300,14 @@ def test_author_resolution(
     kind: str,
 ):
     endpoint, source = audit_source
+    expected: tuple[str | None, str | None]
     if kind == "user":
         actor = generator.gen_user(name="Alice", email="alice-audit@example.com")
         author = ChangeAuthor(user_id=actor.id)
         expected = ("user", "Alice")
     elif kind == "application":
-        actor = generator.gen_application(name="Audit client")
-        author = ChangeAuthor(application_id=actor.id)
+        application = generator.gen_application(name="Audit client")
+        author = ChangeAuthor(application_id=application.id)
         expected = ("application", "Audit client")
     elif kind == "missing_user":
         author = ChangeAuthor(user_id=999999999)
