@@ -26,7 +26,7 @@ class ArtefactMatchingRuleBase(BaseModel):
     """Base model for artefact matching rule with common fields"""
 
     name: str = ""
-    family: str
+    family: str = Field(max_length=100)
     stage: str = ""
     track: str = ""
     branch: str = ""
@@ -88,7 +88,7 @@ class ArtefactMatchingRulePatch(BaseModel):
     """Patch request for artefact matching rule"""
 
     name: str | None = None
-    family: str | None = None
+    family: str | None = Field(default=None, max_length=100)
     stage: str | None = None
     track: str | None = None
     branch: str | None = None

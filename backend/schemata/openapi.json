@@ -6896,6 +6896,7 @@
         "properties": {
           "family": {
             "type": "string",
+            "maxLength": 100,
             "title": "Family"
           },
           "name": {
@@ -7056,6 +7057,7 @@
           },
           "family": {
             "type": "string",
+            "maxLength": 100,
             "title": "Family"
           },
           "stage": {
@@ -7264,7 +7266,8 @@
           "family": {
             "anyOf": [
               {
-                "type": "string"
+                "type": "string",
+                "maxLength": 100
               },
               {
                 "type": "null"
@@ -7402,6 +7405,7 @@
           },
           "family": {
             "type": "string",
+            "maxLength": 100,
             "title": "Family"
           },
           "stage": {

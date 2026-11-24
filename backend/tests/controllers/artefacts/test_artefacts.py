@@ -82,6 +82,21 @@ def test_create_empty_artefact(test_client: TestClient, db_session: Session, art
         assert db_session.query(model).count() == 0
 
 
+def test_create_artefact_accepts_family_at_max_length(
+    test_client: TestClient, generator: DataGenerator, artefact_request: dict[str, Any]
+):
+    family = "f" * 100
+    generator.gen_family(family)
+
+    response = make_authenticated_request(
+        lambda: test_client.post("/v1/artefacts", json=artefact_request | {"family": family}),
+        Permission.change_artefact,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["family"] == family
+
+
 @pytest.mark.parametrize(
     "fields,changes",
     [
@@ -191,6 +206,7 @@ def test_create_artefact_requires_change_permission(
     "changes",
     [
         {"family": "unknown"},
+        {"family": "f" * 101},
         {"name": ""},
         {"name": "n" * 201},
         {"version": ""},

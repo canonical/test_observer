@@ -69,7 +69,7 @@ class ArtefactCreate(BaseModel):
     must be nonblank; fields outside that identity cannot satisfy this requirement.
     """
 
-    family: str
+    family: str = Field(max_length=100)
     name: str = Field(min_length=1, max_length=200)
     version: str = Field(min_length=1)
     stage: str = Field(max_length=100)

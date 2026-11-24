@@ -98,6 +98,45 @@ def test_create_artefact_matching_rule_with_team(test_client: TestClient, genera
     assert "id" in data
 
 
+@pytest.mark.parametrize("method", ["post", "patch"])
+def test_matching_rule_accepts_family_at_max_length(test_client: TestClient, generator: DataGenerator, method: str):
+    family = "f" * 100
+    generator.gen_family(family)
+    team = generator.gen_team(name="test-team")
+    rule = generator.gen_artefact_matching_rule(family="snap", teams=[team]) if method == "patch" else None
+    url = f"/v1/artefact-matching-rules/{rule.id}" if rule else "/v1/artefact-matching-rules"
+    payload: dict[str, object] = {"family": family}
+    if method == "post":
+        payload["team_ids"] = [team.id]
+
+    response = make_authenticated_request(
+        lambda: getattr(test_client, method)(url, json=payload),
+        Permission.change_team,
+    )
+
+    assert response.status_code == (200 if method == "patch" else 201)
+    assert response.json()["family"] == family
+
+
+@pytest.mark.parametrize("method", ["post", "patch"])
+def test_matching_rule_rejects_family_over_max_length(test_client: TestClient, generator: DataGenerator, method: str):
+    team = generator.gen_team(name="test-team")
+    rule = generator.gen_artefact_matching_rule(family="snap", teams=[team]) if method == "patch" else None
+    url = f"/v1/artefact-matching-rules/{rule.id}" if rule else "/v1/artefact-matching-rules"
+    payload: dict[str, object] = {"family": "f" * 101}
+    if method == "post":
+        payload["team_ids"] = [team.id]
+
+    response = make_authenticated_request(
+        lambda: getattr(test_client, method)(url, json=payload),
+        Permission.change_team,
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "family"]
+    assert response.json()["detail"][0]["type"] == "string_too_long"
+
+
 def test_create_artefact_matching_rule_without_teams(test_client: TestClient):
     """Test that creating a rule without teams fails"""
     response = make_authenticated_request(
