@@ -7,18 +7,23 @@
   import type { ArtefactPageStore } from "$lib/stores/artefact-page.svelte";
   import ArtefactInfoSection from "./ArtefactInfoSection.svelte";
   import ArtefactSideFilters from "./ArtefactSideFilters.svelte";
+  import { resolve } from "$app/paths";
 
   interface Props {
     artefact: Artefact;
     store: ArtefactPageStore;
+    familyName: string;
   }
 
-  let { artefact, store }: Props = $props();
+  let { artefact, store, familyName }: Props = $props();
 </script>
 
 <aside class="sidebar">
   <div class="sidebar-scroll">
     <ArtefactInfoSection {artefact} {store} />
+    <a href={resolve(`${familyName}/${artefact.id}/changelog`)}
+      >Changelog</a
+    >
     <hr class="divider" />
     <ArtefactSideFilters {store} />
   </div>

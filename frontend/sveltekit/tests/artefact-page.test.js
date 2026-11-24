@@ -1131,6 +1131,7 @@ void test("environment review 403 preserves accessible artefact executions", asy
         env: store.allEnvironments[0],
         store,
         artefactId: 1,
+        familyName: "snaps",
       },
     }).body;
     assert.match(environmentBody, /accessible environment/);
@@ -1243,10 +1244,14 @@ void test("successful empty and partial reviews preserve every build execution w
       );
       for (const env of store.allEnvironments) {
         const body = render(EnvironmentExpandable, {
-          props: { env, store, artefactId: 1 },
+          props: { env, store, artefactId: 1, familyName: "snaps" },
         }).body;
         assert.match(body, new RegExp(env.name));
         if (env.review) {
+          assert.match(
+            body,
+            new RegExp(`/snaps/1/environments/${env.review.id}/changelog`),
+          );
           assert.match(body, /env-checkbox/);
           assert.match(body, /<button class="trigger/);
         } else {

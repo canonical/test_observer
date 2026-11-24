@@ -17,6 +17,28 @@ export type TestExecutionStatus =
 
 export type ExecutionMetadata = Record<string, string[]>;
 
+export interface AuditAuthorResponse {
+  user_id: number | null;
+  application_id: number | null;
+  automation_name: string | null;
+  kind?: "user" | "application" | "automation" | null;
+  name?: string | null;
+}
+
+export interface AuditListItemResponse {
+  id: number;
+  created_at: string;
+  operation: "I" | "U" | "D";
+  author: AuditAuthorResponse;
+}
+
+export interface AuditHistoryResponse {
+  entries: AuditListItemResponse[];
+  count: number;
+  limit: number;
+  offset: number;
+}
+
 /** Values of the backend FamilyName schema in backend/schemata/openapi.json. */
 export const FAMILY_NAMES = [
   "snap",

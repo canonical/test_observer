@@ -11,6 +11,7 @@
   import TestPlanExpandable from "./TestPlanExpandable.svelte";
   import ReviewersAvatars from "$lib/components/dashboard/ReviewersAvatars.svelte";
   import { page } from "$app/state";
+  import { resolve } from "$app/paths";
   import type { ArtefactEnvironment } from "$lib/types/artefact-page";
   import type { ArtefactPageStore } from "$lib/stores/artefact-page.svelte";
   import { parsePositiveSafeInteger } from "$lib/utils/artefact-filters";
@@ -19,9 +20,10 @@
     env: ArtefactEnvironment;
     store: ArtefactPageStore;
     artefactId: number;
+    familyName: string;
   }
 
-  let { env, store, artefactId }: Props = $props();
+  let { env, store, artefactId, familyName }: Props = $props();
 
   const selected = $derived(
     env.review !== null && store.isSelected(env.review.id),
@@ -86,7 +88,8 @@
         <ReviewersAvatars
           reviewers={env.review.reviewers}
           allEnvironmentReviewsCount={1}
-          completedEnvironmentReviewsCount={env.review.review_decision.length > 0
+          completedEnvironmentReviewsCount={env.review.review_decision.length >
+          0
             ? 1
             : 0}
         />
@@ -94,6 +97,12 @@
       <span class="spacer"></span>
       <!-- stop clicks on the review button from toggling the expandable -->
       {#if env.review}
+        <a
+          href={resolve(
+            `${familyName}/${artefactId}/environments/${env.review.id}/changelog`,
+          )}
+          onclick={(e) => e.stopPropagation()}>Changelog</a
+        >
         <span role="none" onclick={(e) => e.stopPropagation()}>
           <EnvironmentReviewButton review={env.review} {store} {artefactId} />
         </span>

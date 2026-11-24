@@ -7966,6 +7966,33 @@
               }
             ],
             "title": "Automation Name"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "application",
+                  "automation"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           }
         },
         "type": "object",
@@ -8059,13 +8086,23 @@
           },
           "author": {
             "$ref": "#/components/schemas/AuditAuthorResponse"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "I",
+              "U",
+              "D"
+            ],
+            "title": "Operation"
           }
         },
         "type": "object",
         "required": [
           "id",
           "created_at",
-          "author"
+          "author",
+          "operation"
         ],
         "title": "AuditListItemResponse"
       },

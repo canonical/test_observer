@@ -123,10 +123,7 @@
   }
 
   async function handleRerunAll() {
-    if (
-      !store.canChangeRerun ||
-      !store.canChangeRerunBulk
-    ) {
+    if (!store.canChangeRerun || !store.canChangeRerunBulk) {
       return;
     }
     rerunning = true;
@@ -186,7 +183,11 @@
 
       <div class="content-area">
         {#if sidebarOpen}
-          <ArtefactPageSidebar artefact={store.artefact} {store} />
+          <ArtefactPageSidebar
+            artefact={store.artefact}
+            {store}
+            familyName={family.name}
+          />
         {/if}
 
         <div class="main-content">
@@ -232,7 +233,12 @@
                 />
               {/if}
               {#each visibleEnvironments as env (env.key)}
-                <EnvironmentExpandable {env} {store} {artefactId} />
+                <EnvironmentExpandable
+                  {env}
+                  {store}
+                  {artefactId}
+                  familyName={family.name}
+                />
               {/each}
             </div>
           {/if}

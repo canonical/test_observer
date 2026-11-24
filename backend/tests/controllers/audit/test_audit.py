@@ -26,6 +26,7 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuildEnvironmentReview,
     Base,
+    ChangeAuthor,
 )
 from tests.conftest import override_permissions
 from tests.data_generator import DataGenerator
@@ -82,9 +83,12 @@ def test_list_audit_history(
     assert payload["count"] == 2
     assert payload["limit"] == 50
     assert payload["offset"] == 0
-    assert all(set(entry) == {"id", "created_at", "author"} for entry in entries)
+    assert all(set(entry) == {"id", "created_at", "author", "operation"} for entry in entries)
+    assert {entry["operation"] for entry in entries} == {"I", "U"}
     assert all(
-        entry["author"] == {"user_id": None, "application_id": None, "automation_name": "tests"} for entry in entries
+        entry["author"]
+        == {"user_id": None, "application_id": None, "automation_name": "tests", "kind": "automation", "name": "tests"}
+        for entry in entries
     )
     assert [(entry["created_at"], entry["id"]) for entry in entries] == sorted(
         ((entry["created_at"], entry["id"]) for entry in entries), reverse=True
@@ -281,10 +285,51 @@ def test_audit_history_remains_readable_after_source_deletion(
     assert entries.status_code == 200
     assert entries.json()["count"] == 2
     assert len(entries.json()["entries"]) == 2
+    assert entries.json()["entries"][0]["operation"] == "D"
     assert detail.status_code == 200
     assert detail.json()["data"]["id"] == source.id
     assert delete_detail.status_code == 200
     assert delete_detail.json()["operation"] == "D"
+
+
+@pytest.mark.parametrize("kind", ["user", "application", "unknown", "missing_user"])
+def test_author_resolution(
+    test_client: TestClient,
+    generator: DataGenerator,
+    audit_source: tuple[str, Artefact | ArtefactBuildEnvironmentReview],
+    kind: str,
+):
+    endpoint, source = audit_source
+    if kind == "user":
+        actor = generator.gen_user(name="Alice", email="alice-audit@example.com")
+        author = ChangeAuthor(user_id=actor.id)
+        expected = ("user", "Alice")
+    elif kind == "application":
+        actor = generator.gen_application(name="Audit client")
+        author = ChangeAuthor(application_id=actor.id)
+        expected = ("application", "Audit client")
+    elif kind == "missing_user":
+        author = ChangeAuthor(user_id=999999999)
+        expected = ("user", None)
+    else:
+        author = (
+            generator.db_session.query(ChangeAuthor)
+            .filter_by(user_id=None, application_id=None, automation_name=None)
+            .one()
+        )
+        expected = (None, None)
+    generator.db_session.add(author)
+    generator.db_session.flush()
+    table = Base.metadata.tables[
+        "artefact_audit" if isinstance(source, Artefact) else "artefact_build_environment_review_audit"
+    ]
+    generator.db_session.execute(update(table).where(table.c.id == source.id).values(audit_author_id=author.id))
+    generator.db_session.commit()
+    with override_permissions(_permission_for_source(source)):
+        entry = test_client.get(endpoint).json()["entries"][0]
+        detail = test_client.get(f"{endpoint}/{entry['id']}").json()
+    assert (entry["author"]["kind"], entry["author"]["name"]) == expected
+    assert detail["author"] == entry["author"]
 
 
 def test_list_and_detail_require_the_matching_view_permission(
