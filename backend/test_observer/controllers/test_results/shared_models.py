@@ -28,6 +28,7 @@ from test_observer.data_access.models_enums import (
 
 class TestResultSearchFilters(BaseModel):
     families: list[str] = Field(default_factory=list)
+    artefact_ids: list[int] = Field(default_factory=list)
     artefacts: list[str] = Field(default_factory=list)
     artefact_versions: list[str] = Field(default_factory=list)
     artefact_stages: list[str] = Field(default_factory=list)

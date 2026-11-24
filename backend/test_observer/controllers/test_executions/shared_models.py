@@ -65,6 +65,7 @@ class TestExecutionFilterBase(BaseModel):
     """Shared filterable fields for test execution queries."""
 
     families: list[str] = Field(default_factory=list)
+    artefact_ids: list[int] = Field(default_factory=list)
     artefacts: list[str] = Field(default_factory=list)
     artefact_versions: list[str] = Field(default_factory=list)
     artefact_stages: list[str] = Field(default_factory=list)

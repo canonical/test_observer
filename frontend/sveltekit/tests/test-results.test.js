@@ -27,6 +27,7 @@ import { Window } from "happy-dom";
  * @property {() => void} searchHistoryForward
  * @property {(params: URLSearchParams) => {page: number; pageSize: number; problems: string[]}} parseSearchPageState
  * @property {(params: URLSearchParams, familyNames?: string[]) => {filters: import("../src/lib/searchPageFilters.ts").SearchFilters; problems: string[]}} parseSearchFilters
+ * @property {(row: SearchPageRow, families: {name: string; api_name: string}[], basePath: string) => string | null} searchRunPath
  * @property {() => import("../src/lib/searchPageFilters.ts").SearchFilters} emptySearchFilters
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters, source?: URLSearchParams) => URLSearchParams} serializeSearchFilters
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters) => URLSearchParams} searchFilterRequestParams
@@ -64,6 +65,7 @@ before(async () => {
               resolveId(id) {
                 if (id === "$app/state") return "\0test:$app/state";
                 if (id === "$app/navigation") return "\0test:$app/navigation";
+                if (id === "$app/paths") return "\0test:$app/paths";
               },
               load(id) {
                 if (id === "\0test:$app/state") {
@@ -71,6 +73,9 @@ before(async () => {
                 }
                 if (id === "\0test:$app/navigation") {
                   return `export { testGoto as goto } from ${JSON.stringify(resolve("tests/test-results-runtime.svelte.js"))};`;
+                }
+                if (id === "\0test:$app/paths") {
+                  return `export { testResolve as resolve } from ${JSON.stringify(resolve("tests/test-results-runtime.svelte.js"))};`;
                 }
               },
             },
@@ -342,10 +347,11 @@ void test("loads the first server page and preserves server row order", async ()
     "Version",
     "Environment / Build Architecture",
     "Test Plan",
+    "Run",
   ]);
   assert.equal(
     target.querySelectorAll(".sv-grid-resize-handle[role=separator]").length,
-    10,
+    11,
   );
   assert.equal(target.querySelectorAll('[aria-label^="Filter "]').length, 0);
   assert.equal(target.querySelectorAll('[role="checkbox"]').length, 0);
@@ -376,6 +382,79 @@ void test("loads the first server page and preserves server row order", async ()
   assertRequest(harness.requests[0]);
 
   await unmountFromDocument(component, target);
+});
+
+void test("Run links use configured family routes and the deployment base", async () => {
+  assert.ok(harness);
+  const mapped = makeRow(5, "routed-case");
+  const unmapped = makeRow(2, "unmapped-case");
+  unmapped.artefact.family = "deb";
+  harness.resetApi();
+  harness.resetSearchUrl();
+  harness.setHandler(() => Promise.resolve(makePage([mapped, unmapped])));
+
+  const { component, target } = mountInDocument({
+    artefactFamilies: [
+      {
+        name: "configured-route",
+        friendly_name: "Configured family",
+        api_name: "snap",
+        stages: [],
+        columns: [],
+        filters: [],
+      },
+    ],
+  });
+  await settlePromises();
+
+  const link = target.querySelector('a[aria-label="View Run for routed-case"]');
+  assert.ok(link);
+  assert.equal(
+    link.getAttribute("href"),
+    "/custom/base/configured-route/205?testExecutionId=105&testResultId=5",
+  );
+  assert.match(target.textContent, /Run unavailable/);
+  const unmappedRow = [...target.querySelectorAll("tbody tr")].find((row) =>
+    row.textContent.includes("unmapped-case"),
+  );
+  assert.ok(unmappedRow);
+  assert.equal(unmappedRow.querySelector("a"), null);
+  assert.equal(
+    harness.requests.length,
+    1,
+    "rendering links sends no extra request",
+  );
+
+  await unmountFromDocument(component, target);
+});
+
+void test("Run path uses API family mapping, encoded route names, and both IDs", () => {
+  assert.ok(harness);
+  const row = makeRow(5, "case");
+  assert.equal(
+    harness.searchRunPath(
+      row,
+      [{ name: "configured route", api_name: "snap" }],
+      "/custom/base/",
+    ),
+    "/custom/base/configured%20route/205?testExecutionId=105&testResultId=5",
+  );
+  assert.equal(
+    harness.searchRunPath(
+      row,
+      [{ name: "configured-route", api_name: "snap" }],
+      "/",
+    ),
+    "/configured-route/205?testExecutionId=105&testResultId=5",
+  );
+  assert.equal(
+    harness.searchRunPath(
+      row,
+      [{ name: "configured-route", api_name: "another-family" }],
+      "",
+    ),
+    null,
+  );
 });
 
 void test("requests an applied page URL with only server paging parameters", async () => {

@@ -722,6 +722,27 @@
             "description": "Filter by artefact families (e.g., charm,snap)"
           },
           {
+            "name": "artefact_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by exact artefact IDs",
+              "title": "Artefact Ids"
+            },
+            "description": "Filter by exact artefact IDs"
+          },
+          {
             "name": "artefacts",
             "in": "query",
             "required": false,
@@ -3692,6 +3713,27 @@
             "description": "Filter by artefact families (e.g., charm,snap)"
           },
           {
+            "name": "artefact_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by exact artefact IDs",
+              "title": "Artefact Ids"
+            },
+            "description": "Filter by exact artefact IDs"
+          },
+          {
             "name": "artefacts",
             "in": "query",
             "required": false,
@@ -4244,6 +4286,27 @@
               "title": "Families"
             },
             "description": "Exact artefact family values; repeat for OR"
+          },
+          {
+            "name": "artefact_ids",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Exact artefact IDs; repeat for OR",
+              "title": "Artefact Ids"
+            },
+            "description": "Exact artefact IDs; repeat for OR"
           },
           {
             "name": "test_result_statuses",
@@ -10474,6 +10537,13 @@
             "type": "array",
             "title": "Families"
           },
+          "artefact_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Artefact Ids"
+          },
           "artefacts": {
             "items": {
               "type": "string"
@@ -11173,6 +11243,13 @@
             },
             "type": "array",
             "title": "Families"
+          },
+          "artefact_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Artefact Ids"
           },
           "artefacts": {
             "items": {

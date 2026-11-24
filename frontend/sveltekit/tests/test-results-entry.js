@@ -48,3 +48,4 @@ export {
 } from "../src/lib/searchPageFilters.ts";
 export { fetchApiFamilyNames } from "../src/lib/apiFamilyNames.ts";
 export { load as loadTestResultsPage } from "../src/routes/test-results/+page.ts";
+export { searchRunPath } from "../src/lib/searchRunPath.ts";

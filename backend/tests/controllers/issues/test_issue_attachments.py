@@ -13,6 +13,7 @@
 # SPDX-FileCopyrightText: Copyright 2025 Canonical Ltd.
 # SPDX-License-Identifier: AGPL-3.0-only
 
+import pytest
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
@@ -160,6 +161,42 @@ def test_issue_attach_no_filters(test_client: TestClient, generator: DataGenerat
     issue = generator.gen_issue()
     resp = auth_post_bulk(test_client, attach_endpoint.format(id=issue.id), {"test_results_filters": {}})
     assert resp.status_code == 422
+
+
+@pytest.mark.parametrize("detach", [False, True])
+def test_issue_attachments_filter_by_exact_artefact_ids(
+    test_client: TestClient, generator: DataGenerator, detach: bool
+):
+    environment = generator.gen_environment()
+    test_case = generator.gen_test_case()
+    results = []
+    for branch in ["", "testing"]:
+        artefact = generator.gen_artefact(branch=branch)
+        build = generator.gen_artefact_build(artefact)
+        execution = generator.gen_test_execution(build, environment)
+        results.append(generator.gen_test_result(test_case, execution))
+    issue = generator.gen_issue()
+    if detach:
+        assert (
+            auth_post_bulk(
+                test_client,
+                attach_endpoint.format(id=issue.id),
+                {"test_results": [result.id for result in results]},
+            ).status_code
+            == 200
+        )
+    target_id = results[0].test_execution.artefact_build.artefact_id
+    endpoint = detach_endpoint if detach else attach_endpoint
+
+    response = auth_post_bulk(
+        test_client,
+        endpoint.format(id=issue.id),
+        {"test_results_filters": {"artefact_ids": [target_id]}},
+    )
+
+    assert response.status_code == 200
+    expected_result = results[1] if detach else results[0]
+    assert {attachment.test_result_id for attachment in issue.test_result_attachments} == {expected_result.id}
 
 
 def test_issue_attach_with_filters_family(test_client: TestClient, generator: DataGenerator):

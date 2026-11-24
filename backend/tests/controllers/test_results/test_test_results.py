@@ -886,6 +886,62 @@ class TestSearchTestResults:
         # Should not include other artefact's result
         assert other_result.id not in result_ids
 
+    @pytest.mark.parametrize("endpoint", ["/v1/test-results", "/v1/test-results/search-page"])
+    @pytest.mark.parametrize("selected_indices", [(0,), (0, 1), (), (0, 2)])
+    def test_search_by_exact_artefact_ids(
+        self,
+        test_client: TestClient,
+        generator: DataGenerator,
+        endpoint: str,
+        selected_indices: tuple[int, ...],
+    ):
+        # GIVEN same-name artefacts with different tracks and branches, builds and history.
+        artefacts = [
+            generator.gen_artefact(track="1"),
+            generator.gen_artefact(track="1", branch="testing"),
+            generator.gen_artefact(track="2"),
+        ]
+        environment = generator.gen_environment()
+        test_case = generator.gen_test_case()
+        results = []
+        for artefact in artefacts:
+            for architecture in ["amd64", "arm64"]:
+                build = generator.gen_artefact_build(artefact, architecture=architecture)
+                for _ in range(2):
+                    execution = generator.gen_test_execution(build, environment)
+                    for status in [TestResultStatus.PASSED, TestResultStatus.FAILED]:
+                        results.append(generator.gen_test_result(test_case, execution, status=status))
+        selected_ids = {artefacts[index].id for index in selected_indices}
+        params = {
+            "artefact_ids": sorted(selected_ids) or [99999999],
+            "artefact_tracks": "1",
+            "test_result_statuses": "FAILED",
+        }
+
+        # WHEN IDs are combined with other result filters and then paginated.
+        response = make_authenticated_request(
+            lambda: test_client.get(endpoint, params=params),
+            Permission.view_test,
+        )
+        page = make_authenticated_request(
+            lambda: test_client.get(endpoint, params={**params, "limit": 1, "offset": 1}),
+            Permission.view_test,
+        )
+
+        # THEN IDs are ORed, other criteria are ANDed, and the count ignores pagination.
+        assert response.status_code == page.status_code == 200
+        expected_ids = {
+            result.id
+            for result in results
+            if result.test_execution.artefact_build.artefact_id in selected_ids
+            and result.test_execution.artefact_build.artefact.track == "1"
+            and result.status == TestResultStatus.FAILED
+        }
+        body = response.json()
+        assert {row["test_result"]["id"] for row in body["test_results"]} == expected_ids
+        assert body["count"] == page.json()["count"] == len(expected_ids)
+        assert page.json()["test_results"] == body["test_results"][1:2]
+
     def test_search_by_multiple_artefacts(self, test_client: TestClient, generator: DataGenerator):
         """Test filtering by multiple artefact names"""
         unique_marker = uuid.uuid4().hex[:8]
