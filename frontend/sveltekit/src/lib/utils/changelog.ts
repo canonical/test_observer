@@ -3,6 +3,27 @@
 
 export const PAGE_SIZE = 50;
 
+export function auditPath(id: number, review: number | undefined): string {
+  return review === undefined
+    ? `artefacts/${id}`
+    : `environment-reviews/${review}`;
+}
+
+export function changelogPath(
+  family: string,
+  id: number,
+  review: number | undefined,
+): string {
+  const artefact = `${family}/${id}`;
+  return review === undefined
+    ? `${artefact}/changelog`
+    : `${artefact}/environments/${review}/changelog`;
+}
+
+export function snapshotValue(value: unknown): string {
+  return typeof value === "string" ? value : JSON.stringify(value);
+}
+
 export function pageOffset(value: string | null): number {
   if (!value || !/^[1-9]\d*$/.test(value)) return 0;
   const page = Number(value);

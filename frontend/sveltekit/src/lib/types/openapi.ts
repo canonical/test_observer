@@ -39,6 +39,10 @@ export interface AuditHistoryResponse {
   offset: number;
 }
 
+export interface AuditDetailResponse extends AuditListItemResponse {
+  data: Record<string, unknown>;
+}
+
 /** Values of the backend FamilyName schema in backend/schemata/openapi.json. */
 export const FAMILY_NAMES = [
   "snap",
