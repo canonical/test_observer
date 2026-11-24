@@ -14,7 +14,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from collections.abc import Mapping
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Security
 from sqlalchemy import Table, desc, func, select
@@ -23,7 +23,7 @@ from sqlalchemy.orm import Session
 from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
-from test_observer.data_access.models import Base, ChangeAuthor
+from test_observer.data_access.models import Application, Base, ChangeAuthor, User
 from test_observer.data_access.setup import get_db
 
 from .models import AuditAuthorResponse, AuditDetailResponse, AuditHistoryResponse, AuditListItemResponse
@@ -44,14 +44,27 @@ _AUTHOR_COLUMNS = (
     ChangeAuthor.user_id.label("author_user_id"),
     ChangeAuthor.application_id.label("author_application_id"),
     ChangeAuthor.automation_name.label("author_automation_name"),
+    User.name.label("author_user_name"),
+    Application.name.label("author_application_name"),
 )
 
 
 def _author_from_row(row: Mapping[str, Any]) -> AuditAuthorResponse:
+    kind: Literal["user", "application", "automation"] | None
+    if row["author_user_id"] is not None:
+        kind, name = "user", row["author_user_name"]
+    elif row["author_application_id"] is not None:
+        kind, name = "application", row["author_application_name"]
+    elif row["author_automation_name"] is not None:
+        kind, name = "automation", row["author_automation_name"]
+    else:
+        kind, name = None, None
     return AuditAuthorResponse(
         user_id=row["author_user_id"],
         application_id=row["author_application_id"],
         automation_name=row["author_automation_name"],
+        kind=kind,
+        name=name,
     )
 
 
@@ -64,8 +77,10 @@ def _list_history(
 ) -> AuditHistoryResponse:
     count = db.execute(select(func.count()).select_from(audit_table).where(audit_table.c.id == source_id)).scalar_one()
     rows = db.execute(
-        select(audit_table.c.audit_pk, audit_table.c.audit_timestamp, *_AUTHOR_COLUMNS)
+        select(audit_table.c.audit_pk, audit_table.c.audit_timestamp, audit_table.c.audit_operation, *_AUTHOR_COLUMNS)
         .join(ChangeAuthor, audit_table.c.audit_author_id == ChangeAuthor.id)
+        .outerjoin(User, ChangeAuthor.user_id == User.id)
+        .outerjoin(Application, ChangeAuthor.application_id == Application.id)
         .where(audit_table.c.id == source_id)
         .order_by(desc(audit_table.c.audit_timestamp), desc(audit_table.c.audit_pk))
         .limit(limit)
@@ -75,6 +90,7 @@ def _list_history(
         AuditListItemResponse(
             id=row["audit_pk"],
             created_at=row["audit_timestamp"],
+            operation=row["audit_operation"],
             author=_author_from_row(dict(row)),
         )
         for row in rows
@@ -92,6 +108,8 @@ def _get_detail(
     statement = (
         select(*audit_table.c, *_AUTHOR_COLUMNS)
         .join(ChangeAuthor, audit_table.c.audit_author_id == ChangeAuthor.id)
+        .outerjoin(User, ChangeAuthor.user_id == User.id)
+        .outerjoin(Application, ChangeAuthor.application_id == Application.id)
         .where(audit_table.c.id == source_id, audit_table.c.audit_pk == audit_id)
     )
     row = db.execute(statement).mappings().one_or_none()

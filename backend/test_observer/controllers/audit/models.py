@@ -23,12 +23,15 @@ class AuditAuthorResponse(BaseModel):
     user_id: int | None
     application_id: int | None
     automation_name: str | None
+    kind: Literal["user", "application", "automation"] | None = None
+    name: str | None = None
 
 
 class AuditListItemResponse(BaseModel):
     id: int
     created_at: datetime
     author: AuditAuthorResponse
+    operation: Literal["I", "U", "D"]
 
 
 class AuditHistoryResponse(BaseModel):
