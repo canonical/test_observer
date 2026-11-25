@@ -37,14 +37,16 @@ from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
     Environment,
+    Family,
     Notification,
     TestExecution,
 )
 from test_observer.data_access.models_enums import (
-    FamilyName,
     NotificationType,
     TestExecutionStatus,
 )
+from test_observer.data_access.setup import get_db
+from test_observer.main import app
 from tests.asserts import assert_fails_validation
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
@@ -133,6 +135,23 @@ solution_test_request = {
 }
 
 
+def test_start_test_missing_registered_family(execute: Execute, db_session: Session):
+    with Session(bind=db_session.connection(), join_transaction_mode="create_savepoint") as request_session:
+        request_session.execute(delete(Family).where(Family.name == "snap"))
+        app.dependency_overrides[get_db] = lambda: request_session
+        try:
+            response = execute(snap_test_request)
+            assert request_session.is_active
+        finally:
+            app.dependency_overrides[get_db] = lambda: db_session
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == [
+        {"type": "unknown_family", "loc": ["body", "family"], "msg": "Family snap doesn't exist", "input": "snap"}
+    ]
+    assert db_session.scalar(select(Artefact).where(Artefact.name == snap_test_request["name"])) is None
+
+
 @pytest.mark.parametrize(
     "test_request",
     [snap_test_request, deb_test_request, charm_test_request, image_test_request, solution_test_request],
@@ -170,7 +189,7 @@ def test_start_test_preserves_declared_expectations_without_builds(
 ) -> None:
     expected_environment = generator.gen_environment("declared", architecture="amd64")
     artefact = generator.gen_artefact(
-        family=FamilyName.solution,
+        family="solution",
         name=solution_test_request["name"],
         version=solution_test_request["version"],
         expected_environments=[expected_environment],
@@ -217,7 +236,7 @@ def test_start_test_serializes_initial_expectations(
     with Session(db_engine) as first:
         # The generator commits here; fixture data is invisible to independent connections.
         artefact = DataGenerator(first).gen_artefact(
-            family=FamilyName.solution, name=name, version=solution_test_request["version"]
+            family="solution", name=name, version=solution_test_request["version"]
         )
         artefact_id = artefact.id
 
@@ -453,11 +472,11 @@ class TestFamilyIndependentTests:
         expected_environments: list[str],
     ):
         # Create a team with matching rules for all families
-        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
-        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
+        snap_rule = generator.gen_artefact_matching_rule(family="snap")
+        deb_rule = generator.gen_artefact_matching_rule(family="deb")
+        charm_rule = generator.gen_artefact_matching_rule(family="charm")
+        image_rule = generator.gen_artefact_matching_rule(family="image")
+        solution_rule = generator.gen_artefact_matching_rule(family="solution")
 
         team = generator.gen_team(
             name="reviewers",
@@ -503,11 +522,11 @@ class TestFamilyIndependentTests:
         gets assigned to a single reviewer even if multiple are available
         """
         # Create a team that can review all families
-        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
-        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
+        snap_rule = generator.gen_artefact_matching_rule(family="snap")
+        deb_rule = generator.gen_artefact_matching_rule(family="deb")
+        charm_rule = generator.gen_artefact_matching_rule(family="charm")
+        image_rule = generator.gen_artefact_matching_rule(family="image")
+        solution_rule = generator.gen_artefact_matching_rule(family="solution")
         team = generator.gen_team(
             name="reviewers",
             artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
@@ -533,11 +552,11 @@ class TestFamilyIndependentTests:
     ):
         """Assert that an artefact with more than the patched limit gets more than one reviewer"""
         # Create a team that can review all families
-        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
-        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
+        snap_rule = generator.gen_artefact_matching_rule(family="snap")
+        deb_rule = generator.gen_artefact_matching_rule(family="deb")
+        charm_rule = generator.gen_artefact_matching_rule(family="charm")
+        image_rule = generator.gen_artefact_matching_rule(family="image")
+        solution_rule = generator.gen_artefact_matching_rule(family="solution")
         team = generator.gen_team(
             name="reviewers",
             artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
@@ -587,11 +606,11 @@ class TestFamilyIndependentTests:
         reviews based on current assignment counts.
         """
         # Create a team that can review all families
-        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
-        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
+        snap_rule = generator.gen_artefact_matching_rule(family="snap")
+        deb_rule = generator.gen_artefact_matching_rule(family="deb")
+        charm_rule = generator.gen_artefact_matching_rule(family="charm")
+        image_rule = generator.gen_artefact_matching_rule(family="image")
+        solution_rule = generator.gen_artefact_matching_rule(family="solution")
         team = generator.gen_team(
             name="reviewers",
             artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
@@ -652,11 +671,11 @@ class TestFamilyIndependentTests:
             pytest.skip("an image is single-architecture, so it cannot have multiple builds")
 
         # Create a team that can review all families
-        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
-        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
+        snap_rule = generator.gen_artefact_matching_rule(family="snap")
+        deb_rule = generator.gen_artefact_matching_rule(family="deb")
+        charm_rule = generator.gen_artefact_matching_rule(family="charm")
+        image_rule = generator.gen_artefact_matching_rule(family="image")
+        solution_rule = generator.gen_artefact_matching_rule(family="solution")
         team = generator.gen_team(
             name="reviewers",
             artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
@@ -724,11 +743,11 @@ class TestFamilyIndependentTests:
         based on ceiling division of total reviews by number of reviewers
         """
         # Create a team that can review all families
-        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
-        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
+        snap_rule = generator.gen_artefact_matching_rule(family="snap")
+        deb_rule = generator.gen_artefact_matching_rule(family="deb")
+        charm_rule = generator.gen_artefact_matching_rule(family="charm")
+        image_rule = generator.gen_artefact_matching_rule(family="image")
+        solution_rule = generator.gen_artefact_matching_rule(family="solution")
         team = generator.gen_team(
             name="reviewers",
             artefact_matching_rules=[snap_rule, deb_rule, charm_rule, image_rule, solution_rule],
@@ -840,11 +859,11 @@ class TestFamilyIndependentTests:
         """When starting test with needs_assignment=true, a single combined artefact-review
         notification should be created per assigned reviewer, and no environment notifications."""
         # Create a team with matching rules for all families
-        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
-        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
+        snap_rule = generator.gen_artefact_matching_rule(family="snap")
+        deb_rule = generator.gen_artefact_matching_rule(family="deb")
+        charm_rule = generator.gen_artefact_matching_rule(family="charm")
+        image_rule = generator.gen_artefact_matching_rule(family="image")
+        solution_rule = generator.gen_artefact_matching_rule(family="solution")
 
         team = generator.gen_team(
             name="reviewers",
@@ -914,11 +933,11 @@ class TestFamilyIndependentTests:
     ):
         """A reviewer newly assigned to an artefact receives a single artefact-review
         notification and no separate environment-review notification."""
-        snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-        deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-        charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-        image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
-        solution_rule = generator.gen_artefact_matching_rule(family=FamilyName.solution)
+        snap_rule = generator.gen_artefact_matching_rule(family="snap")
+        deb_rule = generator.gen_artefact_matching_rule(family="deb")
+        charm_rule = generator.gen_artefact_matching_rule(family="charm")
+        image_rule = generator.gen_artefact_matching_rule(family="image")
+        solution_rule = generator.gen_artefact_matching_rule(family="solution")
 
         team = generator.gen_team(
             name="reviewers",
@@ -1180,7 +1199,7 @@ def test_non_kernel_artefact_due_date(db_session: Session, execute: Execute, gen
     """
     For non-kernel snaps, the default due date should be set to now + 10 days
     """
-    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    snap_rule = generator.gen_artefact_matching_rule(family="snap")
 
     snap_reviewers = generator.gen_team(
         name="snap_reviewers",
@@ -1355,10 +1374,10 @@ def test_solution_same_name_and_version_reuses_artefact(execute: Execute, db_ses
 def test_charm_assigned_to_charm_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):
     """Charms should be assigned to reviewers whose teams can review charms"""
     # Create teams with different families
-    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-    image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+    snap_rule = generator.gen_artefact_matching_rule(family="snap")
+    charm_rule = generator.gen_artefact_matching_rule(family="charm")
+    deb_rule = generator.gen_artefact_matching_rule(family="deb")
+    image_rule = generator.gen_artefact_matching_rule(family="image")
 
     charm_team = generator.gen_team(
         name="charm_reviewers",
@@ -1398,10 +1417,10 @@ def test_charm_assigned_to_charm_team_reviewer(db_session: Session, execute: Exe
 def test_snap_assigned_to_snap_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):
     """Snaps should be assigned to reviewers whose teams can review snaps"""
     # Create teams with different families
-    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-    image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+    charm_rule = generator.gen_artefact_matching_rule(family="charm")
+    snap_rule = generator.gen_artefact_matching_rule(family="snap")
+    deb_rule = generator.gen_artefact_matching_rule(family="deb")
+    image_rule = generator.gen_artefact_matching_rule(family="image")
 
     charm_team = generator.gen_team(
         name="charm_reviewers",
@@ -1440,10 +1459,10 @@ def test_snap_assigned_to_snap_team_reviewer(db_session: Session, execute: Execu
 def test_deb_assigned_to_deb_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):
     """Debs should be assigned to reviewers whose teams can review debs"""
     # Create teams with different families
-    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-    image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+    charm_rule = generator.gen_artefact_matching_rule(family="charm")
+    snap_rule = generator.gen_artefact_matching_rule(family="snap")
+    deb_rule = generator.gen_artefact_matching_rule(family="deb")
+    image_rule = generator.gen_artefact_matching_rule(family="image")
 
     charm_team = generator.gen_team(
         name="charm_reviewers",
@@ -1482,10 +1501,10 @@ def test_deb_assigned_to_deb_team_reviewer(db_session: Session, execute: Execute
 def test_image_assigned_to_image_team_reviewer(db_session: Session, execute: Execute, generator: DataGenerator):
     """Images should be assigned to reviewers whose teams can review images"""
     # Create teams with different families
-    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
-    snap_rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
-    deb_rule = generator.gen_artefact_matching_rule(family=FamilyName.deb)
-    image_rule = generator.gen_artefact_matching_rule(family=FamilyName.image)
+    charm_rule = generator.gen_artefact_matching_rule(family="charm")
+    snap_rule = generator.gen_artefact_matching_rule(family="snap")
+    deb_rule = generator.gen_artefact_matching_rule(family="deb")
+    image_rule = generator.gen_artefact_matching_rule(family="image")
 
     charm_team = generator.gen_team(
         name="charm_reviewers",
@@ -1580,7 +1599,7 @@ def test_no_assignment_when_no_team_reviewers_available(
 ):
     """When no teams can review the family, no assignment should occur"""
     # Create a team that can only review charms
-    charm_rule = generator.gen_artefact_matching_rule(family=FamilyName.charm)
+    charm_rule = generator.gen_artefact_matching_rule(family="charm")
 
     charm_team = generator.gen_team(
         name="charm_reviewers",
@@ -1614,7 +1633,7 @@ def test_due_date_not_updated_when_no_new_reviewers_assigned(
     determine_due_date must not be called a second time.
     """
     # GIVEN two eligible reviewers (so `users` is non-empty on the second call too)
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    rule = generator.gen_artefact_matching_rule(family="snap")
     team = generator.gen_team(artefact_matching_rules=[rule])
     generator.gen_user(email="reviewer1@example.com", teams=[team])
     generator.gen_user(email="reviewer2@example.com", teams=[team])
@@ -1645,7 +1664,7 @@ def test_first_environment_gets_reviewer_assigned_to_env_review(
 ):
     """When the first environment is created, its environment review gets a reviewer assigned."""
     # GIVEN a user in a team with a matching rule for snaps
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    rule = generator.gen_artefact_matching_rule(family="snap")
     team = generator.gen_team(artefact_matching_rules=[rule])
     reviewer = generator.gen_user(teams=[team])
 
@@ -1669,7 +1688,7 @@ def test_subsequent_environments_also_get_reviewer_assigned_to_env_review(
     """When subsequent environments are created below the reviewer threshold, their environment
     reviews also get a reviewer assigned."""
     # GIVEN a user in a team with a matching rule for snaps
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    rule = generator.gen_artefact_matching_rule(family="snap")
     team = generator.gen_team(artefact_matching_rules=[rule])
     generator.gen_user(teams=[team])
 
@@ -1713,7 +1732,7 @@ def test_exceeding_50_environments_adds_new_artefact_reviewer(
     """When an artefact accumulates more than ENVIRONMENTS_PER_REVIEWER environments,
     a second reviewer is assigned."""
     # GIVEN two users in a team with a matching rule for snaps
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    rule = generator.gen_artefact_matching_rule(family="snap")
     team = generator.gen_team(artefact_matching_rules=[rule])
     generator.gen_user(email="reviewer1@example.com", teams=[team])
     generator.gen_user(email="reviewer2@example.com", teams=[team])
@@ -1757,7 +1776,7 @@ def test_repeated_call_for_same_environment_does_not_duplicate_notifications(
     _assign_reviewers_to_environments skips it because it already has a reviewer assigned.
     """
     # GIVEN a reviewer with a matching rule
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    rule = generator.gen_artefact_matching_rule(family="snap")
     team = generator.gen_team(artefact_matching_rules=[rule])
     reviewer = generator.gen_user(teams=[team])
 
@@ -1783,7 +1802,7 @@ def test_environment_created_without_assignment_gets_reviewer_on_next_assignment
     current one, so the gap is healed automatically.
     """
     # GIVEN a reviewer with a matching rule
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    rule = generator.gen_artefact_matching_rule(family="snap")
     team = generator.gen_team(artefact_matching_rules=[rule])
     generator.gen_user(teams=[team])
 
@@ -1819,7 +1838,7 @@ def test_reviewer_gets_at_most_one_artefact_jira_card(db_session: Session, execu
     the BatchReviewerAssignedMessage once.
     """
     # GIVEN a reviewer with a matching rule
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    rule = generator.gen_artefact_matching_rule(family="snap")
     team = generator.gen_team(artefact_matching_rules=[rule])
     generator.gen_user(teams=[team])
 
@@ -1863,7 +1882,7 @@ def test_no_environment_jira_cards_are_created(db_session: Session, execute: Exe
     environments are added.
     """
     # GIVEN a reviewer with a matching rule
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    rule = generator.gen_artefact_matching_rule(family="snap")
     team = generator.gen_team(artefact_matching_rules=[rule])
     generator.gen_user(teams=[team])
 
@@ -1905,7 +1924,7 @@ def test_reviewer_gets_single_combined_jira_card(db_session: Session, execute: E
     """A reviewer newly assigned to an artefact receives a single combined Jira card
     (USER_ASSIGNED_ARTEFACT_REVIEW) and no separate environment card."""
     # GIVEN a reviewer with a matching rule
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    rule = generator.gen_artefact_matching_rule(family="snap")
     team = generator.gen_team(artefact_matching_rules=[rule])
     reviewer = generator.gen_user(teams=[team])
 
@@ -1940,7 +1959,7 @@ def test_no_new_jira_cards_when_existing_reviewer_assigned_to_new_environment(
     no new Jira cards should be created — cards are only created when new artefact reviewers
     are assigned, not when existing reviewers pick up additional environments."""
     # GIVEN a reviewer with a matching rule and an artefact with jira_issue
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    rule = generator.gen_artefact_matching_rule(family="snap")
     team = generator.gen_team(artefact_matching_rules=[rule])
     generator.gen_user(teams=[team])
 
@@ -1974,7 +1993,7 @@ def test_existing_reviewer_gets_no_notification_for_new_environment(
     """When a reviewer already assigned to an artefact is assigned to a new environment review,
     they should NOT receive any new notification — per-environment notifications no longer exist."""
     # GIVEN a reviewer with a matching rule
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    rule = generator.gen_artefact_matching_rule(family="snap")
     team = generator.gen_team(artefact_matching_rules=[rule])
     reviewer = generator.gen_user(teams=[team])
 
@@ -1998,7 +2017,7 @@ def test_reviewer_gets_single_notification_regardless_of_environment_count(
     regardless of how many environments the artefact accumulates.
     """
     # GIVEN a reviewer with a matching rule
-    rule = generator.gen_artefact_matching_rule(family=FamilyName.snap)
+    rule = generator.gen_artefact_matching_rule(family="snap")
     team = generator.gen_team(artefact_matching_rules=[rule])
     reviewer = generator.gen_user(teams=[team])
 
@@ -2032,7 +2051,7 @@ def test_manually_assigned_reviewer_gets_env_review_assigned_on_new_environment(
     generator.gen_artefact(
         name=snap_test_request["name"],  # type: ignore[arg-type]
         version=snap_test_request["version"],  # type: ignore[arg-type]
-        family=FamilyName.snap,
+        family="snap",
         track=snap_test_request["track"],  # type: ignore[arg-type]
         store=snap_test_request["store"],  # type: ignore[arg-type]
         stage=snap_test_request["execution_stage"],  # type: ignore[arg-type]
@@ -2064,7 +2083,7 @@ def test_manually_assigned_reviewer_gets_no_notification_on_new_environment(
     generator.gen_artefact(
         name=snap_test_request["name"],  # type: ignore[arg-type]
         version=snap_test_request["version"],  # type: ignore[arg-type]
-        family=FamilyName.snap,
+        family="snap",
         track=snap_test_request["track"],  # type: ignore[arg-type]
         store=snap_test_request["store"],  # type: ignore[arg-type]
         stage=snap_test_request["execution_stage"],  # type: ignore[arg-type]

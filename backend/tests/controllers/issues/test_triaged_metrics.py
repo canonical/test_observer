@@ -25,7 +25,6 @@ from test_observer.common.metrics_initializer import (
     _initialize_triaged_metrics,
 )
 from test_observer.data_access.models import IssueTestResultAttachment
-from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -76,7 +75,7 @@ def test_triaged_metric_incremented_on_attach(test_client: TestClient, generator
     test_case = generator.gen_test_case()
     artefact = generator.gen_artefact(
         name="test-charm",
-        family=FamilyName.charm,
+        family="charm",
         track="latest",
         stage="edge",
     )
@@ -128,7 +127,7 @@ def test_triaged_metric_decremented_on_detach(test_client: TestClient, generator
     test_case = generator.gen_test_case()
     artefact = generator.gen_artefact(
         name="test-charm",
-        family=FamilyName.charm,
+        family="charm",
         track="latest",
         stage="edge",
     )
@@ -183,7 +182,7 @@ def test_triaged_metric_not_updated_for_non_charm_family(test_client: TestClient
     # Generate test data for snap family
     environment = generator.gen_environment()
     test_case = generator.gen_test_case()
-    artefact = generator.gen_artefact(name="test-snap", family=FamilyName.snap, track="latest", stage="edge")
+    artefact = generator.gen_artefact(name="test-snap", family="snap", track="latest", stage="edge")
     artefact_build = generator.gen_artefact_build(artefact)
     test_execution = generator.gen_test_execution(artefact_build, environment)
     test_result = generator.gen_test_result(test_case, test_execution)

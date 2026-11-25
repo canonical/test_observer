@@ -23,7 +23,7 @@ from test_observer.controllers.execution_metadata.models import ExecutionMetadat
 from test_observer.controllers.issues.shared_models import (
     MinimalIssueTestResultAttachmentResponse,
 )
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus, TestResultStatus
+from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 
 
 class PreviousTestResult(BaseModel):
@@ -64,7 +64,7 @@ class TestResultResponse(BaseModel):
 class TestExecutionFilterBase(BaseModel):
     """Shared filterable fields for test execution queries."""
 
-    families: list[FamilyName] = Field(default_factory=list)
+    families: list[str] = Field(default_factory=list)
     artefact_ids: list[int] = Field(default_factory=list)
     artefacts: list[str] = Field(default_factory=list)
     artefact_versions: list[str] = Field(default_factory=list)

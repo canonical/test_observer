@@ -20,14 +20,13 @@
 from pydantic import BaseModel, Field
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import FamilyName
 
 
 class ArtefactMatchingRuleBase(BaseModel):
     """Base model for artefact matching rule with common fields"""
 
     name: str = ""
-    family: FamilyName
+    family: str = Field(max_length=100)
     stage: str = ""
     track: str = ""
     branch: str = ""
@@ -44,7 +43,7 @@ class ArtefactMatchingRuleInResponse(BaseModel):
 
     id: int
     name: str | None
-    family: FamilyName
+    family: str
     stage: str | None
     track: str | None
     branch: str | None
@@ -66,7 +65,7 @@ class ArtefactMatchingRuleResponse(BaseModel):
 
     id: int
     name: str | None
-    family: FamilyName
+    family: str
     stage: str | None
     track: str | None
     branch: str | None
@@ -89,7 +88,7 @@ class ArtefactMatchingRulePatch(BaseModel):
     """Patch request for artefact matching rule"""
 
     name: str | None = None
-    family: FamilyName | None = None
+    family: str | None = Field(default=None, max_length=100)
     stage: str | None = None
     track: str | None = None
     branch: str | None = None

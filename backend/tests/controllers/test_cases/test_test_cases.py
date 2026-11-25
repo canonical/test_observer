@@ -53,6 +53,24 @@ def test_get_test_cases_response_format(test_client: TestClient):
     assert isinstance(data["test_cases"], list)
 
 
+def test_get_test_cases_with_known_and_unknown_families(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact()
+    execution = generator.gen_test_execution(generator.gen_artefact_build(artefact), generator.gen_environment())
+    test_case = generator.gen_test_case()
+    generator.gen_test_result(test_case, execution)
+
+    response = make_authenticated_request(
+        lambda: test_client.get(
+            "/v1/test-cases",
+            params=[("families", "snap"), ("families", "unregistered")],
+        ),
+        Permission.view_test,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["test_cases"] == [{"test_case": test_case.name, "template_id": test_case.template_id}]
+
+
 def test_get_test_cases_with_actual_data(test_client: TestClient, generator: DataGenerator):
     """Test that actual test cases are returned and properly validated"""
     # Create test data with specific test case

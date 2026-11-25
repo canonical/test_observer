@@ -357,7 +357,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/FamilyName"
+                  "type": "string"
                 },
                 {
                   "type": "null"
@@ -520,7 +520,8 @@
             "in": "query",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/FamilyName"
+              "type": "string",
+              "title": "Family"
             }
           },
           {
@@ -708,7 +709,7 @@
                 {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/FamilyName"
+                    "type": "string"
                   }
                 },
                 {
@@ -1477,7 +1478,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/FamilyName"
+                  "type": "string"
                 },
                 {
                   "type": "null"
@@ -1554,7 +1555,7 @@
                 {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/FamilyName"
+                    "type": "string"
                   }
                 },
                 {
@@ -1646,8 +1647,9 @@
             "in": "query",
             "required": true,
             "schema": {
-              "$ref": "#/components/schemas/FamilyName",
-              "description": "Artefact family"
+              "type": "string",
+              "description": "Artefact family",
+              "title": "Family"
             },
             "description": "Artefact family"
           },
@@ -2509,7 +2511,7 @@
                 {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/FamilyName"
+                    "type": "string"
                   }
                 },
                 {
@@ -2806,7 +2808,7 @@
                 {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/FamilyName"
+                    "type": "string"
                   }
                 },
                 {
@@ -2989,7 +2991,7 @@
                 {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/FamilyName"
+                    "type": "string"
                   }
                 },
                 {
@@ -3406,7 +3408,7 @@
                 {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/FamilyName"
+                    "type": "string"
                   }
                 },
                 {
@@ -3698,7 +3700,7 @@
                 {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/FamilyName"
+                    "type": "string"
                   }
                 },
                 {
@@ -4273,7 +4275,7 @@
                 {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/FamilyName"
+                    "type": "string"
                   }
                 },
                 {
@@ -6432,7 +6434,7 @@
             "schema": {
               "anyOf": [
                 {
-                  "$ref": "#/components/schemas/FamilyName"
+                  "type": "string"
                 },
                 {
                   "type": "null"
@@ -6893,7 +6895,9 @@
       "ArtefactCreate": {
         "properties": {
           "family": {
-            "$ref": "#/components/schemas/FamilyName"
+            "type": "string",
+            "maxLength": 100,
+            "title": "Family"
           },
           "name": {
             "type": "string",
@@ -7052,7 +7056,9 @@
             "default": ""
           },
           "family": {
-            "$ref": "#/components/schemas/FamilyName"
+            "type": "string",
+            "maxLength": 100,
+            "title": "Family"
           },
           "stage": {
             "type": "string",
@@ -7127,7 +7133,8 @@
             "title": "Name"
           },
           "family": {
-            "$ref": "#/components/schemas/FamilyName"
+            "type": "string",
+            "title": "Family"
           },
           "stage": {
             "anyOf": [
@@ -7259,12 +7266,14 @@
           "family": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/FamilyName"
+                "type": "string",
+                "maxLength": 100
               },
               {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Family"
           },
           "stage": {
             "anyOf": [
@@ -7395,7 +7404,9 @@
             "default": ""
           },
           "family": {
-            "$ref": "#/components/schemas/FamilyName"
+            "type": "string",
+            "maxLength": 100,
+            "title": "Family"
           },
           "stage": {
             "type": "string",
@@ -7478,7 +7489,8 @@
             "title": "Name"
           },
           "family": {
-            "$ref": "#/components/schemas/FamilyName"
+            "type": "string",
+            "title": "Family"
           },
           "stage": {
             "anyOf": [
@@ -8534,17 +8546,6 @@
         ],
         "title": "FamilyCreate"
       },
-      "FamilyName": {
-        "type": "string",
-        "enum": [
-          "snap",
-          "deb",
-          "charm",
-          "image",
-          "solution"
-        ],
-        "title": "FamilyName"
-      },
       "FamilyResponse": {
         "properties": {
           "name": {
@@ -8813,7 +8814,7 @@
           },
           "families": {
             "items": {
-              "$ref": "#/components/schemas/FamilyName"
+              "type": "string"
             },
             "type": "array",
             "title": "Families"
@@ -9017,7 +9018,7 @@
           },
           "families": {
             "items": {
-              "$ref": "#/components/schemas/FamilyName"
+              "type": "string"
             },
             "type": "array",
             "title": "Families"
@@ -9217,7 +9218,8 @@
             "title": "Ci Link"
           },
           "family": {
-            "$ref": "#/components/schemas/FamilyName"
+            "type": "string",
+            "title": "Family"
           },
           "test_execution": {
             "$ref": "#/components/schemas/TestExecutionResponse"
@@ -9535,7 +9537,8 @@
             "title": "Track"
           },
           "family": {
-            "$ref": "#/components/schemas/FamilyName"
+            "type": "string",
+            "title": "Family"
           }
         },
         "type": "object",
@@ -10533,7 +10536,7 @@
         "properties": {
           "families": {
             "items": {
-              "$ref": "#/components/schemas/FamilyName"
+              "type": "string"
             },
             "type": "array",
             "title": "Families"
@@ -11240,7 +11243,7 @@
         "properties": {
           "families": {
             "items": {
-              "$ref": "#/components/schemas/FamilyName"
+              "type": "string"
             },
             "type": "array",
             "title": "Families"

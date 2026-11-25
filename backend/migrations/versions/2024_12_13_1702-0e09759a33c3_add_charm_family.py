@@ -24,10 +24,8 @@ Create Date: 2024-12-13 17:02:14.136283+00:00
 import sqlalchemy as sa
 from alembic import op
 
-from test_observer.data_access.models_enums import FamilyName
-
 new_families = {
-    FamilyName.charm: ["edge", "beta", "candidate", "stable"],
+    "charm": ["edge", "beta", "candidate", "stable"],
 }
 
 

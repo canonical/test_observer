@@ -16,14 +16,6 @@
 from enum import StrEnum
 
 
-class FamilyName(StrEnum):
-    snap = "snap"
-    deb = "deb"
-    charm = "charm"
-    image = "image"
-    solution = "solution"
-
-
 class TestExecutionStatus(StrEnum):
     __test__ = False
 

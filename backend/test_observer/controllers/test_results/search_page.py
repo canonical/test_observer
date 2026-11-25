@@ -37,7 +37,7 @@ from test_observer.data_access.models import (
     TestPlan,
     TestResult,
 )
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus, TestResultStatus
+from test_observer.data_access.models_enums import TestExecutionStatus, TestResultStatus
 from test_observer.data_access.setup import get_db
 
 from .filter_test_results import filter_test_results
@@ -71,9 +71,7 @@ def get_test_results_search_page(
         bool,
         Query(description="Include the exact total count; null is returned when false"),
     ] = True,
-    families: Annotated[
-        list[FamilyName] | None, Query(description="Exact artefact family values; repeat for OR")
-    ] = None,
+    families: Annotated[list[str] | None, Query(description="Exact artefact family values; repeat for OR")] = None,
     artefact_ids: Annotated[list[int] | None, Query(description="Exact artefact IDs; repeat for OR")] = None,
     test_result_statuses: Annotated[
         list[TestResultStatus] | None,
@@ -385,7 +383,7 @@ def get_test_results_search_page(
                     name=result.test_execution.artefact_build.artefact.name,
                     version=result.test_execution.artefact_build.artefact.version,
                     track=result.test_execution.artefact_build.artefact.track,
-                    family=FamilyName(result.test_execution.artefact_build.artefact.family),
+                    family=result.test_execution.artefact_build.artefact.family,
                 ),
                 artefact_build=SearchPageArtefactBuild(
                     architecture=result.test_execution.artefact_build.architecture,

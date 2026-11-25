@@ -24,7 +24,6 @@ from test_observer.data_access.audit import (
     set_connection_audit_context,
 )
 from test_observer.data_access.models import Artefact, ChangeAuthor, Family
-from test_observer.data_access.models_enums import FamilyName
 from tests.data_generator import DataGenerator
 
 
@@ -295,7 +294,7 @@ def test_audited_write_without_context_fails(db_session: Session) -> None:
             name="missing-audit-context",
             version="1",
             stage="beta",
-            family=FamilyName.snap,
+            family="snap",
         )
     )
     with pytest.raises(DBAPIError, match="invalid input syntax for type integer"):

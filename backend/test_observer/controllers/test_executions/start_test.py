@@ -28,6 +28,7 @@ from test_observer.common.review_notification import (
     batch_create_jira_reviewer_cards,
     batch_create_review_notifications,
 )
+from test_observer.controllers.families.validation import map_family_fk_violation
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuild,
@@ -84,6 +85,7 @@ def _ceil_division(numerator: int, denominator: int) -> int:
 class StartTestExecutionController:
     def __init__(
         self,
+        # TODO(raul): remove later in TO-416
         request: (
             StartSnapTestExecutionRequest
             | StartDebTestExecutionRequest
@@ -337,7 +339,10 @@ class StartTestExecutionController:
             case StartSolutionTestExecutionRequest():
                 creation_kwargs["attributes"] = self.request.attributes
 
-        self.artefact = get_or_create(self.db, Artefact, filter_kwargs=filter_kwargs, creation_kwargs=creation_kwargs)
+        with map_family_fk_violation(self.db, "artefact_family_fkey", self.request.family, ("body", "family")):
+            self.artefact = get_or_create(
+                self.db, Artefact, filter_kwargs=filter_kwargs, creation_kwargs=creation_kwargs
+            )
 
         if not self.artefact.builds:
             # Serialize first-build setup before acquiring environment or build locks.

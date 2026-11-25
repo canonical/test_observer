@@ -40,7 +40,6 @@ from test_observer.data_access.models import (
     TestResult,
 )
 from test_observer.data_access.models_enums import (
-    FamilyName,
     TestExecutionStatus,
     TestResultStatus,
 )
@@ -171,7 +170,7 @@ def _search_with_result_details(
 )
 def search_test_results(
     families: Annotated[
-        list[FamilyName] | None,
+        list[str] | None,
         Query(description="Filter by artefact families (e.g., charm,snap)"),
     ] = None,
     artefact_ids: Annotated[

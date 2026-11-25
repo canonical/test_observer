@@ -17,11 +17,15 @@
 
 from typing import TypeVar
 
+import pytest
 from pydantic import HttpUrl
 from pytest import MonkeyPatch
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Query, Session
 
-from test_observer.data_access.models import TestCase
+from test_observer.controllers.families.validation import map_family_fk_violation
+from test_observer.data_access.errors import postgres_error_details
+from test_observer.data_access.models import ArtefactMatchingRule, TestCase
 from test_observer.data_access.repository import (
     create_test_execution_relevant_link,
     get_or_create,
@@ -178,6 +182,45 @@ def test_get_or_create_does_not_commit(
     # Query again - should not find the instance since it wasn't committed
     not_found = db_session.query(TestCase).filter_by(name=test_case_name, category=test_case_category).first()
     assert not_found is None
+
+
+def test_get_or_create_propagates_unrelated_unique_violation(db_session: Session):
+    db_session.add(TestCase(name="same", category="existing"))
+    db_session.flush()
+
+    with pytest.raises(IntegrityError) as error:
+        get_or_create(db_session, TestCase, {"name": "same", "category": "different"})
+    assert postgres_error_details(error.value) == ("23505", "test_case_name_key")
+    assert db_session.query(TestCase).filter_by(name="same").one().category == "existing"
+
+
+def test_get_or_create_propagates_unique_violation_from_pending_objects(db_session: Session, monkeypatch: MonkeyPatch):
+    db_session.add_all([TestCase(name="target", category="cat"), TestCase(name="other", category="cat")])
+    db_session.flush()
+    db_session.add(TestCase(name="other", category="cat"))
+    monkeypatch.setattr(Query, "first", lambda _: None)
+
+    with pytest.raises(IntegrityError) as error:
+        get_or_create(db_session, TestCase, {"name": "target", "category": "cat"})
+    assert postgres_error_details(error.value) == ("23505", "test_case_name_key")
+
+
+def test_get_or_create_propagates_foreign_key_violation(db_session: Session):
+    with pytest.raises(DBAPIError) as error:
+        get_or_create(db_session, ArtefactMatchingRule, {"family": "unregistered"})
+    assert postgres_error_details(error.value) == ("23503", "artefact_matching_rule_family_fkey")
+    assert db_session.query(ArtefactMatchingRule).count() == 0
+
+
+def test_family_error_mapper_propagates_other_foreign_key(db_session: Session):
+    with (
+        pytest.raises(DBAPIError) as error,
+        map_family_fk_violation(db_session, "artefact_family_fkey", "unregistered", ("body", "family")),
+    ):
+        db_session.add(ArtefactMatchingRule(family="unregistered"))
+        db_session.flush()
+    assert postgres_error_details(error.value) == ("23503", "artefact_matching_rule_family_fkey")
+    assert db_session.query(ArtefactMatchingRule).count() == 0
 
 
 def test_get_or_create_environments_empty_input(db_session: Session):

@@ -15,7 +15,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.enums import Permission
@@ -23,14 +23,15 @@ from test_observer.common.permissions import permission_checker
 from test_observer.controllers.artefact_matching_rules.models import (
     ArtefactMatchingRuleInResponse,
 )
+from test_observer.controllers.families.validation import map_family_fk_violation
 from test_observer.controllers.teams.models import (
     TeamCreate,
     TeamPatch,
     TeamResponse,
     UserMinimalResponse,
 )
+from test_observer.data_access.errors import is_constraint_violation
 from test_observer.data_access.models import ArtefactMatchingRule, Team, User
-from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 router: APIRouter = APIRouter(tags=["teams"])
@@ -62,7 +63,7 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
     # Deduplicate rules in the request
     seen_rules = set()
     unique_rules_data = []
-    for rule_data in rules_data:
+    for index, rule_data in enumerate(rules_data):
         rule_key = (
             rule_data.name,
             rule_data.family,
@@ -77,10 +78,10 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
         )
         if rule_key not in seen_rules:
             seen_rules.add(rule_key)
-            unique_rules_data.append(rule_data)
+            unique_rules_data.append((index, rule_data))
 
     # Add new rules
-    for rule_data in unique_rules_data:
+    for index, rule_data in unique_rules_data:
         # Check if an identical rule already exists
         existing_rule = db.execute(
             select(ArtefactMatchingRule).where(
@@ -122,6 +123,13 @@ def _sync_artefact_matching_rules(db: Session, team: Team, rules_data: list) -> 
                 teams=[team],
             )
             db.add(new_rule)
+            with map_family_fk_violation(
+                db,
+                "artefact_matching_rule_family_fkey",
+                rule_data.family,
+                ("body", "artefact_matching_rules", index, "family"),
+            ):
+                db.flush()
 
     # Flush to synchronize relationships before checking for orphans
     db.flush()
@@ -152,7 +160,7 @@ def _team_to_response(team: Team) -> TeamResponse:
             ArtefactMatchingRuleInResponse(
                 id=rule.id,
                 name=rule.name if rule.name else None,
-                family=FamilyName(rule.family),
+                family=rule.family,
                 stage=rule.stage if rule.stage else None,
                 track=rule.track if rule.track else None,
                 branch=rule.branch if rule.branch else None,
@@ -189,8 +197,10 @@ def create_team(
         if request.artefact_matching_rules:
             _sync_artefact_matching_rules(db, team, request.artefact_matching_rules)
         db.commit()
-    except IntegrityError:
+    except DBAPIError as error:
         db.rollback()
+        if not is_constraint_violation(error, "23505", "team_name_key"):
+            raise
         raise HTTPException(status_code=409, detail=f"Team with name '{request.name}' already exists") from None
     db.refresh(team)
     return _team_to_response(team)
@@ -237,7 +247,6 @@ def update_team(
     db: Session = Depends(get_db),
 ):
     team = _get_team_or_raise_404(db, team_id)
-
     if request.permissions is not None:
         team.permissions = request.permissions
 

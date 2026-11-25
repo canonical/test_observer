@@ -17,20 +17,7 @@ export type TestExecutionStatus =
 
 export type ExecutionMetadata = Record<string, string[]>;
 
-/** Values of the backend FamilyName schema in backend/schemata/openapi.json. */
-export const FAMILY_NAMES = [
-  "snap",
-  "deb",
-  "charm",
-  "image",
-  "solution",
-] as const;
-
-export type FamilyName = (typeof FAMILY_NAMES)[number];
-
-export function isFamilyName(value: string): value is FamilyName {
-  return FAMILY_NAMES.some((family) => family === value);
-}
+export type FamilyName = string;
 
 export type TestResultStatus = "PASSED" | "FAILED" | "SKIPPED";
 

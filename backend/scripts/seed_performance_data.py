@@ -82,7 +82,6 @@ from test_observer.data_access.models import (
 from test_observer.data_access.models_enums import (
     ArtefactBuildEnvironmentReviewDecision,
     ArtefactStatus,
-    FamilyName,
     IssueSource,
     IssueStatus,
     TestExecutionStatus,
@@ -93,6 +92,7 @@ from test_observer.data_access.models_enums import (
 ANCHOR = datetime(2026, 1, 1, 12, 0, 0)
 NAME_PREFIX = "perf"
 INSERT_BATCH_SIZE = 2_000
+FAMILIES = ("snap", "deb", "charm", "image", "solution")
 
 
 @dataclass(frozen=True)
@@ -122,7 +122,7 @@ class PerformanceProfile:
 
     @property
     def artefacts(self) -> int:
-        return len(FamilyName) * self.names_per_family * self.versions
+        return len(FAMILIES) * self.names_per_family * self.versions
 
     @property
     def executions(self) -> int:
@@ -302,7 +302,7 @@ def seed_performance_data(connection: Connection, profile: PerformanceProfile, *
     )
 
     artefact_rows: list[dict[str, Any]] = []
-    for family in FamilyName:
+    for family in FAMILIES:
         for name_index in range(profile.names_per_family):
             for version in range(profile.versions):
                 serial = len(artefact_rows)

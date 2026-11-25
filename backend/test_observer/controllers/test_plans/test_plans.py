@@ -28,7 +28,6 @@ from test_observer.data_access.models import (
     TestExecution,
     TestPlan,
 )
-from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 from .models import TestPlansResponse
@@ -47,7 +46,7 @@ def get_test_plans(
         Query(description="Search term for test plan names"),
     ] = None,
     families: Annotated[
-        list[FamilyName] | None,
+        list[str] | None,
         Query(description="Filter by artefact families"),
     ] = None,
     limit: Annotated[

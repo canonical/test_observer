@@ -19,7 +19,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session, selectinload
 
 from test_observer.common.enums import Permission
@@ -30,8 +30,9 @@ from test_observer.controllers.artefact_matching_rules.models import (
     ArtefactMatchingRuleResponse,
     TeamMinimal,
 )
+from test_observer.controllers.families.validation import map_family_fk_violation
+from test_observer.data_access.errors import is_constraint_violation
 from test_observer.data_access.models import ArtefactMatchingRule, Team
-from test_observer.data_access.models_enums import FamilyName
 from test_observer.data_access.setup import get_db
 
 router: APIRouter = APIRouter(tags=["artefact-matching-rules"])
@@ -49,7 +50,7 @@ def _rule_to_response(rule: ArtefactMatchingRule) -> ArtefactMatchingRuleRespons
     return ArtefactMatchingRuleResponse(
         id=rule.id,
         name=rule.name if rule.name else None,
-        family=FamilyName(rule.family),
+        family=rule.family,
         stage=rule.stage if rule.stage else None,
         track=rule.track if rule.track else None,
         branch=rule.branch if rule.branch else None,
@@ -130,10 +131,13 @@ def create_artefact_matching_rule(
     )
     db.add(rule)
     try:
-        db.commit()
+        with map_family_fk_violation(db, "artefact_matching_rule_family_fkey", request.family, ("body", "family")):
+            db.commit()
         db.refresh(rule)
-    except IntegrityError:
+    except DBAPIError as error:
         db.rollback()
+        if not is_constraint_violation(error, "23505", "artefact_matching_rule_fields_from_artefact"):
+            raise
         raise HTTPException(
             status_code=409,
             detail="Artefact matching rule with these values already exists",
@@ -149,12 +153,12 @@ def create_artefact_matching_rule(
 )
 def get_artefact_matching_rules(
     db: Session = Depends(get_db),
-    family: FamilyName | None = None,
+    family: str | None = None,
 ):
     """Get all artefact matching rules, optionally filtered by family"""
     query = select(ArtefactMatchingRule).options(selectinload(ArtefactMatchingRule.teams))
 
-    if family:
+    if family is not None:
         query = query.where(ArtefactMatchingRule.family == family)
 
     rules = db.scalars(query).all()
@@ -187,7 +191,6 @@ def update_artefact_matching_rule(
 ):
     """Update an artefact matching rule"""
     rule = _get_rule_or_raise_404(db, rule_id)
-
     # Validate team_ids if provided
     teams = []
     if request.team_ids is not None:
@@ -208,8 +211,6 @@ def update_artefact_matching_rule(
 
     if request.name is not None:
         rule.name = request.name
-    if request.family is not None:
-        rule.family = request.family
     if request.stage is not None:
         rule.stage = request.stage
     if request.track is not None:
@@ -230,6 +231,8 @@ def update_artefact_matching_rule(
         rule.teams = teams
     if request.grant_permissions is not None:
         rule.grant_permissions = request.grant_permissions
+    if request.family is not None:
+        rule.family = request.family
 
     # Check if updated rule would conflict with existing rule
     check_name = request.name if request.name is not None else rule.name
@@ -242,21 +245,22 @@ def update_artefact_matching_rule(
     check_release = request.release if request.release is not None else rule.release
     check_owner = request.owner if request.owner is not None else rule.owner
 
-    existing_rule = db.execute(
-        select(ArtefactMatchingRule).where(
-            ArtefactMatchingRule.name == check_name,
-            ArtefactMatchingRule.family == (request.family if request.family is not None else rule.family),
-            ArtefactMatchingRule.stage == check_stage,
-            ArtefactMatchingRule.track == check_track,
-            ArtefactMatchingRule.branch == check_branch,
-            ArtefactMatchingRule.store == check_store,
-            ArtefactMatchingRule.series == check_series,
-            ArtefactMatchingRule.os == check_os,
-            ArtefactMatchingRule.release == check_release,
-            ArtefactMatchingRule.owner == check_owner,
-            ArtefactMatchingRule.id != rule_id,
-        )
-    ).scalar_one_or_none()
+    with db.no_autoflush:
+        existing_rule = db.execute(
+            select(ArtefactMatchingRule).where(
+                ArtefactMatchingRule.name == check_name,
+                ArtefactMatchingRule.family == (request.family if request.family is not None else rule.family),
+                ArtefactMatchingRule.stage == check_stage,
+                ArtefactMatchingRule.track == check_track,
+                ArtefactMatchingRule.branch == check_branch,
+                ArtefactMatchingRule.store == check_store,
+                ArtefactMatchingRule.series == check_series,
+                ArtefactMatchingRule.os == check_os,
+                ArtefactMatchingRule.release == check_release,
+                ArtefactMatchingRule.owner == check_owner,
+                ArtefactMatchingRule.id != rule_id,
+            )
+        ).scalar_one_or_none()
 
     if existing_rule:
         raise HTTPException(
@@ -265,10 +269,13 @@ def update_artefact_matching_rule(
         )
 
     try:
-        db.commit()
+        with map_family_fk_violation(db, "artefact_matching_rule_family_fkey", rule.family, ("body", "family")):
+            db.commit()
         db.refresh(rule)
-    except IntegrityError:
+    except DBAPIError as error:
         db.rollback()
+        if not is_constraint_violation(error, "23505", "artefact_matching_rule_fields_from_artefact"):
+            raise
         raise HTTPException(
             status_code=409,
             detail="Another artefact matching rule with these values already exists",

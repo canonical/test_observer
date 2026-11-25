@@ -44,7 +44,7 @@ from test_observer.data_access.models import (
     TestExecutionMetadata,
     TestResult,
 )
-from test_observer.data_access.models_enums import FamilyName, TestExecutionStatus
+from test_observer.data_access.models_enums import TestExecutionStatus
 from test_observer.data_access.repository import populate_expected_environment_status
 from test_observer.data_access.setup import get_db
 
@@ -237,7 +237,7 @@ def _search_executions(
 )
 def search_test_executions(
     families: Annotated[
-        list[FamilyName] | None,
+        list[str] | None,
         Query(description="Filter by artefact families (e.g., charm,snap)"),
     ] = None,
     artefact_ids: Annotated[

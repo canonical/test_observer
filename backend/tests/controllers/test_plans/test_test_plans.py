@@ -18,7 +18,6 @@ import uuid
 from fastapi.testclient import TestClient
 
 from test_observer.common.enums import Permission
-from test_observer.data_access.models_enums import FamilyName
 from tests.conftest import make_authenticated_request
 from tests.data_generator import DataGenerator
 
@@ -137,11 +136,11 @@ def test_filter_by_family(test_client: TestClient, generator: DataGenerator):
 
     env = generator.gen_environment(name=generate_unique_name("environment"))
 
-    snap_artefact = generator.gen_artefact(name=generate_unique_name("snap_artefact"), family=FamilyName.snap)
+    snap_artefact = generator.gen_artefact(name=generate_unique_name("snap_artefact"), family="snap")
     snap_build = generator.gen_artefact_build(snap_artefact)
     generator.gen_test_execution(snap_build, env, test_plan=snap_plan)
 
-    charm_artefact = generator.gen_artefact(name=generate_unique_name("charm_artefact"), family=FamilyName.charm)
+    charm_artefact = generator.gen_artefact(name=generate_unique_name("charm_artefact"), family="charm")
     charm_build = generator.gen_artefact_build(charm_artefact)
     generator.gen_test_execution(charm_build, env, test_plan=charm_plan)
 
