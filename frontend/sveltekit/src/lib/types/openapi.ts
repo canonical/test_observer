@@ -162,6 +162,30 @@ export interface ReviewerResponse {
   launchpad_handle?: string | null;
 }
 
+export interface ApprovalAuthorResponse {
+  kind: "user" | "application" | "automation" | null;
+  name: string | null;
+}
+
+export interface AuditHistoryResponse {
+  entries: {
+    id: number;
+    created_at: string;
+    author: {
+      user_id: number | null;
+      application_id: number | null;
+      automation_name: string | null;
+    };
+  }[];
+  count: number;
+  limit: number;
+  offset: number;
+}
+
+export interface ArtefactAuditHistoryResponse extends AuditHistoryResponse {
+  approval_author: ApprovalAuthorResponse;
+}
+
 export interface ArtefactBuildMinimalResponse {
   id: number;
   architecture: string;

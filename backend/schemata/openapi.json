@@ -4928,7 +4928,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AuditHistoryResponse"
+                  "$ref": "#/components/schemas/ArtefactAuditHistoryResponse"
                 }
               }
             }
@@ -6767,6 +6767,78 @@
           "api_key"
         ],
         "title": "ApplicationResponse"
+      },
+      "ApprovalAuthorResponse": {
+        "properties": {
+          "kind": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "user",
+                  "application",
+                  "automation"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kind"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "name"
+        ],
+        "title": "ApprovalAuthorResponse"
+      },
+      "ArtefactAuditHistoryResponse": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/AuditListItemResponse"
+            },
+            "type": "array",
+            "title": "Entries"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "approval_author": {
+            "$ref": "#/components/schemas/ApprovalAuthorResponse"
+          }
+        },
+        "type": "object",
+        "required": [
+          "entries",
+          "count",
+          "limit",
+          "offset",
+          "approval_author"
+        ],
+        "title": "ArtefactAuditHistoryResponse"
       },
       "ArtefactBuildEnvironmentReviewDecision": {
         "type": "string",

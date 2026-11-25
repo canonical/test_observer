@@ -23,10 +23,18 @@ from sqlalchemy.orm import Session
 from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
 from test_observer.common.permissions import permission_checker
-from test_observer.data_access.models import Base, ChangeAuthor
+from test_observer.data_access.models import Application, Artefact, Base, ChangeAuthor, User
+from test_observer.data_access.models_enums import ArtefactStatus
 from test_observer.data_access.setup import get_db
 
-from .models import AuditAuthorResponse, AuditDetailResponse, AuditHistoryResponse, AuditListItemResponse
+from .models import (
+    ApprovalAuthorResponse,
+    ArtefactAuditHistoryResponse,
+    AuditAuthorResponse,
+    AuditDetailResponse,
+    AuditHistoryResponse,
+    AuditListItemResponse,
+)
 
 router = APIRouter(tags=["audit"])
 
@@ -109,7 +117,7 @@ def _get_detail(
 
 @router.get(
     "/artefacts/{artefact_id}",
-    response_model=AuditHistoryResponse,
+    response_model=ArtefactAuditHistoryResponse,
     dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
 )
 def list_artefact_audit(
@@ -120,9 +128,60 @@ def list_artefact_audit(
     ] = 50,
     offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination (default: 0)")] = 0,
     db: Session = Depends(get_db),
-) -> AuditHistoryResponse:
+) -> ArtefactAuditHistoryResponse:
     audit_table, _ = _AUDIT_TABLES["artefacts"]
-    return _list_history(db, audit_table, artefact_id, limit, offset)
+    history = _list_history(db, audit_table, artefact_id, limit, offset)
+    return ArtefactAuditHistoryResponse(
+        **history.model_dump(), approval_author=_get_artefact_approval_author(db, artefact_id)
+    )
+
+
+def _get_artefact_approval_author(db: Session, artefact_id: int) -> ApprovalAuthorResponse:
+    """Return the author of the current approval, or null fields when not recorded."""
+    audit_table, _ = _AUDIT_TABLES["artefacts"]
+    # Audit IDs reflect write order even when transaction timestamps are tied or
+    # transactions start in a different order. Ignore deletes when finding transitions.
+    history = (
+        select(
+            audit_table.c.audit_pk,
+            audit_table.c.audit_operation,
+            audit_table.c.audit_author_id,
+            audit_table.c.status,
+            func.lag(audit_table.c.status).over(order_by=audit_table.c.audit_pk).label("previous_status"),
+        )
+        .where(audit_table.c.id == artefact_id, audit_table.c.audit_operation != "D")
+        .subquery()
+    )
+    row = db.execute(
+        select(
+            ChangeAuthor.user_id,
+            ChangeAuthor.application_id,
+            ChangeAuthor.automation_name,
+            User.name,
+            Application.name,
+        )
+        .select_from(history)
+        .join(Artefact, Artefact.id == artefact_id)
+        .join(ChangeAuthor, ChangeAuthor.id == history.c.audit_author_id)
+        .outerjoin(User, User.id == ChangeAuthor.user_id)
+        .outerjoin(Application, Application.id == ChangeAuthor.application_id)
+        .where(
+            Artefact.status == ArtefactStatus.APPROVED,
+            history.c.status == ArtefactStatus.APPROVED,
+            (history.c.previous_status.is_not(None) & (history.c.previous_status != ArtefactStatus.APPROVED))
+            | (history.c.previous_status.is_(None) & (history.c.audit_operation == "I")),
+        )
+        .order_by(history.c.audit_pk.desc())
+        .limit(1)
+    ).one_or_none()
+    if row:
+        if row.user_id is not None:
+            return ApprovalAuthorResponse(kind="user", name=row[3])
+        if row.application_id is not None:
+            return ApprovalAuthorResponse(kind="application", name=row[4])
+        if row.automation_name is not None:
+            return ApprovalAuthorResponse(kind="automation", name=row.automation_name)
+    return ApprovalAuthorResponse(kind=None, name=None)
 
 
 @router.get(

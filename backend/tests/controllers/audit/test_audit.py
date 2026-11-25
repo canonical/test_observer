@@ -14,19 +14,22 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 from datetime import UTC, datetime
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import update
+from sqlalchemy import delete, update
 from sqlalchemy.orm import Session
 
 from test_observer.common.config import MAX_LISTING_PAGE_LIMIT
 from test_observer.common.enums import Permission
+from test_observer.data_access.audit import set_audit_context
 from test_observer.data_access.models import (
     Artefact,
     ArtefactBuildEnvironmentReview,
     Base,
 )
+from test_observer.data_access.models_enums import ArtefactStatus
 from tests.conftest import override_permissions
 from tests.data_generator import DataGenerator
 
@@ -60,6 +63,74 @@ def _permission_for_source(source: Artefact | ArtefactBuildEnvironmentReview) ->
     return Permission.view_environment_review
 
 
+def test_approval_author_tracks_status_transitions_not_later_edits(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact()
+    alice = generator.gen_user(name="Alice", email="alice@example.com")
+    bob = generator.gen_user(name="Bob", email="bob@example.com")
+    endpoint = f"/v1/audit/artefacts/{artefact.id}"
+
+    assert test_client.get(endpoint).status_code == 403
+    with override_permissions(Permission.view_artefact):
+        assert test_client.get(endpoint).json()["approval_author"] == {"kind": None, "name": None}
+
+        set_audit_context(generator.db_session, user_id=alice.id)
+        artefact.status = ArtefactStatus.APPROVED
+        generator.db_session.flush()
+        set_audit_context(generator.db_session, user_id=bob.id)
+        artefact.comment = "unrelated edit"
+        generator.db_session.flush()
+        assert test_client.get(endpoint).json()["approval_author"] == {"kind": "user", "name": "Alice"}
+        for offset in (0, 1, 2, 100):
+            page = test_client.get(endpoint, params={"limit": 1, "offset": offset}).json()
+            assert page["approval_author"] == {"kind": "user", "name": "Alice"}
+
+        artefact.status = ArtefactStatus.UNDECIDED
+        generator.db_session.flush()
+        assert test_client.get(endpoint).json()["approval_author"] == {"kind": None, "name": None}
+        artefact.status = ArtefactStatus.APPROVED
+        generator.db_session.flush()
+        assert test_client.get(endpoint).json()["approval_author"] == {"kind": "user", "name": "Bob"}
+
+
+def test_approval_author_handles_missing_history_and_automation(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact(status=ArtefactStatus.APPROVED)
+    endpoint = f"/v1/audit/artefacts/{artefact.id}"
+    with override_permissions(Permission.view_artefact):
+        assert test_client.get(endpoint).json()["approval_author"] == {"kind": "automation", "name": "tests"}
+
+        audit_table = Base.metadata.tables["artefact_audit"]
+        generator.db_session.execute(delete(audit_table).where(audit_table.c.id == artefact.id))
+        artefact.comment = "first audited change to a previously approved artefact"
+        generator.db_session.flush()
+        assert test_client.get(endpoint).json()["approval_author"] == {"kind": None, "name": None}
+
+
+def test_approval_author_identifies_application(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact()
+    application = generator.gen_application(name="Release bot")
+    set_audit_context(generator.db_session, application_id=application.id)
+    artefact.status = ArtefactStatus.APPROVED
+    generator.db_session.flush()
+
+    with override_permissions(Permission.view_artefact):
+        response = test_client.get(f"/v1/audit/artefacts/{artefact.id}")
+    assert response.json()["approval_author"] == {"kind": "application", "name": "Release bot"}
+
+
+def test_environment_review_history_does_not_lookup_approval(test_client: TestClient, generator: DataGenerator):
+    artefact = generator.gen_artefact()
+    build = generator.gen_artefact_build(artefact)
+    review = generator.gen_artefact_build_environment_review(build, generator.gen_environment())
+    with (
+        override_permissions(Permission.view_environment_review),
+        patch("test_observer.controllers.audit.audit._get_artefact_approval_author") as lookup,
+    ):
+        response = test_client.get(f"/v1/audit/environment-reviews/{review.id}")
+    assert response.status_code == 200
+    assert set(response.json()) == {"entries", "count", "limit", "offset"}
+    lookup.assert_not_called()
+
+
 def test_list_audit_history(
     test_client: TestClient,
     generator: DataGenerator,
@@ -82,6 +153,10 @@ def test_list_audit_history(
     assert payload["count"] == 2
     assert payload["limit"] == 50
     assert payload["offset"] == 0
+    expected_keys = {"entries", "count", "limit", "offset"}
+    if isinstance(source, Artefact):
+        expected_keys.add("approval_author")
+    assert set(payload) == expected_keys
     assert all(set(entry) == {"id", "created_at", "author"} for entry in entries)
     assert all(
         entry["author"] == {"user_id": None, "application_id": None, "automation_name": "tests"} for entry in entries
@@ -106,13 +181,15 @@ def test_list_audit_history_paginates_and_returns_total_count(
         page = test_client.get(endpoint, params={"limit": 1, "offset": 1}).json()
         past_end = test_client.get(endpoint, params={"limit": 1, "offset": 2}).json()
 
+    extra = {"approval_author": complete["approval_author"]} if isinstance(source, Artefact) else {}
     assert page == {
         "entries": complete["entries"][1:2],
         "count": complete["count"],
         "limit": 1,
         "offset": 1,
+        **extra,
     }
-    assert past_end == {"entries": [], "count": complete["count"], "limit": 1, "offset": 2}
+    assert past_end == {"entries": [], "count": complete["count"], "limit": 1, "offset": 2, **extra}
 
 
 def test_list_audit_history_default_page_is_bounded(
@@ -222,7 +299,8 @@ def test_list_audit_history_is_empty_when_no_audit_exists(
         response = test_client.get(missing_endpoint)
 
     assert response.status_code == 200
-    assert response.json() == {"entries": [], "count": 0, "limit": 50, "offset": 0}
+    extra = {"approval_author": {"kind": None, "name": None}} if isinstance(source, Artefact) else {}
+    assert response.json() == {"entries": [], "count": 0, "limit": 50, "offset": 0, **extra}
 
 
 def test_audit_detail_requires_a_matching_parent(
