@@ -29,6 +29,7 @@ from test_observer.data_access.setup import get_db
 
 from .models import (
     ApprovalAuthorResponse,
+    ArtefactAuditHistoryResponse,
     AuditAuthorResponse,
     AuditDetailResponse,
     AuditHistoryResponse,
@@ -116,7 +117,7 @@ def _get_detail(
 
 @router.get(
     "/artefacts/{artefact_id}",
-    response_model=AuditHistoryResponse,
+    response_model=ArtefactAuditHistoryResponse,
     dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
 )
 def list_artefact_audit(
@@ -127,20 +128,15 @@ def list_artefact_audit(
     ] = 50,
     offset: Annotated[int, Query(ge=0, description="Number of results to skip for pagination (default: 0)")] = 0,
     db: Session = Depends(get_db),
-) -> AuditHistoryResponse:
+) -> ArtefactAuditHistoryResponse:
     audit_table, _ = _AUDIT_TABLES["artefacts"]
-    return _list_history(db, audit_table, artefact_id, limit, offset)
+    history = _list_history(db, audit_table, artefact_id, limit, offset)
+    return ArtefactAuditHistoryResponse(
+        **history.model_dump(), approval_author=_get_artefact_approval_author(db, artefact_id)
+    )
 
 
-@router.get(
-    "/artefacts/{artefact_id}/approval",
-    response_model=ApprovalAuthorResponse,
-    dependencies=[Security(permission_checker, scopes=[Permission.view_artefact])],
-)
-def get_artefact_approval_author(
-    artefact_id: int,
-    db: Session = Depends(get_db),
-) -> ApprovalAuthorResponse:
+def _get_artefact_approval_author(db: Session, artefact_id: int) -> ApprovalAuthorResponse:
     """Return the author of the current approval, or null fields when not recorded."""
     audit_table, _ = _AUDIT_TABLES["artefacts"]
     # Audit IDs reflect write order even when transaction timestamps are tied or

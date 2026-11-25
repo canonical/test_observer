@@ -43,6 +43,10 @@ class AuditHistoryResponse(BaseModel):
     offset: int
 
 
+class ArtefactAuditHistoryResponse(AuditHistoryResponse):
+    approval_author: ApprovalAuthorResponse
+
+
 class AuditDetailResponse(BaseModel):
     id: int
     operation: Literal["I", "U", "D"]

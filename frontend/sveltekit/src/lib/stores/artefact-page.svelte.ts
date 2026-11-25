@@ -8,6 +8,7 @@ import type { Artefact, ArtefactStatus } from "$lib/types";
 import type {
   ArtefactBuildResponse,
   ApprovalAuthorResponse,
+  ArtefactAuditHistoryResponse,
   ArtefactBuildEnvironmentReviewResponse,
   ArtefactBuildEnvironmentReviewDecision,
   ArtefactVersionResponse,
@@ -280,10 +281,11 @@ export class ArtefactPageStore {
     const generation = ++this._approvalGeneration;
     this.approvalAuthor = undefined;
     try {
-      const author = await silentApi<ApprovalAuthorResponse>(
-        `/audit/artefacts/${artefactId}/approval`,
+      const history = await silentApi<ArtefactAuditHistoryResponse>(
+        `/audit/artefacts/${artefactId}?limit=1`,
       );
-      if (generation === this._approvalGeneration) this.approvalAuthor = author;
+      if (generation === this._approvalGeneration)
+        this.approvalAuthor = history?.approval_author ?? null;
     } catch {
       if (generation === this._approvalGeneration) this.approvalAuthor = null;
     }

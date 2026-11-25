@@ -865,11 +865,14 @@ void test("approval author refreshes after status changes and ignores stale page
           ? url.url
           : url.toString();
     const path = new URL(requestUrl).pathname;
-    if (path.endsWith("/audit/artefacts/1/approval")) {
+    if (path.endsWith("/audit/artefacts/1")) {
+      assert.equal(new URL(requestUrl).searchParams.get("limit"), "1");
       approvalRequests++;
       if (approvalRequests === 1) return pending.promise;
       if (approvalRequests === 3) return pendingPage.promise;
-      return Promise.resolve(jsonResponse({ kind: "user", name: "Bob" }));
+      return Promise.resolve(
+        jsonResponse({ approval_author: { kind: "user", name: "Bob" } }),
+      );
     }
     if (path.endsWith("/artefacts/1") && options.method === "PATCH") {
       return Promise.resolve(jsonResponse({ id: 1, status: "APPROVED" }));
@@ -887,12 +890,16 @@ void test("approval author refreshes after status changes and ignores stale page
     await store.init(1);
     await store.updateArtefactStatus(1, "APPROVED");
     assert.equal(store.approvalAuthor?.name, "Bob");
-    pending.resolve(jsonResponse({ kind: "user", name: "Alice" }));
+    pending.resolve(
+      jsonResponse({ approval_author: { kind: "user", name: "Alice" } }),
+    );
     await new Promise((resolve) => setTimeout(resolve, 0));
     assert.equal(store.approvalAuthor.name, "Bob");
     await store.init(1);
     await store.init(2);
-    pendingPage.resolve(jsonResponse({ kind: "user", name: "Alice" }));
+    pendingPage.resolve(
+      jsonResponse({ approval_author: { kind: "user", name: "Alice" } }),
+    );
     await new Promise((resolve) => setTimeout(resolve, 0));
     assert.equal(store.approvalAuthor, undefined);
   } finally {
@@ -911,7 +918,7 @@ void test("approval author lookup failure leaves the artefact visible", async ()
           ? url.url
           : url.toString();
     const path = new URL(requestUrl).pathname;
-    if (path.endsWith("/approval"))
+    if (path.endsWith("/audit/artefacts/1"))
       return Promise.resolve(new Response("", { status: 503 }));
     if (path.endsWith("/artefacts/1"))
       return Promise.resolve(jsonResponse({ id: 1, status: "APPROVED" }));
