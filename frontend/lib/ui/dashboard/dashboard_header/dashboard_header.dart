@@ -31,7 +31,8 @@ class DashboardHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pageUri = AppRoutes.uriFromContext(context);
     final family = AppRoutes.familyFromUri(pageUri);
-    final totalArtefacts = ref.watch(familyArtefactsProvider(family)).value;
+    final totalArtefacts =
+        ref.watch(familyArtefactsProvider(family.name)).value;
     final filteredCount =
         ref.watch(filteredFamilyArtefactsProvider(pageUri)).length;
 

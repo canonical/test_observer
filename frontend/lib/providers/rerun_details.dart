@@ -16,7 +16,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-import '../models/family_name.dart';
 import '../models/rerun_details.dart';
 import 'api.dart';
 
@@ -27,7 +26,7 @@ const rerunsPageSize = 50;
 @riverpod
 Future<RerunDetailsResponse> rerunDetails(
   Ref ref, {
-  required FamilyName family,
+  required String family,
   int? priority,
   int page = 1,
 }) async {

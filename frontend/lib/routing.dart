@@ -295,7 +295,7 @@ String getArtefactPagePathForFamily(
   int? testExecutionId,
   int? testResultId,
 }) {
-  String path = '/$artefactId';
+  var path = '/$artefactId';
 
   switch (family) {
     case FamilyName.deb:
@@ -328,6 +328,30 @@ String getArtefactPagePathForFamily(
   }
 
   return path;
+}
+
+// TODO(raul): remove family-specific logic later in TO-416.
+String? getArtefactPagePathForFamilyString(
+  String family,
+  int artefactId, {
+  int? testExecutionId,
+  int? testResultId,
+}) {
+  FamilyName? familyName;
+  for (final candidate in FamilyName.values) {
+    if (candidate.name == family) {
+      familyName = candidate;
+      break;
+    }
+  }
+  if (familyName == null) return null;
+
+  return getArtefactPagePathForFamily(
+    familyName,
+    artefactId,
+    testExecutionId: testExecutionId,
+    testResultId: testResultId,
+  );
 }
 
 String getArtefactPagePath(

@@ -15,7 +15,6 @@
 
 import 'package:flutter/widgets.dart';
 
-import '../../../models/family_name.dart';
 import '../../../models/view_modes.dart';
 import '../../../providers/view_mode.dart';
 import '../../../routing.dart';
@@ -33,14 +32,14 @@ class DashboardBody extends StatelessWidget {
 
     return BlockingProviderPreloader(
       provider: viewModeProvider,
-      builder: (_, viewMode) => switch ((family, viewMode)) {
+      builder: (_, viewMode) => switch ((family.name, viewMode)) {
         (_, ViewModes.dashboard) => const ArtefactsColumnsView(),
-        (FamilyName.snap, ViewModes.list) => const ArtefactsListView.snaps(),
-        (FamilyName.deb, ViewModes.list) => const ArtefactsListView.debs(),
-        (FamilyName.charm, ViewModes.list) => const ArtefactsListView.charms(),
-        (FamilyName.image, ViewModes.list) => const ArtefactsListView.images(),
-        (FamilyName.solution, ViewModes.list) =>
-          const ArtefactsListView.solutions(),
+        ('snap', ViewModes.list) => const ArtefactsListView.snaps(),
+        ('deb', ViewModes.list) => const ArtefactsListView.debs(),
+        ('charm', ViewModes.list) => const ArtefactsListView.charms(),
+        ('image', ViewModes.list) => const ArtefactsListView.images(),
+        ('solution', ViewModes.list) => const ArtefactsListView.solutions(),
+        (_, ViewModes.list) => const ArtefactsColumnsView(),
       },
     );
   }

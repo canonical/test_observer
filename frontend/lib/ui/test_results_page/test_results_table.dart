@@ -23,7 +23,6 @@ import '../../models/test_result.dart';
 import '../../models/test_execution.dart';
 import '../../models/artefact.dart';
 import '../../models/environment.dart';
-import '../../models/family_name.dart';
 import '../../routing.dart';
 import 'test_results_details_dialog.dart';
 
@@ -418,7 +417,7 @@ class _ActionsCell extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           InkWell(
-            onTap: () => _navigateToTestExecution(result),
+            onTap: () => _navigateToTestExecution(context, result),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               child: Row(
@@ -452,17 +451,24 @@ class _ActionsCell extends StatelessWidget {
     );
   }
 
-  void _navigateToTestExecution(TestResultWithContext result) {
-    final family = FamilyName.values.firstWhere(
-      (f) => f.name == result.artefact.family,
-      orElse: () => FamilyName.values.first,
-    );
-    final fragment = getArtefactPagePathForFamily(
-      family,
+  void _navigateToTestExecution(
+    BuildContext context,
+    TestResultWithContext result,
+  ) {
+    final fragment = getArtefactPagePathForFamilyString(
+      result.artefact.family,
       result.artefact.id,
       testExecutionId: result.testExecution.id,
       testResultId: result.testResult.id,
     );
+    if (fragment == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This family is not supported by Flutter routing.'),
+        ),
+      );
+      return;
+    }
     launchUrl(
       Uri.base.replace(fragment: fragment),
       mode: LaunchMode.externalApplication,

@@ -82,6 +82,20 @@ void main() {
   });
 
   group('solutions routing', () {
+    test('family names use the existing family routes', () {
+      expect(
+        getArtefactPagePathForFamilyString(
+          'solution',
+          123,
+        ),
+        '/solutions/123',
+      );
+      expect(
+        getArtefactPagePathForFamilyString('custom-family', 123),
+        isNull,
+      );
+    });
+
     test('familyFromUri returns solution for /solutions', () {
       expect(
         AppRoutes.familyFromUri(Uri.parse('/solutions')),
