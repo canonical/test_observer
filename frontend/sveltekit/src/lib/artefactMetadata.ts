@@ -33,7 +33,6 @@ export const ARTEFACT_COLUMNS: ColumnSpec[] = [
   { label: "Release", key: "release", field: "release" },
   { label: "Owner", key: "owner", field: "owner" },
   { label: "Store", key: "store", field: "store", hidden: true },
-  { label: "Risk", key: "risk", field: "risk" },
   { label: "SHA256", key: "sha256", field: "sha256", hidden: true },
   { label: "Image URL", key: "imageUrl", field: "image_url", hidden: true },
   { label: "Due date", key: "dueDate", field: "due_date", format: "date" },

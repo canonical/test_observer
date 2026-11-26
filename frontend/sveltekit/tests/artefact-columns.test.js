@@ -119,7 +119,7 @@ void test("default-hidden columns can be shown and restored in shared views", as
     try {
       const menu = await openChooser(target);
       assert.equal(
-        findOption(menu, "Risk").getAttribute("aria-selected"),
+        findOption(menu, "Stage").getAttribute("aria-selected"),
         "true",
       );
       assert.equal(

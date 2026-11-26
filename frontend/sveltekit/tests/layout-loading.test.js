@@ -285,10 +285,14 @@ for (const [description, familyResponse, status] of /** @type {const} */ ([
     };
 
     const data = await loadLayout(
-      /** @type {Parameters<typeof loadLayout>[0]} */ ({ fetch }),
+      /** @type {Parameters<typeof loadLayout>[0]} */ ({
+        fetch,
+        depends: () => undefined,
+      }),
     );
     if (description.startsWith("a malformed family entry")) {
       assert.equal(data.artefactFamilies, null);
+      assert.equal(data.artefactFamiliesUnauthorized, false);
       assert.ok(
         errors.some(
           ([message, error]) =>
@@ -301,6 +305,7 @@ for (const [description, familyResponse, status] of /** @type {const} */ ([
     }
     if (description === "an anonymous response") {
       assert.deepEqual(data.artefactFamilies, []);
+      assert.equal(data.artefactFamiliesUnauthorized, true);
     }
 
     const shared = {
@@ -356,8 +361,17 @@ void test("layout load preserves a valid family response", async () => {
     return Promise.resolve(new Response(null, { status: 401 }));
   };
 
+  /** @type {string[]} */
+  const dependencies = [];
   const data = await harness.loadLayout(
-    /** @type {Parameters<typeof harness.loadLayout>[0]} */ ({ fetch }),
+    /** @type {Parameters<typeof harness.loadLayout>[0]} */ ({
+      fetch,
+      depends: (/** @type {string[]} */ ...deps) => {
+        dependencies.push(...deps);
+      },
+    }),
   );
+  assert.deepEqual(dependencies, ["app:families"]);
   assert.deepEqual(data.artefactFamilies, families);
+  assert.equal(data.artefactFamiliesUnauthorized, false);
 });

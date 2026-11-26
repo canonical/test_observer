@@ -36,7 +36,6 @@ function artefactWithStage(stage) {
     sha256: "",
     image_url: "",
     stage,
-    risk: "",
     family: "test",
     status: "UNDECIDED",
     comment: "",

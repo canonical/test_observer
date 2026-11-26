@@ -19,6 +19,7 @@ export function mountLayout(
     props: {
       data: {
         artefactFamilies: [{ name: "alpha" }, { name: "beta" }],
+        artefactFamiliesUnauthorized: false,
       },
       children: createRawSnippet(() => ({
         render: () => content,

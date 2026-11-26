@@ -129,7 +129,6 @@ export interface ArtefactResponse {
   created_at: string;
   bug_link: string;
   jira_issue: string | null;
-  risk: string;
   all_environment_reviews_count: number;
   completed_environment_reviews_count: number;
   bundled_builds?: ArtefactBuildMinimalResponse[];

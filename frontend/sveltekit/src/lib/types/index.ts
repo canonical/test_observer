@@ -57,7 +57,6 @@ export type Artefact = {
   sha256: string;
   image_url: string;
   stage: string;
-  risk: string;
   family: string;
   status: ArtefactStatus;
   comment: string;
