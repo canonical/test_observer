@@ -20,8 +20,8 @@
   import type { PageProps } from "./$types";
   import { onDestroy, tick, untrack } from "svelte";
   import { page } from "$app/state";
-  import { SvelteURL } from "svelte/reactivity";
-  import { goto } from "$app/navigation";
+  import { SvelteSet, SvelteURL } from "svelte/reactivity";
+  import { goto, invalidate } from "$app/navigation";
   import { resolve } from "$app/paths";
   import { SidePanel } from "@canonical/svelte-ds-app-launchpad";
   import {
@@ -72,6 +72,7 @@
     searchTotalPages,
   } from "$lib/searchPagination";
   import { searchRunPath } from "$lib/searchRunPath";
+  import { FAMILIES_DEPENDENCY } from "$lib/familiesApi";
 
   type TestResultGridRow = Record<string, unknown> & {
     id: number;
@@ -228,10 +229,23 @@
   const filterDrawerId = "test-result-filter-drawer";
   const filterDrawerTitleId = "test-result-filter-title";
 
-  const pageState = $derived(parseSearchPageState(page.url.searchParams));
+  // Refreshing families hands the page new data objects even when the list is
+  // unchanged; derive by value so that doesn't rerun the results request.
+  const familyNamesKey = $derived(
+    data.familyNamesError ? null : JSON.stringify([...data.apiFamilyNames].sort()),
+  );
+  const validatedFamilyNames = $derived<string[] | undefined>(
+    familyNamesKey === null ? undefined : JSON.parse(familyNamesKey),
+  );
+
+  // Invalidation also replaces page.url with an equal URL, so derive URL state
+  // from its value to avoid resetting state or rerunning the request.
+  const pageHref = $derived(page.url.href);
+  const pageSearchParams = $derived(new URL(pageHref).searchParams);
+  const pageState = $derived(parseSearchPageState(pageSearchParams));
   const filterState = $derived(
     parseSearchFilters(
-      page.url.searchParams,
+      pageSearchParams,
       data.familyNamesError ? undefined : data.apiFamilyNames,
     ),
   );
@@ -249,11 +263,7 @@
   });
   const stageOptions = $derived(
     [
-      ...new Set([
-        "",
-        ...data.artefactFamilies.flatMap((family) => family.stages),
-        ...draftAdvanced.artefact_stages,
-      ]),
+      ...new Set(["", ...draftAdvanced.artefact_stages]),
     ].sort((left, right) => left.localeCompare(right)),
   );
   const executionStatuses = [
@@ -270,16 +280,17 @@
   const reviewerIds = $derived(
     Array.isArray(draftAdvanced.reviewer_ids) ? draftAdvanced.reviewer_ids : [],
   );
+  const draftFamilyValidationFailed = $derived(
+    !clearAllRequested &&
+      data.familyNamesError &&
+      draftFilters.families.some((value) => value.trim() !== ""),
+  );
   const draftProblems = $derived.by(() => {
     const problems = validateSearchFilters(
       draftFilters,
       data.familyNamesError ? undefined : data.apiFamilyNames,
     );
-    if (
-      !clearAllRequested &&
-      data.familyNamesError &&
-      draftFilters.families.some((value) => value.trim() !== "")
-    ) {
+    if (draftFamilyValidationFailed) {
       problems.push(
         "Could not validate family values against the API family list. No request was sent.",
       );
@@ -332,6 +343,41 @@
     ...familyValidationProblem,
   ]);
   const isInvalid = $derived(problems.length > 0);
+
+  // The family list is loaded once per app start, so a family created since
+  // then looks unknown. Refresh it once per set of unknown URL values before
+  // reporting them as invalid; a repeat of the same set is reported directly.
+  let familyRefreshCount = $state(0);
+  const familyRefreshPending = $derived(familyRefreshCount > 0);
+  const refreshedUnknownFamilies = new SvelteSet<string>();
+  const unknownUrlFamilies = $derived(
+    data.familyNamesError
+      ? []
+      : [
+          ...new Set(
+            appliedFilters.families.filter(
+              (family) => !data.apiFamilyNames.includes(family),
+            ),
+          ),
+        ].sort(),
+  );
+
+  async function refreshFamilies() {
+    familyRefreshCount += 1;
+    try {
+      await invalidate(FAMILIES_DEPENDENCY);
+    } finally {
+      familyRefreshCount -= 1;
+    }
+  }
+
+  $effect(() => {
+    if (unknownUrlFamilies.length === 0) return;
+    const key = JSON.stringify(unknownUrlFamilies);
+    if (refreshedUnknownFamilies.has(key)) return;
+    refreshedUnknownFamilies.add(key);
+    void untrack(refreshFamilies);
+  });
   const isLoading = $derived(
     !isInvalid &&
       (requestUrlState !== page.url.href || loadState === "loading"),
@@ -440,14 +486,14 @@
   });
 
   $effect(() => {
-    const requestUrl = page.url.href;
-    const parsed = parseSearchPageState(page.url.searchParams);
+    const requestUrl = pageHref;
+    const parsed = parseSearchPageState(pageSearchParams);
     const parsedFilters = parseSearchFilters(
-      page.url.searchParams,
-      data.familyNamesError ? undefined : data.apiFamilyNames,
+      pageSearchParams,
+      validatedFamilyNames,
     );
     const familyValidationUnavailable =
-      data.familyNamesError &&
+      validatedFamilyNames === undefined &&
       parsedFilters.filters.families.some((value) => value.trim() !== "");
     const attempt = retryGeneration;
     const generation = ++requestGeneration;
@@ -563,6 +609,8 @@
   }
 
   function retry() {
+    // Without a family list the page stays fail-closed, so reload the list too.
+    if (data.familyNamesError) void refreshFamilies();
     retryGeneration += 1;
   }
 
@@ -661,6 +709,9 @@
     filterDrawerTrigger = event.currentTarget as HTMLButtonElement;
     ++filterDrawerFocusGeneration;
     filterDrawerOpen = true;
+    // Draft families are validated against the cached list, so refresh it
+    // once per opening to accept families created since it was loaded.
+    void refreshFamilies();
     await tick();
     if (!filterDrawerOpen) return;
     filterDrawerBody
@@ -788,6 +839,14 @@
                   No request was sent. Correct the filter values before
                   searching.
                 </p>
+                {#if draftFamilyValidationFailed}
+                  <button
+                    class="retry-button"
+                    type="button"
+                    disabled={familyRefreshPending}
+                    onclick={refreshFamilies}>Retry</button
+                  >
+                {/if}
               </div>
             {/if}
             <section
@@ -882,15 +941,12 @@
                             toggleStage(stage, event.currentTarget.checked)}
                         />
                         {stage === "" ? "(none)" : stage}
-                        {#if stage !== "" && !data.artefactFamilies.some( (family) => family.stages.includes(stage) )}
-                          <span>(not configured)</span>
-                        {/if}
                       </label>
                     {/each}
                   </div>
                   <p class="section-note">
-                    (none) matches an explicitly empty stage. Add an exact stage
-                    to include values not in the configured choices.
+                    (none) matches an explicitly empty stage. Add exact stages
+                    to filter by their values.
                   </p>
                   <label for="filter-stage-entry">Exact stage</label>
                   <div class="inline-entry">
@@ -1155,7 +1211,11 @@
     </div>
   {/if}
 
-  {#if isInvalid}
+  {#if familyRefreshPending && unknownUrlFamilies.length > 0}
+    <p class="state-message" role="status" aria-live="polite">
+      Refreshing the family list…
+    </p>
+  {:else if isInvalid}
     <div
       class="state-message error-message"
       role="alert"
@@ -1171,6 +1231,14 @@
         No request was sent. Correct the page, page_size, and filter values in
         the URL, or clear all filters.
       </p>
+      {#if familyValidationProblem.length > 0}
+        <button
+          class="retry-button"
+          type="button"
+          disabled={familyRefreshPending}
+          onclick={retry}>Retry</button
+        >
+      {/if}
     </div>
   {:else}
     <div class="grid-region" aria-busy={isLoading}>

@@ -4,7 +4,7 @@
 // Encodes the parts of a grid's view state that are worth sharing into a single
 // URL parameter, so a dashboard link carries its own filtering and sorting.
 // Keeping the state in the URL also scopes it to one family route: navigating
-// from /snaps to /debs lands on a different URL and therefore a clean grid.
+// between family dashboards lands on a different URL and therefore a clean grid.
 //
 // Also provides the storage behind SvGrid's autosaved view, which keeps the
 // whole layout per family so leaving a dashboard and coming back restores what

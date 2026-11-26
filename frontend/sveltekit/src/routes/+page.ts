@@ -13,10 +13,9 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
-import { redirect } from "@sveltejs/kit";
-import { resolve } from "$app/paths";
+import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = () => {
-  redirect(307, resolve("snaps"));
+  error(404, "Not found");
 };

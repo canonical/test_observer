@@ -3,35 +3,20 @@
   SPDX-License-Identifier: Apache-2.0
 -->
 <script lang="ts">
-  import type { Artefact, Family } from '$lib/types';
+  import type { Artefact } from '$lib/types';
   import { stageDisplayName } from '$lib/types';
 
   interface Props {
     artefact: Artefact;
-    family: Family;
   }
 
-  let { artefact, family }: Props = $props();
-
-  const currentIndex = $derived(family.stages.indexOf(artefact.stage));
-  const stages = $derived(currentIndex < 0 ? [artefact.stage] : family.stages);
+  let { artefact }: Props = $props();
 </script>
 
 <nav class="stages-breadcrumb" aria-label="Artefact stages">
-  {#each stages as stage, i (stage)}
-    {#if i > 0}
-      <span class="separator" aria-hidden="true">&rsaquo;</span>
-    {/if}
-    <span
-      class="stage"
-      class:past={currentIndex >= 0 && i < currentIndex}
-      class:current={stage === artefact.stage}
-      class:future={currentIndex >= 0 && i > currentIndex}
-      aria-current={stage === artefact.stage ? 'step' : undefined}
-    >
-      {stageDisplayName(stage, family.empty_stage_label)}
-    </span>
-  {/each}
+  <span class="stage current" aria-current="step">
+    {stageDisplayName(artefact.stage)}
+  </span>
 </nav>
 
 <style>
@@ -42,10 +27,6 @@
     font-size: 0.875rem;
   }
 
-  .separator {
-    color: var(--lp-color-text-muted);
-  }
-
   .stage {
     font-weight: 400;
     color: var(--lp-color-text-muted);
@@ -54,15 +35,5 @@
   .stage.current {
     color: var(--lp-color-brand-default);
     font-weight: 600;
-  }
-
-  .stage.past {
-    color: var(--lp-color-text-muted);
-    opacity: 0.6;
-  }
-
-  .stage.future {
-    color: var(--lp-color-text-muted);
-    opacity: 0.4;
   }
 </style>

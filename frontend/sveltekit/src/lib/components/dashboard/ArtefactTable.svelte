@@ -14,10 +14,18 @@
     createNamedViews,
     renderComponent,
     type GridColumns,
-    type SvGridApi
+    type SvGridApi,
+    type SvGridViewState
   } from '@svgrid/grid';
-  import type { Artefact, ColumnSpec, Family } from '$lib/types';
-  import { columnValue, columnColor, columnSortValue } from '$lib/artefactMetadata';
+  import type { Artefact, ColumnSpec } from '$lib/types';
+  import type { FamilyResponse } from '$lib/types/openapi';
+  import { familyDetailRoute, familyRouteName } from '$lib/families';
+  import {
+    ARTEFACT_COLUMNS,
+    columnValue,
+    columnColor,
+    columnSortValue
+  } from '$lib/artefactMetadata';
   import { downloadCsv, toCsv } from '$lib/utils/csv';
   import ColouredCell from './ColouredCell.svelte';
   import { createTrackColumnWidthActions } from './trackColumnWidthActions';
@@ -45,7 +53,7 @@
     exportAvailable = $bindable(false),
   }: {
     artefacts: Artefact[];
-    family: Family;
+    family: FamilyResponse;
     /** Whether the grid is filtered or sorted away from its defaults. */
     filtered?: boolean;
     /** Whether the current view can be exported. */
@@ -67,7 +75,7 @@
     routerReady = true;
   });
 
-  // The route component is reused across /snaps, /debs and friends, so without
+  // The route component is reused across family dashboards, so without
   // this the header would keep offering to clear the previous family's filters
   // until the incoming grid reports its own state.
   $effect.pre(() => {
@@ -87,7 +95,7 @@
   };
 
   const columns: GridColumns<Artefact> = $derived(
-    family.columns.map((col) => {
+    ARTEFACT_COLUMNS.map((col) => {
       const cellDataType = GRID_TYPE_BY_FORMAT[col.format ?? ''];
       return {
         id: col.key,
@@ -102,10 +110,10 @@
         fieldFn: (a: Artefact) =>
           cellDataType || col.format === 'stage'
             ? columnSortValue(a, col)
-            : columnValue(a, col, family.empty_stage_label),
+            : columnValue(a, col),
         cell: (ctx) => {
           const artefact = ctx.row.original;
-          const text = columnValue(artefact, col, family.empty_stage_label);
+          const text = columnValue(artefact, col);
           const color = columnColor(artefact, col);
           return color ? renderComponent(ColouredCell, { text, color }) : text;
         }
@@ -114,7 +122,7 @@
   );
 
   const hiddenByDefault = $derived(
-    family.columns.filter((col) => col.hidden).map((col) => col.key)
+    ARTEFACT_COLUMNS.filter((col) => col.hidden).map((col) => col.key)
   );
 
   // The grid reports its declared-hidden columns as part of its state from the
@@ -139,7 +147,19 @@
     const hidden = [...hiddenByDefault, ...hiddenColumns].filter(
       (id) => !shownColumns.includes(id)
     );
-    handle.setState({ ...filters, hiddenColumns: [...new Set(hidden)] });
+    const state = { ...filters, hiddenColumns: [...new Set(hidden)] };
+    handle.setState(state);
+    restoreShownColumns(handle, state);
+  }
+
+  function restoreShownColumns(handle: SvGridApi<never, Artefact>, state: Partial<SvGridViewState>) {
+    // SvGrid's setState always re-hides declared-hidden columns, even when a
+    // saved state explicitly leaves them visible. Restore those overrides.
+    if (state.hiddenColumns) {
+      for (const id of hiddenByDefault) {
+        if (!state.hiddenColumns.includes(id)) handle.setColumnVisible(id, true);
+      }
+    }
   }
 
   let detachAutosave: (() => void) | null = null;
@@ -165,7 +185,7 @@
       return;
     }
 
-    const specByKey = new Set(family.columns.map((col) => col.key));
+    const specByKey = new Set(ARTEFACT_COLUMNS.map((col) => col.key));
     const hasVisibleColumn = currentApi
       .getColumns()
       .some((col) => col.visible && specByKey.has(col.id));
@@ -184,8 +204,15 @@
     // `getState()` includes fitted effective widths, so wrap the API with the
     // widths reported by user resize gestures before giving it to autosave.
     resizeWidthPersistence = createUserResizeViewHost(ready);
-    const viewHost = resizeWidthPersistence.host;
-    const views = createNamedViews(viewHost, { storage: familyViewStorage(family.name) });
+    const widthHost = resizeWidthPersistence.host;
+    const viewHost = {
+      ...widthHost,
+      setState(state: Partial<SvGridViewState>) {
+        widthHost.setState(state);
+        restoreShownColumns(ready, state);
+      }
+    };
+    const views = createNamedViews(viewHost, { storage: familyViewStorage(familyRouteName(family)) });
     // Layout first, then the link: a shared view's filters should land on top of
     // the column widths and ordering this tab was already using.
     views.load(AUTOSAVE_SLOT);
@@ -263,7 +290,7 @@
     if (!currentApi || !browser) return 'unavailable';
     // getColumns() reports visible columns first, in their visual order, so the
     // file matches the table even after the user reorders or hides columns.
-    const specByKey = new Map(family.columns.map((col) => [col.key, col]));
+    const specByKey = new Map(ARTEFACT_COLUMNS.map((col) => [col.key, col]));
     const columns = currentApi
       .getColumns()
       .filter((col) => col.visible)
@@ -275,21 +302,21 @@
 
     const text = toCsv(
       columns.map((col) => col.header),
-      rows.map((artefact) => columns.map((col) => columnValue(artefact, col.spec, family.empty_stage_label)))
+      rows.map((artefact) => columns.map((col) => columnValue(artefact, col.spec)))
     );
     const date = new Date().toISOString().slice(0, 10);
-    downloadCsv(`${family.name}-${date}.csv`, text);
+    downloadCsv(`${familyRouteName(family)}-${date}.csv`, text);
     return 'exported';
   }
 
   function openArtefact(id: string | number) {
-    void goto(resolve(`${family.name}/${id}`));
+    void goto(resolve(familyDetailRoute(family, id)));
   }
 </script>
 
 <!-- Keyed on the family so switching dashboards mounts a fresh grid: SvGrid
      keeps filter state internally, and the route component is reused across
-     /snaps, /debs and friends, so without this the filters would follow you. -->
+     family dashboards, so without this the filters would follow you. -->
 {#key family.name}
   <!-- selectionMode="none" because clicking a row opens the artefact, so cell
        and row selection would only fight with navigation. -->

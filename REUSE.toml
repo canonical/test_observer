@@ -82,7 +82,6 @@ path = [
     "frontend/web/manifest.json",
     "frontend/sveltekit/package-lock.json",
     "frontend/sveltekit/package.json",
-    "frontend/sveltekit/static/families.json",
     "frontend/sveltekit/static/robots.txt",
     "frontend/sveltekit/tsconfig.json",
     "frontend/sveltekit/src/lib/assets/*.png"

@@ -53,3 +53,25 @@ export function searchHistoryForward() {
 export function currentSearchUrl() {
   return page.url.href;
 }
+
+/** @type {string[]} */
+export const invalidations = [];
+
+/** @type {{ data: import("../src/routes/test-results/$types").PageData | null }} */
+export const pageProps = $state({ data: null });
+
+/**
+ * Like SvelteKit, rerunning the loads hands the page a new data object.
+ * @param {string} dependency
+ */
+export function testInvalidate(dependency) {
+  invalidations.push(dependency);
+  page.url = new SvelteURL(page.url.href);
+  if (pageProps.data) {
+    pageProps.data = {
+      ...pageProps.data,
+      apiFamilyNames: [...pageProps.data.apiFamilyNames],
+    };
+  }
+  return Promise.resolve();
+}

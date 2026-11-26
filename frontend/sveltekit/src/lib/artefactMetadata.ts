@@ -13,13 +13,38 @@
 // SPDX-FileCopyrightText: Copyright 2026 Canonical Ltd.
 // SPDX-License-Identifier: GPL-3.0-only
 
-// Generic accessors that turn a data-driven ColumnSpec (declared per family in
-// families.json) into displayable/sortable values. Nothing here branches on a
-// specific family — the named `format` values are reusable value
-// transformations, not family identifiers.
+// Generic accessors that turn a data-driven ColumnSpec into displayable/sortable
+// values. Nothing here branches on a specific family — the named `format`
+// values are reusable value transformations, not family identifiers.
 
 import type { Artefact, ColumnSpec } from "$lib/types";
-import { STATUS_COLORS, STATUS_LABELS } from "$lib/types";
+import { EMPTY_STAGE_LABEL, STATUS_COLORS, STATUS_LABELS } from "$lib/types";
+
+export const ARTEFACT_COLUMNS: ColumnSpec[] = [
+  { label: "Name", key: "name", field: "name" },
+  { label: "Version", key: "version", field: "version" },
+  { label: "Stage", key: "stage", field: "stage", format: "stage" },
+  { label: "Track", key: "track", field: "track" },
+  { label: "Branch", key: "branch", field: "branch" },
+  { label: "Series", key: "series", field: "series" },
+  { label: "Repo", key: "repo", field: "repo" },
+  { label: "Source", key: "source", field: "source" },
+  { label: "OS", key: "os", field: "os" },
+  { label: "Release", key: "release", field: "release" },
+  { label: "Owner", key: "owner", field: "owner" },
+  { label: "Store", key: "store", field: "store", hidden: true },
+  { label: "SHA256", key: "sha256", field: "sha256", hidden: true },
+  { label: "Image URL", key: "imageUrl", field: "image_url", hidden: true },
+  { label: "Due date", key: "dueDate", field: "due_date", format: "date" },
+  { label: "Created", key: "createdAt", field: "created_at", format: "date" },
+  { label: "Reviews", key: "reviewsRemaining", format: "reviewsRemaining" },
+  { label: "Status", key: "status", field: "status", format: "status" },
+  { label: "Reviewers", key: "reviewers", format: "reviewers" },
+  { label: "Bug link", key: "bugLink", field: "bug_link", hidden: true },
+  { label: "Jira issue", key: "jiraIssue", field: "jira_issue", hidden: true },
+  { label: "Comment", key: "comment", field: "comment", hidden: true },
+  { label: "Archived", key: "archived", field: "archived", hidden: true },
+];
 
 function fieldValue(a: Artefact, field?: string): string {
   if (!field) return "";
@@ -44,11 +69,7 @@ function reviewersColumnValue(reviewers: Artefact["reviewers"]): string {
 }
 
 /** Value shown in a table cell for the given column. */
-export function columnValue(
-  a: Artefact,
-  col: ColumnSpec,
-  emptyStageLabel?: string,
-): string {
+export function columnValue(a: Artefact, col: ColumnSpec): string {
   switch (col.format) {
     case "date": {
       const raw = fieldValue(a, col.field);
@@ -59,7 +80,7 @@ export function columnValue(
     case "status":
       return STATUS_LABELS[a.status];
     case "stage":
-      return fieldValue(a, col.field) || (emptyStageLabel ?? "No stage");
+      return fieldValue(a, col.field) || EMPTY_STAGE_LABEL;
     case "reviewers":
       return reviewersColumnValue(a.reviewers);
     default:

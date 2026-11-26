@@ -6,7 +6,13 @@
   import { Breadcrumbs, Select } from "@canonical/svelte-ds-app-launchpad";
   import { resolve } from "$app/paths";
   import { goto } from "$app/navigation";
-  import type { Artefact, Family } from "$lib/types";
+  import type { Artefact } from "$lib/types";
+  import type { FamilyResponse } from "$lib/types/openapi";
+  import {
+    familyDashboardRoute,
+    familyDetailRoute,
+    familyTitle,
+  } from "$lib/families";
   import { formatDueDate } from "$lib/types";
   import type { ArtefactVersion } from "$lib/types/artefact-page";
   import type { ArtefactPageStore } from "$lib/stores/artefact-page.svelte";
@@ -16,7 +22,7 @@
 
   interface Props {
     artefact: Artefact;
-    family: Family;
+    family: FamilyResponse;
     versions: ArtefactVersion[];
     store: ArtefactPageStore;
   }
@@ -26,7 +32,7 @@
   const dueDate = $derived(formatDueDate(artefact.due_date));
 
   const breadcrumbSegments = $derived([
-    { label: family.friendly_name, href: resolve(family.name) },
+    { label: familyTitle(family), href: resolve(familyDashboardRoute(family)) },
     { label: artefact.name },
   ]);
 
@@ -35,7 +41,7 @@
 
   function handleVersionChange(e: Event) {
     const id = (e.target as HTMLSelectElement).value;
-    if (id) goto(resolve(`${family.name}/${id}`));
+    if (id) goto(resolve(familyDetailRoute(family, id)));
   }
 
   async function handleStatusChange(
@@ -71,7 +77,7 @@
   </div>
 
   <div class="header-stage">
-    <StagesBreadcrumb {artefact} {family} />
+    <StagesBreadcrumb {artefact} />
   </div>
 
   {#if versions.length > 0}

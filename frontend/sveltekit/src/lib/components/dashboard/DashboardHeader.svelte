@@ -3,7 +3,8 @@
   SPDX-License-Identifier: GPL-3.0-only
 -->
 <script lang="ts">
-  import type { Family } from '$lib/types';
+  import type { FamilyResponse } from '$lib/types/openapi';
+  import { familyTitle } from '$lib/families';
   import { Button } from '@canonical/svelte-ds-app-launchpad';
   import { CheckmarkIcon, CloseIcon, ExportIcon, ShareIcon } from '@canonical/svelte-icons';
   import { errorStore } from '$lib/stores/error.svelte';
@@ -17,7 +18,7 @@
     onExport,
     exportAvailable,
   }: {
-    family: Family;
+    family: FamilyResponse;
     count: number;
     filtered: boolean;
     onClear: () => void;
@@ -31,7 +32,7 @@
     exportAvailable: boolean;
   } = $props();
 
-  const title = $derived(family.friendly_name);
+  const title = $derived(familyTitle(family));
   const countText = $derived(`${count} artifacts`);
 
   let copied = $state(false);

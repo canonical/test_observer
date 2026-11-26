@@ -112,7 +112,7 @@ before(async () => {
               },
               load(id) {
                 if (id === "\0test:$app/state") {
-                  return 'export const page = { url: new URL("http://localhost/snaps/1") };';
+                  return 'export const page = { url: new URL("http://localhost/family/snap/1") };';
                 }
                 if (id === "\0test:$app/paths") {
                   return 'export const base = ""; export const resolve = (path) => path;';
@@ -383,14 +383,7 @@ void test("sidebar toggle names its action in both states", async () => {
   const component = mountArtefactPage(target, {
     data: {
       artefactId: 1,
-      family: {
-        name: "snaps",
-        api_name: "snap",
-        friendly_name: "Snaps",
-        stages: [],
-        columns: [],
-        filters: [],
-      },
+      family: { name: "snap" },
     },
   });
   const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
@@ -766,25 +759,23 @@ void test("artefact store rejects data whose family differs from the route", asy
   }
 });
 
-void test("artefact detail route maps its plural family name to the API family", async () => {
-  const familiesPath = new URL("../static/families.json", import.meta.url);
+void test("artefact detail route resolves its exact family name", async () => {
+  if (!vite) throw new Error("Vite server was not started");
   const routePath = new URL(
-    "../src/routes/[family]/[artefactId]/+page.svelte",
+    "../src/routes/family/[family]/[artefactId]/+page.svelte",
     import.meta.url,
   );
-  const [familiesJson, routeSource] = await Promise.all([
-    readFile(familiesPath, "utf8"),
+  const [{ findFamilyByName }, routeSource] = await Promise.all([
+    /** @type {Promise<typeof import("../src/lib/families")>} */ (
+      vite.ssrLoadModule("/src/lib/families.ts")
+    ),
     readFile(routePath, "utf8"),
   ]);
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const { families } =
-    /** @type {{ families: { name: string; api_name: string }[] }} */ (
-      JSON.parse(familiesJson)
-    );
-  const routeFamily = families.find(({ name }) => name === "snaps");
-  assert.ok(routeFamily);
-  assert.equal(routeFamily.api_name, "snap");
-  assert.match(routeSource, /store\.init\(artefactId, family\.api_name\)/);
+  const families = [{ name: "deb" }, { name: "snap" }];
+  const routeFamily = findFamilyByName(families, "snap");
+  assert.deepEqual(routeFamily, { name: "snap" });
+  assert.equal(findFamilyByName(families, "snaps"), undefined);
+  assert.match(routeSource, /store\.init\(artefactId, family\.name\)/);
 
   const originalFetch = globalThis.fetch;
   globalThis.fetch = (url) => {
@@ -800,7 +791,7 @@ void test("artefact detail route maps its plural family name to the API family",
   try {
     const store = ArtefactPageStore && new ArtefactPageStore();
     if (!store) throw new Error("Store module was not loaded");
-    await store.init(1, routeFamily.api_name);
+    await store.init(1, routeFamily.name);
 
     assert.equal(store.accessError, null);
     assert.equal(store.artefact?.family, "snap");
@@ -1766,7 +1757,7 @@ void test("artefact mutation capabilities fail closed without a matching-rule si
 
   const routeSource = await readFile(
     new URL(
-      "../src/routes/[family]/[artefactId]/+page.svelte",
+      "../src/routes/family/[family]/[artefactId]/+page.svelte",
       import.meta.url,
     ),
     "utf8",
@@ -1797,7 +1788,7 @@ void test("version navigation resolves a base-independent artefact route", async
     "utf8",
   );
 
-  assert.match(source, /goto\(resolve\(`\$\{family\.name\}\/\$\{id\}`\)\)/);
+  assert.match(source, /goto\(resolve\(familyDetailRoute\(family, id\)\)\)/);
   assert.doesNotMatch(source, /\$\{base\}/);
 });
 

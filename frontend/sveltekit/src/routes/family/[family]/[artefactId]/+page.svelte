@@ -27,7 +27,7 @@
   );
 
   function retryLoad() {
-    void store.init(artefactId, family.api_name);
+    void store.init(artefactId, family.name);
   }
 
   const store = new ArtefactPageStore();
@@ -35,7 +35,7 @@
   let sidebarOpen = $state(true);
 
   $effect(() => {
-    store.init(artefactId, family.api_name);
+    store.init(artefactId, family.name);
   });
 
   // Apply all URL-driven filters to the environment list

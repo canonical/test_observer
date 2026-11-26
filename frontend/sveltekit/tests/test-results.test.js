@@ -27,14 +27,14 @@ import { Window } from "happy-dom";
  * @property {() => void} searchHistoryForward
  * @property {(params: URLSearchParams) => {page: number; pageSize: number; problems: string[]}} parseSearchPageState
  * @property {(params: URLSearchParams, familyNames?: string[]) => {filters: import("../src/lib/searchPageFilters.ts").SearchFilters; problems: string[]}} parseSearchFilters
- * @property {(row: SearchPageRow, families: {name: string; api_name: string}[], basePath: string) => string | null} searchRunPath
+ * @property {(row: SearchPageRow, families: import("../src/lib/types/openapi.ts").FamilyResponse[] | null, basePath: string) => string | null} searchRunPath
  * @property {() => import("../src/lib/searchPageFilters.ts").SearchFilters} emptySearchFilters
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters, source?: URLSearchParams) => URLSearchParams} serializeSearchFilters
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters) => URLSearchParams} searchFilterRequestParams
  * @property {(filters: import("../src/lib/searchPageFilters.ts").SearchFilters) => string[]} validateSearchFilters
  * @property {(value: string) => string} encodeMetadataPart
- * @property {(fetcher: typeof fetch, apiRoot: string) => Promise<string[]>} fetchApiFamilyNames
- * @property {(event: {url: URL; fetch: typeof fetch}) => Promise<{apiFamilyNames: string[]; familyNamesError: boolean}>} loadTestResultsPage
+ * @property {string[]} invalidations
+ * @property {(event: {fetch: typeof fetch; depends: (...deps: string[]) => void; parent: () => Promise<{artefactFamilies: import("../src/lib/types/openapi.ts").FamilyResponse[] | null; artefactFamiliesUnauthorized: boolean}>}) => Promise<{apiFamilyNames: string[]; familyNamesError: boolean}>} loadTestResultsPage
  * @property {(count: number, pageSize: number) => number} searchLastPage
  * @property {(currentPage: number, totalPages: number) => (number | "gap")[]} searchPageItems
  * @property {(source: URLSearchParams, page: number) => URLSearchParams} searchPageParams
@@ -72,7 +72,7 @@ before(async () => {
                   return `export { page } from ${JSON.stringify(resolve("tests/test-results-runtime.svelte.js"))};`;
                 }
                 if (id === "\0test:$app/navigation") {
-                  return `export { testGoto as goto } from ${JSON.stringify(resolve("tests/test-results-runtime.svelte.js"))};`;
+                  return `export { testGoto as goto, testInvalidate as invalidate } from ${JSON.stringify(resolve("tests/test-results-runtime.svelte.js"))};`;
                 }
                 if (id === "\0test:$app/paths") {
                   return `export { testResolve as resolve } from ${JSON.stringify(resolve("tests/test-results-runtime.svelte.js"))};`;
@@ -238,7 +238,7 @@ function dispatchBrowserEvent(target, type) {
   );
 }
 
-/** @param {{artefactFamilies?: import("../src/lib/types/index.ts").Family[]; apiFamilyNames?: string[]; familyNamesError?: boolean}} [data] */
+/** @param {{artefactFamilies?: import("../src/lib/types/openapi.ts").FamilyResponse[] | null; artefactFamiliesUnauthorized?: boolean; apiFamilyNames?: string[]; familyNamesError?: boolean}} [data] */
 function mountInDocument(data = {}) {
   assert.ok(harness);
   assert.ok(browserWindow);
@@ -246,6 +246,7 @@ function mountInDocument(data = {}) {
   browserWindow.document.body.append(target);
   const pageData = {
     artefactFamilies: [],
+    artefactFamiliesUnauthorized: false,
     apiFamilyNames: ["snap", "deb", "charm", "image", "solution"],
     familyNamesError: false,
     ...data,
@@ -387,6 +388,7 @@ void test("loads the first server page and preserves server row order", async ()
 void test("Run links use configured family routes and the deployment base", async () => {
   assert.ok(harness);
   const mapped = makeRow(5, "routed-case");
+  mapped.artefact.family = "custom family";
   const unmapped = makeRow(2, "unmapped-case");
   unmapped.artefact.family = "deb";
   harness.resetApi();
@@ -394,16 +396,7 @@ void test("Run links use configured family routes and the deployment base", asyn
   harness.setHandler(() => Promise.resolve(makePage([mapped, unmapped])));
 
   const { component, target } = mountInDocument({
-    artefactFamilies: [
-      {
-        name: "configured-route",
-        friendly_name: "Configured family",
-        api_name: "snap",
-        stages: [],
-        columns: [],
-        filters: [],
-      },
-    ],
+    artefactFamilies: [{ name: "custom family" }],
   });
   await settlePromises();
 
@@ -411,7 +404,7 @@ void test("Run links use configured family routes and the deployment base", asyn
   assert.ok(link);
   assert.equal(
     link.getAttribute("href"),
-    "/custom/base/configured-route/205?testExecutionId=105&testResultId=5",
+    "/custom/base/family/custom%20family/205?testExecutionId=105&testResultId=5",
   );
   assert.match(target.textContent, /Run unavailable/);
   const unmappedRow = [...target.querySelectorAll("tbody tr")].find((row) =>
@@ -428,33 +421,23 @@ void test("Run links use configured family routes and the deployment base", asyn
   await unmountFromDocument(component, target);
 });
 
-void test("Run path uses API family mapping, encoded route names, and both IDs", () => {
+void test("Run path uses API family names, encoded route names, and both IDs", () => {
   assert.ok(harness);
   const row = makeRow(5, "case");
+  row.artefact.family = "custom route";
   assert.equal(
-    harness.searchRunPath(
-      row,
-      [{ name: "configured route", api_name: "snap" }],
-      "/custom/base/",
-    ),
-    "/custom/base/configured%20route/205?testExecutionId=105&testResultId=5",
+    harness.searchRunPath(row, [{ name: "custom route" }], "/custom/base/"),
+    "/custom/base/family/custom%20route/205?testExecutionId=105&testResultId=5",
   );
   assert.equal(
-    harness.searchRunPath(
-      row,
-      [{ name: "configured-route", api_name: "snap" }],
-      "/",
-    ),
-    "/configured-route/205?testExecutionId=105&testResultId=5",
+    harness.searchRunPath(row, [{ name: "custom route" }], "/"),
+    "/family/custom%20route/205?testExecutionId=105&testResultId=5",
   );
   assert.equal(
-    harness.searchRunPath(
-      row,
-      [{ name: "configured-route", api_name: "another-family" }],
-      "",
-    ),
+    harness.searchRunPath(row, [{ name: "another-family" }], ""),
     null,
   );
+  assert.equal(harness.searchRunPath(row, null, ""), null);
 });
 
 void test("requests an applied page URL with only server paging parameters", async () => {
@@ -914,7 +897,7 @@ void test("filter drawer keeps results visible and requires explicit Search to a
   assert.ok(harness);
   harness.resetApi();
   harness.resetSearchUrl(
-    "http://localhost/test-results?page=2&page_size=25&families=snap",
+    "http://localhost/test-results?page=2&page_size=25&families=snap&artefact_stages=edge",
   );
   harness.setHandler((path) => {
     const params = new URL(path, "http://localhost/").searchParams;
@@ -925,16 +908,7 @@ void test("filter drawer keeps results visible and requires explicit Search to a
     );
   });
   const { component, target } = mountInDocument({
-    artefactFamilies: [
-      {
-        name: "snaps",
-        friendly_name: "Snap Testing",
-        api_name: "snap",
-        stages: ["edge", "stable"],
-        columns: [],
-        filters: [],
-      },
-    ],
+    artefactFamilies: [{ name: "snap" }],
   });
   await settlePromises();
   assert.equal(harness.requests.length, 1);
@@ -991,6 +965,19 @@ void test("filter drawer keeps results visible and requires explicit Search to a
   ]) {
     assert.ok(dialog.querySelector(selector), `drawer contains ${selector}`);
   }
+  assert.equal(
+    /** @type {HTMLInputElement} */ (
+      /** @type {unknown} */ (
+        dialog.querySelector('[name="artefact_stages"][value="edge"]')
+      )
+    ).checked,
+    true,
+  );
+  assert.equal(
+    dialog.querySelector('[name="artefact_stages"][value="stable"]'),
+    null,
+  );
+  assert.doesNotMatch(dialog.textContent, /not configured/);
 
   clickButton(target, '[aria-label="Close filters"]');
   await settlePromises();
@@ -1043,6 +1030,7 @@ void test("filter drawer keeps results visible and requires explicit Search to a
   assert.equal(appliedUrl.searchParams.get("page"), "1");
   assert.equal(appliedUrl.searchParams.get("page_size"), "25");
   assert.equal(appliedUrl.searchParams.get("families"), "snap");
+  assert.deepEqual(appliedUrl.searchParams.getAll("artefact_stages"), ["edge"]);
   assert.deepEqual(appliedUrl.searchParams.getAll("artefacts"), ["draft-only"]);
   assert.equal(toggle.getAttribute("aria-expanded"), "false");
   assert.equal(
@@ -1196,24 +1184,21 @@ void test("advanced filters reject malformed booleans, ID sentinels, and metadat
   );
 });
 
-void test("an unfiltered Search page loads families for draft validation", async () => {
+void test("an unfiltered Search page reuses layout families for draft validation", async () => {
   assert.ok(harness);
+  const families = [{ name: "snap" }, { name: "future-family" }];
   /** @type {string[]} */
-  const requestedUrls = [];
+  const dependencies = [];
   const data = await harness.loadTestResultsPage({
-    url: new URL("http://localhost/test-results"),
-    fetch: (input) => {
-      assert.equal(typeof input, "string");
-      requestedUrls.push(/** @type {string} */ (input));
-      return Promise.resolve(
-        new Response(
-          JSON.stringify([{ name: "snap" }, { name: "future-family" }]),
-          { status: 200 },
-        ),
-      );
-    },
+    fetch: () => assert.fail("layout families should be reused"),
+    depends: (...deps) => dependencies.push(...deps),
+    parent: () =>
+      Promise.resolve({
+        artefactFamilies: families,
+        artefactFamiliesUnauthorized: false,
+      }),
   });
-  assert.deepEqual(requestedUrls, ["http://localhost:30000/v1/families"]);
+  assert.deepEqual(dependencies, ["app:families"]);
   assert.deepEqual(data.apiFamilyNames, ["snap", "future-family"]);
   assert.equal(data.familyNamesError, false);
 
@@ -1229,7 +1214,10 @@ void test("an unfiltered Search page loads families for draft validation", async
       }),
     );
   });
-  const { component, target } = mountInDocument(data);
+  const { component, target } = mountInDocument({
+    artefactFamilies: families,
+    ...data,
+  });
   await settlePromises();
 
   openFilterDrawer(target);
@@ -1288,36 +1276,62 @@ void test("family URL validation permits custom families from the API", async ()
   await unmountFromDocument(component, target);
 });
 
-void test("family names are fetched from the families API", async () => {
-  assert.ok(harness);
-  /** @type {{url: string; credentials: RequestCredentials | undefined; csrf: string | null}[]} */
-  const requests = [];
-  const familyNames = await harness.fetchApiFamilyNames((input, init = {}) => {
-    if (typeof input !== "string") {
-      throw new TypeError("Expected the API URL to be a string.");
+for (const [
+  description,
+  layoutData,
+] of /** @type {[string, {artefactFamilies: import("../src/lib/types/openapi.ts").FamilyResponse[] | null; artefactFamiliesUnauthorized: boolean}][]} */ ([
+  [
+    "failed to load",
+    { artefactFamilies: null, artefactFamiliesUnauthorized: false },
+  ],
+  [
+    "was unauthorized",
+    { artefactFamilies: [], artefactFamiliesUnauthorized: true },
+  ],
+])) {
+  void test(`Search refetches families when the layout family list ${description}`, async ({
+    mock,
+  }) => {
+    assert.ok(harness);
+    mock.method(console, "error", () => undefined);
+    for (const [
+      response,
+      expected,
+    ] of /** @type {[() => Response, {apiFamilyNames: string[]; familyNamesError: boolean}][]} */ ([
+      [
+        () => Response.json([{ name: "new-family" }]),
+        { apiFamilyNames: ["new-family"], familyNamesError: false },
+      ],
+      [
+        () => new Response(null, { status: 401 }),
+        { apiFamilyNames: [], familyNamesError: true },
+      ],
+      [
+        () => new Response(null, { status: 503 }),
+        { apiFamilyNames: [], familyNamesError: true },
+      ],
+      [
+        () => Response.json([{ name: 1 }]),
+        { apiFamilyNames: [], familyNamesError: true },
+      ],
+    ])) {
+      /** @type {string[]} */
+      const requestedUrls = [];
+      const data = await harness.loadTestResultsPage({
+        fetch: (input) => {
+          requestedUrls.push(
+            input instanceof Request ? input.url : input.toString(),
+          );
+          return Promise.resolve(response());
+        },
+        depends: () => undefined,
+        parent: () => Promise.resolve(layoutData),
+      });
+      assert.deepEqual(requestedUrls, ["http://localhost:30000/v1/families"]);
+      assert.deepEqual(data, expected);
     }
-    const url = new URL(input);
-    requests.push({
-      url: url.href,
-      credentials: init.credentials,
-      csrf: new Headers(init.headers).get("X-CSRF-Token"),
-    });
-    return Promise.resolve(
-      new Response(JSON.stringify([{ name: "future-family" }]), {
-        status: 200,
-      }),
-    );
-  }, "https://api.example");
-
-  assert.deepEqual(familyNames, ["future-family"]);
-  assert.deepEqual(requests, [
-    {
-      url: "https://api.example/v1/families",
-      credentials: "include",
-      csrf: "1",
-    },
-  ]);
-});
+  });
+}
 
 void test("family URLs fail closed when the API family list cannot be loaded", async () => {
   assert.ok(harness);
@@ -1340,6 +1354,164 @@ void test("family URLs fail closed when the API family list cannot be loaded", a
     target.querySelector('[role="alert"]')?.textContent ?? "",
     /No request was sent/,
   );
+  await unmountFromDocument(component, target);
+});
+
+void test("Retry reloads an unavailable family list", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.invalidations.length = 0;
+  harness.resetSearchUrl(
+    "http://localhost/test-results?families=future-family",
+  );
+  const { component, target } = mountInDocument({
+    apiFamilyNames: [],
+    familyNamesError: true,
+  });
+  await settlePromises();
+
+  clickButton(target, '[role="alert"] .retry-button');
+  await settlePromises();
+  assert.deepEqual(harness.invalidations, ["app:families"]);
+  assert.equal(harness.requests.length, 0);
+  await unmountFromDocument(component, target);
+});
+
+void test("unknown URL families refresh the family list once before being reported", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.invalidations.length = 0;
+  harness.resetSearchUrl("http://localhost/test-results?families=new-family");
+  const { component, target } = mountInDocument({
+    apiFamilyNames: ["snap"],
+    familyNamesError: false,
+  });
+  await settlePromises();
+
+  assert.deepEqual(harness.invalidations, ["app:families"]);
+  assert.equal(harness.requests.length, 0);
+  assert.match(
+    target.querySelector('[role="alert"]')?.textContent ?? "",
+    /unsupported family value “new-family”/,
+  );
+
+  // Revisiting the same unknown value does not refresh again.
+  harness.resetSearchUrl("http://localhost/test-results");
+  await settlePromises();
+  harness.resetSearchUrl("http://localhost/test-results?families=new-family");
+  await settlePromises();
+  assert.deepEqual(harness.invalidations, ["app:families"]);
+  await unmountFromDocument(component, target);
+});
+
+/** @param {{querySelector: (selector: string) => unknown}} target @param {string} value */
+function typeDraftFamily(target, value) {
+  const textarea = /** @type {HTMLTextAreaElement} */ (
+    target.querySelector('[name="families"]')
+  );
+  assert.ok(textarea);
+  textarea.value = value;
+  dispatchBrowserEvent(textarea, "input");
+}
+
+void test("opening the filter drawer refreshes the family list once per opening", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.invalidations.length = 0;
+  harness.resetSearchUrl("http://localhost/test-results");
+  const { component, target } = mountInDocument({ apiFamilyNames: ["snap"] });
+  await settlePromises();
+  assert.deepEqual(harness.invalidations, []);
+  const initialRequests = harness.requests.length;
+
+  openFilterDrawer(target);
+  await settlePromises();
+  assert.deepEqual(harness.invalidations, ["app:families"]);
+
+  typeDraftFamily(target, "new-family");
+  await settlePromises();
+  assert.deepEqual(harness.invalidations, ["app:families"]);
+  const search = /** @type {HTMLButtonElement | null} */ (
+    target.querySelector('.filter-form button[type="submit"]')
+  );
+  assert.equal(search?.disabled, true);
+  assert.equal(harness.requests.length, initialRequests);
+
+  clickButton(target, '[aria-label="Close filters"]');
+  await settlePromises();
+  openFilterDrawer(target);
+  await settlePromises();
+  assert.deepEqual(harness.invalidations, ["app:families", "app:families"]);
+  assert.equal(harness.requests.length, initialRequests);
+  await unmountFromDocument(component, target);
+});
+
+void test("refreshing families keeps the results and an unsubmitted page jump", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.invalidations.length = 0;
+  harness.resetSearchUrl("http://localhost/test-results?page_size=25");
+  harness.setHandler((_path) => {
+    const params = new URL(_path, "http://localhost/").searchParams;
+    const limit = Number(params.get("limit"));
+    const offset = Number(params.get("offset"));
+    return Promise.resolve(
+      makePage(makeRows(57, limit, offset), { limit, offset, count: 57 }),
+    );
+  });
+  const { component, target } = mountInDocument({ apiFamilyNames: ["snap"] });
+  await settlePromises();
+  assert.equal(harness.requests.length, 1);
+
+  const jump = /** @type {HTMLInputElement | null} */ (
+    target.querySelector(".pager-jump-input")
+  );
+  assert.ok(jump);
+  jump.value = "3";
+  dispatchBrowserEvent(jump, "input");
+  await settlePromises();
+
+  openFilterDrawer(target);
+  await settlePromises();
+  assert.deepEqual(harness.invalidations, ["app:families"]);
+  assert.equal(harness.requests.length, 1);
+  assert.equal(
+    target.querySelector(".range")?.textContent.trim(),
+    "Showing 1–25 of 57 results",
+  );
+  assert.equal(jump.value, "3");
+  await unmountFromDocument(component, target);
+});
+
+void test("draft families that cannot be validated offer a family list refresh", async () => {
+  assert.ok(harness);
+  harness.resetApi();
+  harness.invalidations.length = 0;
+  harness.resetSearchUrl("http://localhost/test-results");
+  const { component, target } = mountInDocument({
+    apiFamilyNames: [],
+    familyNamesError: true,
+  });
+  await settlePromises();
+  const initialRequests = harness.requests.length;
+  openFilterDrawer(target);
+  await settlePromises();
+  harness.invalidations.length = 0;
+  assert.equal(target.querySelector(".filter-draft-errors"), null);
+
+  typeDraftFamily(target, "snap");
+  await settlePromises();
+  const errors = target.querySelector(".filter-draft-errors");
+  assert.match(errors?.textContent ?? "", /Could not validate family values/);
+  const search = /** @type {HTMLButtonElement | null} */ (
+    target.querySelector('.filter-form button[type="submit"]')
+  );
+  assert.equal(search?.disabled, true);
+
+  clickButton(target, ".filter-draft-errors .retry-button");
+  await settlePromises();
+  assert.deepEqual(harness.invalidations, ["app:families"]);
+  assert.equal(harness.requests.length, initialRequests);
   await unmountFromDocument(component, target);
 });
 
@@ -1628,16 +1800,7 @@ void test("advanced controls apply canonical filters, empty stage, and page-size
     );
   });
   const { component, target } = mountInDocument({
-    artefactFamilies: [
-      {
-        name: "snaps",
-        friendly_name: "Snap Testing",
-        api_name: "snap",
-        stages: ["edge", "beta", "candidate", "stable"],
-        columns: [],
-        filters: [],
-      },
-    ],
+    artefactFamilies: null,
   });
   await settlePromises();
   assert.equal(
@@ -1661,7 +1824,7 @@ void test("advanced controls apply canonical filters, empty stage, and page-size
   const stageEntry = target.querySelector("#filter-stage-entry");
   assert.ok(
     stageEntry,
-    "exact stage entry remains available alongside configured choices",
+    "exact stage entry remains available without family configuration",
   );
   /** @type {HTMLInputElement} */ (/** @type {unknown} */ (stageEntry)).value =
     "custom-stage";

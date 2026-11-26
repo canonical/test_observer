@@ -19,6 +19,10 @@ export type ExecutionMetadata = Record<string, string[]>;
 
 export type FamilyName = string;
 
+export interface FamilyResponse {
+  name: FamilyName;
+}
+
 export type TestResultStatus = "PASSED" | "FAILED" | "SKIPPED";
 
 export interface TestResultSearchFilters {
@@ -125,7 +129,6 @@ export interface ArtefactResponse {
   created_at: string;
   bug_link: string;
   jira_issue: string | null;
-  risk: string;
   all_environment_reviews_count: number;
   completed_environment_reviews_count: number;
   bundled_builds?: ArtefactBuildMinimalResponse[];
